@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+python-jose[cryptography]
+passlib[bcrypt]
+pydantic
+python-multipart # for form data
