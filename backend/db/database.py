@@ -1,35 +1,14 @@
 
-from passlib.context import CryptContext
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
+from sqlalchemy.orm import declarative_base
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+DATABASE_URL = "sqlite+aiosqlite:///./frbktg.db"
 
-# In-memory database
-DB = {
-    "users": {
-        1: {
-            "id": 1,
-            "email": "test@example.com",
-            "hashed_password": pwd_context.hash("password"),
-            "is_active": True,
-        }
-    },
-    "categories": {
-        1: {"id": 1, "name": "Электроника"},
-        2: {"id": 2, "name": "Одежда"},
-        3: {"id": 3, "name": "Книги"},
-    },
-    "products": {
-        1: {"id": 1, "name": "Ноутбук", "category_id": 1, "price": 120000, "stock": 15},
-        2: {"id": 2, "name": "Футболка", "category_id": 2, "price": 2500, "stock": 50},
-        3: {"id": 3, "name": "Война и мир", "category_id": 3, "price": 1500, "stock": 30},
-        4: {"id": 4, "name": "Смартфон", "category_id": 1, "price": 80000, "stock": 25},
-    },
-    "bot_users": {},
-    "orders": {},
-}
+engine = create_async_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Helper functions to get next ID
-def get_next_id(table: str) -> int:
-    if not DB[table]:
-        return 1
-    return max(DB[table].keys()) + 1
+Base = declarative_base()
+
+async def get_db():
+    async with SessionLocal() as session:
+        yield session
