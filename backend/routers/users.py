@@ -24,11 +24,25 @@ async def register_bot_user(
         result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.telegram_id == user.telegram_id))
         existing_user = result.scalars().first()
         if existing_user:
-            response_data = {
-                "user": models.BotUser.model_validate(existing_user).model_dump(),
-                "is_new": False
-            }
-            return success_response(response_data)
+            if not existing_user.is_deleted:
+                response_data = {
+                    "user": models.BotUser.model_validate(existing_user).model_dump(),
+                    "is_new": False
+                }
+                return success_response(response_data)
+            else:
+                # If user exists but is deleted, create a new one (effectively undelete and reset)
+                # Or create a new user with a new telegram_id if that's the desired behavior
+                # For now, let's assume we "undelete" and reset balance
+                existing_user.is_deleted = False
+                existing_user.balance = 0 # Reset balance for "new" user
+                await db.commit()
+                await db.refresh(existing_user)
+                response_data = {
+                    "user": models.BotUser.model_validate(existing_user).model_dump(),
+                    "is_new": True # Treat as new for the bot's perspective
+                }
+                return success_response(response_data, status_code=status.HTTP_201_CREATED)
 
         db_user = db_models.BotUser(telegram_id=user.telegram_id, balance=0)
         db.add(db_user)
@@ -49,7 +63,10 @@ async def read_bot_user(
     _ = Depends(security.verify_service_token)
 ):
     try:
-        result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.id == user_id))
+        result = await db.execute(select(db_models.BotUser).filter(
+            db_models.BotUser.id == user_id,
+            db_models.BotUser.is_deleted == False
+        ))
         user = result.scalars().first()
         if user is None:
             return error_response("Bot user not found", status_code=status.HTTP_404_NOT_FOUND)
@@ -65,7 +82,10 @@ async def get_balance(
     _ = Depends(security.verify_service_token)
 ):
     try:
-        result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.telegram_id == user_id))
+        result = await db.execute(select(db_models.BotUser).filter(
+            db_models.BotUser.telegram_id == user_id,
+            db_models.BotUser.is_deleted == False
+        ))
         user = result.scalars().first()
         if user is None:
             return error_response("Bot user not found", status_code=status.HTTP_404_NOT_FOUND)

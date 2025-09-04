@@ -22,7 +22,10 @@ async def deposit_balance(
     _ = Depends(security.verify_service_token)
 ):
     try:
-        result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.telegram_id == deposit.user_id))
+        result = await db.execute(select(db_models.BotUser).filter(
+            db_models.BotUser.telegram_id == deposit.user_id,
+            db_models.BotUser.is_deleted == False
+        ))
         user = result.scalars().first()
         if user is None:
             return error_response("Bot user not found", status_code=status.HTTP_404_NOT_FOUND)

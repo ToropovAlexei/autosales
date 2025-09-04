@@ -16,7 +16,10 @@ async def buy_from_balance(
     _ = Depends(security.verify_service_token)
 ):
     try:
-        user_result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.telegram_id == order_data.user_id))
+        user_result = await db.execute(select(db_models.BotUser).filter(
+            db_models.BotUser.telegram_id == order_data.user_id,
+            db_models.BotUser.is_deleted == False
+        ))
         user = user_result.scalars().first()
         if user is None:
             return error_response("Bot user not found", status_code=status.HTTP_404_NOT_FOUND)

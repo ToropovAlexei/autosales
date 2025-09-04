@@ -42,6 +42,7 @@ class BotUser(Base):
     id = Column(Integer, primary_key=True, index=True)
     telegram_id = Column(Integer, unique=True, index=True)
     balance = Column(Float, default=0.0)
+    is_deleted = Column(Boolean, default=False)
 
 class Order(Base):
     __tablename__ = "orders"
