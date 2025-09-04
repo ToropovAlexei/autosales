@@ -47,7 +47,13 @@ async def buy_from_balance(
     await db.commit()
     await db.refresh(db_order)
     await db.refresh(user)
+    await db.refresh(product)
 
 
-    return models.BuyResponse(order=db_order, balance=user.balance)
+    return models.BuyResponse(
+        order=db_order, 
+        balance=user.balance, 
+        product_name=product.name, 
+        product_price=product.price
+    )
 

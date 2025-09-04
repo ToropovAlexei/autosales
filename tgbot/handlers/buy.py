@@ -14,8 +14,10 @@ async def buy_handler(callback_query: CallbackQuery):
     try:
         result = await api_client.buy_product(user_id, product_id)
         new_balance = result["balance"]
+        product_name = result["product_name"]
+        product_price = result["product_price"]
         await callback_query.message.edit_text(
-            f"Вы успешно купили товар! Ваш новый баланс: {new_balance} ₽"
+            f"Вы успешно купили товар \"{product_name}\" за {product_price} ₽. Ваш новый баланс: {new_balance} ₽"
         )
     except ClientResponseError as e:
         error_message = "Произошла неизвестная ошибка."

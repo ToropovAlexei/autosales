@@ -86,3 +86,5 @@ class Order(OrderBase):
 class BuyResponse(BaseModel):
     order: Order
     balance: float
+    product_name: str
+    product_price: float
