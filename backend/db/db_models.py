@@ -1,8 +1,12 @@
-
-from sqlalchemy import Boolean, Column, Integer, String, Float, ForeignKey
+import enum
+from sqlalchemy import Boolean, Column, Integer, String, Float, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 
 from .database import Base
+
+class UserRole(str, enum.Enum):
+    admin = "admin"
+    seller = "seller"
 
 class User(Base):
     __tablename__ = "users"
@@ -11,6 +15,7 @@ class User(Base):
     email = Column(String, unique=True, index=True)
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
+    role = Column(Enum(UserRole), default=UserRole.seller, nullable=False)
 
 class Category(Base):
     __tablename__ = "categories"

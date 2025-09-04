@@ -15,7 +15,7 @@ async def init_db():
         # Create default user
         db_user = await session.get(User, 1)
         if not db_user:
-            session.add(User(id=1, email="test@example.com", hashed_password=get_password_hash("password")))
+            session.add(User(id=1, email="test@example.com", hashed_password=get_password_hash("password"), role="admin"))
 
         # Create default categories
         if not (await session.get(Category, 1)):

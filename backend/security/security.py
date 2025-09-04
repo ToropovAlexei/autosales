@@ -51,9 +51,10 @@ async def get_current_active_user(token: str = Depends(oauth2_scheme), db: Async
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         email: str = payload.get("sub")
+        role: str = payload.get("role")
         if email is None:
             raise credentials_exception
-        token_data = models.TokenData(email=email)
+        token_data = models.TokenData(email=email, role=role)
     except JWTError:
         raise credentials_exception
     
@@ -61,7 +62,7 @@ async def get_current_active_user(token: str = Depends(oauth2_scheme), db: Async
     if user is None:
         raise credentials_exception
     
-    pydantic_user = models.User.from_orm(user)
+    pydantic_user = models.User.model_validate(user)
     if not pydantic_user.is_active:
         raise HTTPException(status_code=400, detail="Inactive user")
     return pydantic_user

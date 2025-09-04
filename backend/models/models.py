@@ -1,6 +1,10 @@
-
+import enum
 from pydantic import BaseModel
 from typing import Optional
+
+class UserRole(str, enum.Enum):
+    admin = "admin"
+    seller = "seller"
 
 # Category Models
 class CategoryBase(BaseModel):
@@ -37,10 +41,12 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    role: UserRole = UserRole.seller
 
 class User(UserBase):
     id: int
     is_active: bool
+    role: UserRole
 
     class Config:
         from_attributes = True
@@ -52,6 +58,7 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: Optional[str] = None
+    role: Optional[str] = None
 
 # Bot User Models
 class BotUserBase(BaseModel):
