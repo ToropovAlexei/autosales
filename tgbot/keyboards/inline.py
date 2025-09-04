@@ -4,7 +4,8 @@ def main_menu():
     buttons = [
         [InlineKeyboardButton(text="🛍️ Каталог", callback_data="catalog")],
         [InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="deposit")],
-        [InlineKeyboardButton(text="💳 Баланс", callback_data="balance")]
+        [InlineKeyboardButton(text="💳 Баланс", callback_data="balance")],
+        [InlineKeyboardButton(text="💬 Поддержка", callback_data="support")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 

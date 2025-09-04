@@ -5,6 +5,7 @@ from aiogram.utils.markdown import hbold
 
 from api import api_client
 from keyboards import inline
+from config import settings
 
 router = Router()
 
@@ -29,5 +30,12 @@ async def start_handler(message: Message):
 async def main_menu_handler(callback_query: CallbackQuery):
     await callback_query.message.edit_text(
         "Главное меню",
+        reply_markup=inline.main_menu()
+    )
+
+@router.callback_query(F.data == "support")
+async def support_handler(callback_query: CallbackQuery):
+    await callback_query.message.edit_text(
+        f"Для связи с поддержкой, пожалуйста, напишите нам: {settings.support_url}",
         reply_markup=inline.main_menu()
     )

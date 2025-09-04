@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     service_token: str = "a_very_secret_service_key"
     redis_host: str = "localhost"
     redis_port: int = 6379
+    support_url: str = "http://localhost:8000/support"
 
     class Config:
         env_file = ".env"
