@@ -1,4 +1,28 @@
-*__pycache__/
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.venv/
 *.db
-*/node_modules
-*.next/
+*.sqlite3
+
+# Node
+node_modules/
+.next/
+dist/
+build/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE / OS
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
