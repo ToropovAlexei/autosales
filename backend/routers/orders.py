@@ -10,7 +10,7 @@ from security import security
 
 router = APIRouter()
 
-@router.post("/buy-from-balance", response_model=models.Order)
+@router.post("/buy-from-balance", response_model=models.BuyResponse)
 async def buy_from_balance(
     order_data: models.OrderCreate,
     db: AsyncSession = Depends(database.get_db),
@@ -46,6 +46,8 @@ async def buy_from_balance(
     db.add(db_order)
     await db.commit()
     await db.refresh(db_order)
+    await db.refresh(user)
 
-    return db_order
+
+    return models.BuyResponse(order=db_order, balance=user.balance)
 

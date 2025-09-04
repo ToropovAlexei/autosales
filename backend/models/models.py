@@ -82,3 +82,7 @@ class Order(OrderBase):
 
     class Config:
         from_attributes = True
+
+class BuyResponse(BaseModel):
+    order: Order
+    balance: float
