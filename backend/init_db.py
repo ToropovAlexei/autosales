@@ -3,7 +3,7 @@ import asyncio
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from db.database import engine, Base, SessionLocal
-from db.db_models import User, Category, Product
+from db.db_models import User, Category, Product, UserRole
 from security.security import get_password_hash
 
 async def init_db():
@@ -15,7 +15,7 @@ async def init_db():
         # Create default user
         db_user = await session.get(User, 1)
         if not db_user:
-            session.add(User(id=1, email="test@example.com", hashed_password=get_password_hash("password"), role="admin"))
+            session.add(User(id=1, email="test@example.com", hashed_password=get_password_hash("password"), role=UserRole.admin))
 
         # Create default categories
         if not (await session.get(Category, 1)):

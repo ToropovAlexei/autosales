@@ -10,8 +10,16 @@ import {
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 
+interface User {
+  id: number;
+  email: string;
+  is_active: boolean;
+  role: "admin" | "seller";
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
+  user: User | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   loading: boolean;
@@ -29,17 +37,32 @@ export function useAuth() {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+
+  const fetchUser = async () => {
+    try {
+      const userData = await api.get("/users/me");
+      setUser(userData);
+      setIsAuthenticated(true);
+    } catch (error) {
+      console.error("Failed to fetch user", error);
+      localStorage.removeItem("jwt");
+      setUser(null);
+      setIsAuthenticated(false);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("jwt");
     if (token) {
-      setIsAuthenticated(true);
+      fetchUser();
     } else {
-      setIsAuthenticated(false);
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -47,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await api.postForm("/auth/login", { username: email, password });
       if (data.access_token) {
         localStorage.setItem("jwt", data.access_token);
-        setIsAuthenticated(true);
+        await fetchUser();
         router.push("/categories");
       }
     } catch (error) {
@@ -58,12 +81,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem("jwt");
+    setUser(null);
     setIsAuthenticated(false);
     router.push("/login");
   };
 
   const value = {
     isAuthenticated,
+    user,
     login,
     logout,
     loading,

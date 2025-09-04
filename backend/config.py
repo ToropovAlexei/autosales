@@ -1,5 +1,7 @@
-
 from pydantic_settings import BaseSettings
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
 
 class Settings(BaseSettings):
     CORS_ORIGINS: list[str]
@@ -8,8 +10,5 @@ class Settings(BaseSettings):
     ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     SERVICE_API_KEY: str
-
-    class Config:
-        env_file = ".env"
 
 settings = Settings()

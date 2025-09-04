@@ -12,7 +12,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { isAuthenticated, loading, logout } = useAuth();
+  const { isAuthenticated, user, loading, logout } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -35,6 +35,11 @@ export default function DashboardLayout({
           <Link href="/products">
             <Button variant="outline">Товары</Button>
           </Link>
+          {user?.role === 'admin' && (
+            <Link href="/bot-users">
+              <Button variant="outline">Пользователи бота</Button>
+            </Link>
+          )}
         </nav>
         <Button variant="outline" onClick={logout}>Выход</Button>
       </header>
