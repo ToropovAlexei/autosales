@@ -10,13 +10,9 @@ from sqlalchemy import select
 
 from db import database, db_models
 from models import models
+from config import settings
 
 # Configuration
-SECRET_KEY = "a_very_secret_key_that_should_be_in_env_vars"
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
-SERVICE_API_KEY = "a_very_secret_service_key"
-
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
 
@@ -35,9 +31,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=15)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
 # User lookup
@@ -53,7 +49,7 @@ async def get_current_active_user(token: str = Depends(oauth2_scheme), db: Async
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
@@ -72,7 +68,7 @@ async def get_current_active_user(token: str = Depends(oauth2_scheme), db: Async
 
 # Dependency for service token
 async def verify_service_token(x_api_key: str = Security(api_key_header)):
-    if x_api_key != SERVICE_API_KEY:
+    if x_api_key != settings.SERVICE_API_KEY:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Invalid service token",

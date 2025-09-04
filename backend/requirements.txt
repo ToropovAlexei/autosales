@@ -6,3 +6,4 @@ pydantic
 python-multipart # for form data
 sqlalchemy
 aiosqlite
+pydantic-settings
