@@ -1,5 +1,4 @@
-
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -7,6 +6,7 @@ from sqlalchemy import select
 from models import models
 from db import database, db_models
 from security import security
+from core.responses import success_response, error_response
 
 router = APIRouter()
 
@@ -21,15 +21,18 @@ async def deposit_balance(
     db: AsyncSession = Depends(database.get_db),
     _ = Depends(security.verify_service_token)
 ):
-    result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.telegram_id == deposit.user_id))
-    user = result.scalars().first()
-    if user is None:
-        raise HTTPException(status_code=404, detail="Bot user not found")
-    
-    user.balance += deposit.amount
-    await db.commit()
-    await db.refresh(user)
-    return {"message": "Balance updated successfully", "new_balance": user.balance}
+    try:
+        result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.telegram_id == deposit.user_id))
+        user = result.scalars().first()
+        if user is None:
+            return error_response("Bot user not found", status_code=status.HTTP_404_NOT_FOUND)
+        
+        user.balance += deposit.amount
+        await db.commit()
+        await db.refresh(user)
+        return success_response({"message": "Balance updated successfully", "new_balance": user.balance})
+    except Exception as e:
+        return error_response(str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @router.post("/webhook")
 async def payment_webhook(payload: dict):
@@ -37,4 +40,4 @@ async def payment_webhook(payload: dict):
     # that verifies the webhook signature from the payment provider.
     print("Received webhook:", payload)
     # Here you would parse the payload and update the user's balance.
-    return {"status": "received"}
+    return success_response({"status": "received"})

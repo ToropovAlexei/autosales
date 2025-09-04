@@ -13,28 +13,18 @@ async def buy_handler(callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     try:
         result = await api_client.buy_product(user_id, product_id)
-        new_balance = result["balance"]
-        product_name = result["product_name"]
-        product_price = result["product_price"]
-        await callback_query.message.edit_text(
-            f"Вы успешно купили товар \"{product_name}\" за {product_price} ₽. Ваш новый баланс: {new_balance} ₽"
-        )
-    except ClientResponseError as e:
-        error_message = "Произошла неизвестная ошибка."
-        if e.status == 400:
-            try:
-                data = await e.json()
-                detail = data.get("detail", "")
-                if detail == "Insufficient balance":
-                    error_message = "Недостаточно средств. Пополните баланс."
-                elif detail == "Product out of stock":
-                    error_message = "Товар закончился."
-            except:
-                pass
-        elif e.status == 404:
-            error_message = "Товар не найден."
-
-        await callback_query.message.edit_text(error_message)
+        if result.get("success"):
+            data = result["data"]
+            new_balance = data["balance"]
+            product_name = data["product_name"]
+            product_price = data["product_price"]
+            await callback_query.message.edit_text(
+                f'Вы успешно купили товар "{product_name}" за {product_price} ₽. Ваш новый баланс: {new_balance} ₽'
+            )
+        else:
+            error = result.get("error", "Произошла неизвестная ошибка.")
+            await callback_query.message.edit_text(error)
+            
     except Exception as e:
         await callback_query.message.edit_text(f"Произошла ошибка: {e}")
     await callback_query.answer()
