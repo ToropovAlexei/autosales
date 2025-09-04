@@ -13,7 +13,7 @@ router = APIRouter()
 async def read_users_me(current_user: models.User = Depends(security.get_current_active_user)):
     return success_response(models.User.model_validate(current_user).model_dump())
 
-@router.post("/register", status_code=status.HTTP_201_CREATED)
+@router.post("/register", status_code=status.HTTP_200_OK)
 async def register_bot_user(
     user: models.BotUserCreate,
     db: AsyncSession = Depends(database.get_db),
@@ -24,13 +24,21 @@ async def register_bot_user(
         result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.telegram_id == user.telegram_id))
         existing_user = result.scalars().first()
         if existing_user:
-            return success_response(models.BotUser.model_validate(existing_user).model_dump())
+            response_data = {
+                "user": models.BotUser.model_validate(existing_user).model_dump(),
+                "is_new": False
+            }
+            return success_response(response_data)
 
         db_user = db_models.BotUser(telegram_id=user.telegram_id, balance=0)
         db.add(db_user)
         await db.commit()
         await db.refresh(db_user)
-        return success_response(models.BotUser.model_validate(db_user).model_dump(), status_code=status.HTTP_201_CREATED)
+        response_data = {
+            "user": models.BotUser.model_validate(db_user).model_dump(),
+            "is_new": True
+        }
+        return success_response(response_data, status_code=status.HTTP_201_CREATED)
     except Exception as e:
         return error_response(str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
