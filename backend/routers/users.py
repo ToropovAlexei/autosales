@@ -9,6 +9,10 @@ from core.responses import success_response, error_response
 
 router = APIRouter()
 
+@router.get("/me")
+async def read_users_me(current_user: models.User = Depends(security.get_current_active_user)):
+    return success_response(models.User.model_validate(current_user).model_dump())
+
 @router.post("/register", status_code=status.HTTP_201_CREATED)
 async def register_bot_user(
     user: models.BotUserCreate,
@@ -60,7 +64,3 @@ async def get_balance(
         return success_response({"balance": user.balance})
     except Exception as e:
         return error_response(str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-@router.get("/me")
-async def read_users_me(current_user: models.User = Depends(security.get_current_active_user)):
-    return success_response(models.User.model_validate(current_user).model_dump())
