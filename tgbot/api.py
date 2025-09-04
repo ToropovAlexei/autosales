@@ -32,4 +32,7 @@ class APIClient:
     async def create_deposit(self, user_id: int, amount: int):
         return await self._request("POST", "/balance/deposit", json={"user_id": user_id, "amount": amount})
 
+    async def update_user_captcha_status(self, user_id: int, status: bool):
+        return await self._request("PUT", f"/users/{user_id}/captcha-status", json={"has_passed_captcha": status})
+
 api_client = APIClient()

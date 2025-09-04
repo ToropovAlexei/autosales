@@ -70,6 +70,8 @@ class BotUserCreate(BotUserBase):
 class BotUser(BotUserBase):
     id: int
     balance: float = 0
+    is_deleted: bool = False
+    has_passed_captcha: bool = False
 
     class Config:
         from_attributes = True

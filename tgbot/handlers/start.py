@@ -25,11 +25,15 @@ async def start_handler(message: Message, state: FSMContext):
         response = await api_client.register_user(message.from_user.id)
         if response.get("success"):
             data = response["data"]
-            if data["is_new"]:
-                # New user, show captcha
+            user_data = data["user"]
+            is_new = data["is_new"]
+            has_passed_captcha = user_data["has_passed_captcha"]
+
+            if is_new or not has_passed_captcha:
+                # New user or user hasn't passed captcha, show captcha
                 captcha_image, correct_answer, options = generate_captcha_and_options()
                 await state.set_state(CaptchaState.waiting_for_answer)
-                await state.update_data(correct_answer=correct_answer)
+                await state.update_data(correct_answer=correct_answer, user_id=user_data["id"])
                 
                 await message.answer_photo(
                     photo=BufferedInputFile(captcha_image.getvalue(), "captcha.png"),
@@ -37,7 +41,7 @@ async def start_handler(message: Message, state: FSMContext):
                     reply_markup=captcha_keyboard(options)
                 )
             else:
-                # Existing user, show main menu
+                # Existing user who has passed captcha, show main menu
                 await message.answer(
                     f"С возвращением, {hbold(message.from_user.full_name)}!",
                     reply_markup=inline.main_menu(),
@@ -51,8 +55,24 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
     answer = callback_query.data.split("_")[1]
     data = await state.get_data()
     correct_answer = data.get("correct_answer")
+    user_id = data.get("user_id")
+
+    if user_id is None:
+        await callback_query.answer("Произошла ошибка. Пожалуйста, попробуйте начать заново (/start).", show_alert=True)
+        await state.clear()
+        return
 
     if answer == correct_answer:
+        try:
+            # Update has_passed_captcha in DB
+            update_response = await api_client.update_user_captcha_status(user_id, True)
+            if not update_response.get("success"):
+                await callback_query.answer(f"Ошибка при обновлении статуса капчи: {update_response.get('error')}", show_alert=True)
+                return
+        except Exception as e:
+            await callback_query.answer(f"Ошибка при отправке запроса на обновление статуса капчи: {e}", show_alert=True)
+            return
+
         await callback_query.message.delete()
         await callback_query.message.answer(
             f"Добро пожаловать, {hbold(callback_query.from_user.full_name)}!\n\n"

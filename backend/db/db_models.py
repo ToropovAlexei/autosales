@@ -43,6 +43,7 @@ class BotUser(Base):
     telegram_id = Column(Integer, unique=True, index=True)
     balance = Column(Float, default=0.0)
     is_deleted = Column(Boolean, default=False)
+    has_passed_captcha = Column(Boolean, default=False)
 
 class Order(Base):
     __tablename__ = "orders"
