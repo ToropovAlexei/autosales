@@ -1,0 +1,4 @@
+aiogram
+redis
+aiohttp
+pydantic-settings
