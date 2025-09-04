@@ -12,7 +12,6 @@ class APIClient:
         url = f"{self.base_url}{endpoint}"
         async with aiohttp.ClientSession(headers=self.headers) as session:
             async with session.request(method, url, **kwargs) as response:
-                response.raise_for_status()
                 return await response.json()
 
     async def register_user(self, telegram_id: int):

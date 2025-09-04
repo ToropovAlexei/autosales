@@ -1,13 +1,12 @@
-from aiogram import Router
+from aiogram import Router, F
 from aiogram.types import CallbackQuery
-from aiohttp import ClientResponseError
+from aiogram.utils.markdown import hbold
 
 from api import api_client
 
 router = Router()
 
-
-@router.callback_query(lambda c: c.data.startswith("buy_"))
+@router.callback_query(F.data.startswith("buy_"))
 async def buy_handler(callback_query: CallbackQuery):
     product_id = int(callback_query.data.split("_")[1])
     user_id = callback_query.from_user.id
@@ -19,13 +18,20 @@ async def buy_handler(callback_query: CallbackQuery):
             product_name = data["product_name"]
             product_price = data["product_price"]
             await callback_query.message.edit_text(
-                f'Вы успешно купили товар "{product_name}" за {product_price} ₽. Ваш новый баланс: {new_balance} ₽'
+                f"✅ Поздравляем! Вы успешно купили товар {hbold(product_name)} за {hbold(f'{product_price} ₽')}.\n\n"
+                f"💳 Ваш новый баланс: {hbold(f'{new_balance} ₽')}",
+                parse_mode="HTML"
             )
         else:
             error = result.get("error", "Произошла неизвестная ошибка.")
-            await callback_query.message.edit_text(error)
-            
+            if error == "Insufficient balance":
+                error_message = "😔 Недостаточно средств на балансе для совершения покупки. Пожалуйста, пополните баланс."
+            elif error == "Product out of stock":
+                error_message = "😔 К сожалению, этот товар закончился."
+            else:
+                error_message = f"Произошла ошибка: {error}"
+            await callback_query.message.edit_text(error_message)
+
     except Exception as e:
         await callback_query.message.edit_text(f"Произошла ошибка: {e}")
     await callback_query.answer()
-
