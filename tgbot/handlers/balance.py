@@ -11,7 +11,7 @@ async def balance_handler(callback_query: CallbackQuery):
     try:
         user_id = callback_query.from_user.id
         balance_data = await api_client.get_user_balance(user_id)
-        balance = balance_data['data']['balance']
+        balance = balance_data
         await callback_query.message.answer(f"Ваш баланс: {balance} ₽")
     except Exception as e:
         await callback_query.message.answer(f"Произошла ошибка: {e}")

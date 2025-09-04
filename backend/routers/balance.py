@@ -14,17 +14,6 @@ class Deposit(BaseModel):
     user_id: int
     amount: float
 
-@router.get("/users/{user_id}/balance", response_model=float)
-async def get_balance(
-    user_id: int,
-    db: AsyncSession = Depends(database.get_db),
-    _ = Depends(security.verify_service_token)
-):
-    result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.id == user_id))
-    user = result.scalars().first()
-    if user is None:
-        raise HTTPException(status_code=404, detail="Bot user not found")
-    return user.balance
 
 @router.post("/deposit")
 async def deposit_balance(
@@ -32,13 +21,14 @@ async def deposit_balance(
     db: AsyncSession = Depends(database.get_db),
     _ = Depends(security.verify_service_token)
 ):
-    result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.id == deposit.user_id))
+    result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.telegram_id == deposit.user_id))
     user = result.scalars().first()
     if user is None:
         raise HTTPException(status_code=404, detail="Bot user not found")
     
     user.balance += deposit.amount
     await db.commit()
+    await db.refresh(user)
     return {"message": "Balance updated successfully", "new_balance": user.balance}
 
 @router.post("/webhook")

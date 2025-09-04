@@ -17,7 +17,7 @@ async def buy_from_balance(
     _ = Depends(security.verify_service_token)
 ):
     # Get user and product in one query if possible, but for clarity we do it separately
-    user_result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.id == order_data.user_id))
+    user_result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.telegram_id == order_data.user_id))
     user = user_result.scalars().first()
     if user is None:
         raise HTTPException(status_code=404, detail="Bot user not found")

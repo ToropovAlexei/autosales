@@ -11,7 +11,7 @@ async def buy_handler(callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     try:
         result = await api_client.buy_product(user_id, product_id)
-        if result.get('success'):
+        if result.get('status') == 'success':
             new_balance = result['data']['balance']
             await callback_query.message.edit_text(f"Вы успешно купили товар! Ваш новый баланс: {new_balance} ₽")
         else:

@@ -40,3 +40,16 @@ async def read_bot_user(
         raise HTTPException(status_code=404, detail="Bot user not found")
     return user
 
+
+@router.get("/{user_id}/balance", response_model=float)
+async def get_balance(
+    user_id: int,
+    db: AsyncSession = Depends(database.get_db),
+    _ = Depends(security.verify_service_token)
+):
+    result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.telegram_id == user_id))
+    user = result.scalars().first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="Bot user not found")
+    return user.balance
+
