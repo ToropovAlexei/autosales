@@ -5,5 +5,5 @@ passlib[bcrypt]
 pydantic
 python-multipart # for form data
 sqlalchemy
-aiosqlite
+asyncpg
 pydantic-settings
