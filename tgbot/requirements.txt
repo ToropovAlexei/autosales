@@ -5,3 +5,4 @@ pydantic-settings
 dotenv
 captcha
 requests
+telethon
