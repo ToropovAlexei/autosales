@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
+from typing import List
 import traceback
 
 from models import models
@@ -35,7 +36,6 @@ async def register_bot_user(
             else:
                 # If user exists but is deleted, create a new one (effectively undelete and reset)
                 existing_user.is_deleted = False
-                existing_user.balance = 0 # Reset balance for "new" user
                 existing_user.has_passed_captcha = False # Must pass captcha again
                 await db.commit()
                 await db.refresh(existing_user)
@@ -46,7 +46,7 @@ async def register_bot_user(
                 }
                 return success_response(response_data, status_code=status.HTTP_201_CREATED)
 
-        db_user = db_models.BotUser(telegram_id=user.telegram_id, balance=0, has_passed_captcha=False)
+        db_user = db_models.BotUser(telegram_id=user.telegram_id, has_passed_captcha=False)
         db.add(db_user)
         await db.commit()
         await db.refresh(db_user)
@@ -93,6 +93,35 @@ async def get_balance(
         user = result.scalars().first()
         if user is None:
             return error_response("Bot user not found", status_code=status.HTTP_404_NOT_FOUND)
+
+        balance_result = await db.execute(
+            select(func.sum(db_models.Transaction.amount)).filter(db_models.Transaction.user_id == user.id)
+        )
+        balance = balance_result.scalar_one_or_none() or 0
+        return success_response({"balance": balance})
+    except Exception as e:
+        return error_response(str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@router.get("/{user_id}/transactions", response_model=List[models.Transaction])
+async def get_transactions(
+    user_id: int,
+    db: AsyncSession = Depends(database.get_db),
+    _ = Depends(security.verify_service_token)
+):
+    try:
+        result = await db.execute(select(db_models.BotUser).filter(
+            db_models.BotUser.telegram_id == user_id,
+            db_models.BotUser.is_deleted == False
+        ))
+        user = result.scalars().first()
+        if user is None:
+            return error_response("Bot user not found", status_code=status.HTTP_404_NOT_FOUND)
+
+        transactions_result = await db.execute(
+            select(db_models.Transaction).filter(db_models.Transaction.user_id == user.id).order_by(db_models.Transaction.created_at.desc())
+        )
+        transactions = transactions_result.scalars().all()
+        return success_response(transactions)
     except Exception as e:
         return error_response(str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 

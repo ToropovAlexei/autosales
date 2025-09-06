@@ -36,9 +36,17 @@ export default function DashboardLayout({
             <Button variant="outline">Товары</Button>
           </Link>
           {user?.role === 'admin' && (
-            <Link href="/bot-users">
-              <Button variant="outline">Пользователи бота</Button>
-            </Link>
+            <>
+              <Link href="/bot-users">
+                <Button variant="outline">Пользователи бота</Button>
+              </Link>
+              <Link href="/transactions">
+                <Button variant="outline">Транзакции</Button>
+              </Link>
+              <Link href="/stock">
+                <Button variant="outline">Склад</Button>
+              </Link>
+            </>
           )}
         </nav>
         <Button variant="outline" onClick={logout}>Выход</Button>

@@ -2,6 +2,7 @@ from typing import TypeVar, Generic, Optional, Any
 from pydantic import BaseModel, Field
 from fastapi.responses import JSONResponse
 from fastapi import status
+from fastapi.encoders import jsonable_encoder
 
 T = TypeVar('T')
 
@@ -15,7 +16,7 @@ def success_response(data: Any, status_code: int = status.HTTP_200_OK) -> JSONRe
         status_code=status_code,
         content={
             "success": True,
-            "data": data,
+            "data": jsonable_encoder(data),
             "error": None,
         },
     )

@@ -48,7 +48,7 @@ interface ProductFormData {
   name: string;
   category_id: number;
   price: number;
-  stock: number;
+  initial_stock: number;
 }
 
 export default function ProductsPage() {
@@ -61,7 +61,7 @@ export default function ProductsPage() {
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [price, setPrice] = useState("");
-  const [stock, setStock] = useState("");
+  const [initialStock, setInitialStock] = useState("");
 
   const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
     queryKey: ["products"],
@@ -87,18 +87,17 @@ export default function ProductsPage() {
       setName("");
       setCategoryId(null);
       setPrice("");
-      setStock("");
+      setInitialStock("");
       setIsAddOpen(false);
     },
   });
 
   const editMutation = useMutation({
-    mutationFn: (updatedProduct: Product) =>
+    mutationFn: (updatedProduct: Omit<Product, "stock">) =>
       api.put(`/products/${updatedProduct.id}`, {
         name: updatedProduct.name,
         category_id: updatedProduct.category_id,
         price: updatedProduct.price,
-        stock: updatedProduct.stock,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
@@ -115,19 +114,20 @@ export default function ProductsPage() {
   });
 
   const handleAddProduct = () => {
-    if (name.trim() !== "" && categoryId && price && stock) {
+    if (name.trim() !== "" && categoryId && price && initialStock) {
       addMutation.mutate({
         name,
         category_id: categoryId,
         price: parseFloat(price),
-        stock: parseInt(stock, 10),
+        initial_stock: parseInt(initialStock, 10),
       });
     }
   };
 
   const handleEditProduct = () => {
     if (selectedProduct) {
-      editMutation.mutate(selectedProduct);
+      const { stock, ...productToUpdate } = selectedProduct;
+      editMutation.mutate(productToUpdate);
     }
   };
 
@@ -195,14 +195,14 @@ export default function ProductsPage() {
                 />
               </div>
               <div className="grid items-center grid-cols-4 gap-4">
-                <Label htmlFor="stock" className="text-right">
-                  Остаток
+                <Label htmlFor="initial_stock" className="text-right">
+                  Начальный остаток
                 </Label>
                 <Input
-                  id="stock"
+                  id="initial_stock"
                   type="number"
-                  value={stock}
-                  onChange={(e) => setStock(e.target.value)}
+                  value={initialStock}
+                  onChange={(e) => setInitialStock(e.target.value)}
                   className="col-span-3"
                 />
               </div>
@@ -322,22 +322,6 @@ export default function ProductsPage() {
                   onChange={(e) =>
                     setSelectedProduct((p) =>
                       p ? { ...p, price: Number(e.target.value) } : null
-                    )
-                  }
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid items-center grid-cols-4 gap-4">
-                <Label htmlFor="edit-stock" className="text-right">
-                  Остаток
-                </Label>
-                <Input
-                  id="edit-stock"
-                  type="number"
-                  value={selectedProduct.stock}
-                  onChange={(e) =>
-                    setSelectedProduct((p) =>
-                      p ? { ...p, stock: Number(e.target.value) } : null
                     )
                   }
                   className="col-span-3"

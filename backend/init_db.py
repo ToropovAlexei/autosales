@@ -1,10 +1,10 @@
-
 import asyncio
 from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from db.database import engine, Base, SessionLocal
-from db.db_models import User, Category, Product, UserRole
+from db.db_models import User, Category, Product, UserRole, StockMovement, StockMovementType
 from security.security import get_password_hash
+import datetime
 
 async def init_db():
     async with engine.begin() as conn:
@@ -25,9 +25,15 @@ async def init_db():
         
         # Create default products
         if not (await session.get(Product, 1)):
-            session.add(Product(id=1, name="Ноутбук", category_id=1, price=120000, stock=15))
-            session.add(Product(id=2, name="Футболка", category_id=2, price=2500, stock=50))
-            session.add(Product(id=3, name="Война и мир", category_id=3, price=1500, stock=30))
+            product1 = Product(id=1, name="Ноутбук", category_id=1, price=120000)
+            product2 = Product(id=2, name="Футболка", category_id=2, price=2500)
+            product3 = Product(id=3, name="Война и мир", category_id=3, price=1500)
+            session.add_all([product1, product2, product3])
+            await session.flush()
+
+            session.add(StockMovement(product_id=1, type=StockMovementType.INITIAL, quantity=15, created_at=datetime.datetime.utcnow(), description="Initial stock"))
+            session.add(StockMovement(product_id=2, type=StockMovementType.INITIAL, quantity=50, created_at=datetime.datetime.utcnow(), description="Initial stock"))
+            session.add(StockMovement(product_id=3, type=StockMovementType.INITIAL, quantity=30, created_at=datetime.datetime.utcnow(), description="Initial stock"))
 
         await session.commit()
 

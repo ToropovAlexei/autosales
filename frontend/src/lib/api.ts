@@ -108,6 +108,14 @@ const api = {
     });
     return handleResponse(response);
   },
+
+  async getTransactions() {
+    return this.get('/transactions');
+  },
+
+  async getStockMovements() {
+    return this.get('/stock/movements');
+  },
 };
 
 export default api;

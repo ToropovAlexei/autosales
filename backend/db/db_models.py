@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import Boolean, Column, Integer, String, Float, ForeignKey, Enum
+from sqlalchemy import Boolean, Column, Integer, String, Float, ForeignKey, Enum, DateTime
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -31,7 +31,6 @@ class Product(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     price = Column(Float)
-    stock = Column(Integer)
     category_id = Column(Integer, ForeignKey("categories.id"))
 
     category = relationship("Category", back_populates="products")
@@ -41,9 +40,23 @@ class BotUser(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     telegram_id = Column(Integer, unique=True, index=True)
-    balance = Column(Float, default=0.0)
     is_deleted = Column(Boolean, default=False)
     has_passed_captcha = Column(Boolean, default=False)
+
+class TransactionType(str, enum.Enum):
+    DEPOSIT = "deposit"
+    PURCHASE = "purchase"
+
+class Transaction(Base):
+    __tablename__ = "transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("bot_users.id"))
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=True)
+    type = Column(Enum(TransactionType), nullable=False)
+    amount = Column(Float, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+    description = Column(String)
 
 class Order(Base):
     __tablename__ = "orders"
@@ -53,3 +66,19 @@ class Order(Base):
     product_id = Column(Integer, ForeignKey("products.id"))
     amount = Column(Float)
     status = Column(String)
+
+class StockMovementType(str, enum.Enum):
+    INITIAL = "initial"
+    SALE = "sale"
+    RESTOCK = "restock"
+    RETURN = "return"
+
+class StockMovement(Base):
+    __tablename__ = "stock_movements"
+
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"))
+    type = Column(Enum(StockMovementType), nullable=False)
+    quantity = Column(Integer, nullable=False)
+    created_at = Column(DateTime, nullable=False)
+    description = Column(String)

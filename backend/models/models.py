@@ -1,4 +1,5 @@
 import enum
+import datetime
 from pydantic import BaseModel
 from typing import Optional
 
@@ -24,13 +25,13 @@ class ProductBase(BaseModel):
     name: str
     category_id: int
     price: float
-    stock: int
 
 class ProductCreate(ProductBase):
-    pass
+    initial_stock: int = 0
 
 class Product(ProductBase):
     id: int
+    stock: int = 0
 
     class Config:
         from_attributes = True
@@ -69,9 +70,31 @@ class BotUserCreate(BotUserBase):
 
 class BotUser(BotUserBase):
     id: int
-    balance: float = 0
     is_deleted: bool = False
     has_passed_captcha: bool = False
+    balance: float = 0
+
+    class Config:
+        from_attributes = True
+
+# Transaction Models
+class TransactionType(str, enum.Enum):
+    DEPOSIT = "deposit"
+    PURCHASE = "purchase"
+
+class TransactionBase(BaseModel):
+    user_id: int
+    order_id: Optional[int] = None
+    type: TransactionType
+    amount: float
+    description: Optional[str] = None
+
+class TransactionCreate(TransactionBase):
+    pass
+
+class Transaction(TransactionBase):
+    id: int
+    created_at: datetime.datetime
 
     class Config:
         from_attributes = True
@@ -94,6 +117,28 @@ class Order(OrderBase):
 
 class BuyResponse(BaseModel):
     order: Order
-    balance: float
     product_name: str
     product_price: float
+
+# Stock Movement Models
+class StockMovementType(str, enum.Enum):
+    INITIAL = "initial"
+    SALE = "sale"
+    RESTOCK = "restock"
+    RETURN = "return"
+
+class StockMovementBase(BaseModel):
+    product_id: int
+    type: StockMovementType
+    quantity: int
+    description: Optional[str] = None
+
+class StockMovementCreate(StockMovementBase):
+    pass
+
+class StockMovement(StockMovementBase):
+    id: int
+    created_at: datetime.datetime
+
+    class Config:
+        from_attributes = True

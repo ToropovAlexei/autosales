@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     redis_host: str
     redis_port: int
     support_url: str
+    api_id: str
+    api_hash: str
 
     class Config:
         env_file = ".env"

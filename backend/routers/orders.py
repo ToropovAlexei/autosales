@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
+import datetime
 
 from models import models
 from db import database, db_models
@@ -29,31 +30,58 @@ async def buy_from_balance(
         if product is None:
             return error_response("Product not found", status_code=status.HTTP_404_NOT_FOUND)
 
-        if product.stock <= 0:
+        # Calculate stock
+        stock_result = await db.execute(
+            select(func.sum(db_models.StockMovement.quantity)).filter(db_models.StockMovement.product_id == product.id)
+        )
+        stock = stock_result.scalar_one_or_none() or 0
+
+        if stock <= 0:
             return error_response("Product out of stock", status_code=status.HTTP_400_BAD_REQUEST)
 
-        if user.balance < product.price:
+        # Calculate balance
+        balance_result = await db.execute(
+            select(func.sum(db_models.Transaction.amount)).filter(db_models.Transaction.user_id == user.id)
+        )
+        balance = balance_result.scalar_one_or_none() or 0
+
+        if balance < product.price:
             return error_response("Insufficient balance", status_code=status.HTTP_400_BAD_REQUEST)
 
-        # Perform transaction
-        user.balance -= product.price
-        product.stock -= 1
-
         db_order = db_models.Order(
-            user_id=order_data.user_id,
+            user_id=user.id,
             product_id=order_data.product_id,
             amount=product.price,
             status="success"
         )
         db.add(db_order)
+        await db.flush() # Flush to get the order id
+
+        # Perform transaction
+        purchase_transaction = db_models.Transaction(
+            user_id=user.id,
+            order_id=db_order.id,
+            type=models.TransactionType.PURCHASE,
+            amount=-product.price,
+            description=f"Purchase of {product.name}",
+            created_at=datetime.datetime.utcnow()
+        )
+        db.add(purchase_transaction)
+
+        sale_movement = db_models.StockMovement(
+            product_id=product.id,
+            type=models.StockMovementType.SALE,
+            quantity=-1,
+            description=f"Sale to user {user.id}",
+            created_at=datetime.datetime.utcnow()
+        )
+        db.add(sale_movement)
+
         await db.commit()
         await db.refresh(db_order)
-        await db.refresh(user)
-        await db.refresh(product)
 
         response_data = models.BuyResponse(
             order=db_order,
-            balance=user.balance,
             product_name=product.name,
             product_price=product.price
         )
