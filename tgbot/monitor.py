@@ -5,8 +5,11 @@ import re
 import subprocess
 import time
 from pathlib import Path
+from dotenv import load_dotenv
 
 import requests
+
+load_dotenv()
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from telethon.sync import TelegramClient
@@ -14,8 +17,8 @@ from telethon.errors import SessionPasswordNeededError
 
 # --- Configuration ---
 # Telegram API credentials for creating new bots. Get them from my.telegram.org
-API_ID = "20931753"
-API_HASH = "be9359efbd17a84d73112c51d399393b"
+API_ID = os.getenv("API_ID")
+API_HASH = os.getenv("API_HASH")
 SESSION_NAME = "bot_creator"
 
 TOKENS_FILE = Path("tokens.txt")
