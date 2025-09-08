@@ -23,6 +23,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import api from "@/lib/api";
+import { List } from "@/components/List";
 
 interface Category {
   id: number;
@@ -42,8 +43,6 @@ export default function CategoriesPage() {
     queryKey: ["categories"],
     queryFn: () => api.get("/categories"),
   });
-
-  console.log(categories);
 
   const addMutation = useMutation({
     mutationFn: (newCategoryName: string) =>
@@ -94,46 +93,47 @@ export default function CategoriesPage() {
   if (isLoading) return <div>Loading...</div>;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Категории</h1>
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-          <DialogTrigger asChild>
-            <Button>Добавить категорию</Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Добавить категорию</DialogTitle>
-              <DialogDescription>
-                Введите название новой категории.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid items-center grid-cols-4 gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Название
-                </Label>
-                <Input
-                  id="name"
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  className="col-span-3"
-                />
+    <>
+      <List
+        title="Категории"
+        addButton={
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <DialogTrigger asChild>
+              <Button>Добавить категорию</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Добавить категорию</DialogTitle>
+                <DialogDescription>
+                  Введите название новой категории.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid items-center grid-cols-4 gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Название
+                  </Label>
+                  <Input
+                    id="name"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    className="col-span-3"
+                  />
+                </div>
               </div>
-            </div>
-            <DialogFooter>
-              <Button
-                type="submit"
-                onClick={handleAddCategory}
-                disabled={addMutation.isPending}
-              >
-                {addMutation.isPending ? "Добавление..." : "Добавить"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-      <div className="border rounded-lg">
+              <DialogFooter>
+                <Button
+                  type="submit"
+                  onClick={handleAddCategory}
+                  disabled={addMutation.isPending}
+                >
+                  {addMutation.isPending ? "Добавление..." : "Добавить"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      >
         <Table>
           <TableHeader>
             <TableRow>
@@ -167,7 +167,7 @@ export default function CategoriesPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </List>
 
       {/* Edit Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
@@ -206,6 +206,6 @@ export default function CategoriesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

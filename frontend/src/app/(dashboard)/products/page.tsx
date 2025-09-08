@@ -30,6 +30,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import api from "@/lib/api";
+import { List } from "@/components/List";
 
 interface Product {
   id: number;
@@ -139,87 +140,90 @@ export default function ProductsPage() {
   if (isLoadingProducts || isLoadingCategories) return <div>Loading...</div>;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold">Товары</h1>
-        <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-          <DialogTrigger asChild>
-            <Button>Добавить товар</Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Добавить товар</DialogTitle>
-              <DialogDescription>
-                Заполните информацию о новом товаре.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid items-center grid-cols-4 gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Название
-                </Label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="col-span-3"
-                />
+    <>
+      <List
+        title="Товары"
+        addButton={
+          <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
+            <DialogTrigger asChild>
+              <Button>Добавить товар</Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Добавить товар</DialogTitle>
+                <DialogDescription>
+                  Заполните информацию о новом товаре.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid items-center grid-cols-4 gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Название
+                  </Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid items-center grid-cols-4 gap-4">
+                  <Label htmlFor="category" className="text-right">
+                    Категория
+                  </Label>
+                  <Select
+                    onValueChange={(value) => setCategoryId(Number(value))}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Выберите категорию" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories?.map((cat) => (
+                        <SelectItem key={cat.id} value={cat.id.toString()}>
+                          {cat.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid items-center grid-cols-4 gap-4">
+                  <Label htmlFor="price" className="text-right">
+                    Цена
+                  </Label>
+                  <Input
+                    id="price"
+                    type="number"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid items-center grid-cols-4 gap-4">
+                  <Label htmlFor="initial_stock" className="text-right">
+                    Начальный остаток
+                  </Label>
+                  <Input
+                    id="initial_stock"
+                    type="number"
+                    value={initialStock}
+                    onChange={(e) => setInitialStock(e.target.value)}
+                    className="col-span-3"
+                  />
+                </div>
               </div>
-              <div className="grid items-center grid-cols-4 gap-4">
-                <Label htmlFor="category" className="text-right">
-                  Категория
-                </Label>
-                <Select onValueChange={(value) => setCategoryId(Number(value))}>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Выберите категорию" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories?.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id.toString()}>
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid items-center grid-cols-4 gap-4">
-                <Label htmlFor="price" className="text-right">
-                  Цена
-                </Label>
-                <Input
-                  id="price"
-                  type="number"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  className="col-span-3"
-                />
-              </div>
-              <div className="grid items-center grid-cols-4 gap-4">
-                <Label htmlFor="initial_stock" className="text-right">
-                  Начальный остаток
-                </Label>
-                <Input
-                  id="initial_stock"
-                  type="number"
-                  value={initialStock}
-                  onChange={(e) => setInitialStock(e.target.value)}
-                  className="col-span-3"
-                />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button
-                type="submit"
-                onClick={handleAddProduct}
-                disabled={addMutation.isPending}
-              >
-                {addMutation.isPending ? "Добавление..." : "Добавить"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-      <div className="border rounded-lg">
+              <DialogFooter>
+                <Button
+                  type="submit"
+                  onClick={handleAddProduct}
+                  disabled={addMutation.isPending}
+                >
+                  {addMutation.isPending ? "Добавление..." : "Добавить"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        }
+      >
         <Table>
           <TableHeader>
             <TableRow>
@@ -259,7 +263,7 @@ export default function ProductsPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </List>
 
       {/* Edit Dialog */}
       {selectedProduct && (
@@ -340,6 +344,6 @@ export default function ProductsPage() {
           </DialogContent>
         </Dialog>
       )}
-    </div>
+    </>
   );
 }

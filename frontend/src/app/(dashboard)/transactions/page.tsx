@@ -3,7 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import api from '@/lib/api';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { List } from '@/components/List';
 
 interface Transaction {
   id: number;
@@ -25,38 +25,33 @@ export default function TransactionsPage() {
   if (error) return <div>Не удалось загрузить транзакции</div>;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Транзакции</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>ID Пользователя</TableHead>
-              <TableHead>ID Заказа</TableHead>
-              <TableHead>Тип</TableHead>
-              <TableHead>Сумма</TableHead>
-              <TableHead>Дата</TableHead>
-              <TableHead>Описание</TableHead>
+    <List title="Транзакции">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>ID</TableHead>
+            <TableHead>ID Пользователя</TableHead>
+            <TableHead>ID Заказа</TableHead>
+            <TableHead>Тип</TableHead>
+            <TableHead>Сумма</TableHead>
+            <TableHead>Дата</TableHead>
+            <TableHead>Описание</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {transactions?.map((transaction) => (
+            <TableRow key={transaction.id}>
+              <TableCell>{transaction.id}</TableCell>
+              <TableCell>{transaction.user_id}</TableCell>
+              <TableCell>{transaction.order_id ?? 'N/A'}</TableCell>
+              <TableCell>{transaction.type}</TableCell>
+              <TableCell>{transaction.amount}</TableCell>
+              <TableCell>{new Date(transaction.created_at).toLocaleString()}</TableCell>
+              <TableCell>{transaction.description ?? 'N/A'}</TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {transactions?.map((transaction) => (
-              <TableRow key={transaction.id}>
-                <TableCell>{transaction.id}</TableCell>
-                <TableCell>{transaction.user_id}</TableCell>
-                <TableCell>{transaction.order_id ?? 'N/A'}</TableCell>
-                <TableCell>{transaction.type}</TableCell>
-                <TableCell>{transaction.amount}</TableCell>
-                <TableCell>{new Date(transaction.created_at).toLocaleString()}</TableCell>
-                <TableCell>{transaction.description ?? 'N/A'}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
+          ))}
+        </TableBody>
+      </Table>
+    </List>
   );
 }

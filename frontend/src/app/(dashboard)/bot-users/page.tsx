@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/table";
 import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
+import { List } from "@/components/List";
 
 interface BotUser {
   id: number;
@@ -75,9 +76,8 @@ export default function BotUsersPage() {
   }
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Пользователи бота</h1>
-      <div className="border rounded-lg">
+    <>
+      <List title="Пользователи бота">
         <Table>
           <TableHeader>
             <TableRow>
@@ -105,7 +105,7 @@ export default function BotUsersPage() {
             ))}
           </TableBody>
         </Table>
-      </div>
+      </List>
 
       {/* Confirmation Dialog */}
       <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
@@ -131,6 +131,6 @@ export default function BotUsersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }
