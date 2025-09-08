@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/table";
 import api from "@/lib/api";
 import { List } from "@/components/List";
+import { useList } from "@/hooks";
+import { ENDPOINTS } from "@/constants";
 
 interface Category {
   id: number;
@@ -39,9 +41,8 @@ export default function CategoriesPage() {
   );
   const [newCategoryName, setNewCategoryName] = useState("");
 
-  const { data: categories, isLoading } = useQuery<Category[]>({
-    queryKey: ["categories"],
-    queryFn: () => api.get("/categories"),
+  const { data: categories, isPending } = useList<Category>({
+    endpoint: ENDPOINTS.CATEGORIES,
   });
 
   const addMutation = useMutation({
@@ -90,7 +91,7 @@ export default function CategoriesPage() {
     setIsEditOpen(true);
   };
 
-  if (isLoading) return <div>Loading...</div>;
+  if (isPending) return <div>Loading...</div>;
 
   return (
     <>
@@ -143,7 +144,7 @@ export default function CategoriesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {categories?.map((category) => (
+            {categories?.data?.map((category) => (
               <TableRow key={category.id}>
                 <TableCell>{category.id}</TableCell>
                 <TableCell>{category.name}</TableCell>

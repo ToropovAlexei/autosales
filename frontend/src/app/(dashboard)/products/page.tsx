@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -31,6 +31,8 @@ import {
 } from "@/components/ui/table";
 import api from "@/lib/api";
 import { List } from "@/components/List";
+import { useList } from "@/hooks";
+import { ENDPOINTS } from "@/constants";
 
 interface Product {
   id: number;
@@ -64,20 +66,19 @@ export default function ProductsPage() {
   const [price, setPrice] = useState("");
   const [initialStock, setInitialStock] = useState("");
 
-  const { data: products, isLoading: isLoadingProducts } = useQuery<Product[]>({
-    queryKey: ["products"],
-    queryFn: () => api.get("/products"),
+  const { data: products, isLoading: isLoadingProducts } = useList<Product>({
+    endpoint: ENDPOINTS.PRODUCTS,
   });
 
-  const { data: categories, isLoading: isLoadingCategories } = useQuery<
-    Category[]
-  >({
-    queryKey: ["categories"],
-    queryFn: () => api.get("/categories"),
-  });
+  const { data: categories, isLoading: isLoadingCategories } =
+    useList<Category>({
+      endpoint: ENDPOINTS.CATEGORIES,
+    });
 
   const getCategoryName = (categoryId: number) => {
-    return categories?.find((cat) => cat.id === categoryId)?.name || "N/A";
+    return (
+      categories?.data?.find((cat) => cat.id === categoryId)?.name || "N/A"
+    );
   };
 
   const addMutation = useMutation({
@@ -178,7 +179,7 @@ export default function ProductsPage() {
                       <SelectValue placeholder="Выберите категорию" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories?.map((cat) => (
+                      {categories?.data?.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id.toString()}>
                           {cat.name}
                         </SelectItem>
@@ -236,7 +237,7 @@ export default function ProductsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products?.map((product) => (
+            {products?.data?.map((product) => (
               <TableRow key={product.id}>
                 <TableCell>{product.id}</TableCell>
                 <TableCell>{product.name}</TableCell>
@@ -307,7 +308,7 @@ export default function ProductsPage() {
                     <SelectValue placeholder="Выберите категорию" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories?.map((cat) => (
+                    {categories?.data?.map((cat) => (
                       <SelectItem key={cat.id} value={cat.id.toString()}>
                         {cat.name}
                       </SelectItem>

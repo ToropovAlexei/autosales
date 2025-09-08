@@ -1,4 +1,5 @@
-
+import ky from "ky";
+import { CONFIG } from "../../config";
 
 class ApiError extends Error {
   response: Response;
@@ -10,8 +11,8 @@ class ApiError extends Error {
 }
 
 const getAuthToken = () => {
-  if (typeof window !== 'undefined') {
-    return localStorage.getItem('jwt');
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("jwt");
   }
   return null;
 };
@@ -25,17 +26,18 @@ const handleResponse = async (response: Response) => {
 
   if (!response.ok) {
     if (response.status === 401 || response.status === 403) {
-      localStorage.removeItem('jwt');
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+      localStorage.removeItem("jwt");
+      if (typeof window !== "undefined") {
+        window.location.href = "/login";
       }
     }
-    const errorMessage = json.error || `API request failed with status ${response.status}`;
+    const errorMessage =
+      json.error || `API request failed with status ${response.status}`;
     throw new ApiError(errorMessage, response);
   }
 
   if (json.success === false) {
-    throw new ApiError(json.error || 'API request failed', response);
+    throw new ApiError(json.error || "API request failed", response);
   }
 
   return json.data;
@@ -46,8 +48,8 @@ const api = {
     const token = getAuthToken();
     const response = await fetch(`/api${endpoint}`, {
       headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
       },
     });
     return handleResponse(response);
@@ -56,10 +58,10 @@ const api = {
   async post(endpoint: string, data: unknown) {
     const token = getAuthToken();
     const response = await fetch(`/api${endpoint}`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
       },
       body: JSON.stringify(data),
     });
@@ -74,10 +76,10 @@ const api = {
     }
 
     const response = await fetch(`/api${endpoint}`, {
-      method: 'POST',
+      method: "POST",
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        "Content-Type": "application/x-www-form-urlencoded",
+        ...(token && { Authorization: `Bearer ${token}` }),
       },
       body: formData,
     });
@@ -87,10 +89,10 @@ const api = {
   async put(endpoint: string, data: unknown) {
     const token = getAuthToken();
     const response = await fetch(`/api${endpoint}`, {
-      method: 'PUT',
+      method: "PUT",
       headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
       },
       body: JSON.stringify(data),
     });
@@ -100,31 +102,49 @@ const api = {
   async delete(endpoint: string) {
     const token = getAuthToken();
     const response = await fetch(`/api${endpoint}`, {
-      method: 'DELETE',
+      method: "DELETE",
       headers: {
-        'Content-Type': 'application/json',
-        ...(token && { 'Authorization': `Bearer ${token}` }),
+        "Content-Type": "application/json",
+        ...(token && { Authorization: `Bearer ${token}` }),
       },
     });
     return handleResponse(response);
   },
 
-  async getTransactions() {
-    return this.get('/transactions');
-  },
-
-  async getStockMovements() {
-    return this.get('/stock/movements');
-  },
-
   async getDashboardStats() {
-    return this.get('/dashboard/stats');
+    return this.get("/dashboard/stats");
   },
 
   async getSalesOverTime(startDate: string, endDate: string) {
-    return this.get(`/dashboard/sales-over-time?start_date=${startDate}&end_date=${endDate}`);
+    return this.get(
+      `/dashboard/sales-over-time?start_date=${startDate}&end_date=${endDate}`
+    );
   },
 };
 
 export default api;
 
+export const newApi = ky.extend({
+  prefixUrl: CONFIG.API_URL,
+  hooks: {
+    beforeRequest: [
+      (request) => {
+        const token = getAuthToken();
+        if (token) {
+          request.headers.set("Authorization", `Bearer ${token}`);
+        }
+      },
+    ],
+    afterResponse: [
+      (request, options, response) => {
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem("jwt");
+          if (typeof window !== "undefined") {
+            window.location.href = "/login";
+          }
+        }
+        return response;
+      },
+    ],
+  },
+});

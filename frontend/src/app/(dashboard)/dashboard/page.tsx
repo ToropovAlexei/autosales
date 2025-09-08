@@ -1,10 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import api from '@/lib/api';
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useOne } from "@/hooks";
+import { ENDPOINTS } from "@/constants";
 
 interface DashboardStats {
   total_users: number;
@@ -17,79 +18,84 @@ interface SalesOverTime {
   total_revenue: number;
 }
 
+const getInitialStartDate = () => {
+  const lastWeek = new Date();
+  lastWeek.setDate(lastWeek.getDate() - 7);
+  return lastWeek.toISOString().split("T")[0];
+};
+
+const getInitialEndDate = () => {
+  return new Date().toISOString().split("T")[0];
+};
+
 export default function DashboardPage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [sales, setSales] = useState<SalesOverTime | null>(null);
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [salesLoading, setSalesLoading] = useState(false);
+  const [startDate, setStartDate] = useState(getInitialStartDate());
+  const [endDate, setEndDate] = useState(getInitialEndDate());
 
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        setLoading(true);
-        const data = await api.getDashboardStats();
-        setStats(data);
-      } catch (error) {
-        console.error('Failed to fetch dashboard stats', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data: stats, isPending: isStatsPending } = useOne<DashboardStats>({
+    endpoint: ENDPOINTS.DASHBOARD_STATS,
+  });
 
-    fetchStats();
-  }, []);
-
-  const handleFetchSales = async () => {
-    if (!startDate || !endDate) {
-      alert('Please select both start and end dates.');
-      return;
-    }
-    try {
-      setSalesLoading(true);
-      const data = await api.getSalesOverTime(startDate, endDate);
-      setSales(data);
-    } catch (error) {
-      console.error('Failed to fetch sales data', error);
-    } finally {
-      setSalesLoading(false);
-    }
-  };
+  const {
+    data: sales,
+    isPending: isSalesPending,
+    refetch,
+  } = useOne<SalesOverTime>({
+    endpoint: ENDPOINTS.SALES_OVER_TIME,
+    params: {
+      start_date: startDate,
+      end_date: endDate,
+    },
+    enabled: !!startDate && !!endDate,
+  });
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+      <h1 className="text-2xl font-bold mb-4">Дашборд</h1>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
         <Card>
           <CardHeader>
-            <CardTitle>Total Users</CardTitle>
+            <CardTitle>Всего пользователей</CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? <p>Loading...</p> : <p className="text-2xl font-bold">{stats?.total_users}</p>}
+            {isStatsPending ? (
+              <p>Загрузка...</p>
+            ) : (
+              <p className="text-2xl font-bold">{stats?.total_users}</p>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Users with Purchases</CardTitle>
+            <CardTitle>Пользователи с покупками</CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? <p>Loading...</p> : <p className="text-2xl font-bold">{stats?.users_with_purchases}</p>}
+            {isStatsPending ? (
+              <p>Загрузка...</p>
+            ) : (
+              <p className="text-2xl font-bold">
+                {stats?.users_with_purchases}
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Available Products</CardTitle>
+            <CardTitle>Доступно товаров</CardTitle>
           </CardHeader>
           <CardContent>
-            {loading ? <p>Loading...</p> : <p className="text-2xl font-bold">{stats?.available_products}</p>}
+            {isStatsPending ? (
+              <p>Загрузка...</p>
+            ) : (
+              <p className="text-2xl font-bold">{stats?.available_products}</p>
+            )}
           </CardContent>
         </Card>
       </div>
 
       <div>
-        <h2 className="text-xl font-bold mb-4">Sales Over Time</h2>
+        <h2 className="text-xl font-bold mb-4">Продажи за период</h2>
         <div className="flex gap-4 mb-4 items-center">
           <Input
             type="date"
@@ -103,16 +109,18 @@ export default function DashboardPage() {
             onChange={(e) => setEndDate(e.target.value)}
             className="max-w-sm"
           />
-          <Button onClick={handleFetchSales} disabled={salesLoading}>
-            {salesLoading ? 'Loading...' : 'Get Sales'}
+          <Button onClick={() => refetch()} disabled={isSalesPending}>
+            {isSalesPending ? "Загрузка..." : "Получить продажи"}
           </Button>
         </div>
 
-        {sales && (
+        {isSalesPending && <p>Загрузка...</p>}
+
+        {sales && !isSalesPending && (
           <div className="grid gap-4 md:grid-cols-2">
             <Card>
               <CardHeader>
-                <CardTitle>Products Sold</CardTitle>
+                <CardTitle>Продано товаров</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-2xl font-bold">{sales.products_sold}</p>
@@ -120,10 +128,12 @@ export default function DashboardPage() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Total Revenue</CardTitle>
+                <CardTitle>Общий доход</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl font-bold">${sales.total_revenue.toFixed(2)}</p>
+                <p className="text-2xl font-bold">
+                  {sales.total_revenue.toFixed(2)} ₽
+                </p>
               </CardContent>
             </Card>
           </div>

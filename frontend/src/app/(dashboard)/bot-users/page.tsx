@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,8 @@ import {
 import api from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 import { List } from "@/components/List";
+import { useList } from "@/hooks";
+import { ENDPOINTS } from "@/constants";
 
 interface BotUser {
   id: number;
@@ -37,10 +39,8 @@ export default function BotUsersPage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<BotUser | null>(null);
 
-  const { data: botUsers, isLoading } = useQuery<BotUser[]>({
-    queryKey: ["bot-users"],
-    queryFn: () => api.get("/admin/bot-users"),
-    enabled: !!user && user.role === "admin",
+  const { data: botUsers, isPending } = useList<BotUser>({
+    endpoint: ENDPOINTS.BOT_USERS,
   });
 
   const deleteMutation = useMutation({
@@ -69,7 +69,7 @@ export default function BotUsersPage() {
     }
   };
 
-  if (authLoading || isLoading) return <div>Loading...</div>;
+  if (authLoading || isPending) return <div>Loading...</div>;
 
   if (!user || user.role !== "admin") {
     return null;
@@ -88,7 +88,7 @@ export default function BotUsersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {botUsers?.map((botUser) => (
+            {botUsers?.data?.map((botUser) => (
               <TableRow key={botUser.id}>
                 <TableCell>{botUser.id}</TableCell>
                 <TableCell>{botUser.telegram_id}</TableCell>

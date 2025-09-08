@@ -1,7 +1,5 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
-import api from "@/lib/api";
 import {
   Table,
   TableBody,
@@ -11,6 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { List } from "@/components/List";
+import { useList } from "@/hooks";
+import { ENDPOINTS } from "@/constants";
 
 interface StockMovement {
   id: number;
@@ -26,9 +26,8 @@ export default function StockPage() {
     data: movements,
     isLoading,
     error,
-  } = useQuery<StockMovement[]>({
-    queryKey: ["stockMovements"],
-    queryFn: () => api.getStockMovements(),
+  } = useList<StockMovement>({
+    endpoint: ENDPOINTS.STOCK_MOVEMENTS,
   });
 
   if (isLoading) return <div>Загрузка...</div>;
@@ -48,7 +47,7 @@ export default function StockPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {movements?.map((movement) => (
+          {movements?.data?.map((movement) => (
             <TableRow key={movement.id}>
               <TableCell>{movement.id}</TableCell>
               <TableCell>{movement.product_id}</TableCell>

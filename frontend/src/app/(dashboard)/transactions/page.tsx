@@ -1,9 +1,16 @@
-'use client';
+"use client";
 
-import { useQuery } from '@tanstack/react-query';
-import api from '@/lib/api';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { List } from '@/components/List';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { List } from "@/components/List";
+import { useList } from "@/hooks";
+import { ENDPOINTS } from "@/constants";
 
 interface Transaction {
   id: number;
@@ -16,9 +23,12 @@ interface Transaction {
 }
 
 export default function TransactionsPage() {
-  const { data: transactions, isLoading, error } = useQuery<Transaction[]>({
-    queryKey: ['transactions'],
-    queryFn: () => api.getTransactions(),
+  const {
+    data: transactions,
+    isLoading,
+    error,
+  } = useList<Transaction>({
+    endpoint: ENDPOINTS.TRANSACTIONS,
   });
 
   if (isLoading) return <div>Загрузка...</div>;
@@ -39,15 +49,17 @@ export default function TransactionsPage() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {transactions?.map((transaction) => (
+          {transactions?.data?.map((transaction) => (
             <TableRow key={transaction.id}>
               <TableCell>{transaction.id}</TableCell>
               <TableCell>{transaction.user_id}</TableCell>
-              <TableCell>{transaction.order_id ?? 'N/A'}</TableCell>
+              <TableCell>{transaction.order_id ?? "N/A"}</TableCell>
               <TableCell>{transaction.type}</TableCell>
               <TableCell>{transaction.amount}</TableCell>
-              <TableCell>{new Date(transaction.created_at).toLocaleString()}</TableCell>
-              <TableCell>{transaction.description ?? 'N/A'}</TableCell>
+              <TableCell>
+                {new Date(transaction.created_at).toLocaleString()}
+              </TableCell>
+              <TableCell>{transaction.description ?? "N/A"}</TableCell>
             </TableRow>
           ))}
         </TableBody>
