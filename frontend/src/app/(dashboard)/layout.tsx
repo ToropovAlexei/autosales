@@ -1,11 +1,20 @@
-
-'use client';
+"use client";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect } from "react";
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarHeader,
+  SidebarContent,
+  SidebarFooter,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+} from "@/components/ui/sidebar";
 
 export default function DashboardLayout({
   children,
@@ -17,7 +26,7 @@ export default function DashboardLayout({
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
-      router.push('/login');
+      router.push("/login");
     }
   }, [isAuthenticated, loading, router]);
 
@@ -26,34 +35,55 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="flex items-center justify-between p-4 border-b">
-        <nav className="flex items-center gap-4">
-          <Link href="/categories">
-            <Button variant="outline">Категории</Button>
-          </Link>
-          <Link href="/products">
-            <Button variant="outline">Товары</Button>
-          </Link>
-          {user?.role === 'admin' && (
-            <>
-              <Link href="/bot-users">
-                <Button variant="outline">Пользователи бота</Button>
-              </Link>
-              <Link href="/transactions">
-                <Button variant="outline">Транзакции</Button>
-              </Link>
-              <Link href="/stock">
-                <Button variant="outline">Склад</Button>
-              </Link>
-            </>
-          )}
-        </nav>
-        <Button variant="outline" onClick={logout}>Выход</Button>
-      </header>
-      <main className="flex-1 p-8">
-        {children}
-      </main>
-    </div>
+    <SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <Sidebar collapsible="none">
+          <SidebarHeader>
+            <div className="flex items-center gap-2 font-semibold">
+              <span>Меню</span>
+            </div>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link href="/categories">Категории</Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link href="/products">Товары</Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              {user?.role === "admin" && (
+                <>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link href="/bot-users">Пользователи бота</Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link href="/transactions">Транзакции</Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
+                      <Link href="/stock">Склад</Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                </>
+              )}
+            </SidebarMenu>
+          </SidebarContent>
+          <SidebarFooter>
+            <Button variant="outline" onClick={logout}>
+              Выход
+            </Button>
+          </SidebarFooter>
+        </Sidebar>
+        <main className="flex-1 p-8">{children}</main>
+      </div>
+    </SidebarProvider>
   );
 }
