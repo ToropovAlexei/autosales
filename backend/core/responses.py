@@ -1,5 +1,5 @@
 from typing import TypeVar, Generic, Optional, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 from fastapi import status
 from fastapi.encoders import jsonable_encoder

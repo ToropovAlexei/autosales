@@ -19,7 +19,7 @@ async def buy_from_balance(
     try:
         user_result = await db.execute(select(db_models.BotUser).filter(
             db_models.BotUser.telegram_id == order_data.user_id,
-            db_models.BotUser.is_deleted == False
+            db_models.BotUser.is_deleted.is_(False)
         ))
         user = user_result.scalars().first()
         if user is None:

@@ -1,5 +1,4 @@
 import asyncio
-from sqlalchemy.ext.asyncio import async_sessionmaker
 
 from db.database import engine, Base, SessionLocal
 from db.db_models import User, Category, Product, UserRole, StockMovement, StockMovementType
@@ -31,9 +30,9 @@ async def init_db():
             session.add_all([product1, product2, product3])
             await session.flush()
 
-            session.add(StockMovement(product_id=1, type=StockMovementType.INITIAL, quantity=15, created_at=datetime.datetime.utcnow(), description="Initial stock"))
-            session.add(StockMovement(product_id=2, type=StockMovementType.INITIAL, quantity=50, created_at=datetime.datetime.utcnow(), description="Initial stock"))
-            session.add(StockMovement(product_id=3, type=StockMovementType.INITIAL, quantity=30, created_at=datetime.datetime.utcnow(), description="Initial stock"))
+            session.add(StockMovement(product_id=1, type=StockMovementType.INITIAL, quantity=15, created_at=datetime.datetime.now(datetime.UTC), description="Initial stock"))
+            session.add(StockMovement(product_id=2, type=StockMovementType.INITIAL, quantity=50, created_at=datetime.datetime.now(datetime.UTC), description="Initial stock"))
+            session.add(StockMovement(product_id=3, type=StockMovementType.INITIAL, quantity=30, created_at=datetime.datetime.now(datetime.UTC), description="Initial stock"))
 
         await session.commit()
 

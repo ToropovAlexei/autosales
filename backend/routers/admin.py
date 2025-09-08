@@ -1,4 +1,3 @@
-from typing import List
 from fastapi import APIRouter, Depends, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +17,7 @@ async def read_bot_users(
     current_user: models.User = Depends(security.get_current_admin_user)
 ):
     try:
-        result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.is_deleted == False))
+        result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.is_deleted.is_(False)))
         bot_users = result.scalars().all()
         for user in bot_users:
             balance_result = await db.execute(

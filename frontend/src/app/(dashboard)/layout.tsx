@@ -59,6 +59,11 @@ export default function DashboardLayout({
                 <>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
+                      <Link href="/dashboard">Дашборд</Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
                       <Link href="/bot-users">Пользователи бота</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

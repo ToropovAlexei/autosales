@@ -142,3 +142,13 @@ class StockMovement(StockMovementBase):
 
     class Config:
         from_attributes = True
+
+# Dashboard Models
+class DashboardStats(BaseModel):
+    total_users: int
+    users_with_purchases: int
+    available_products: int
+
+class SalesOverTime(BaseModel):
+    products_sold: int
+    total_revenue: float

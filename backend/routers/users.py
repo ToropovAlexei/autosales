@@ -69,7 +69,7 @@ async def read_bot_user(
     try:
         result = await db.execute(select(db_models.BotUser).filter(
             db_models.BotUser.id == user_id,
-            db_models.BotUser.is_deleted == False
+            db_models.BotUser.is_deleted.is_(False)
         ))
         user = result.scalars().first()
         if user is None:
@@ -88,7 +88,7 @@ async def get_balance(
     try:
         result = await db.execute(select(db_models.BotUser).filter(
             db_models.BotUser.telegram_id == user_id,
-            db_models.BotUser.is_deleted == False
+            db_models.BotUser.is_deleted.is_(False)
         ))
         user = result.scalars().first()
         if user is None:
@@ -111,7 +111,7 @@ async def get_transactions(
     try:
         result = await db.execute(select(db_models.BotUser).filter(
             db_models.BotUser.telegram_id == user_id,
-            db_models.BotUser.is_deleted == False
+            db_models.BotUser.is_deleted.is_(False)
         ))
         user = result.scalars().first()
         if user is None:

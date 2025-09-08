@@ -27,7 +27,7 @@ async def deposit_balance(
     try:
         result = await db.execute(select(db_models.BotUser).filter(
             db_models.BotUser.telegram_id == deposit.user_id,
-            db_models.BotUser.is_deleted == False
+            db_models.BotUser.is_deleted.is_(False)
         ))
         user = result.scalars().first()
         if user is None:
@@ -57,7 +57,7 @@ async def payment_webhook(payload: WebhookPayload, db: AsyncSession = Depends(da
     try:
         result = await db.execute(select(db_models.BotUser).filter(
             db_models.BotUser.telegram_id == payload.user_id,
-            db_models.BotUser.is_deleted == False
+            db_models.BotUser.is_deleted.is_(False)
         ))
         user = result.scalars().first()
         if user is None:

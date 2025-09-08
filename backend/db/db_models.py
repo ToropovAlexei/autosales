@@ -1,4 +1,5 @@
 import enum
+import datetime
 from sqlalchemy import Boolean, Column, Integer, String, Float, ForeignKey, Enum, DateTime
 from sqlalchemy.orm import relationship
 
@@ -55,7 +56,7 @@ class Transaction(Base):
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=True)
     type = Column(Enum(TransactionType), nullable=False)
     amount = Column(Float, nullable=False)
-    created_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
     description = Column(String)
 
 class Order(Base):
@@ -66,6 +67,7 @@ class Order(Base):
     product_id = Column(Integer, ForeignKey("products.id"))
     amount = Column(Float)
     status = Column(String)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now(datetime.UTC))
 
 class StockMovementType(str, enum.Enum):
     INITIAL = "initial"
@@ -80,5 +82,5 @@ class StockMovement(Base):
     product_id = Column(Integer, ForeignKey("products.id"))
     type = Column(Enum(StockMovementType), nullable=False)
     quantity = Column(Integer, nullable=False)
-    created_at = Column(DateTime, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False)
     description = Column(String)

@@ -53,7 +53,7 @@ const api = {
     return handleResponse(response);
   },
 
-  async post(endpoint: string, data: any) {
+  async post(endpoint: string, data: unknown) {
     const token = getAuthToken();
     const response = await fetch(`/api${endpoint}`, {
       method: 'POST',
@@ -66,7 +66,7 @@ const api = {
     return handleResponse(response);
   },
 
-  async postForm(endpoint: string, data: any) {
+  async postForm(endpoint: string, data: unknown) {
     const token = getAuthToken();
     const formData = new URLSearchParams();
     for (const key in data) {
@@ -84,7 +84,7 @@ const api = {
     return handleResponse(response);
   },
 
-  async put(endpoint: string, data: any) {
+  async put(endpoint: string, data: unknown) {
     const token = getAuthToken();
     const response = await fetch(`/api${endpoint}`, {
       method: 'PUT',
@@ -115,6 +115,14 @@ const api = {
 
   async getStockMovements() {
     return this.get('/stock/movements');
+  },
+
+  async getDashboardStats() {
+    return this.get('/dashboard/stats');
+  },
+
+  async getSalesOverTime(startDate: string, endDate: string) {
+    return this.get(`/dashboard/sales-over-time?start_date=${startDate}&end_date=${endDate}`);
   },
 };
 
