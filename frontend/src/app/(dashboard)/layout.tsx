@@ -74,6 +74,11 @@ export default function DashboardLayout({
                   </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
+                      <Link href="/orders">Заказы</Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                  <SidebarMenuItem>
+                    <SidebarMenuButton asChild>
                       <Link href="/stock">Склад</Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

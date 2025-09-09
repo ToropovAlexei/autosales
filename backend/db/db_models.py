@@ -65,6 +65,7 @@ class Order(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey("bot_users.id"))
     product_id = Column(Integer, ForeignKey("products.id"))
+    quantity = Column(Integer, default=1)
     amount = Column(Float)
     status = Column(String)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now(datetime.UTC))
@@ -79,6 +80,7 @@ class StockMovement(Base):
     __tablename__ = "stock_movements"
 
     id = Column(Integer, primary_key=True, index=True)
+    order_id = Column(Integer, ForeignKey("orders.id"), nullable=True)
     product_id = Column(Integer, ForeignKey("products.id"))
     type = Column(Enum(StockMovementType), nullable=False)
     quantity = Column(Integer, nullable=False)

@@ -103,6 +103,7 @@ class Transaction(TransactionBase):
 class OrderBase(BaseModel):
     user_id: int
     product_id: int
+    quantity: int
 
 class OrderCreate(OrderBase):
     pass
@@ -111,6 +112,8 @@ class Order(OrderBase):
     id: int
     amount: float
     status: str
+    quantity: int
+    created_at: datetime.datetime
 
     class Config:
         from_attributes = True
@@ -119,6 +122,11 @@ class BuyResponse(BaseModel):
     order: Order
     product_name: str
     product_price: float
+
+class OrderResponse(Order):
+    user_telegram_id: int
+    product_name: str
+    created_at: datetime.datetime
 
 # Stock Movement Models
 class StockMovementType(str, enum.Enum):

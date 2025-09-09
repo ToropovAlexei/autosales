@@ -6,6 +6,7 @@ export const ENDPOINTS = {
   DASHBOARD_STATS: "dashboard/stats",
   BOT_USERS: "admin/bot-users",
   SALES_OVER_TIME: "dashboard/sales-over-time",
+  ORDERS: "orders",
 };
 
 export const ENDPOINT_UPDATE_PUT_EXCEPTIONS = new Set<string>([]);

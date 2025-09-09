@@ -2,7 +2,6 @@ import asyncio
 import random
 from faker import Faker
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.database import SessionLocal, engine, Base
 from db.db_models import BotUser, Category, Product, Transaction, Order, StockMovement, TransactionType, StockMovementType, User, UserRole
@@ -65,6 +64,8 @@ async def seed_data(
         product_ids = [product.id for product in (await db.execute(select(Product))).scalars()]
         product_prices = {p.id: p.price for p in (await db.execute(select(Product))).scalars()}
 
+        one_month_ago = datetime.datetime.now(datetime.UTC) - datetime.timedelta(days=30)
+
         # Create initial stock for products
         stock_movements = []
         for product_id in product_ids:
@@ -73,15 +74,18 @@ async def seed_data(
                 type=StockMovementType.INITIAL,
                 quantity=random.randint(10, 100),
                 description="Initial stock",
-                created_at=datetime.datetime.now(datetime.UTC)
+                created_at=one_month_ago
             )
             stock_movements.append(stock_movement)
         db.add_all(stock_movements)
         await db.commit()
 
         # Create Transactions and Orders
+        orders_to_create = []
+        transactions_to_create = []
         for _ in range(num_transactions):
             user_id = random.choice(user_ids)
+            created_at = fake.date_time_between(start_date='-30d', end_date='now', tzinfo=datetime.timezone.utc)
             # 70% chance of deposit, 30% chance of purchase
             if random.random() < 0.7:
                 transaction = Transaction(
@@ -89,19 +93,53 @@ async def seed_data(
                     type=TransactionType.DEPOSIT,
                     amount=random.uniform(500, 10000),
                     description="Test deposit",
-                    created_at=datetime.datetime.now(datetime.UTC)
+                    created_at=created_at
                 )
-                db.add(transaction)
+                transactions_to_create.append(transaction)
             else:
                 product_id = random.choice(product_ids)
+                quantity = random.randint(1, 3)
+                amount = product_prices[product_id] * quantity
                 order = Order(
                     user_id=user_id,
                     product_id=product_id,
-                    amount=product_prices[product_id],
+                    quantity=quantity,
+                    amount=amount,
                     status="success",
-                    created_at=datetime.datetime.now(datetime.UTC)
+                    created_at=created_at
                 )
-                db.add(order)
+                orders_to_create.append(order)
+        db.add_all(transactions_to_create)
+        db.add_all(orders_to_create)
+        await db.flush()
+
+        # Create transactions for orders
+        transactions_for_orders = []
+        for order in orders_to_create:
+            transaction = Transaction(
+                user_id=order.user_id,
+                order_id=order.id,
+                type=TransactionType.PURCHASE,
+                amount=-order.amount,
+                description=f"Purchase for order {order.id}",
+                created_at=order.created_at
+            )
+            transactions_for_orders.append(transaction)
+        db.add_all(transactions_for_orders)
+
+        # Create stock movements for orders
+        stock_movements_for_orders = []
+        for order in orders_to_create:
+            stock_movement = StockMovement(
+                order_id=order.id,
+                product_id=order.product_id,
+                type=StockMovementType.SALE,
+                quantity=-order.quantity,
+                description=f"Sale for order {order.id}",
+                created_at=order.created_at
+            )
+            stock_movements_for_orders.append(stock_movement)
+        db.add_all(stock_movements_for_orders)
         await db.commit()
 
         print(f"Database seeded with {num_users} users, {num_categories} categories, {num_products} products, and {num_transactions} transactions.")
