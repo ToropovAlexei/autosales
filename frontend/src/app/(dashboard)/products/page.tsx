@@ -33,6 +33,7 @@ import api from "@/lib/api";
 import { List } from "@/components/List";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
+import { MultiSelect } from "@/components/ui/multi-select";
 
 interface Product {
   id: number;
@@ -59,6 +60,7 @@ export default function ProductsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   // Form state
   const [name, setName] = useState("");
@@ -68,6 +70,7 @@ export default function ProductsPage() {
 
   const { data: products, isLoading: isLoadingProducts } = useList<Product>({
     endpoint: ENDPOINTS.PRODUCTS,
+    filter: { category_ids: selectedCategories },
   });
 
   const { data: categories, isLoading: isLoadingCategories } =
@@ -225,6 +228,19 @@ export default function ProductsPage() {
           </Dialog>
         }
       >
+        <div className="mb-4">
+          <MultiSelect
+            options={
+              categories?.data?.map((cat) => ({
+                value: cat.id.toString(),
+                label: cat.name,
+              })) || []
+            }
+            selected={selectedCategories}
+            onChange={setSelectedCategories}
+            placeholder="Фильтр по категориям"
+          />
+        </div>
         <Table>
           <TableHeader>
             <TableRow>

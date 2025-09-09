@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -14,11 +14,11 @@ from core.responses import success_response, error_response
 router = APIRouter()
 
 @router.get("", response_model=List[models.Product])
-async def read_products(category_id: Optional[int] = None, db: AsyncSession = Depends(database.get_db)):
+async def read_products(category_ids: Optional[List[int]] = Query(None), db: AsyncSession = Depends(database.get_db)):
     try:
         query = select(db_models.Product)
-        if category_id:
-            query = query.filter(db_models.Product.category_id == category_id)
+        if category_ids:
+            query = query.filter(db_models.Product.category_id.in_(category_ids))
         result = await db.execute(query)
         products = result.scalars().all()
 
