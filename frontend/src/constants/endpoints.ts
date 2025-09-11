@@ -1,4 +1,7 @@
 export const ENDPOINTS = {
+  USERS_ME: "users/me",
+  USERS_ME_REFERRAL_SETTINGS: "users/me/referral-settings",
+  REFERRALS: "referrals",
   CATEGORIES: "categories",
   PRODUCTS: "products",
   TRANSACTIONS: "transactions",
@@ -9,4 +12,6 @@ export const ENDPOINTS = {
   ORDERS: "orders",
 };
 
-export const ENDPOINT_UPDATE_PUT_EXCEPTIONS = new Set<string>([]);
+export const ENDPOINT_UPDATE_PUT_EXCEPTIONS = new Set<string>([
+  ENDPOINTS.USERS_ME_REFERRAL_SETTINGS,
+]);

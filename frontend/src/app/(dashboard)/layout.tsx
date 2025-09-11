@@ -45,6 +45,13 @@ export default function DashboardLayout({
           </SidebarHeader>
           <SidebarContent>
             <SidebarMenu>
+              {user?.role === "admin" && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/dashboard">Дашборд</Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link href="/categories">Категории</Link>
@@ -57,11 +64,6 @@ export default function DashboardLayout({
               </SidebarMenuItem>
               {user?.role === "admin" && (
                 <>
-                  <SidebarMenuItem>
-                    <SidebarMenuButton asChild>
-                      <Link href="/dashboard">Дашборд</Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
                   <SidebarMenuItem>
                     <SidebarMenuButton asChild>
                       <Link href="/bot-users">Пользователи бота</Link>
@@ -84,6 +86,11 @@ export default function DashboardLayout({
                   </SidebarMenuItem>
                 </>
               )}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild>
+                  <Link href="/settings">Настройки</Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
             </SidebarMenu>
           </SidebarContent>
           <SidebarFooter>

@@ -70,7 +70,7 @@ class DataLayer {
     params?: unknown;
     meta?: Record<string, unknown>;
   }) => {
-    const baseUrl = fillUrlWithMeta(`${url}/${id}`, meta);
+    const baseUrl = fillUrlWithMeta(id ? `${url}/${id}` : url, meta);
     const method = ENDPOINT_UPDATE_PUT_EXCEPTIONS.has(url) ? "put" : "patch";
     const response = await newApi[method]<T>(baseUrl, { json: params }).json<{
       data: T;
