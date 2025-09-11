@@ -35,4 +35,13 @@ class APIClient:
     async def update_user_captcha_status(self, user_id: int, status: bool):
         return await self._request("PUT", f"/users/{user_id}/captcha-status", json={"has_passed_captcha": status})
 
+    async def get_referral_bots(self):
+        return await self._request("GET", "/referrals")
+
+    async def get_seller_info(self):
+        return await self._request("GET", "/users/me")
+
+    async def create_referral_bot(self, owner_id: int, seller_id: int, bot_token: str):
+        return await self._request("POST", "/referral-bots/", json={"owner_id": owner_id, "seller_id": seller_id, "bot_token": bot_token})
+
 api_client = APIClient()

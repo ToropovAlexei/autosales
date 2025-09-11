@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select, func, update
 from typing import List
 import traceback
 
@@ -14,6 +14,33 @@ router = APIRouter()
 @router.get("/me")
 async def read_users_me(current_user: models.User = Depends(security.get_current_active_user)):
     return success_response(models.User.model_validate(current_user).model_dump())
+
+@router.put("/me/referral-settings")
+async def update_referral_settings(
+    settings: models.ReferralSettings,
+    current_user: models.User = Depends(security.get_current_active_user),
+    db: AsyncSession = Depends(database.get_db)
+):
+    try:
+        if current_user.role not in [models.UserRole.admin, models.UserRole.seller]:
+            return error_response("Not enough permissions", status_code=status.HTTP_403_FORBIDDEN)
+        if settings.referral_percentage < 0 or settings.referral_percentage > 100:
+            return error_response("Referral percentage must be between 0 and 100", status_code=status.HTTP_400_BAD_REQUEST)
+
+        stmt = (
+            update(db_models.User)
+            .where(db_models.User.id == current_user.id)
+            .values(
+                referral_program_enabled=settings.referral_program_enabled,
+                referral_percentage=settings.referral_percentage
+            )
+        )
+        await db.execute(stmt)
+        await db.commit()
+        return success_response({"message": "Referral settings updated successfully"})
+    except Exception as e:
+        traceback.print_exc()
+        return error_response(str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @router.post("/register", status_code=status.HTTP_200_OK)
 async def register_bot_user(

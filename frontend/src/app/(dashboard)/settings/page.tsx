@@ -7,9 +7,10 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dataLayer } from "@/lib/dataLayer";
 import { useDebouncedCallback } from "@tanstack/react-pacer";
+import { queryKeys } from "@/utils/query";
 
 interface User {
   id: number;
@@ -37,6 +38,7 @@ export default function SettingsPage() {
   } = useOne<User>({
     endpoint: ENDPOINTS.USERS_ME,
   });
+  const client = useQueryClient();
 
   const { mutate } = useMutation({
     mutationFn: async (opts: {
@@ -55,16 +57,21 @@ export default function SettingsPage() {
         },
       });
     },
-    onSuccess: () => {
-      refetch();
-      toast.success("Настройки сохранены");
-    },
-    onError: () => {
-      toast.error("Ошибка сохранения");
-    },
+    onSuccess: () => toast.success("Настройки сохранены"),
+    onError: () => toast.error("Ошибка сохранения"),
+    onSettled: () => refetch(),
   });
 
   const debouncedMutate = useDebouncedCallback(mutate, { wait: 1000 });
+
+  const optimisticMutation = (percentage: number) => {
+    const key = queryKeys.one(ENDPOINTS.USERS_ME);
+    client.setQueryData(key, {
+      ...client.getQueryData(key),
+      referral_percentage: percentage,
+    });
+    debouncedMutate({ referral_percentage: percentage });
+  };
 
   const { data: referralBots, isPending: isBotsPending } = useList<ReferralBot>(
     { endpoint: ENDPOINTS.REFERRALS }
@@ -102,11 +109,7 @@ export default function SettingsPage() {
                   id="referral-percentage"
                   type="number"
                   value={user?.referral_percentage || 0}
-                  onChange={(e) =>
-                    debouncedMutate({
-                      referral_percentage: Number(e.target.value),
-                    })
-                  }
+                  onChange={(e) => optimisticMutation(Number(e.target.value))}
                   disabled={!user?.referral_program_enabled}
                   className="max-w-xs"
                 />

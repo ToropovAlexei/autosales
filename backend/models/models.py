@@ -48,9 +48,15 @@ class User(UserBase):
     id: int
     is_active: bool
     role: UserRole
+    referral_program_enabled: bool
+    referral_percentage: float
 
     class Config:
         from_attributes = True
+
+class ReferralSettings(BaseModel):
+    referral_program_enabled: bool
+    referral_percentage: float
 
 # Token Models
 class Token(BaseModel):
@@ -106,7 +112,7 @@ class OrderBase(BaseModel):
     quantity: int
 
 class OrderCreate(OrderBase):
-    pass
+    referral_bot_token: Optional[str] = None
 
 class Order(OrderBase):
     id: int
@@ -160,3 +166,38 @@ class DashboardStats(BaseModel):
 class SalesOverTime(BaseModel):
     products_sold: int
     total_revenue: float
+
+# Referral Bot Models
+class ReferralBotBase(BaseModel):
+    owner_id: int
+    seller_id: int
+    bot_token: str
+
+class ReferralBotCreate(ReferralBotBase):
+    pass
+
+class ReferralBot(ReferralBotBase):
+    id: int
+    is_active: bool
+    created_at: datetime.datetime
+
+    class Config:
+        from_attributes = True
+
+# Referral Transaction Models
+class RefTransactionBase(BaseModel):
+    ref_owner_id: int
+    seller_id: int
+    order_id: int
+    amount: float
+    ref_share: float
+
+class RefTransactionCreate(RefTransactionBase):
+    pass
+
+class RefTransaction(RefTransactionBase):
+    id: int
+    created_at: datetime.datetime
+
+    class Config:
+        from_attributes = True

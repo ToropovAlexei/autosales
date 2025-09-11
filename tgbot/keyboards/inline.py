@@ -1,12 +1,14 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-def main_menu():
+def main_menu(referral_program_enabled: bool = False):
     buttons = [
         [InlineKeyboardButton(text="🛍️ Каталог", callback_data="catalog")],
         [InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="deposit")],
         [InlineKeyboardButton(text="💳 Баланс", callback_data="balance")],
-        [InlineKeyboardButton(text="💬 Поддержка", callback_data="support")]
     ]
+    if referral_program_enabled:
+        buttons.append([InlineKeyboardButton(text="🤝 Реферальный магазин", callback_data="referral_program")])
+    buttons.append([InlineKeyboardButton(text="💬 Поддержка", callback_data="support")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def deposit_menu():

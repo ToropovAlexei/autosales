@@ -46,14 +46,15 @@ async def buy_from_balance(
         )
         balance = balance_result.scalar_one_or_none() or 0
 
-        if balance < product.price * order_data.quantity:
+        order_amount = product.price * order_data.quantity
+        if balance < order_amount:
             return error_response("Insufficient balance", status_code=status.HTTP_400_BAD_REQUEST)
 
         db_order = db_models.Order(
             user_id=user.id,
             product_id=order_data.product_id,
             quantity=order_data.quantity,
-            amount=product.price * order_data.quantity,
+            amount=order_amount,
             status="success"
         )
         db.add(db_order)
@@ -64,7 +65,7 @@ async def buy_from_balance(
             user_id=user.id,
             order_id=db_order.id,
             type=models.TransactionType.PURCHASE,
-            amount=-(product.price * order_data.quantity),
+            amount=-order_amount,
             description=f"Purchase of {product.name} (x{order_data.quantity})",
             created_at=datetime.datetime.now(datetime.UTC)
         )
@@ -79,6 +80,27 @@ async def buy_from_balance(
             created_at=datetime.datetime.now(datetime.UTC)
         )
         db.add(sale_movement)
+
+        # Referral logic
+        if order_data.referral_bot_token:
+            ref_bot_result = await db.execute(select(db_models.ReferralBot).filter(db_models.ReferralBot.bot_token == order_data.referral_bot_token))
+            ref_bot = ref_bot_result.scalars().first()
+
+            if ref_bot and ref_bot.is_active:
+                seller_result = await db.execute(select(db_models.User).filter(db_models.User.id == ref_bot.seller_id))
+                seller = seller_result.scalars().first()
+
+                if seller and seller.referral_program_enabled and seller.referral_percentage > 0:
+                    ref_share = order_amount * (seller.referral_percentage / 100)
+
+                    ref_transaction = db_models.RefTransaction(
+                        ref_owner_id=ref_bot.owner_id,
+                        seller_id=seller.id,
+                        order_id=db_order.id,
+                        amount=order_amount,
+                        ref_share=ref_share,
+                    )
+                    db.add(ref_transaction)
 
         await db.commit()
         await db.refresh(db_order)

@@ -2,7 +2,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from routers import auth, categories, products, users, balance, orders, admin, transactions, stock, dashboard
+from routers import auth, categories, products, users, balance, orders, admin, transactions, stock, dashboard, referrals
 from config import settings
 
 app = FastAPI(
@@ -34,6 +34,7 @@ app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
 app.include_router(transactions.router, prefix="/api/transactions", tags=["transactions"])
 app.include_router(stock.router, prefix="/api/stock", tags=["stock"])
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["dashboard"])
+app.include_router(referrals.router, prefix="/api/referrals", tags=["referrals"])
 
 @app.get("/api")
 def read_root():

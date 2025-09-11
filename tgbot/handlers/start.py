@@ -42,9 +42,11 @@ async def start_handler(message: Message, state: FSMContext):
                 )
             else:
                 # Existing user who has passed captcha, show main menu
+                seller_info_response = await api_client.get_seller_info()
+                referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
                 await message.answer(
                     f"С возвращением, {hbold(message.from_user.full_name)}!",
-                    reply_markup=inline.main_menu(),
+                    reply_markup=inline.main_menu(referral_program_enabled=referral_program_enabled),
                     parse_mode="HTML"
                 )
     except Exception as e:
@@ -74,6 +76,8 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
             return
 
         await callback_query.message.delete()
+        seller_info_response = await api_client.get_seller_info()
+        referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
         await callback_query.message.answer(
             f"Добро пожаловать, {hbold(callback_query.from_user.full_name)}!\n\n"
             f"Я - ваш личный помощник для покупок. Здесь вы можете:\n"
@@ -81,7 +85,7 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
             f"- 💰 Пополнять баланс\n"
             f"- 💳 Проверять свой счет\n\n"
             f"Выберите действие в меню ниже:",
-            reply_markup=inline.main_menu(),
+            reply_markup=inline.main_menu(referral_program_enabled=referral_program_enabled),
             parse_mode="HTML"
         )
         await state.clear()
@@ -97,9 +101,11 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
 
 @router.callback_query(F.data == "main_menu")
 async def main_menu_handler(callback_query: CallbackQuery):
+    seller_info_response = await api_client.get_seller_info()
+    referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
     await callback_query.message.edit_text(
         "Главное меню",
-        reply_markup=inline.main_menu()
+        reply_markup=inline.main_menu(referral_program_enabled=referral_program_enabled)
     )
 
 @router.callback_query(F.data == "support")

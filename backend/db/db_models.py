@@ -17,6 +17,8 @@ class User(Base):
     hashed_password = Column(String)
     is_active = Column(Boolean, default=True)
     role = Column(Enum(UserRole), default=UserRole.seller, nullable=False)
+    referral_program_enabled = Column(Boolean, default=False)
+    referral_percentage = Column(Float, default=0.0)
 
 class Category(Base):
     __tablename__ = "categories"
@@ -86,3 +88,24 @@ class StockMovement(Base):
     quantity = Column(Integer, nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False)
     description = Column(String)
+
+class ReferralBot(Base):
+    __tablename__ = "referral_bots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    owner_id = Column(Integer, ForeignKey("bot_users.id"))
+    seller_id = Column(Integer, ForeignKey("users.id"))
+    bot_token = Column(String, unique=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now(datetime.UTC))
+
+class RefTransaction(Base):
+    __tablename__ = "ref_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ref_owner_id = Column(Integer, ForeignKey("bot_users.id"))
+    seller_id = Column(Integer, ForeignKey("users.id"))
+    order_id = Column(Integer, ForeignKey("orders.id"))
+    amount = Column(Float, nullable=False)
+    ref_share = Column(Float, nullable=False)
+    created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now(datetime.UTC))
