@@ -185,6 +185,11 @@ class ReferralBot(ReferralBotBase):
     class Config:
         from_attributes = True
 
+class ReferralBotAdminInfo(ReferralBot):
+    owner_telegram_id: int
+    turnover: float = 0
+    accruals: float = 0
+
 # Referral Transaction Models
 class RefTransactionBase(BaseModel):
     ref_owner_id: int

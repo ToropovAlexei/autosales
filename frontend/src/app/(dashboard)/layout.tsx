@@ -86,6 +86,13 @@ export default function DashboardLayout({
                   </SidebarMenuItem>
                 </>
               )}
+              {(user?.role === "admin" || user?.role === "seller") && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild>
+                    <Link href="/referral-bots">Реферальные боты</Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
               <SidebarMenuItem>
                 <SidebarMenuButton asChild>
                   <Link href="/settings">Настройки</Link>
