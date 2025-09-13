@@ -27,7 +27,7 @@ class APIClient:
         return await self._request("GET", f"/products?category_id={category_id}")
 
     async def buy_product(self, user_id: int, product_id: int):
-        return await self._request("POST", "/orders/buy-from-balance", json={"user_id": user_id, "product_id": product_id})
+        return await self._request("POST", "/orders/buy-from-balance", json={"user_id": user_id, "product_id": product_id, "quantity": 1})
 
     async def create_deposit(self, user_id: int, amount: int):
         return await self._request("POST", "/balance/deposit", json={"user_id": user_id, "amount": amount})

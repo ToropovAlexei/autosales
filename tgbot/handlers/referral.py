@@ -3,7 +3,6 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 
 from states import ReferralState
-from keyboards.inline import get_main_menu
 from api import api_client
 
 router = Router()
