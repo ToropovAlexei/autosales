@@ -7,7 +7,7 @@ class UserRole(str, enum.Enum):
     admin = "admin"
     seller = "seller"
 
-# Category Models
+# Модели Категорий
 class CategoryBase(BaseModel):
     name: str
 
@@ -20,7 +20,7 @@ class Category(CategoryBase):
     class Config:
         from_attributes = True
 
-# Product Models
+# Модели Продуктов
 class ProductBase(BaseModel):
     name: str
     category_id: int
@@ -36,7 +36,7 @@ class Product(ProductBase):
     class Config:
         from_attributes = True
 
-# User Models (for panel auth)
+# Модели Пользователей (для панели администратора)
 class UserBase(BaseModel):
     email: str
 
@@ -58,7 +58,7 @@ class ReferralSettings(BaseModel):
     referral_program_enabled: bool
     referral_percentage: float
 
-# Token Models
+# Модели Токенов
 class Token(BaseModel):
     access_token: str
     token_type: str
@@ -67,7 +67,7 @@ class TokenData(BaseModel):
     email: Optional[str] = None
     role: Optional[str] = None
 
-# Bot User Models
+# Модели Пользователей Бота
 class BotUserBase(BaseModel):
     telegram_id: int
 
@@ -83,7 +83,7 @@ class BotUser(BotUserBase):
     class Config:
         from_attributes = True
 
-# Transaction Models
+# Модели Транзакций
 class TransactionType(str, enum.Enum):
     DEPOSIT = "deposit"
     PURCHASE = "purchase"
@@ -105,7 +105,7 @@ class Transaction(TransactionBase):
     class Config:
         from_attributes = True
 
-# Order Models
+# Модели Заказов
 class OrderBase(BaseModel):
     user_id: int
     product_id: int
@@ -135,7 +135,7 @@ class OrderResponse(Order):
     product_name: str
     created_at: datetime.datetime
 
-# Stock Movement Models
+# Модели Движения Склада
 class StockMovementType(str, enum.Enum):
     INITIAL = "initial"
     SALE = "sale"
@@ -158,7 +158,7 @@ class StockMovement(StockMovementBase):
     class Config:
         from_attributes = True
 
-# Dashboard Models
+# Модели для Дашборда
 class DashboardStats(BaseModel):
     total_users: int
     users_with_purchases: int
@@ -168,7 +168,7 @@ class SalesOverTime(BaseModel):
     products_sold: int
     total_revenue: float
 
-# Referral Bot Models
+# Модели Реферальных Ботов
 class ReferralBotBase(BaseModel):
     owner_id: int
     seller_id: int
@@ -190,7 +190,7 @@ class ReferralBotAdminInfo(ReferralBot):
     turnover: float = 0
     accruals: float = 0
 
-# Referral Transaction Models
+# Модели Реферальных Транзакций
 class RefTransactionBase(BaseModel):
     ref_owner_id: int
     seller_id: int

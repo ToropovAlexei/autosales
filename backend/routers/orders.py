@@ -35,7 +35,7 @@ async def buy_from_balance(
         product_name = product.name
         product_price = product.price
 
-        # Calculate stock
+        # Рассчитываем сток
         stock_result = await db.execute(
             select(func.sum(db_models.StockMovement.quantity)).filter(db_models.StockMovement.product_id == product.id)
         )
@@ -44,7 +44,7 @@ async def buy_from_balance(
         if stock <= 0:
             return error_response("Product out of stock", status_code=status.HTTP_400_BAD_REQUEST)
 
-        # Calculate balance
+        # Рассчитываем баланс
         balance_result = await db.execute(
             select(func.sum(db_models.Transaction.amount)).filter(db_models.Transaction.user_id == user.id)
         )
@@ -62,9 +62,9 @@ async def buy_from_balance(
             status="success"
         )
         db.add(db_order)
-        await db.flush() # Flush to get the order id
+        await db.flush() # Делаем flush, чтобы получить id заказа
 
-        # Perform transaction
+        # Проводим транзакцию
         purchase_transaction = db_models.Transaction(
             user_id=user.id,
             order_id=db_order.id,
@@ -85,7 +85,7 @@ async def buy_from_balance(
         )
         db.add(sale_movement)
 
-        # Referral logic
+        # Логика рефералов
         if order_data.referral_bot_token:
             ref_bot_result = await db.execute(select(db_models.ReferralBot).filter(db_models.ReferralBot.bot_token == order_data.referral_bot_token))
             ref_bot = ref_bot_result.scalars().first()
@@ -171,7 +171,7 @@ async def cancel_order(
         if order.status == "cancelled":
             return error_response("Order is already cancelled", status_code=status.HTTP_400_BAD_REQUEST)
 
-        # Create a return stock movement
+        # Создаем движение стока для возврата
         return_movement = db_models.StockMovement(
             order_id=order.id,
             product_id=order.product_id,
@@ -182,7 +182,7 @@ async def cancel_order(
         )
         db.add(return_movement)
 
-        # Create a refund transaction
+        # Создаем транзакцию для возврата средств
         refund_transaction = db_models.Transaction(
             user_id=order.user_id,
             order_id=order.id,

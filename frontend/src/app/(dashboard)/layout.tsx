@@ -31,7 +31,7 @@ export default function DashboardLayout({
   }, [isAuthenticated, loading, router]);
 
   if (loading || !isAuthenticated) {
-    return <div>Loading...</div>; // Or a proper loading spinner
+    return <div>Loading...</div>;
   }
 
   return (

@@ -12,20 +12,20 @@ from db import database, db_models
 from models import models
 from config import settings
 
-# Configuration
+# Конфигурация
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 api_key_header = APIKeyHeader(name="X-API-KEY", auto_error=False)
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-# Password Hashing
+# Хеширование пароля
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password):
     return pwd_context.hash(password)
 
-# JWT Creation
+# Создание JWT
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
@@ -36,12 +36,12 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
 
-# User lookup
+# Поиск пользователя
 async def get_user(db: AsyncSession, email: str):
     result = await db.execute(select(db_models.User).filter(db_models.User.email == email))
     return result.scalars().first()
 
-# Dependency to get current user
+# Зависимость для получения текущего пользователя
 async def get_current_active_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(database.get_db)) -> models.User:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -75,7 +75,7 @@ async def get_current_admin_user(current_user: models.User = Depends(get_current
         )
     return current_user
 
-# Dependency for service token
+# Зависимость для сервисного токена
 async def verify_service_token(x_api_key: str = Security(api_key_header)):
     if x_api_key != settings.SERVICE_API_KEY:
         raise HTTPException(

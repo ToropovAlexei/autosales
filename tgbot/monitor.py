@@ -16,8 +16,8 @@ from urllib3.util.retry import Retry
 from telethon.sync import TelegramClient
 from telethon.errors import SessionPasswordNeededError
 
-# --- Configuration ---
-# Telegram API credentials for creating new bots. Get them from my.telegram.org
+# --- Конфигурация ---
+# Учетные данные Telegram API для создания новых ботов. Получите их на my.telegram.org
 API_ID = os.getenv("API_ID")
 API_HASH = os.getenv("API_HASH")
 SESSION_NAME = "bot_creator"
@@ -26,13 +26,13 @@ TOKENS_FILE = Path("tokens.txt")
 UNAVAILABLE_TOKENS_FILE = Path("unavailable_tokens.txt")
 BOT_COMMAND = ["python", "main.py"]
 HEALTH_CHECK_INTERVAL = 60
-STARTUP_WAIT_TIME = 10 # seconds to wait for the bot to start before the first check
-# --- End Configuration ---
+STARTUP_WAIT_TIME = 10 # секунды ожидания запуска бота перед первой проверкой
+# --- Конец конфигурации ---
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def load_tokens() -> list[str]:
-    """Loads tokens from the tokens file."""
+    """Загружает токены из файла токенов."""
     if not TOKENS_FILE.exists():
         return []
     try:
@@ -44,7 +44,7 @@ def load_tokens() -> list[str]:
         return []
 
 def mark_token_as_unavailable(token: str):
-    """Moves a token to the unavailable file."""
+    """Перемещает токен в файл недоступных."""
     logging.warning(f"Marking token ...{token[-4:]} as unavailable.")
     try:
         with open(UNAVAILABLE_TOKENS_FILE, "a") as f:
@@ -61,7 +61,7 @@ def mark_token_as_unavailable(token: str):
         logging.error(f"Error updating token files: {e}")
 
 def get_bot_info(token: str) -> dict | None:
-    """Checks bot health by calling getMe and returns bot info if healthy."""
+    """Проверяет работоспособность бота, вызывая getMe, и возвращает информацию о боте, если он здоров."""
     url = f"https://api.telegram.org/bot{token}/getMe"
     
     session = requests.Session()
@@ -91,7 +91,7 @@ def get_bot_info(token: str) -> dict | None:
         return None
 
 async def request_new_bot_token() -> bool:
-    """Interactively contacts BotFather to create a new bot and get a token."""
+    """Интерактивно связывается с BotFather для создания нового бота и получения токена."""
     if not API_ID or not API_HASH or API_ID == "YOUR_API_ID" or API_HASH == "YOUR_API_HASH":
         logging.error("API_ID and API_HASH are not set. Cannot request a new bot.")
         return False
@@ -144,7 +144,7 @@ async def request_new_bot_token() -> bool:
         return False
 
 async def main():
-    """The main function that starts and monitors the bot."""
+    """Основная функция, которая запускает и отслеживает бота."""
     bot_process = None
     try:
         while True:
@@ -167,7 +167,7 @@ async def main():
                     await asyncio.sleep(300)
                     continue
                 
-                # Reload tokens and re-evaluate health
+                # Перезагружаем токены и переоцениваем работоспособность
                 all_tokens = load_tokens()
                 healthy_bots = deque()
                 for token in all_tokens:

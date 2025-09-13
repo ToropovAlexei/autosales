@@ -21,11 +21,11 @@ async def get_seller_settings(
     _ = Depends(security.verify_service_token)
 ):
     try:
-        # Assuming the seller is the admin user
+        # Предполагаем, что продавец является администратором
         result = await db.execute(select(db_models.User).filter(db_models.User.role == models.UserRole.admin))
         seller = result.scalars().first()
         if seller is None:
-            # Fallback to the first user if no admin found
+            # Если администратор не найден, используем первого пользователя
             result = await db.execute(select(db_models.User))
             seller = result.scalars().first()
             if seller is None:
@@ -74,7 +74,7 @@ async def register_bot_user(
     _ = Depends(security.verify_service_token)
 ):
     try:
-        # Check if user already exists
+        # Проверяем, существует ли пользователь
         result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.telegram_id == user.telegram_id))
         existing_user = result.scalars().first()
         if existing_user:
@@ -86,14 +86,14 @@ async def register_bot_user(
                 }
                 return success_response(response_data)
             else:
-                # If user exists but is deleted, create a new one (effectively undelete and reset)
+                # Если пользователь существует, но удален, создаем нового (фактически, восстанавливаем и сбрасываем)
                 existing_user.is_deleted = False
-                existing_user.has_passed_captcha = False # Must pass captcha again
+                existing_user.has_passed_captcha = False # Необходимо снова пройти капчу
                 await db.commit()
                 await db.refresh(existing_user)
                 response_data = {
                     "user": models.BotUser.model_validate(existing_user).model_dump(),
-                    "is_new": True, # Treat as new for the bot's perspective
+                    "is_new": True, # Рассматриваем как нового пользователя с точки зрения бота
                     "has_passed_captcha": False
                 }
                 return success_response(response_data, status_code=status.HTTP_201_CREATED)
@@ -180,7 +180,7 @@ async def get_transactions(
 @router.put("/{user_id}/captcha-status")
 async def update_user_captcha_status(
     user_id: int,
-    captcha_status: dict, # This will contain {"has_passed_captcha": True/False}
+    captcha_status: dict, # Содержит {"has_passed_captcha": True/False}
     db: AsyncSession = Depends(database.get_db),
     _ = Depends(security.verify_service_token)
 ):
