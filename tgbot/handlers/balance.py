@@ -20,9 +20,11 @@ async def balance_handler(callback_query: CallbackQuery):
                 parse_mode="HTML"
             )
         else:
+            seller_info_response = await api_client.get_seller_info()
+            referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
             await callback_query.message.edit_text(
                 f"Не удалось получить баланс: {response.get('error')}",
-                reply_markup=inline.main_menu()
+                reply_markup=inline.main_menu(referral_program_enabled=referral_program_enabled)
             )
     except Exception as e:
         await callback_query.message.answer(f"Произошла ошибка: {e}")
@@ -41,20 +43,23 @@ async def deposit_amount_handler(callback_query: CallbackQuery):
     amount = int(callback_query.data.split('_')[1])
     user_id = callback_query.from_user.id
     try:
+        seller_info_response = await api_client.get_seller_info()
+        referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
+
         response = await api_client.create_deposit(user_id, amount)
         if response.get("success"):
             # In a real app, you would get a payment URL and show it.
             # For this MVP, we just confirm the creation of the deposit request.
             await callback_query.message.edit_text(
-                f"✅ Заявка на пополнение на {hbold(f'{amount} ₽')} успешно создана.\n\n"
+                f"✅ Заявка на пополнение на {hbold(f'{amount} ₽')} успешно создана.\n\n" 
                 f"В реальном приложении здесь была бы ссылка на оплату.",
-                reply_markup=inline.main_menu(),
+                reply_markup=inline.main_menu(referral_program_enabled=referral_program_enabled),
                 parse_mode="HTML"
             )
         else:
             await callback_query.message.edit_text(
                 f"Не удалось создать заявку: {response.get('error')}",
-                reply_markup=inline.main_menu()
+                reply_markup=inline.main_menu(referral_program_enabled=referral_program_enabled)
             )
     except Exception as e:
         await callback_query.message.edit_text(f"Произошла ошибка: {e}")

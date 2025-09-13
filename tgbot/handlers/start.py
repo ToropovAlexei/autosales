@@ -110,7 +110,9 @@ async def main_menu_handler(callback_query: CallbackQuery):
 
 @router.callback_query(F.data == "support")
 async def support_handler(callback_query: CallbackQuery):
+    seller_info_response = await api_client.get_seller_info()
+    referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
     await callback_query.message.edit_text(
         f"Для связи с поддержкой, пожалуйста, напишите нам: {settings.support_url}",
-        reply_markup=inline.main_menu()
+        reply_markup=inline.main_menu(referral_program_enabled=referral_program_enabled)
     )

@@ -15,6 +15,31 @@ router = APIRouter()
 async def read_users_me(current_user: models.User = Depends(security.get_current_active_user)):
     return success_response(models.User.model_validate(current_user).model_dump())
 
+@router.get("/seller-settings")
+async def get_seller_settings(
+    db: AsyncSession = Depends(database.get_db),
+    _ = Depends(security.verify_service_token)
+):
+    try:
+        # Assuming the seller is the admin user
+        result = await db.execute(select(db_models.User).filter(db_models.User.role == models.UserRole.admin))
+        seller = result.scalars().first()
+        if seller is None:
+            # Fallback to the first user if no admin found
+            result = await db.execute(select(db_models.User))
+            seller = result.scalars().first()
+            if seller is None:
+                return error_response("Seller not found", status_code=status.HTTP_404_NOT_FOUND)
+
+        return success_response({
+            "id": seller.id,
+            "referral_program_enabled": seller.referral_program_enabled,
+            "referral_percentage": seller.referral_percentage
+        })
+    except Exception as e:
+        traceback.print_exc()
+        return error_response(str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 @router.put("/me/referral-settings")
 async def update_referral_settings(
     settings: models.ReferralSettings,

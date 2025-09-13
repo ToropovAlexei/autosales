@@ -39,9 +39,9 @@ class APIClient:
         return await self._request("GET", "/referrals")
 
     async def get_seller_info(self):
-        return await self._request("GET", "/users/me")
+        return await self._request("GET", "/users/seller-settings")
 
     async def create_referral_bot(self, owner_id: int, seller_id: int, bot_token: str):
-        return await self._request("POST", "/referral-bots/", json={"owner_id": owner_id, "seller_id": seller_id, "bot_token": bot_token})
+        return await self._request("POST", "/referrals", json={"owner_id": owner_id, "seller_id": seller_id, "bot_token": bot_token})
 
 api_client = APIClient()

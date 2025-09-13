@@ -1,67 +1,89 @@
-from aiogram import Router, F, Bot
+from aiogram import Router, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
+from aiogram.utils.markdown import hbold
 
 from states import ReferralState
 from api import api_client
+from keyboards import inline
 
 router = Router()
 
 @router.callback_query(F.data == "referral_program")
 async def referral_program_handler(callback_query: CallbackQuery, state: FSMContext):
-    await callback_query.message.answer(
-        "Чтобы создать свой реферальный магазин, вам нужно создать собственного бота через @BotFather и прислать мне его токен."
-    )
     await state.set_state(ReferralState.waiting_for_token)
-    await callback_query.answer()
+    # Fetch seller info to display the referral percentage
+    seller_info_response = await api_client.get_seller_info()
+    if not seller_info_response.get("success"):
+        await callback_query.message.edit_text(
+            "Не удалось загрузить информацию о реферальной программе. Попробуйте позже.",
+            reply_markup=inline.main_menu(referral_program_enabled=True)
+        )
+        return
+
+    referral_percentage = seller_info_response.get("data", {}).get("referral_percentage", 0)
+
+    await callback_query.message.edit_text(
+        f"Вы можете создать свой собственный магазин-бот и получать {hbold(f'{referral_percentage}%')} с каждой продажи!\n\n" 
+        "Для этого:\n" 
+        "1. Создайте нового бота через @BotFather в Telegram.\n" 
+        "2. Получите у него токен (набор символов вида `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`).\n" 
+        "3. Отправьте этот токен мне в следующем сообщении.\n\n" 
+        "Я жду ваш токен.",
+        reply_markup=inline.main_menu(referral_program_enabled=True),
+        parse_mode="HTML"
+    )
 
 @router.message(ReferralState.waiting_for_token)
-async def process_token(message: Message, state: FSMContext):
+async def token_handler(message: Message, state: FSMContext):
     token = message.text
-    if not token:
-        await message.answer("Пожалуйста, введите токен.")
-        return
-
-    # Basic token validation
-    if len(token.split(":")) != 2:
-        await message.answer("Неверный формат токена. Попробуйте еще раз.")
-        return
-
-    # Validate token with getMe
-    try:
-        test_bot = Bot(token=token)
-        await test_bot.get_me()
-    except Exception:
-        await message.answer("Токен невалиден. Пожалуйста, проверьте его и попробуйте снова.")
-        return
-    finally:
-        await test_bot.session.close()
-
     user_id = message.from_user.id
-    # We need the internal user ID, not the telegram ID.
-    # This is a shortcut, in a real app we would get this from the DB
-    # based on the telegram_id.
-    # For now, I will assume the telegram_id is the user_id in the bot_users table.
-    user_response = await api_client.register_user(user_id)
-    internal_user_id = user_response.get("data", {}).get("user", {}).get("id")
 
-    if not internal_user_id:
-        await message.answer("Не удалось найти вашего пользователя. Пожалуйста, перезапустите бота.")
+    # A basic validation for bot token
+    if not token or len(token.split(':')) != 2:
+        await message.answer(
+            "Это не похоже на токен бота. Пожалуйста, проверьте и отправьте еще раз.",
+            reply_markup=inline.main_menu(referral_program_enabled=True)
+        )
         return
 
-    # Get seller ID from seller info
-    seller_info_response = await api_client.get_seller_info()
-    seller_id = seller_info_response.get("data", {}).get("id")
+    try:
+        seller_info_response = await api_client.get_seller_info()
+        if not seller_info_response.get("success"):
+            await message.answer("Не удалось получить информацию о продавце. Попробуйте позже.")
+            await state.clear()
+            return
+        
+        seller_data = seller_info_response.get("data", {})
+        seller_id = seller_data.get("id")
+        referral_percentage = seller_data.get("referral_percentage", 0)
 
-    if not seller_id:
-        await message.answer("Не удалось определить продавца. Попробуйте позже.")
-        return
+        if not seller_id:
+            await message.answer("Не удалось определить ID продавца. Попробуйте позже.")
+            await state.clear()
+            return
 
-    response = await api_client.create_referral_bot(internal_user_id, seller_id, token)
+        result = await api_client.create_referral_bot(user_id, seller_id, token)
+        
+        if result.get("success"):
+            await message.answer(
+                f"🎉 Поздравляем! Ваш реферальный бот успешно создан и скоро начнет работать.\n\n" 
+                f"Все товары и категории из основного магазина теперь доступны в вашем боте. " 
+                f"Вы будете получать {hbold(f'{referral_percentage}%')} от каждой покупки.",
+                parse_mode="HTML"
+            )
+        else:
+            error = result.get("error", "Произошла неизвестная ошибка.")
+            if error == "Bot token is invalid":
+                error_message = "😔 Токен невалидный. Пожалуйста, проверьте его и попробуйте снова."
+            elif error == "Bot is already a referral bot":
+                error_message = "😔 Этот бот уже используется в качестве реферального."
+            else:
+                error_message = f"😔 Произошла ошибка при создании бота: {error}"
+            await message.answer(error_message)
 
-    if response.get("status") == "success":
-        await message.answer("Ваш реферальный бот успешно создан! Скоро он будет запущен.")
-    else:
-        await message.answer(f"Ошибка при создании бота: {response.get('message')}")
-
-    await state.clear()
+    except Exception as e:
+        await message.answer(f"Произошла непредвиденная ошибка: {e}")
+    
+    finally:
+        await state.clear()

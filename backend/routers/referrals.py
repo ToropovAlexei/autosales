@@ -10,14 +10,34 @@ from security import security
 
 router = APIRouter()
 
-@router.post("", response_model=models.ReferralBot)
+@router.post("")
 async def create_referral_bot(bot: models.ReferralBotCreate, db: AsyncSession = Depends(database.get_db), _ = Depends(security.verify_service_token)):
     
-    db_bot = db_models.ReferralBot(**bot.dict())
+    # Find the bot_user by telegram_id, which is passed as owner_id from the bot
+    user_result = await db.execute(select(db_models.BotUser).filter(db_models.BotUser.telegram_id == bot.owner_id))
+    owner = user_result.scalars().first()
+    if not owner:
+        return error_response("Referral owner (user) not found.", status_code=status.HTTP_404_NOT_FOUND)
+
+    # Check if seller exists
+    seller_result = await db.execute(select(db_models.User).filter(db_models.User.id == bot.seller_id))
+    if not seller_result.scalars().first():
+        return error_response("Seller not found.", status_code=status.HTTP_404_NOT_FOUND)
+
+    # Check if bot with this token already exists
+    existing_bot_result = await db.execute(select(db_models.ReferralBot).filter(db_models.ReferralBot.bot_token == bot.bot_token))
+    if existing_bot_result.scalars().first():
+        return error_response("Bot with this token already exists.", status_code=status.HTTP_400_BAD_REQUEST)
+
+    db_bot = db_models.ReferralBot(
+        owner_id=owner.id,  # Use the internal ID of the bot_user
+        seller_id=bot.seller_id,
+        bot_token=bot.bot_token
+    )
     db.add(db_bot)
     await db.commit()
     await db.refresh(db_bot)
-    return db_bot
+    return success_response(models.ReferralBot.model_validate(db_bot).model_dump())
 
 
 @router.get("", response_model=List[models.ReferralBot])
