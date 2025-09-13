@@ -128,6 +128,7 @@ class BuyResponse(BaseModel):
     order: Order
     product_name: str
     product_price: float
+    balance: float
 
 class OrderResponse(Order):
     user_telegram_id: int

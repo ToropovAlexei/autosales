@@ -13,15 +13,19 @@ async def buy_handler(callback_query: CallbackQuery):
     try:
         result = await api_client.buy_product(user_id, product_id)
         if result.get("success"):
-            data = result["data"]
-            new_balance = data["balance"]
-            product_name = data["product_name"]
-            product_price = data["product_price"]
-            await callback_query.message.edit_text(
-                f"✅ Поздравляем! Вы успешно купили товар {hbold(product_name)} за {hbold(f'{product_price} ₽')}.\n\n"
-                f"💳 Ваш новый баланс: {hbold(f'{new_balance} ₽')}",
-                parse_mode="HTML"
-            )
+            data = result.get("data", {{}})
+            new_balance = data.get("balance")
+            product_name = data.get("product_name")
+            product_price = data.get("product_price")
+
+            if new_balance is not None and product_name and product_price is not None:
+                await callback_query.message.edit_text(
+                    f"✅ Поздравляем! Вы успешно купили товар {hbold(product_name)} за {hbold(f'{product_price} ₽')}.\n\n"
+                    f"💳 Ваш новый баланс: {hbold(f'{new_balance} ₽')}",
+                    parse_mode="HTML"
+                )
+            else:
+                await callback_query.message.edit_text("Произошла ошибка при обработке покупки.")
         else:
             error = result.get("error", "Произошла неизвестная ошибка.")
             if error == "Insufficient balance":
@@ -33,5 +37,5 @@ async def buy_handler(callback_query: CallbackQuery):
             await callback_query.message.edit_text(error_message)
 
     except Exception as e:
-        await callback_query.message.edit_text(f"Произошла ошибка: {e}")
+        await callback_query.message.edit_text("Произошла непредвиденная ошибка. Попробуйте позже.")
     await callback_query.answer()

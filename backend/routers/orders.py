@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 import datetime
+import logging
 
 from models import models
 from db import database, db_models
@@ -31,6 +32,9 @@ async def buy_from_balance(
         if product is None:
             return error_response("Product not found", status_code=status.HTTP_404_NOT_FOUND)
 
+        product_name = product.name
+        product_price = product.price
+
         # Calculate stock
         stock_result = await db.execute(
             select(func.sum(db_models.StockMovement.quantity)).filter(db_models.StockMovement.product_id == product.id)
@@ -46,7 +50,7 @@ async def buy_from_balance(
         )
         balance = balance_result.scalar_one_or_none() or 0
 
-        order_amount = product.price * order_data.quantity
+        order_amount = product_price * order_data.quantity
         if balance < order_amount:
             return error_response("Insufficient balance", status_code=status.HTTP_400_BAD_REQUEST)
 
@@ -66,7 +70,7 @@ async def buy_from_balance(
             order_id=db_order.id,
             type=models.TransactionType.PURCHASE,
             amount=-order_amount,
-            description=f"Purchase of {product.name} (x{order_data.quantity})",
+            description=f"Purchase of {product_name} (x{order_data.quantity})",
             created_at=datetime.datetime.now(datetime.UTC)
         )
         db.add(purchase_transaction)
@@ -105,15 +109,20 @@ async def buy_from_balance(
         await db.commit()
         await db.refresh(db_order)
 
+        new_balance = balance - order_amount
+
+        order_model = models.Order.model_validate(db_order)
         response_data = models.BuyResponse(
-            order=db_order,
-            product_name=product.name,
-            product_price=product.price
+            order=order_model,
+            product_name=product_name,
+            product_price=product_price,
+            balance=new_balance
         )
         
-        return success_response(response_data.model_dump())
+        return success_response(response_data)
     except Exception as e:
-        return error_response(str(e), status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        logging.exception("Error processing purchase")
+        return error_response("Internal server error", status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 @router.get("", response_model=List[models.OrderResponse])
 async def read_orders(db: AsyncSession = Depends(database.get_db), current_user: models.User = Depends(security.get_current_active_user)):
