@@ -1,6 +1,7 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from typing import Optional
 
-def main_menu(referral_program_enabled: bool = False):
+def main_menu(referral_program_enabled: bool = False, fallback_bot_username: Optional[str] = None):
     buttons = [
         [InlineKeyboardButton(text="🛍️ Каталог", callback_data="catalog")],
         [InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="deposit")],
@@ -8,7 +9,12 @@ def main_menu(referral_program_enabled: bool = False):
     ]
     if referral_program_enabled:
         buttons.append([InlineKeyboardButton(text="🤝 Реферальный магазин", callback_data="referral_program")])
+    
     buttons.append([InlineKeyboardButton(text="💬 Поддержка", callback_data="support")])
+
+    if fallback_bot_username:
+        buttons.append([InlineKeyboardButton(text="🤖 Резервный бот", url=f"https://t.me/{fallback_bot_username}")])
+
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def deposit_menu():

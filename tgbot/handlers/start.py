@@ -30,7 +30,6 @@ async def start_handler(message: Message, state: FSMContext):
             has_passed_captcha = user_data["has_passed_captcha"]
 
             if is_new or not has_passed_captcha:
-                # New user or user hasn't passed captcha, show captcha
                 captcha_image, correct_answer, options = generate_captcha_and_options()
                 await state.set_state(CaptchaState.waiting_for_answer)
                 await state.update_data(correct_answer=correct_answer, user_id=user_data["id"])
@@ -41,12 +40,14 @@ async def start_handler(message: Message, state: FSMContext):
                     reply_markup=captcha_keyboard(options)
                 )
             else:
-                # Existing user who has passed captcha, show main menu
                 seller_info_response = await api_client.get_seller_info()
                 referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
                 await message.answer(
                     f"С возвращением, {hbold(message.from_user.full_name)}!",
-                    reply_markup=inline.main_menu(referral_program_enabled=referral_program_enabled),
+                    reply_markup=inline.main_menu(
+                        referral_program_enabled=referral_program_enabled,
+                        fallback_bot_username=settings.fallback_bot_username
+                    ),
                     parse_mode="HTML"
                 )
     except Exception as e:
@@ -66,7 +67,6 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
 
     if answer == correct_answer:
         try:
-            # Update has_passed_captcha in DB
             update_response = await api_client.update_user_captcha_status(user_id, True)
             if not update_response.get("success"):
                 await callback_query.answer(f"Ошибка при обновлении статуса капчи: {update_response.get('error')}", show_alert=True)
@@ -85,13 +85,15 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
             f"- 💰 Пополнять баланс\n"
             f"- 💳 Проверять свой счет\n\n"
             f"Выберите действие в меню ниже:",
-            reply_markup=inline.main_menu(referral_program_enabled=referral_program_enabled),
+            reply_markup=inline.main_menu(
+                referral_program_enabled=referral_program_enabled,
+                fallback_bot_username=settings.fallback_bot_username
+            ),
             parse_mode="HTML"
         )
         await state.clear()
     else:
         await callback_query.answer("Неверный ответ, попробуйте еще раз.", show_alert=True)
-        # Regenerate captcha
         captcha_image, correct_answer, options = generate_captcha_and_options()
         await state.update_data(correct_answer=correct_answer)
         await callback_query.message.edit_media(
@@ -105,7 +107,10 @@ async def main_menu_handler(callback_query: CallbackQuery):
     referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
     await callback_query.message.edit_text(
         "Главное меню",
-        reply_markup=inline.main_menu(referral_program_enabled=referral_program_enabled)
+        reply_markup=inline.main_menu(
+            referral_program_enabled=referral_program_enabled,
+            fallback_bot_username=settings.fallback_bot_username
+        )
     )
 
 @router.callback_query(F.data == "support")
@@ -114,5 +119,8 @@ async def support_handler(callback_query: CallbackQuery):
     referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
     await callback_query.message.edit_text(
         f"Для связи с поддержкой, пожалуйста, напишите нам: {settings.support_url}",
-        reply_markup=inline.main_menu(referral_program_enabled=referral_program_enabled)
+        reply_markup=inline.main_menu(
+            referral_program_enabled=referral_program_enabled,
+            fallback_bot_username=settings.fallback_bot_username
+        )
     )

@@ -40,16 +40,13 @@ async def create_referral_bot(bot: models.ReferralBotCreate, db: AsyncSession = 
     return success_response(models.ReferralBot.model_validate(db_bot).model_dump())
 
 
-@router.get("", response_model=List[models.ReferralBot])
+@router.get("")
 async def read_referral_bots(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(database.get_db),
-    current_user: models.User = Depends(security.get_current_active_user),
+    _ = Depends(security.verify_service_token),
 ):
-    if current_user.role != models.UserRole.admin and current_user.role != models.UserRole.seller:
-        return error_response("Not enough permissions", status_code=status.HTTP_403_FORBIDDEN)
-    
-    result = await db.execute(select(db_models.ReferralBot).filter(db_models.ReferralBot.seller_id == current_user.id).offset(skip).limit(limit))
+    result = await db.execute(select(db_models.ReferralBot).offset(skip).limit(limit))
     bots = result.scalars().all()
     return success_response(bots)

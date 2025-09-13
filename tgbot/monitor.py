@@ -6,6 +6,7 @@ import subprocess
 import time
 from pathlib import Path
 from dotenv import load_dotenv
+from collections import deque
 
 import requests
 
@@ -25,10 +26,10 @@ TOKENS_FILE = Path("tokens.txt")
 UNAVAILABLE_TOKENS_FILE = Path("unavailable_tokens.txt")
 BOT_COMMAND = ["python", "main.py"]
 HEALTH_CHECK_INTERVAL = 60
-STARTUP_WAIT_TIME = 5 # seconds to wait for the bot to start before the first check
+STARTUP_WAIT_TIME = 10 # seconds to wait for the bot to start before the first check
 # --- End Configuration ---
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def load_tokens() -> list[str]:
     """Loads tokens from the tokens file."""
@@ -48,16 +49,19 @@ def mark_token_as_unavailable(token: str):
     try:
         with open(UNAVAILABLE_TOKENS_FILE, "a") as f:
             f.write(f"{token}\n")
-        tokens = load_tokens()
-        tokens = [t for t in tokens if t != token]
-        with open(TOKENS_FILE, "w") as f:
-            for t in tokens:
-                f.write(f"{t}\n")
+        
+        current_tokens = load_tokens()
+        if token in current_tokens:
+            current_tokens.remove(token)
+            with open(TOKENS_FILE, "w") as f:
+                for t in current_tokens:
+                    f.write(f"{t}\n")
+
     except IOError as e:
         logging.error(f"Error updating token files: {e}")
 
-def is_bot_healthy(token: str) -> bool:
-    """Checks if the bot is healthy by calling the getMe method with retries."""
+def get_bot_info(token: str) -> dict | None:
+    """Checks bot health by calling getMe and returns bot info if healthy."""
     url = f"https://api.telegram.org/bot{token}/getMe"
     
     session = requests.Session()
@@ -72,21 +76,24 @@ def is_bot_healthy(token: str) -> bool:
     try:
         response = session.get(url, timeout=15)
         if response.status_code == 200:
-            logging.info("Health check passed.")
-            return True
+            data = response.json()
+            if data.get("ok"):
+                logging.info(f"Health check passed for token ...{token[-4:]}")
+                return data["result"]
+        
         if response.status_code == 401:
-             logging.warning("Health check failed: Token is unauthorized.")
-             return False
-        logging.warning(f"Health check failed with status code {response.status_code}.")
-        return False
+             logging.warning(f"Health check failed for token ...{token[-4:]}: Token is unauthorized.")
+        else:
+            logging.warning(f"Health check failed for token ...{token[-4:]} with status code {response.status_code}.")
+        return None
     except requests.exceptions.RequestException as e:
-        logging.error(f"Health check failed with a network exception: {e}")
-        return False
+        logging.error(f"Health check for token ...{token[-4:]} failed with a network exception: {e}")
+        return None
 
-async def request_new_bot_token():
+async def request_new_bot_token() -> bool:
     """Interactively contacts BotFather to create a new bot and get a token."""
-    if API_ID == "YOUR_API_ID" or API_HASH == "YOUR_API_HASH":
-        logging.error("API_ID and API_HASH are not set in monitor.py. Cannot request a new bot.")
+    if not API_ID or not API_HASH or API_ID == "YOUR_API_ID" or API_HASH == "YOUR_API_HASH":
+        logging.error("API_ID and API_HASH are not set. Cannot request a new bot.")
         return False
 
     logging.info("Attempting to create a new bot via BotFather.")
@@ -141,41 +148,72 @@ async def main():
     bot_process = None
     try:
         while True:
-            available_tokens = load_tokens()
-            if not available_tokens:
-                logging.warning(f"No available tokens in {TOKENS_FILE}. Attempting to request a new one.")
-                success = await request_new_bot_token()
-                if success:
-                    logging.info("New token obtained. Restarting monitoring cycle.")
-                    continue
+            all_tokens = load_tokens()
+            healthy_bots = deque()
+
+            logging.info(f"Found {len(all_tokens)} tokens. Checking for healthy bots...")
+            for token in all_tokens:
+                info = get_bot_info(token)
+                if info:
+                    healthy_bots.append({'token': token, 'info': info})
                 else:
-                    logging.error("Failed to obtain a new token. Sleeping for 5 minutes.")
+                    mark_token_as_unavailable(token)
+            
+            while len(healthy_bots) < 2:
+                logging.warning(f"Found only {len(healthy_bots)} healthy bots. Need at least 2 (active + fallback). Requesting a new one.")
+                success = await request_new_bot_token()
+                if not success:
+                    logging.error("Failed to create a new bot. Will retry in 5 minutes.")
                     await asyncio.sleep(300)
                     continue
+                
+                # Reload tokens and re-evaluate health
+                all_tokens = load_tokens()
+                healthy_bots = deque()
+                for token in all_tokens:
+                    info = get_bot_info(token)
+                    if info:
+                        healthy_bots.append({'token': token, 'info': info})
+                    else:
+                        mark_token_as_unavailable(token)
 
-            for token in available_tokens:
-                logging.info(f"Starting bot with token ...{token[-4:]}")
-                env = os.environ.copy()
-                env["BOT_TOKEN"] = token
-                bot_process = subprocess.Popen(BOT_COMMAND, env=env, cwd="/home/user/repos/frbktg/tgbot")
-                await asyncio.sleep(STARTUP_WAIT_TIME)
+            active_bot = healthy_bots.popleft()
+            fallback_bot = healthy_bots[0]
 
+            active_token = active_bot['token']
+            active_bot_info = active_bot['info']
+            fallback_bot_info = fallback_bot['info']
+
+            logging.info(f"Assigning ACTIVE bot: @{active_bot_info['username']} (...{active_token[-4:]})")
+            logging.info(f"Assigning FALLBACK bot: @{fallback_bot_info['username']}")
+
+            env = os.environ.copy()
+            env["BOT_TOKEN"] = active_token
+            env["FALLBACK_BOT_USERNAME"] = fallback_bot_info['username']
+            
+            bot_process = subprocess.Popen(BOT_COMMAND, env=env, cwd="/home/user/repos/frbktg/tgbot")
+            await asyncio.sleep(STARTUP_WAIT_TIME)
+
+            if bot_process.poll() is not None:
+                logging.error(f"Active bot @{active_bot_info['username']} terminated on startup. Marking as unavailable.")
+                mark_token_as_unavailable(active_token)
+                continue
+
+            logging.info(f"Successfully started and monitoring bot @{active_bot_info['username']}.")
+
+            while True:
+                if get_bot_info(active_token) is None:
+                    logging.warning(f"Active bot @{active_bot_info['username']} is not healthy. Killing process.")
+                    bot_process.kill()
+                    mark_token_as_unavailable(active_token)
+                    break
+                
                 if bot_process.poll() is not None:
-                    logging.error("Bot process terminated on startup. Marking token as unavailable.")
-                    mark_token_as_unavailable(token)
-                    continue
-
-                while True:
-                    if not is_bot_healthy(token):
-                        logging.warning("Bot is not healthy. Killing process and moving to the next token.")
-                        bot_process.kill()
-                        mark_token_as_unavailable(token)
-                        break
-                    if bot_process.poll() is not None:
-                        logging.error("Bot process has terminated unexpectedly. Marking token as unavailable.")
-                        mark_token_as_unavailable(token)
-                        break
-                    await asyncio.sleep(HEALTH_CHECK_INTERVAL)
+                    logging.error(f"Active bot @{active_bot_info['username']} has terminated unexpectedly.")
+                    mark_token_as_unavailable(active_token)
+                    break
+                
+                await asyncio.sleep(HEALTH_CHECK_INTERVAL)
     finally:
         if bot_process and bot_process.poll() is None:
             logging.info("Shutting down: Stopping the bot process...")
@@ -183,7 +221,7 @@ async def main():
 
 if __name__ == "__main__":
     try:
-        if API_ID == "YOUR_API_ID" or API_HASH == "YOUR_API_HASH":
+        if not API_ID or not API_HASH or API_ID == "YOUR_API_ID" or API_HASH == "YOUR_API_HASH":
             print("Please open monitor.py and fill in your API_ID and API_HASH from my.telegram.org")
         else:
             asyncio.run(main())

@@ -4,6 +4,7 @@ from aiogram.utils.markdown import hbold
 
 from api import api_client
 from keyboards import inline
+from config import settings
 
 router = Router()
 
@@ -24,7 +25,10 @@ async def balance_handler(callback_query: CallbackQuery):
             referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
             await callback_query.message.edit_text(
                 f"Не удалось получить баланс: {response.get('error')}",
-                reply_markup=inline.main_menu(referral_program_enabled=referral_program_enabled)
+                reply_markup=inline.main_menu(
+                    referral_program_enabled=referral_program_enabled,
+                    fallback_bot_username=settings.fallback_bot_username
+                )
             )
     except Exception as e:
         await callback_query.message.answer(f"Произошла ошибка: {e}")
@@ -48,18 +52,22 @@ async def deposit_amount_handler(callback_query: CallbackQuery):
 
         response = await api_client.create_deposit(user_id, amount)
         if response.get("success"):
-            # In a real app, you would get a payment URL and show it.
-            # For this MVP, we just confirm the creation of the deposit request.
             await callback_query.message.edit_text(
                 f"✅ Заявка на пополнение на {hbold(f'{amount} ₽')} успешно создана.\n\n" 
                 f"В реальном приложении здесь была бы ссылка на оплату.",
-                reply_markup=inline.main_menu(referral_program_enabled=referral_program_enabled),
+                reply_markup=inline.main_menu(
+                    referral_program_enabled=referral_program_enabled,
+                    fallback_bot_username=settings.fallback_bot_username
+                ),
                 parse_mode="HTML"
             )
         else:
             await callback_query.message.edit_text(
                 f"Не удалось создать заявку: {response.get('error')}",
-                reply_markup=inline.main_menu(referral_program_enabled=referral_program_enabled)
+                reply_markup=inline.main_menu(
+                    referral_program_enabled=referral_program_enabled,
+                    fallback_bot_username=settings.fallback_bot_username
+                )
             )
     except Exception as e:
         await callback_query.message.edit_text(f"Произошла ошибка: {e}")

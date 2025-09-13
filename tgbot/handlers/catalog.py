@@ -4,6 +4,7 @@ from aiogram.utils.markdown import hbold, hitalic
 
 from api import api_client
 from keyboards import inline
+from config import settings
 
 router = Router()
 
@@ -22,7 +23,10 @@ async def catalog_handler(callback_query: CallbackQuery):
             referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
             await callback_query.message.edit_text(
                 f"Не удалось загрузить категории: {response.get('error')}",
-                reply_markup=inline.main_menu(referral_program_enabled=referral_program_enabled)
+                reply_markup=inline.main_menu(
+                    referral_program_enabled=referral_program_enabled,
+                    fallback_bot_username=settings.fallback_bot_username
+                )
             )
     except Exception as e:
         await callback_query.message.edit_text(f"Произошла ошибка: {e}")

@@ -6,18 +6,21 @@ from aiogram.utils.markdown import hbold
 from states import ReferralState
 from api import api_client
 from keyboards import inline
+from config import settings
 
 router = Router()
 
 @router.callback_query(F.data == "referral_program")
 async def referral_program_handler(callback_query: CallbackQuery, state: FSMContext):
     await state.set_state(ReferralState.waiting_for_token)
-    # Fetch seller info to display the referral percentage
     seller_info_response = await api_client.get_seller_info()
     if not seller_info_response.get("success"):
         await callback_query.message.edit_text(
             "Не удалось загрузить информацию о реферальной программе. Попробуйте позже.",
-            reply_markup=inline.main_menu(referral_program_enabled=True)
+            reply_markup=inline.main_menu(
+                referral_program_enabled=True,
+                fallback_bot_username=settings.fallback_bot_username
+            )
         )
         return
 
@@ -30,7 +33,10 @@ async def referral_program_handler(callback_query: CallbackQuery, state: FSMCont
         "2. Получите у него токен (набор символов вида `123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11`).\n" 
         "3. Отправьте этот токен мне в следующем сообщении.\n\n" 
         "Я жду ваш токен.",
-        reply_markup=inline.main_menu(referral_program_enabled=True),
+        reply_markup=inline.main_menu(
+            referral_program_enabled=True,
+            fallback_bot_username=settings.fallback_bot_username
+        ),
         parse_mode="HTML"
     )
 
@@ -39,11 +45,13 @@ async def token_handler(message: Message, state: FSMContext):
     token = message.text
     user_id = message.from_user.id
 
-    # A basic validation for bot token
     if not token or len(token.split(':')) != 2:
         await message.answer(
             "Это не похоже на токен бота. Пожалуйста, проверьте и отправьте еще раз.",
-            reply_markup=inline.main_menu(referral_program_enabled=True)
+            reply_markup=inline.main_menu(
+                referral_program_enabled=True,
+                fallback_bot_username=settings.fallback_bot_username
+            )
         )
         return
 

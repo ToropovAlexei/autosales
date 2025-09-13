@@ -1,7 +1,9 @@
 from pydantic_settings import BaseSettings
+from typing import Optional
 
 class Settings(BaseSettings):
     bot_token: str
+    fallback_bot_username: Optional[str] = None
     api_url: str
     service_token: str
     redis_host: str
