@@ -4,6 +4,7 @@ from aiogram.types import Message, CallbackQuery, BufferedInputFile, InlineKeybo
 from aiogram.utils.markdown import hbold
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup
+import contextlib
 
 from api import api_client
 from keyboards import inline
@@ -42,11 +43,19 @@ async def start_handler(message: Message, state: FSMContext):
             else:
                 seller_info_response = await api_client.get_seller_info()
                 referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
+                
+                if settings.fallback_bot_username:
+                    with contextlib.suppress(Exception):
+                        await message.bot.unpin_all_chat_messages(message.chat.id)
+                    
+                    sent_message = await message.answer(f"🤖 Наш резервный бот: @{settings.fallback_bot_username}")
+                    with contextlib.suppress(Exception):
+                        await sent_message.pin(disable_notification=True)
+
                 await message.answer(
                     f"С возвращением, {hbold(message.from_user.full_name)}!",
                     reply_markup=inline.main_menu(
-                        referral_program_enabled=referral_program_enabled,
-                        fallback_bot_username=settings.fallback_bot_username
+                        referral_program_enabled=referral_program_enabled
                     ),
                     parse_mode="HTML"
                 )
@@ -78,6 +87,14 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
         await callback_query.message.delete()
         seller_info_response = await api_client.get_seller_info()
         referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
+        
+        if settings.fallback_bot_username:
+            with contextlib.suppress(Exception):
+                await callback_query.message.bot.unpin_all_chat_messages(callback_query.message.chat.id)
+            sent_message = await callback_query.message.answer(f"🤖 Наш резервный бот: @{settings.fallback_bot_username}")
+            with contextlib.suppress(Exception):
+                await sent_message.pin(disable_notification=True)
+
         await callback_query.message.answer(
             f"Добро пожаловать, {hbold(callback_query.from_user.full_name)}!\n\n"
             f"Я - ваш личный помощник для покупок. Здесь вы можете:\n"
@@ -86,8 +103,7 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
             f"- 💳 Проверять свой счет\n\n"
             f"Выберите действие в меню ниже:",
             reply_markup=inline.main_menu(
-                referral_program_enabled=referral_program_enabled,
-                fallback_bot_username=settings.fallback_bot_username
+                referral_program_enabled=referral_program_enabled
             ),
             parse_mode="HTML"
         )
@@ -108,8 +124,7 @@ async def main_menu_handler(callback_query: CallbackQuery):
     await callback_query.message.edit_text(
         "Главное меню",
         reply_markup=inline.main_menu(
-            referral_program_enabled=referral_program_enabled,
-            fallback_bot_username=settings.fallback_bot_username
+            referral_program_enabled=referral_program_enabled
         )
     )
 
@@ -120,7 +135,6 @@ async def support_handler(callback_query: CallbackQuery):
     await callback_query.message.edit_text(
         f"Для связи с поддержкой, пожалуйста, напишите нам: {settings.support_url}",
         reply_markup=inline.main_menu(
-            referral_program_enabled=referral_program_enabled,
-            fallback_bot_username=settings.fallback_bot_username
+            referral_program_enabled=referral_program_enabled
         )
     )

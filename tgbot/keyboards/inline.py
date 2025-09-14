@@ -12,8 +12,7 @@ def main_menu(referral_program_enabled: bool = False, fallback_bot_username: Opt
     
     buttons.append([InlineKeyboardButton(text="💬 Поддержка", callback_data="support")])
 
-    if fallback_bot_username:
-        buttons.append([InlineKeyboardButton(text="🤖 Резервный бот", url=f"https://t.me/{fallback_bot_username}")])
+    
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
