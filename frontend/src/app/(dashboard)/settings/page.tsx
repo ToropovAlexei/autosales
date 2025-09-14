@@ -74,7 +74,7 @@ export default function SettingsPage() {
   };
 
   const { data: referralBots, isPending: isBotsPending } = useList<ReferralBot>(
-    { endpoint: ENDPOINTS.REFERRALS }
+    { endpoint: ENDPOINTS.REFERRAL_BOTS_ADMIN }
   );
 
   return (
