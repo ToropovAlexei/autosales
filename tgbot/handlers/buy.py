@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import CallbackQuery
 from aiogram.utils.markdown import hbold
+import logging
 
 from api import api_client
 
@@ -12,8 +13,14 @@ async def buy_handler(callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     try:
         result = await api_client.buy_product(user_id, product_id)
+
         if result.get("success"):
-            data = result.get("data", {{}})
+            data = result.get("data")
+            if not isinstance(data, dict):
+                logging.error(f"API returned success but data is not a dict: {data}")
+                await callback_query.message.edit_text("Произошла ошибка при обработке ответа сервера.")
+                return
+
             new_balance = data.get("balance")
             product_name = data.get("product_name")
             product_price = data.get("product_price")
@@ -25,6 +32,7 @@ async def buy_handler(callback_query: CallbackQuery):
                     parse_mode="HTML"
                 )
             else:
+                logging.error(f"Missing keys in successful buy response data: {data}")
                 await callback_query.message.edit_text("Произошла ошибка при обработке покупки.")
         else:
             error = result.get("error", "Произошла неизвестная ошибка.")
@@ -37,5 +45,7 @@ async def buy_handler(callback_query: CallbackQuery):
             await callback_query.message.edit_text(error_message)
 
     except Exception as e:
+        logging.exception("An unexpected error occurred in buy_handler")
         await callback_query.message.edit_text("Произошла непредвиденная ошибка. Попробуйте позже.")
-    await callback_query.answer()
+    finally:
+        await callback_query.answer()

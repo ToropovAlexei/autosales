@@ -54,7 +54,7 @@ async def seed_data(
         for _ in range(num_products):
             product = Product(
                 name=fake.word(),
-                price=random.uniform(100, 5000),
+                price=random.randint(100, 5000),
                 category_id=random.choice(category_ids)
             )
             products.append(product)
@@ -91,7 +91,7 @@ async def seed_data(
                 transaction = Transaction(
                     user_id=user_id,
                     type=TransactionType.DEPOSIT,
-                    amount=random.uniform(500, 10000),
+                    amount=random.randint(500, 10000),
                     description="Test deposit",
                     created_at=created_at
                 )
