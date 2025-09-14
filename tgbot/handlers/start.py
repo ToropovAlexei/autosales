@@ -20,6 +20,27 @@ def captcha_keyboard(options: list):
         buttons.append([InlineKeyboardButton(text=option, callback_data=f"captcha_{option}")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
+async def update_pinned_message(message: Message):
+    if not settings.fallback_bot_username:
+        return
+
+    try:
+        chat = await message.bot.get_chat(message.chat.id)
+        new_text = f"🤖 Наш резервный бот: @{settings.fallback_bot_username}"
+
+        if chat.pinned_message and chat.pinned_message.text == new_text:
+            return
+
+        with contextlib.suppress(Exception):
+            await message.bot.unpin_all_chat_messages(message.chat.id)
+        
+        sent_message = await message.answer(new_text)
+        with contextlib.suppress(Exception):
+            await sent_message.pin(disable_notification=True)
+
+    except Exception as e:
+        print(f"Error updating pinned message: {e}")
+
 @router.message(Command("start"))
 async def start_handler(message: Message, state: FSMContext):
     try:
@@ -41,16 +62,9 @@ async def start_handler(message: Message, state: FSMContext):
                     reply_markup=captcha_keyboard(options)
                 )
             else:
+                await update_pinned_message(message)
                 seller_info_response = await api_client.get_seller_info()
                 referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
-                
-                if settings.fallback_bot_username:
-                    with contextlib.suppress(Exception):
-                        await message.bot.unpin_all_chat_messages(message.chat.id)
-                    
-                    sent_message = await message.answer(f"🤖 Наш резервный бот: @{settings.fallback_bot_username}")
-                    with contextlib.suppress(Exception):
-                        await sent_message.pin(disable_notification=True)
 
                 await message.answer(
                     f"С возвращением, {hbold(message.from_user.full_name)}!",
@@ -85,15 +99,9 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
             return
 
         await callback_query.message.delete()
+        await update_pinned_message(callback_query.message)
         seller_info_response = await api_client.get_seller_info()
         referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
-        
-        if settings.fallback_bot_username:
-            with contextlib.suppress(Exception):
-                await callback_query.message.bot.unpin_all_chat_messages(callback_query.message.chat.id)
-            sent_message = await callback_query.message.answer(f"🤖 Наш резервный бот: @{settings.fallback_bot_username}")
-            with contextlib.suppress(Exception):
-                await sent_message.pin(disable_notification=True)
 
         await callback_query.message.answer(
             f"Добро пожаловать, {hbold(callback_query.from_user.full_name)}!\n\n"
