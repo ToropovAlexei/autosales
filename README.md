@@ -14,7 +14,7 @@
 Перед началом убедитесь, что у вас установлено следующее:
 - Python 3.8+
 - Node.js 18.x+
-- npm (или pnpm/yarn)
+- pnpm (или npm/yarn)
 - Docker и Docker Compose
 
 ## Базы данных
@@ -78,12 +78,12 @@
 
 2.  **Установите зависимости:**
     ```bash
-    npm install
+    pnpm install
     ```
 
 3.  **Запустите сервер для разработки:**
     ```bash
-    npm run dev
+    pnpm run dev
     ```
     Фронтенд будет запущен по адресу `http://localhost:3000`.
 
