@@ -1,6 +1,6 @@
 import enum
 import datetime
-from sqlalchemy import Boolean, Column, Integer, String, Float, ForeignKey, Enum, DateTime
+from sqlalchemy import BIGINT, Boolean, Column, Integer, String, Float, ForeignKey, Enum, DateTime
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -42,7 +42,7 @@ class BotUser(Base):
     __tablename__ = "bot_users"
 
     id = Column(Integer, primary_key=True, index=True)
-    telegram_id = Column(Integer, unique=True, index=True)
+    telegram_id = Column(BIGINT, unique=True, index=True)
     is_deleted = Column(Boolean, default=False)
     has_passed_captcha = Column(Boolean, default=False)
 
