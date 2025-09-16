@@ -7,6 +7,7 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/routers"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -20,6 +21,13 @@ func main() {
 	}
 
 	r := gin.Default()
+
+	corsConfig := cors.DefaultConfig()
+	corsConfig.AllowOrigins = config.AppSettings.CORS_ORIGINS
+	corsConfig.AllowCredentials = true
+	corsConfig.AddAllowMethods("*")
+	corsConfig.AddAllowHeaders("*")
+	r.Use(cors.New(corsConfig))
 
 	routers.AuthRouter(r)
 	routers.CategoriesRouter(r)
@@ -42,5 +50,5 @@ func main() {
 			"message": "Welcome to the API",
 		})
 	})
-	r.Run() // listen and serve on 0.0.0.0:8080
+	r.Run(":" + config.AppSettings.PORT)
 }

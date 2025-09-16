@@ -1,8 +1,10 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
@@ -18,6 +20,7 @@ type Settings struct {
 	ALGORITHM                   string
 	ACCESS_TOKEN_EXPIRE_MINUTES int
 	SERVICE_API_KEY             string
+	PORT                        string
 }
 
 func (s *Settings) GetDBConnStr() string {
@@ -40,6 +43,20 @@ func LoadConfig(path string) (err error) {
 	AppSettings.SECRET_KEY = os.Getenv("SECRET_KEY")
 	AppSettings.ALGORITHM = os.Getenv("ALGORITHM")
 	AppSettings.SERVICE_API_KEY = os.Getenv("SERVICE_API_KEY")
+
+	expire_minutes, err := strconv.Atoi(os.Getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+	if err != nil {
+		return
+	}
+	AppSettings.ACCESS_TOKEN_EXPIRE_MINUTES = expire_minutes
+	AppSettings.PORT = os.Getenv("PORT")
+
+	var corsOrigins []string
+	err = json.Unmarshal([]byte(os.Getenv("CORS_ORIGINS")), &corsOrigins)
+	if err != nil {
+		return
+	}
+	AppSettings.CORS_ORIGINS = corsOrigins
 
 	return
 }
