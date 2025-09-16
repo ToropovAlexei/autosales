@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	if err := config.LoadConfig(".env.example"); err != nil {
+	if err := config.LoadConfig("../../.env.example"); err != nil {
 		log.Fatalf("could not load config: %v", err)
 	}
 

@@ -18,25 +18,25 @@ func AuthRouter(router *gin.Engine) {
 }
 
 func loginHandler(c *gin.Context) {
-	var json struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
+	var form struct {
+		Username string `form:"username"`
+		Password string `form:"password"`
 	}
 
-	if err := c.ShouldBindJSON(&json); err != nil {
+	if err := c.ShouldBind(&form); err != nil {
 		errorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	var user models.User
-	db.DB.Where("email = ?", json.Username).First(&user)
+	db.DB.Where("email = ?", form.Username).First(&user)
 
 	if user.ID == 0 {
 		errorResponse(c, http.StatusUnauthorized, "Incorrect username or password")
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(json.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(form.Password)); err != nil {
 		errorResponse(c, http.StatusUnauthorized, "Incorrect username or password")
 		return
 	}
