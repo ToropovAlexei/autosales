@@ -8,6 +8,7 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/models/responses"
 
 	"github.com/gin-gonic/gin"
 )
@@ -35,10 +36,10 @@ type OrderCreate struct {
 }
 
 type BuyResponse struct {
-	Order        models.OrderSlimResponse `json:"order"`
-	ProductName  string                   `json:"product_name"`
-	ProductPrice float64                  `json:"product_price"`
-	Balance      float64                  `json:"balance"`
+	Order        responses.OrderSlimResponse `json:"order"`
+	ProductName  string                      `json:"product_name"`
+	ProductPrice float64                     `json:"product_price"`
+	Balance      float64                     `json:"balance"`
 }
 
 func buyFromBalanceHandler(c *gin.Context) {
@@ -150,7 +151,7 @@ func buyFromBalanceHandler(c *gin.Context) {
 	}
 
 	newBalance := balance - orderAmount
-	orderResponse := models.OrderSlimResponse{
+	orderResponse := responses.OrderSlimResponse{
 		ID:        order.ID,
 		UserID:    order.UserID,
 		ProductID: order.ProductID,
@@ -170,7 +171,7 @@ func buyFromBalanceHandler(c *gin.Context) {
 }
 
 func getOrdersHandler(c *gin.Context) {
-	var response []models.OrderResponse
+	var response []responses.OrderResponse
 	if err := db.DB.Table("orders").
 		Select("orders.*, bot_users.telegram_id as user_telegram_id, products.name as product_name").
 		Joins("join bot_users on bot_users.id = orders.user_id").

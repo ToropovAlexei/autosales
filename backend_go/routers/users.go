@@ -7,6 +7,7 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/models/responses"
 
 	"github.com/gin-gonic/gin"
 )
@@ -38,7 +39,7 @@ func getMeHandler(c *gin.Context) {
 		return
 	}
 	currentUser := user.(models.User)
-	response := models.UserResponse{
+	response := responses.UserResponse{
 		ID:                     currentUser.ID,
 		Email:                  currentUser.Email,
 		IsActive:               currentUser.IsActive,
@@ -103,7 +104,7 @@ func registerBotUserHandler(c *gin.Context) {
 		if !existingUser.IsDeleted {
 			var balance float64
 			db.DB.Model(&models.Transaction{}).Where("user_id = ?", existingUser.ID).Select("sum(amount)").Row().Scan(&balance)
-			response := models.BotUserResponse{
+			response := responses.BotUserResponse{
 				ID:               existingUser.ID,
 				TelegramID:       existingUser.TelegramID,
 				IsDeleted:        existingUser.IsDeleted,
@@ -120,7 +121,7 @@ func registerBotUserHandler(c *gin.Context) {
 			existingUser.IsDeleted = false
 			existingUser.HasPassedCaptcha = false
 			db.DB.Save(&existingUser)
-			response := models.BotUserResponse{
+			response := responses.BotUserResponse{
 				ID:               existingUser.ID,
 				TelegramID:       existingUser.TelegramID,
 				IsDeleted:        existingUser.IsDeleted,
@@ -139,7 +140,7 @@ func registerBotUserHandler(c *gin.Context) {
 	newUser := models.BotUser{TelegramID: json.TelegramID, HasPassedCaptcha: false}
 	db.DB.Create(&newUser)
 
-	response := models.BotUserResponse{
+	response := responses.BotUserResponse{
 		ID:               newUser.ID,
 		TelegramID:       newUser.TelegramID,
 		IsDeleted:        newUser.IsDeleted,
@@ -164,7 +165,7 @@ func getBotUserHandler(c *gin.Context) {
 	var balance float64
 	db.DB.Model(&models.Transaction{}).Where("user_id = ?", user.ID).Select("sum(amount)").Row().Scan(&balance)
 
-	response := models.BotUserResponse{
+	response := responses.BotUserResponse{
 		ID:               user.ID,
 		TelegramID:       user.TelegramID,
 		IsDeleted:        user.IsDeleted,
@@ -198,9 +199,9 @@ func getUserTransactionsHandler(c *gin.Context) {
 	var transactions []models.Transaction
 	db.DB.Where("user_id = ?", user.ID).Order("created_at desc").Find(&transactions)
 
-	var response []models.TransactionResponse
+	var response []responses.TransactionResponse
 	for _, t := range transactions {
-		response = append(response, models.TransactionResponse{
+		response = append(response, responses.TransactionResponse{
 			ID:          t.ID,
 			UserID:      t.UserID,
 			OrderID:     t.OrderID,

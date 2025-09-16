@@ -7,6 +7,7 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/models/responses"
 
 	"github.com/gin-gonic/gin"
 )
@@ -36,9 +37,9 @@ func getStockMovementsHandler(c *gin.Context) {
 		return
 	}
 
-	var response []StockMovementResponse
+	var response []responses.StockMovementResponse
 	for _, m := range movements {
-		response = append(response, StockMovementResponse{
+		response = append(response, responses.StockMovementResponse{
 			ID:          m.ID,
 			ProductID:   m.ProductID,
 			Type:        m.Type,

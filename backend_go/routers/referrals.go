@@ -2,11 +2,11 @@ package routers
 
 import (
 	"net/http"
-	"time"
 
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/models/responses"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,15 +31,6 @@ type ReferralBotCreate struct {
 	OwnerID  uint   `json:"owner_id"`
 	SellerID uint   `json:"seller_id"`
 	BotToken string `json:"bot_token"`
-}
-
-type ReferralBotResponse struct {
-	ID        uint      `json:"id"`
-	OwnerID   uint      `json:"owner_id"`
-	SellerID  uint      `json:"seller_id"`
-	BotToken  string    `json:"bot_token"`
-	IsActive  bool      `json:"is_active"`
-	CreatedAt time.Time `json:"created_at"`
 }
 
 func createReferralBotHandler(c *gin.Context) {
@@ -78,7 +69,7 @@ func createReferralBotHandler(c *gin.Context) {
 		return
 	}
 
-	response := ReferralBotResponse{
+	response := responses.ReferralBotResponse{
 		ID:        dbBot.ID,
 		OwnerID:   dbBot.OwnerID,
 		SellerID:  dbBot.SellerID,
@@ -97,9 +88,9 @@ func getReferralBotsHandler(c *gin.Context) {
 		return
 	}
 
-	var response []ReferralBotResponse
+	var response []responses.ReferralBotResponse
 	for _, b := range bots {
-		response = append(response, ReferralBotResponse{
+		response = append(response, responses.ReferralBotResponse{
 			ID:        b.ID,
 			OwnerID:   b.OwnerID,
 			SellerID:  b.SellerID,
@@ -112,18 +103,6 @@ func getReferralBotsHandler(c *gin.Context) {
 	successResponse(c, http.StatusOK, response)
 }
 
-type ReferralBotAdminInfo struct {
-	ID              uint      `json:"id"`
-	OwnerID         uint      `json:"owner_id"`
-	SellerID        uint      `json:"seller_id"`
-	BotToken        string    `json:"bot_token"`
-	IsActive        bool      `json:"is_active"`
-	CreatedAt       time.Time `json:"created_at"`
-	OwnerTelegramID int64     `json:"owner_telegram_id"`
-	Turnover        float64   `json:"turnover"`
-	Accruals        float64   `json:"accruals"`
-}
-
 func getReferralBotsAdminHandler(c *gin.Context) {
 	user, _ := c.Get("user")
 	currentUser := user.(models.User)
@@ -133,10 +112,10 @@ func getReferralBotsAdminHandler(c *gin.Context) {
 		return
 	}
 
-	var bots []ReferralBotAdminInfo
+	var bots []responses.ReferralBotAdminInfo
 
 	db.DB.Table("referral_bots").
-		Select("referral_bots.*, bot_users.telegram_id as owner_telegram_id, COALESCE(SUM(ref_transactions.amount), 0) as turnover, COALESCE(SUM(ref_transactions.ref_share), 0) as accruals").
+		Select("referral_bots.id, referral_bots.owner_id, referral_bots.seller_id, referral_bots.bot_token, referral_bots.is_active, referral_bots.created_at, bot_users.telegram_id as owner_telegram_id, COALESCE(SUM(ref_transactions.amount), 0) as turnover, COALESCE(SUM(ref_transactions.ref_share), 0) as accruals").
 		Joins("join bot_users on referral_bots.owner_id = bot_users.id").
 		Joins("left join ref_transactions on referral_bots.owner_id = ref_transactions.ref_owner_id").
 		Where("referral_bots.seller_id = ?", currentUser.ID).
@@ -169,7 +148,7 @@ func toggleReferralBotStatusHandler(c *gin.Context) {
 	bot.IsActive = !bot.IsActive
 	db.DB.Save(&bot)
 
-	response := ReferralBotResponse{
+	response := responses.ReferralBotResponse{
 		ID:        bot.ID,
 		OwnerID:   bot.OwnerID,
 		SellerID:  bot.SellerID,

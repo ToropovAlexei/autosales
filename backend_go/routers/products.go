@@ -8,6 +8,7 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/models/responses"
 
 	"github.com/gin-gonic/gin"
 )
@@ -39,11 +40,11 @@ func getProductsHandler(c *gin.Context) {
 		return
 	}
 
-	var response []models.ProductResponse
+	var response []responses.ProductResponse
 	for _, p := range products {
 		var stock int64
 		db.DB.Model(&models.StockMovement{}).Where("product_id = ?", p.ID).Select("sum(quantity)").Row().Scan(&stock)
-		response = append(response, models.ProductResponse{
+		response = append(response, responses.ProductResponse{
 			ID:         p.ID,
 			Name:       p.Name,
 			Price:      p.Price,
@@ -97,7 +98,7 @@ func createProductHandler(c *gin.Context) {
 		return
 	}
 
-	response := models.ProductResponse{
+	response := responses.ProductResponse{
 		ID:         product.ID,
 		Name:       product.Name,
 		Price:      product.Price,
@@ -118,7 +119,7 @@ func getProductHandler(c *gin.Context) {
 	var stock int64
 	db.DB.Model(&models.StockMovement{}).Where("product_id = ?", product.ID).Select("sum(quantity)").Row().Scan(&stock)
 
-	response := models.ProductResponse{
+	response := responses.ProductResponse{
 		ID:         product.ID,
 		Name:       product.Name,
 		Price:      product.Price,
@@ -156,7 +157,7 @@ func updateProductHandler(c *gin.Context) {
 	var stock int64
 	db.DB.Model(&models.StockMovement{}).Where("product_id = ?", product.ID).Select("sum(quantity)").Row().Scan(&stock)
 
-	response := models.ProductResponse{
+	response := responses.ProductResponse{
 		ID:         product.ID,
 		Name:       product.Name,
 		Price:      product.Price,
