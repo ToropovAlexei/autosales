@@ -25,11 +25,6 @@ func ProductsRouter(router *gin.Engine) {
 	}
 }
 
-type ProductResponse struct {
-	models.Product
-	Stock int `json:"stock"`
-}
-
 func getProductsHandler(c *gin.Context) {
 	var products []models.Product
 	query := db.DB
@@ -44,11 +39,17 @@ func getProductsHandler(c *gin.Context) {
 		return
 	}
 
-	var response []ProductResponse
+	var response []models.ProductResponse
 	for _, p := range products {
 		var stock int64
 		db.DB.Model(&models.StockMovement{}).Where("product_id = ?", p.ID).Select("sum(quantity)").Row().Scan(&stock)
-		response = append(response, ProductResponse{Product: p, Stock: int(stock)})
+		response = append(response, models.ProductResponse{
+			ID:         p.ID,
+			Name:       p.Name,
+			Price:      p.Price,
+			CategoryID: p.CategoryID,
+			Stock:      int(stock),
+		})
 	}
 
 	successResponse(c, http.StatusOK, response)
@@ -96,9 +97,12 @@ func createProductHandler(c *gin.Context) {
 		return
 	}
 
-	response := ProductResponse{
-		Product: product,
-		Stock:   json.InitialStock,
+	response := models.ProductResponse{
+		ID:         product.ID,
+		Name:       product.Name,
+		Price:      product.Price,
+		CategoryID: product.CategoryID,
+		Stock:      json.InitialStock,
 	}
 
 	successResponse(c, http.StatusCreated, response)
@@ -114,9 +118,12 @@ func getProductHandler(c *gin.Context) {
 	var stock int64
 	db.DB.Model(&models.StockMovement{}).Where("product_id = ?", product.ID).Select("sum(quantity)").Row().Scan(&stock)
 
-	response := ProductResponse{
-		Product: product,
-		Stock:   int(stock),
+	response := models.ProductResponse{
+		ID:         product.ID,
+		Name:       product.Name,
+		Price:      product.Price,
+		CategoryID: product.CategoryID,
+		Stock:      int(stock),
 	}
 
 	successResponse(c, http.StatusOK, response)
@@ -146,7 +153,18 @@ func updateProductHandler(c *gin.Context) {
 		return
 	}
 
-	successResponse(c, http.StatusOK, product)
+	var stock int64
+	db.DB.Model(&models.StockMovement{}).Where("product_id = ?", product.ID).Select("sum(quantity)").Row().Scan(&stock)
+
+	response := models.ProductResponse{
+		ID:         product.ID,
+		Name:       product.Name,
+		Price:      product.Price,
+		CategoryID: product.CategoryID,
+		Stock:      int(stock),
+	}
+
+	successResponse(c, http.StatusOK, response)
 }
 
 func deleteProductHandler(c *gin.Context) {

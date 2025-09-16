@@ -24,5 +24,19 @@ func getAllTransactionsHandler(c *gin.Context) {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	successResponse(c, http.StatusOK, transactions)
+
+	var response []models.TransactionResponse
+	for _, t := range transactions {
+		response = append(response, models.TransactionResponse{
+			ID:          t.ID,
+			UserID:      t.UserID,
+			OrderID:     t.OrderID,
+			Type:        t.Type,
+			Amount:      t.Amount,
+			CreatedAt:   t.CreatedAt,
+			Description: t.Description,
+		})
+	}
+
+	successResponse(c, http.StatusOK, response)
 }

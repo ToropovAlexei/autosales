@@ -2,6 +2,7 @@ package routers
 
 import (
 	"net/http"
+	"time"
 
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
@@ -30,6 +31,15 @@ type ReferralBotCreate struct {
 	OwnerID  uint   `json:"owner_id"`
 	SellerID uint   `json:"seller_id"`
 	BotToken string `json:"bot_token"`
+}
+
+type ReferralBotResponse struct {
+	ID        uint      `json:"id"`
+	OwnerID   uint      `json:"owner_id"`
+	SellerID  uint      `json:"seller_id"`
+	BotToken  string    `json:"bot_token"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func createReferralBotHandler(c *gin.Context) {
@@ -68,7 +78,16 @@ func createReferralBotHandler(c *gin.Context) {
 		return
 	}
 
-	successResponse(c, http.StatusOK, dbBot)
+	response := ReferralBotResponse{
+		ID:        dbBot.ID,
+		OwnerID:   dbBot.OwnerID,
+		SellerID:  dbBot.SellerID,
+		BotToken:  dbBot.BotToken,
+		IsActive:  dbBot.IsActive,
+		CreatedAt: dbBot.CreatedAt,
+	}
+
+	successResponse(c, http.StatusOK, response)
 }
 
 func getReferralBotsHandler(c *gin.Context) {
@@ -77,14 +96,32 @@ func getReferralBotsHandler(c *gin.Context) {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	successResponse(c, http.StatusOK, bots)
+
+	var response []ReferralBotResponse
+	for _, b := range bots {
+		response = append(response, ReferralBotResponse{
+			ID:        b.ID,
+			OwnerID:   b.OwnerID,
+			SellerID:  b.SellerID,
+			BotToken:  b.BotToken,
+			IsActive:  b.IsActive,
+			CreatedAt: b.CreatedAt,
+		})
+	}
+
+	successResponse(c, http.StatusOK, response)
 }
 
 type ReferralBotAdminInfo struct {
-	models.ReferralBot
-	OwnerTelegramID int64   `json:"owner_telegram_id"`
-	Turnover        float64 `json:"turnover"`
-	Accruals        float64 `json:"accruals"`
+	ID              uint      `json:"id"`
+	OwnerID         uint      `json:"owner_id"`
+	SellerID        uint      `json:"seller_id"`
+	BotToken        string    `json:"bot_token"`
+	IsActive        bool      `json:"is_active"`
+	CreatedAt       time.Time `json:"created_at"`
+	OwnerTelegramID int64     `json:"owner_telegram_id"`
+	Turnover        float64   `json:"turnover"`
+	Accruals        float64   `json:"accruals"`
 }
 
 func getReferralBotsAdminHandler(c *gin.Context) {
@@ -132,5 +169,14 @@ func toggleReferralBotStatusHandler(c *gin.Context) {
 	bot.IsActive = !bot.IsActive
 	db.DB.Save(&bot)
 
-	successResponse(c, http.StatusOK, bot)
+	response := ReferralBotResponse{
+		ID:        bot.ID,
+		OwnerID:   bot.OwnerID,
+		SellerID:  bot.SellerID,
+		BotToken:  bot.BotToken,
+		IsActive:  bot.IsActive,
+		CreatedAt: bot.CreatedAt,
+	}
+
+	successResponse(c, http.StatusOK, response)
 }

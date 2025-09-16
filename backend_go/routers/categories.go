@@ -28,7 +28,16 @@ func getCategoriesHandler(c *gin.Context) {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	successResponse(c, http.StatusOK, categories)
+
+	var response []models.CategoryResponse
+	for _, category := range categories {
+		response = append(response, models.CategoryResponse{
+			ID:   category.ID,
+			Name: category.Name,
+		})
+	}
+
+	successResponse(c, http.StatusOK, response)
 }
 
 func createCategoryHandler(c *gin.Context) {
@@ -42,7 +51,13 @@ func createCategoryHandler(c *gin.Context) {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	successResponse(c, http.StatusCreated, json)
+
+	response := models.CategoryResponse{
+		ID:   json.ID,
+		Name: json.Name,
+	}
+
+	successResponse(c, http.StatusCreated, response)
 }
 
 func getCategoryHandler(c *gin.Context) {
@@ -51,7 +66,13 @@ func getCategoryHandler(c *gin.Context) {
 		errorResponse(c, http.StatusNotFound, "Category not found")
 		return
 	}
-	successResponse(c, http.StatusOK, category)
+
+	response := models.CategoryResponse{
+		ID:   category.ID,
+		Name: category.Name,
+	}
+
+	successResponse(c, http.StatusOK, response)
 }
 
 func updateCategoryHandler(c *gin.Context) {
@@ -71,7 +92,13 @@ func updateCategoryHandler(c *gin.Context) {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
-	successResponse(c, http.StatusOK, category)
+
+	response := models.CategoryResponse{
+		ID:   category.ID,
+		Name: category.Name,
+	}
+
+	successResponse(c, http.StatusOK, response)
 }
 
 func deleteCategoryHandler(c *gin.Context) {

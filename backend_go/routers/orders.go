@@ -35,10 +35,10 @@ type OrderCreate struct {
 }
 
 type BuyResponse struct {
-	Order        models.Order `json:"order"`
-	ProductName  string       `json:"product_name"`
-	ProductPrice float64      `json:"product_price"`
-	Balance      float64      `json:"balance"`
+	Order        models.OrderSlimResponse `json:"order"`
+	ProductName  string                   `json:"product_name"`
+	ProductPrice float64                  `json:"product_price"`
+	Balance      float64                  `json:"balance"`
 }
 
 func buyFromBalanceHandler(c *gin.Context) {
@@ -150,8 +150,17 @@ func buyFromBalanceHandler(c *gin.Context) {
 	}
 
 	newBalance := balance - orderAmount
+	orderResponse := models.OrderSlimResponse{
+		ID:        order.ID,
+		UserID:    order.UserID,
+		ProductID: order.ProductID,
+		Quantity:  order.Quantity,
+		Amount:    order.Amount,
+		Status:    order.Status,
+		CreatedAt: order.CreatedAt,
+	}
 	response := BuyResponse{
-		Order:        order,
+		Order:        orderResponse,
 		ProductName:  product.Name,
 		ProductPrice: product.Price,
 		Balance:      newBalance,
@@ -160,20 +169,19 @@ func buyFromBalanceHandler(c *gin.Context) {
 	successResponse(c, http.StatusOK, response)
 }
 
-type OrderResponse struct {
-	models.Order
-	UserTelegramID int64  `json:"user_telegram_id"`
-	ProductName    string `json:"product_name"`
-}
-
 func getOrdersHandler(c *gin.Context) {
-	var orders []models.Order
-	if err := db.DB.Preload("User").Preload("Product").Order("created_at desc").Find(&orders).Error; err != nil {
+	var response []models.OrderResponse
+	if err := db.DB.Table("orders").
+		Select("orders.*, bot_users.telegram_id as user_telegram_id, products.name as product_name").
+		Joins("join bot_users on bot_users.id = orders.user_id").
+		Joins("join products on products.id = orders.product_id").
+		Order("orders.created_at desc").
+		Scan(&response).Error; err != nil {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	successResponse(c, http.StatusOK, orders)
+	successResponse(c, http.StatusOK, response)
 }
 
 func cancelOrderHandler(c *gin.Context) {

@@ -37,7 +37,16 @@ func getMeHandler(c *gin.Context) {
 		errorResponse(c, http.StatusUnauthorized, "User not found in context")
 		return
 	}
-	successResponse(c, http.StatusOK, user)
+	currentUser := user.(models.User)
+	response := models.UserResponse{
+		ID:                     currentUser.ID,
+		Email:                  currentUser.Email,
+		IsActive:               currentUser.IsActive,
+		Role:                   currentUser.Role,
+		ReferralProgramEnabled: currentUser.ReferralProgramEnabled,
+		ReferralPercentage:     currentUser.ReferralPercentage,
+	}
+	successResponse(c, http.StatusOK, response)
 }
 
 type ReferralSettings struct {
@@ -92,8 +101,17 @@ func registerBotUserHandler(c *gin.Context) {
 
 	if existingUser.ID != 0 {
 		if !existingUser.IsDeleted {
+			var balance float64
+			db.DB.Model(&models.Transaction{}).Where("user_id = ?", existingUser.ID).Select("sum(amount)").Row().Scan(&balance)
+			response := models.BotUserResponse{
+				ID:               existingUser.ID,
+				TelegramID:       existingUser.TelegramID,
+				IsDeleted:        existingUser.IsDeleted,
+				HasPassedCaptcha: existingUser.HasPassedCaptcha,
+				Balance:          balance,
+			}
 			successResponse(c, http.StatusOK, gin.H{
-				"user":               existingUser,
+				"user":               response,
 				"is_new":             false,
 				"has_passed_captcha": existingUser.HasPassedCaptcha,
 			})
@@ -102,8 +120,15 @@ func registerBotUserHandler(c *gin.Context) {
 			existingUser.IsDeleted = false
 			existingUser.HasPassedCaptcha = false
 			db.DB.Save(&existingUser)
+			response := models.BotUserResponse{
+				ID:               existingUser.ID,
+				TelegramID:       existingUser.TelegramID,
+				IsDeleted:        existingUser.IsDeleted,
+				HasPassedCaptcha: existingUser.HasPassedCaptcha,
+				Balance:          0,
+			}
 			successResponse(c, http.StatusCreated, gin.H{
-				"user":               existingUser,
+				"user":               response,
 				"is_new":             true,
 				"has_passed_captcha": false,
 			})
@@ -114,8 +139,16 @@ func registerBotUserHandler(c *gin.Context) {
 	newUser := models.BotUser{TelegramID: json.TelegramID, HasPassedCaptcha: false}
 	db.DB.Create(&newUser)
 
+	response := models.BotUserResponse{
+		ID:               newUser.ID,
+		TelegramID:       newUser.TelegramID,
+		IsDeleted:        newUser.IsDeleted,
+		HasPassedCaptcha: newUser.HasPassedCaptcha,
+		Balance:          0,
+	}
+
 	successResponse(c, http.StatusCreated, gin.H{
-		"user":               newUser,
+		"user":               response,
 		"is_new":             true,
 		"has_passed_captcha": false,
 	})
@@ -127,7 +160,19 @@ func getBotUserHandler(c *gin.Context) {
 		errorResponse(c, http.StatusNotFound, "Bot user not found")
 		return
 	}
-	successResponse(c, http.StatusOK, user)
+
+	var balance float64
+	db.DB.Model(&models.Transaction{}).Where("user_id = ?", user.ID).Select("sum(amount)").Row().Scan(&balance)
+
+	response := models.BotUserResponse{
+		ID:               user.ID,
+		TelegramID:       user.TelegramID,
+		IsDeleted:        user.IsDeleted,
+		HasPassedCaptcha: user.HasPassedCaptcha,
+		Balance:          balance,
+	}
+
+	successResponse(c, http.StatusOK, response)
 }
 
 func getBalanceHandler(c *gin.Context) {
@@ -153,7 +198,20 @@ func getUserTransactionsHandler(c *gin.Context) {
 	var transactions []models.Transaction
 	db.DB.Where("user_id = ?", user.ID).Order("created_at desc").Find(&transactions)
 
-	successResponse(c, http.StatusOK, transactions)
+	var response []models.TransactionResponse
+	for _, t := range transactions {
+		response = append(response, models.TransactionResponse{
+			ID:          t.ID,
+			UserID:      t.UserID,
+			OrderID:     t.OrderID,
+			Type:        t.Type,
+			Amount:      t.Amount,
+			CreatedAt:   t.CreatedAt,
+			Description: t.Description,
+		})
+	}
+
+	successResponse(c, http.StatusOK, response)
 }
 
 func updateUserCaptchaStatusHandler(c *gin.Context) {
@@ -188,7 +246,7 @@ func getSellerSettingsHandler(c *gin.Context) {
 	}
 
 	successResponse(c, http.StatusOK, gin.H{
-		"id":                         seller.ID,
+		"id":                       seller.ID,
 		"referral_program_enabled": seller.ReferralProgramEnabled,
 		"referral_percentage":      seller.ReferralPercentage,
 	})

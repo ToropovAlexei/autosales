@@ -19,11 +19,6 @@ func AdminRouter(router *gin.Engine) {
 	}
 }
 
-type BotUserResponse struct {
-	models.BotUser
-	Balance float64 `json:"balance"`
-}
-
 func getBotUsersHandler(c *gin.Context) {
 	var botUsers []models.BotUser
 	if err := db.DB.Where("is_deleted = ?", false).Find(&botUsers).Error; err != nil {
@@ -31,11 +26,17 @@ func getBotUsersHandler(c *gin.Context) {
 		return
 	}
 
-	var response []BotUserResponse
+	var response []models.BotUserResponse
 	for _, u := range botUsers {
 		var balance float64
 		db.DB.Model(&models.Transaction{}).Where("user_id = ?", u.ID).Select("sum(amount)").Row().Scan(&balance)
-		response = append(response, BotUserResponse{BotUser: u, Balance: balance})
+		response = append(response, models.BotUserResponse{
+			ID:               u.ID,
+			TelegramID:       u.TelegramID,
+			IsDeleted:        u.IsDeleted,
+			HasPassedCaptcha: u.HasPassedCaptcha,
+			Balance:          balance,
+		})
 	}
 
 	successResponse(c, http.StatusOK, response)
