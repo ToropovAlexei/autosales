@@ -9,6 +9,7 @@ import (
 	"frbktg/backend_go/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func DashboardRouter(router *gin.Engine) {
@@ -39,7 +40,10 @@ func getDashboardStatsHandler(c *gin.Context) {
 	var availableProducts int64
 	for _, id := range productIDs {
 		var stock int64
-		db.DB.Model(&models.StockMovement{}).Where("product_id = ?", id).Select("sum(quantity)").Row().Scan(&stock)
+		if err := db.DB.Model(&models.StockMovement{}).Where("product_id = ?", id).Select("sum(quantity)").Row().Scan(&stock); err != nil && err != gorm.ErrRecordNotFound {
+			errorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
 		if stock > 0 {
 			availableProducts++
 		}
@@ -79,7 +83,10 @@ func getSalesOverTimeHandler(c *gin.Context) {
 	db.DB.Model(&models.Order{}).Where("created_at >= ? AND created_at < ?", startDate, endDate.AddDate(0, 0, 1)).Count(&productsSold)
 
 	var totalRevenue float64
-	db.DB.Model(&models.Order{}).Where("created_at >= ? AND created_at < ?", startDate, endDate.AddDate(0, 0, 1)).Select("sum(amount)").Row().Scan(&totalRevenue)
+	if err := db.DB.Model(&models.Order{}).Where("created_at >= ? AND created_at < ?", startDate, endDate.AddDate(0, 0, 1)).Select("sum(amount)").Row().Scan(&totalRevenue); err != nil && err != gorm.ErrRecordNotFound {
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	salesData := SalesOverTime{
 		ProductsSold: productsSold,

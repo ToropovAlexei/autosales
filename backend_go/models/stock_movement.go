@@ -14,7 +14,7 @@ const (
 )
 
 type StockMovement struct {
-	ID          uint              `gorm:"primaryKey"`
+	ID          uint `gorm:"primaryKey"`
 	OrderID     *uint
 	ProductID   uint
 	Type        StockMovementType `gorm:"not null"`
@@ -24,11 +24,11 @@ type StockMovement struct {
 }
 
 type StockMovementResponse struct {
-	ID          uint                   `json:"id"`
-	ProductID   uint                   `json:"product_id"`
+	ID          uint              `json:"id"`
+	ProductID   uint              `json:"product_id"`
 	Type        StockMovementType `json:"type"`
-	Quantity    int                    `json:"quantity"`
-	CreatedAt   time.Time              `json:"created_at"`
-	Description string                 `json:"description"`
-	OrderID     *uint                  `json:"order_id"`
+	Quantity    int               `json:"quantity"`
+	CreatedAt   time.Time         `json:"created_at"`
+	Description string            `json:"description"`
+	OrderID     *uint             `json:"order_id"`
 }

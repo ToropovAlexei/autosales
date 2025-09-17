@@ -6,7 +6,6 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
-	
 
 	"github.com/gin-gonic/gin"
 )

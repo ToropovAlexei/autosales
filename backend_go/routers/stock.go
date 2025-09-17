@@ -2,12 +2,10 @@ package routers
 
 import (
 	"net/http"
-	
 
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
-	
 
 	"github.com/gin-gonic/gin"
 )
@@ -19,8 +17,6 @@ func StockRouter(router *gin.Engine) {
 		auth.GET("/movements", getStockMovementsHandler)
 	}
 }
-
-
 
 func getStockMovementsHandler(c *gin.Context) {
 	var movements []models.StockMovement

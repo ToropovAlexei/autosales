@@ -3,10 +3,10 @@ package models
 import "time"
 
 type Order struct {
-	ID        uint      `gorm:"primaryKey"`
+	ID        uint `gorm:"primaryKey"`
 	UserID    uint
 	ProductID uint
-	Quantity  int       `gorm:"default:1"`
+	Quantity  int `gorm:"default:1"`
 	Amount    float64
 	Status    string
 	CreatedAt time.Time `gorm:"not null;default:now()"`

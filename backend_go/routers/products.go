@@ -8,9 +8,9 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
-	
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func ProductsRouter(router *gin.Engine) {
@@ -43,7 +43,10 @@ func getProductsHandler(c *gin.Context) {
 	var response []models.ProductResponse
 	for _, p := range products {
 		var stock int64
-		db.DB.Model(&models.StockMovement{}).Where("product_id = ?", p.ID).Select("sum(quantity)").Row().Scan(&stock)
+		if err := db.DB.Model(&models.StockMovement{}).Where("product_id = ?", p.ID).Select("sum(quantity)").Row().Scan(&stock); err != nil && err != gorm.ErrRecordNotFound {
+			errorResponse(c, http.StatusInternalServerError, err.Error())
+			return
+		}
 		response = append(response, models.ProductResponse{
 			ID:         p.ID,
 			Name:       p.Name,
@@ -117,7 +120,10 @@ func getProductHandler(c *gin.Context) {
 	}
 
 	var stock int64
-	db.DB.Model(&models.StockMovement{}).Where("product_id = ?", product.ID).Select("sum(quantity)").Row().Scan(&stock)
+	if err := db.DB.Model(&models.StockMovement{}).Where("product_id = ?", product.ID).Select("sum(quantity)").Row().Scan(&stock); err != nil && err != gorm.ErrRecordNotFound {
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	response := models.ProductResponse{
 		ID:         product.ID,
@@ -155,7 +161,10 @@ func updateProductHandler(c *gin.Context) {
 	}
 
 	var stock int64
-	db.DB.Model(&models.StockMovement{}).Where("product_id = ?", product.ID).Select("sum(quantity)").Row().Scan(&stock)
+	if err := db.DB.Model(&models.StockMovement{}).Where("product_id = ?", product.ID).Select("sum(quantity)").Row().Scan(&stock); err != nil && err != gorm.ErrRecordNotFound {
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	response := models.ProductResponse{
 		ID:         product.ID,
@@ -185,7 +194,7 @@ func deleteProductHandler(c *gin.Context) {
 
 func createStockMovementHandler(c *gin.Context) {
 	productID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
+	if err != nil || productID < 0 {
 		errorResponse(c, http.StatusBadRequest, "Invalid product ID")
 		return
 	}

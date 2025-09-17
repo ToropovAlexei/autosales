@@ -6,7 +6,6 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
-	
 
 	"github.com/gin-gonic/gin"
 )
@@ -14,13 +13,11 @@ import (
 func CategoriesRouter(router *gin.Engine) {
 	api := router.Group("/api/categories")
 	api.Use(middleware.AuthMiddleware())
-	{
-		api.GET("", getCategoriesHandler)
-		api.POST("", createCategoryHandler)
-		api.GET("/:id", getCategoryHandler)
-		api.PUT("/:id", updateCategoryHandler)
-		api.DELETE("/:id", deleteCategoryHandler)
-	}
+	api.GET("", getCategoriesHandler)
+	api.POST("", createCategoryHandler)
+	api.GET("/:id", getCategoryHandler)
+	api.PUT("/:id", updateCategoryHandler)
+	api.DELETE("/:id", deleteCategoryHandler)
 }
 
 func getCategoriesHandler(c *gin.Context) {

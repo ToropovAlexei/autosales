@@ -50,5 +50,7 @@ func main() {
 			"message": "Welcome to the API",
 		})
 	})
-	r.Run(":" + config.AppSettings.PORT)
+	if err := r.Run(":" + config.AppSettings.PORT); err != nil {
+		log.Fatalf("failed to run server: %v", err)
+	}
 }

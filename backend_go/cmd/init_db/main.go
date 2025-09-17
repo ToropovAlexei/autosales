@@ -17,7 +17,7 @@ func main() {
 		log.Fatalf("could not initialize database: %v", err)
 	}
 
-	db.DB.AutoMigrate(
+	if migrateErr := db.DB.AutoMigrate(
 		&models.User{},
 		&models.Category{},
 		&models.Product{},
@@ -27,5 +27,7 @@ func main() {
 		&models.StockMovement{},
 		&models.ReferralBot{},
 		&models.RefTransaction{},
-	)
+	).Error; migrateErr != nil {
+		log.Fatalf("failed to migrate database: %v", migrateErr)
+	}
 }

@@ -14,9 +14,7 @@ import (
 func BalanceRouter(router *gin.Engine) {
 	service := router.Group("/api/balance")
 	service.Use(middleware.ServiceTokenMiddleware())
-	{
-		service.POST("/deposit", depositBalanceHandler)
-	}
+	service.POST("/deposit", depositBalanceHandler)
 
 	router.POST("/api/balance/webhook", paymentWebhookHandler)
 }

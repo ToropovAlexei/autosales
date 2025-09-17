@@ -12,7 +12,7 @@ const (
 )
 
 type Transaction struct {
-	ID          uint            `gorm:"primaryKey"`
+	ID          uint `gorm:"primaryKey"`
 	UserID      uint
 	OrderID     *uint
 	Type        TransactionType `gorm:"not null"`
@@ -22,11 +22,11 @@ type Transaction struct {
 }
 
 type TransactionResponse struct {
-	ID          uint                   `json:"id"`
-	UserID      uint                   `json:"user_id"`
-	OrderID     *uint                  `json:"order_id"`
+	ID          uint            `json:"id"`
+	UserID      uint            `json:"user_id"`
+	OrderID     *uint           `json:"order_id"`
 	Type        TransactionType `json:"type"`
-	Amount      float64                `json:"amount"`
-	CreatedAt   time.Time              `json:"created_at"`
-	Description string                 `json:"description"`
+	Amount      float64         `json:"amount"`
+	CreatedAt   time.Time       `json:"created_at"`
+	Description string          `json:"description"`
 }

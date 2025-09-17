@@ -3,7 +3,7 @@ package models
 import "time"
 
 type ReferralBot struct {
-	ID        uint      `gorm:"primaryKey"`
+	ID        uint `gorm:"primaryKey"`
 	OwnerID   uint
 	SellerID  uint
 	BotToken  string    `gorm:"unique"`
@@ -12,7 +12,7 @@ type ReferralBot struct {
 }
 
 type RefTransaction struct {
-	ID         uint      `gorm:"primaryKey"`
+	ID         uint `gorm:"primaryKey"`
 	RefOwnerID uint
 	SellerID   uint
 	OrderID    uint

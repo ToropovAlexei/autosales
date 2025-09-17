@@ -6,7 +6,6 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
-	
 
 	"github.com/gin-gonic/gin"
 )
@@ -115,7 +114,13 @@ func getReferralBotsAdminHandler(c *gin.Context) {
 	var bots []models.ReferralBotAdminInfo
 
 	db.DB.Table("referral_bots").
-		Select("referral_bots.id, referral_bots.owner_id, referral_bots.seller_id, referral_bots.bot_token, referral_bots.is_active, referral_bots.created_at, bot_users.telegram_id as owner_telegram_id, COALESCE(SUM(ref_transactions.amount), 0) as turnover, COALESCE(SUM(ref_transactions.ref_share), 0) as accruals").
+		Select(
+			"referral_bots.id, referral_bots.owner_id, referral_bots.seller_id, " +
+			"referral_bots.bot_token, referral_bots.is_active, referral_bots.created_at, " +
+			"bot_users.telegram_id as owner_telegram_id, " +
+			"COALESCE(SUM(ref_transactions.amount), 0) as turnover, " +
+			"COALESCE(SUM(ref_transactions.ref_share), 0) as accruals",
+		).
 		Joins("join bot_users on referral_bots.owner_id = bot_users.id").
 		Joins("left join ref_transactions on referral_bots.owner_id = ref_transactions.ref_owner_id").
 		Where("referral_bots.seller_id = ?", currentUser.ID).

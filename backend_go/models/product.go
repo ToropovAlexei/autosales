@@ -1,8 +1,8 @@
 package models
 
 type Product struct {
-	ID         uint      `gorm:"primaryKey"`
-	Name       string    `gorm:"index"`
+	ID         uint   `gorm:"primaryKey"`
+	Name       string `gorm:"index"`
 	Price      float64
 	CategoryID uint
 	Category   Category `gorm:"foreignKey:CategoryID"`
