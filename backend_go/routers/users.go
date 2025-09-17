@@ -9,6 +9,7 @@ import (
 	"frbktg/backend_go/models"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 func UsersRouter(router *gin.Engine) {
@@ -100,38 +101,7 @@ func registerBotUserHandler(c *gin.Context) {
 	db.DB.Where("telegram_id = ?", json.TelegramID).First(&existingUser)
 
 	if existingUser.ID != 0 {
-		if !existingUser.IsDeleted {
-			var balance float64
-			db.DB.Model(&models.Transaction{}).Where("user_id = ?", existingUser.ID).Select("sum(amount)").Row().Scan(&balance)
-			response := models.BotUserResponse{
-				ID:               existingUser.ID,
-				TelegramID:       existingUser.TelegramID,
-				IsDeleted:        existingUser.IsDeleted,
-				HasPassedCaptcha: existingUser.HasPassedCaptcha,
-				Balance:          balance,
-			}
-			successResponse(c, http.StatusOK, gin.H{
-				"user":               response,
-				"is_new":             false,
-				"has_passed_captcha": existingUser.HasPassedCaptcha,
-			})
-			return
-		} else {
-			existingUser.IsDeleted = false
-			existingUser.HasPassedCaptcha = false
-			db.DB.Save(&existingUser)
-			response := models.BotUserResponse{
-				ID:               existingUser.ID,
-				TelegramID:       existingUser.TelegramID,
-				IsDeleted:        existingUser.IsDeleted,
-				HasPassedCaptcha: existingUser.HasPassedCaptcha,
-				Balance:          0,
-			}
-			successResponse(c, http.StatusCreated, gin.H{
-				"user":               response,
-				"is_new":             true,
-				"has_passed_captcha": false,
-			})
+		if handleExistingBotUser(c, existingUser) {
 			return
 		}
 	}
@@ -154,6 +124,46 @@ func registerBotUserHandler(c *gin.Context) {
 	})
 }
 
+func handleExistingBotUser(c *gin.Context, existingUser models.BotUser) bool {
+	if !existingUser.IsDeleted {
+		var balance float64
+		if err := db.DB.Model(&models.Transaction{}).Where("user_id = ?", existingUser.ID).Select("sum(amount)").Row().Scan(&balance); err != nil && err != gorm.ErrRecordNotFound {
+			errorResponse(c, http.StatusInternalServerError, err.Error())
+			return true
+		}
+		response := models.BotUserResponse{
+			ID:               existingUser.ID,
+			TelegramID:       existingUser.TelegramID,
+			IsDeleted:        existingUser.IsDeleted,
+			HasPassedCaptcha: existingUser.HasPassedCaptcha,
+			Balance:          balance,
+		}
+		successResponse(c, http.StatusOK, gin.H{
+			"user":               response,
+			"is_new":             false,
+			"has_passed_captcha": existingUser.HasPassedCaptcha,
+		})
+		return true
+	} else {
+		existingUser.IsDeleted = false
+		existingUser.HasPassedCaptcha = false
+		db.DB.Save(&existingUser)
+		response := models.BotUserResponse{
+			ID:               existingUser.ID,
+			TelegramID:       existingUser.TelegramID,
+			IsDeleted:        existingUser.IsDeleted,
+			HasPassedCaptcha: existingUser.HasPassedCaptcha,
+			Balance:          0,
+		}
+		successResponse(c, http.StatusCreated, gin.H{
+			"user":               response,
+			"is_new":             true,
+			"has_passed_captcha": false,
+		})
+	}
+	return true
+}
+
 func getBotUserHandler(c *gin.Context) {
 	var user models.BotUser
 	if err := db.DB.Where("id = ? AND is_deleted = ?", c.Param("id"), false).First(&user).Error; err != nil {
@@ -162,7 +172,10 @@ func getBotUserHandler(c *gin.Context) {
 	}
 
 	var balance float64
-	db.DB.Model(&models.Transaction{}).Where("user_id = ?", user.ID).Select("sum(amount)").Row().Scan(&balance)
+	if err := db.DB.Model(&models.Transaction{}).Where("user_id = ?", user.ID).Select("sum(amount)").Row().Scan(&balance); err != nil && err != gorm.ErrRecordNotFound {
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	response := models.BotUserResponse{
 		ID:               user.ID,
@@ -183,7 +196,10 @@ func getBalanceHandler(c *gin.Context) {
 	}
 
 	var balance float64
-	db.DB.Model(&models.Transaction{}).Where("user_id = ?", user.ID).Select("sum(amount)").Row().Scan(&balance)
+	if err := db.DB.Model(&models.Transaction{}).Where("user_id = ?", user.ID).Select("sum(amount)").Row().Scan(&balance); err != nil && err != gorm.ErrRecordNotFound {
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return
+	}
 
 	successResponse(c, http.StatusOK, gin.H{"balance": balance})
 }
