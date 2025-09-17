@@ -6,7 +6,7 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
-	"frbktg/backend_go/models/responses"
+	
 
 	"github.com/gin-gonic/gin"
 )
@@ -27,11 +27,11 @@ func getBotUsersHandler(c *gin.Context) {
 		return
 	}
 
-	var response []responses.BotUserResponse
+	var response []models.BotUserResponse
 	for _, u := range botUsers {
 		var balance float64
 		db.DB.Model(&models.Transaction{}).Where("user_id = ?", u.ID).Select("sum(amount)").Row().Scan(&balance)
-		response = append(response, responses.BotUserResponse{
+		response = append(response, models.BotUserResponse{
 			ID:               u.ID,
 			TelegramID:       u.TelegramID,
 			IsDeleted:        u.IsDeleted,

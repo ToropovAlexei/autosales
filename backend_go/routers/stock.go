@@ -2,12 +2,12 @@ package routers
 
 import (
 	"net/http"
-	"time"
+	
 
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
-	"frbktg/backend_go/models/responses"
+	
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,15 +20,7 @@ func StockRouter(router *gin.Engine) {
 	}
 }
 
-type StockMovementResponse struct {
-	ID          uint                     `json:"id"`
-	ProductID   uint                     `json:"product_id"`
-	Type        models.StockMovementType `json:"type"`
-	Quantity    int                      `json:"quantity"`
-	CreatedAt   time.Time                `json:"created_at"`
-	Description string                   `json:"description"`
-	OrderID     *uint                    `json:"order_id"`
-}
+
 
 func getStockMovementsHandler(c *gin.Context) {
 	var movements []models.StockMovement
@@ -37,9 +29,9 @@ func getStockMovementsHandler(c *gin.Context) {
 		return
 	}
 
-	var response []responses.StockMovementResponse
+	var response []models.StockMovementResponse
 	for _, m := range movements {
-		response = append(response, responses.StockMovementResponse{
+		response = append(response, models.StockMovementResponse{
 			ID:          m.ID,
 			ProductID:   m.ProductID,
 			Type:        m.Type,

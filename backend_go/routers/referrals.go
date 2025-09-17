@@ -6,7 +6,7 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
-	"frbktg/backend_go/models/responses"
+	
 
 	"github.com/gin-gonic/gin"
 )
@@ -69,7 +69,7 @@ func createReferralBotHandler(c *gin.Context) {
 		return
 	}
 
-	response := responses.ReferralBotResponse{
+	response := models.ReferralBotResponse{
 		ID:        dbBot.ID,
 		OwnerID:   dbBot.OwnerID,
 		SellerID:  dbBot.SellerID,
@@ -88,9 +88,9 @@ func getReferralBotsHandler(c *gin.Context) {
 		return
 	}
 
-	var response []responses.ReferralBotResponse
+	var response []models.ReferralBotResponse
 	for _, b := range bots {
-		response = append(response, responses.ReferralBotResponse{
+		response = append(response, models.ReferralBotResponse{
 			ID:        b.ID,
 			OwnerID:   b.OwnerID,
 			SellerID:  b.SellerID,
@@ -112,7 +112,7 @@ func getReferralBotsAdminHandler(c *gin.Context) {
 		return
 	}
 
-	var bots []responses.ReferralBotAdminInfo
+	var bots []models.ReferralBotAdminInfo
 
 	db.DB.Table("referral_bots").
 		Select("referral_bots.id, referral_bots.owner_id, referral_bots.seller_id, referral_bots.bot_token, referral_bots.is_active, referral_bots.created_at, bot_users.telegram_id as owner_telegram_id, COALESCE(SUM(ref_transactions.amount), 0) as turnover, COALESCE(SUM(ref_transactions.ref_share), 0) as accruals").
@@ -148,7 +148,7 @@ func toggleReferralBotStatusHandler(c *gin.Context) {
 	bot.IsActive = !bot.IsActive
 	db.DB.Save(&bot)
 
-	response := responses.ReferralBotResponse{
+	response := models.ReferralBotResponse{
 		ID:        bot.ID,
 		OwnerID:   bot.OwnerID,
 		SellerID:  bot.SellerID,

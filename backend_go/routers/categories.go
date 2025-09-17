@@ -6,7 +6,7 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
-	"frbktg/backend_go/models/responses"
+	
 
 	"github.com/gin-gonic/gin"
 )
@@ -30,9 +30,9 @@ func getCategoriesHandler(c *gin.Context) {
 		return
 	}
 
-	var response []responses.CategoryResponse
+	var response []models.CategoryResponse
 	for _, category := range categories {
-		response = append(response, responses.CategoryResponse{
+		response = append(response, models.CategoryResponse{
 			ID:   category.ID,
 			Name: category.Name,
 		})
@@ -53,7 +53,7 @@ func createCategoryHandler(c *gin.Context) {
 		return
 	}
 
-	response := responses.CategoryResponse{
+	response := models.CategoryResponse{
 		ID:   json.ID,
 		Name: json.Name,
 	}
@@ -68,7 +68,7 @@ func getCategoryHandler(c *gin.Context) {
 		return
 	}
 
-	response := responses.CategoryResponse{
+	response := models.CategoryResponse{
 		ID:   category.ID,
 		Name: category.Name,
 	}
@@ -94,7 +94,7 @@ func updateCategoryHandler(c *gin.Context) {
 		return
 	}
 
-	response := responses.CategoryResponse{
+	response := models.CategoryResponse{
 		ID:   category.ID,
 		Name: category.Name,
 	}

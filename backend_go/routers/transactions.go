@@ -6,7 +6,7 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
-	"frbktg/backend_go/models/responses"
+	
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,9 +26,9 @@ func getAllTransactionsHandler(c *gin.Context) {
 		return
 	}
 
-	var response []responses.TransactionResponse
+	var response []models.TransactionResponse
 	for _, t := range transactions {
-		response = append(response, responses.TransactionResponse{
+		response = append(response, models.TransactionResponse{
 			ID:          t.ID,
 			UserID:      t.UserID,
 			OrderID:     t.OrderID,
