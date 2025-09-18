@@ -8,6 +8,7 @@ import (
 )
 
 type ProductRepository interface {
+	WithTx(tx *gorm.DB) ProductRepository
 	GetProducts(categoryIDs []string) ([]models.Product, error)
 	GetProductByID(id uint) (*models.Product, error)
 	CreateProduct(product *models.Product) error
@@ -24,6 +25,10 @@ type gormProductRepository struct {
 
 func NewProductRepository(db *gorm.DB) ProductRepository {
 	return &gormProductRepository{db: db}
+}
+
+func (r *gormProductRepository) WithTx(tx *gorm.DB) ProductRepository {
+	return &gormProductRepository{db: tx}
 }
 
 func (r *gormProductRepository) GetProducts(categoryIDs []string) ([]models.Product, error) {
