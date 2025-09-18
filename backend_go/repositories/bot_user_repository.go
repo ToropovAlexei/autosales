@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"database/sql"
 	"errors"
 	"frbktg/backend_go/models"
 
@@ -55,12 +56,17 @@ func (r *gormBotUserRepository) UpdateCaptchaStatus(user *models.BotUser, hasPas
 }
 
 func (r *gormBotUserRepository) GetUserBalance(userID uint) (float64, error) {
-	var balance float64
+	var balance sql.NullFloat64
 	if err := r.db.Model(&models.Transaction{}).Where("user_id = ?", userID).Select("sum(amount)").
 		Row().Scan(&balance); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return 0, err
 	}
-	return balance, nil
+
+	if balance.Valid {
+		return balance.Float64, nil
+	}
+
+	return 0.0, nil
 }
 
 func (r *gormBotUserRepository) GetUserTransactions(userID uint) ([]models.Transaction, error) {
