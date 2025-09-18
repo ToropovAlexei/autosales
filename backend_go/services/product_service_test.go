@@ -3,69 +3,12 @@ package services
 import (
 	"errors"
 	"frbktg/backend_go/models"
-	"frbktg/backend_go/repositories"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 )
-
-// MockProductRepository is a mock type for the ProductRepository interface
-type MockProductRepository struct {
-	mock.Mock
-}
-
-func (m *MockProductRepository) WithTx(tx *gorm.DB) repositories.ProductRepository { // Corrected type
-	m.Called(tx)
-	return m
-}
-
-func (m *MockProductRepository) GetProducts(categoryIDs []string) ([]models.Product, error) {
-	args := m.Called(categoryIDs)
-	return args.Get(0).([]models.Product), args.Error(1)
-}
-
-func (m *MockProductRepository) GetProductByID(id uint) (*models.Product, error) {
-	args := m.Called(id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Product), args.Error(1)
-}
-
-func (m *MockProductRepository) CreateProduct(product *models.Product) error {
-	args := m.Called(product)
-	return args.Error(0)
-}
-
-func (m *MockProductRepository) UpdateProduct(product *models.Product, data models.Product) error {
-	args := m.Called(product, data)
-	return args.Error(0)
-}
-
-func (m *MockProductRepository) DeleteProduct(product *models.Product) error {
-	args := m.Called(product)
-	return args.Error(0)
-}
-
-func (m *MockProductRepository) GetStockForProduct(productID uint) (int, error) {
-	args := m.Called(productID)
-	return args.Int(0), args.Error(1)
-}
-
-func (m *MockProductRepository) CreateStockMovement(movement *models.StockMovement) error {
-	args := m.Called(movement)
-	return args.Error(0)
-}
-
-func (m *MockProductRepository) FindCategoryByID(id uint) (*models.Category, error) {
-	args := m.Called(id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*models.Category), args.Error(1)
-}
 
 func TestProductService_GetProduct(t *testing.T) {
 	// Arrange
@@ -95,7 +38,7 @@ func TestProductService_GetProduct_NotFound(t *testing.T) {
 	mockRepo := new(MockProductRepository)
 	productService := NewProductService(mockRepo)
 
-	mockRepo.On("GetProductByID", uint(1)).Return(nil, errors.New("not found"))
+	mockRepo.On("GetProductByID", uint(1)).Return(nil, gorm.ErrRecordNotFound)
 
 	// Act
 	productResponse, err := productService.GetProduct(1)
@@ -103,7 +46,7 @@ func TestProductService_GetProduct_NotFound(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, productResponse)
-	assert.Equal(t, "not found", err.Error())
+	assert.Equal(t, gorm.ErrRecordNotFound, err)
 	mockRepo.AssertExpectations(t)
 }
 
