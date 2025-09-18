@@ -26,21 +26,22 @@ type BuyResponse struct {
 }
 
 type orderService struct {
-	db                    *gorm.DB // For transaction management
-	orderRepo             repositories.OrderRepository
-	productRepo           repositories.ProductRepository
-	botUserRepo           repositories.BotUserRepository
-	transactionRepo       repositories.TransactionRepository
-	// TODO: Add referral repositories when they are refactored
+	db              *gorm.DB // For transaction management
+	orderRepo       repositories.OrderRepository
+	productRepo     repositories.ProductRepository
+	botUserRepo     repositories.BotUserRepository
+	transactionRepo repositories.TransactionRepository
+	referralService ReferralService
 }
 
-func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, productRepo repositories.ProductRepository, botUserRepo repositories.BotUserRepository, transactionRepo repositories.TransactionRepository) OrderService {
+func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, productRepo repositories.ProductRepository, botUserRepo repositories.BotUserRepository, transactionRepo repositories.TransactionRepository, referralService ReferralService) OrderService {
 	return &orderService{
-		db:                    db,
-		orderRepo:             orderRepo,
-		productRepo:           productRepo,
-		botUserRepo:           botUserRepo,
-		transactionRepo:       transactionRepo,
+		db:              db,
+		orderRepo:       orderRepo,
+		productRepo:     productRepo,
+		botUserRepo:     botUserRepo,
+		transactionRepo: transactionRepo,
+		referralService: referralService,
 	}
 }
 
@@ -203,28 +204,9 @@ func (s *orderService) createOrderTransactionsAndMovements(
 		return err
 	}
 
-	if referralBotToken != nil {
-		// TODO: This part requires refactoring of referral-related tables and logic
-		// For now, we keep the direct DB call, but it should be moved to a referral service/repository
-		var refBot models.ReferralBot
-		if err := tx.Where("bot_token = ?", *referralBotToken).First(&refBot).Error; err == nil && refBot.IsActive {
-			var seller models.User
-			if sellerErr := tx.First(&seller, refBot.SellerID).Error; sellerErr == nil &&
-				seller.ReferralProgramEnabled && seller.ReferralPercentage > 0 {
-				refShare := orderAmount * (seller.ReferralPercentage / percentDenominator)
-				refTransaction := &models.RefTransaction{
-					RefOwnerID: refBot.OwnerID,
-					SellerID:   seller.ID,
-					OrderID:    order.ID,
-					Amount:     orderAmount,
-					RefShare:   refShare,
-					CreatedAt:  time.Now().UTC(),
-				}
-				if createErr := s.transactionRepo.WithTx(tx).CreateRefTransaction(refTransaction); createErr != nil {
-					return createErr
-				}
-			}
-		}
+	if err := s.referralService.ProcessReferral(tx, referralBotToken, order, orderAmount); err != nil {
+		return err
 	}
+
 	return nil
 }

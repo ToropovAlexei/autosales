@@ -34,12 +34,14 @@ func main() {
 	categoryRepo := repositories.NewCategoryRepository(db)
 	orderRepo := repositories.NewOrderRepository(db)
 	transactionRepo := repositories.NewTransactionRepository(db)
+	referralRepo := repositories.NewReferralRepository(db)
 
 	// Init services
 	userService := services.NewUserService(userRepo, botUserRepo)
 	productService := services.NewProductService(productRepo)
 	categoryService := services.NewCategoryService(categoryRepo)
-	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo)
+	referralService := services.NewReferralService(userRepo, botUserRepo, referralRepo, transactionRepo)
+	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, referralService)
 	transactionService := services.NewTransactionService(transactionRepo)
 
 	// Init handlers
@@ -48,6 +50,7 @@ func main() {
 	categoryHandler := handlers.NewCategoryHandler(categoryService)
 	orderHandler := handlers.NewOrderHandler(orderService)
 	transactionHandler := handlers.NewTransactionHandler(transactionService)
+	referralHandler := handlers.NewReferralHandler(referralService)
 
 	r := gin.Default()
 
@@ -71,7 +74,7 @@ func main() {
 	rtr.TransactionsRouter(r, transactionHandler)
 	rtr.StockRouter(r)
 	rtr.DashboardRouter(r)
-	rtr.ReferralsRouter(r)
+	rtr.ReferralsRouter(r, referralHandler)
 
 	for _, route := range r.Routes() {
 		log.Printf("Registered route: %s %s", route.Method, route.Path)
