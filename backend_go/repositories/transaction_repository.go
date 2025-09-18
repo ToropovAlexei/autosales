@@ -12,6 +12,7 @@ type TransactionRepository interface {
 	WithTx(tx *gorm.DB) TransactionRepository
 	CreateTransaction(transaction *models.Transaction) error
 	CreateRefTransaction(refTransaction *models.RefTransaction) error
+	GetAll() ([]models.Transaction, error)
 }
 
 type gormTransactionRepository struct {
@@ -32,4 +33,12 @@ func (r *gormTransactionRepository) CreateTransaction(transaction *models.Transa
 
 func (r *gormTransactionRepository) CreateRefTransaction(refTransaction *models.RefTransaction) error {
 	return r.db.Create(refTransaction).Error
+}
+
+func (r *gormTransactionRepository) GetAll() ([]models.Transaction, error) {
+	var transactions []models.Transaction
+	if err := r.db.Order("created_at desc").Find(&transactions).Error; err != nil {
+		return nil, err
+	}
+	return transactions, nil
 }
