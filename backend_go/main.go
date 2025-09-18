@@ -35,6 +35,7 @@ func main() {
 	orderRepo := repositories.NewOrderRepository(db)
 	transactionRepo := repositories.NewTransactionRepository(db)
 	referralRepo := repositories.NewReferralRepository(db)
+	dashboardRepo := repositories.NewDashboardRepository(db)
 
 	// Init services
 	userService := services.NewUserService(userRepo, botUserRepo)
@@ -43,6 +44,7 @@ func main() {
 	referralService := services.NewReferralService(userRepo, botUserRepo, referralRepo, transactionRepo)
 	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, referralService)
 	transactionService := services.NewTransactionService(transactionRepo)
+	dashboardService := services.NewDashboardService(dashboardRepo)
 
 	// Init handlers
 	userHandler := handlers.NewUserHandler(userService)
@@ -51,6 +53,7 @@ func main() {
 	orderHandler := handlers.NewOrderHandler(orderService)
 	transactionHandler := handlers.NewTransactionHandler(transactionService)
 	referralHandler := handlers.NewReferralHandler(referralService)
+	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
 
 	r := gin.Default()
 
@@ -73,7 +76,7 @@ func main() {
 	rtr.AdminRouter(r)
 	rtr.TransactionsRouter(r, transactionHandler)
 	rtr.StockRouter(r)
-	rtr.DashboardRouter(r)
+	rtr.DashboardRouter(r, dashboardHandler)
 	rtr.ReferralsRouter(r, referralHandler)
 
 	for _, route := range r.Routes() {

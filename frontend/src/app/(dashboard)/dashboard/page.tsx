@@ -21,11 +21,11 @@ interface SalesOverTime {
 const getInitialStartDate = () => {
   const lastWeek = new Date();
   lastWeek.setDate(lastWeek.getDate() - 7);
-  return lastWeek.toISOString().split("T")[0];
+  return lastWeek.toISOString();
 };
 
 const getInitialEndDate = () => {
-  return new Date().toISOString().split("T")[0];
+  return new Date().toISOString();
 };
 
 export default function DashboardPage() {
