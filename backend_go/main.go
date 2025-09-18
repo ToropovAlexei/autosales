@@ -31,14 +31,17 @@ func main() {
 	userRepo := repositories.NewUserRepository(db)
 	botUserRepo := repositories.NewBotUserRepository(db)
 	productRepo := repositories.NewProductRepository(db)
+	categoryRepo := repositories.NewCategoryRepository(db)
 
 	// Init services
 	userService := services.NewUserService(userRepo, botUserRepo)
 	productService := services.NewProductService(productRepo)
+	categoryService := services.NewCategoryService(categoryRepo)
 
 	// Init handlers
 	userHandler := handlers.NewUserHandler(userService)
 	productHandler := handlers.NewProductHandler(productService)
+	categoryHandler := handlers.NewCategoryHandler(categoryService)
 
 	r := gin.Default()
 
@@ -53,7 +56,7 @@ func main() {
 	rtr := routers.NewRouter(db, appSettings, logger)
 
 	rtr.AuthRouter(r)
-	rtr.CategoriesRouter(r)
+	rtr.CategoriesRouter(r, categoryHandler)
 	rtr.ProductsRouter(r, productHandler)
 	rtr.UsersRouter(r, userHandler)
 	rtr.BalanceRouter(r)

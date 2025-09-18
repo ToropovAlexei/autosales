@@ -1,114 +1,18 @@
 package routers
 
 import (
-	"net/http"
-
+	"frbktg/backend_go/handlers"
 	"frbktg/backend_go/middleware"
-	"frbktg/backend_go/models"
-	"frbktg/backend_go/responses"
 
 	"github.com/gin-gonic/gin"
 )
 
-func (r *Router) CategoriesRouter(router *gin.Engine) {
+func (r *Router) CategoriesRouter(router *gin.Engine, categoryHandler *handlers.CategoryHandler) {
 	api := router.Group("/api/categories")
 	api.Use(middleware.AuthMiddleware(r.appSettings, r.db))
-	api.GET("", r.getCategoriesHandler)
-	api.POST("", r.createCategoryHandler)
-	api.GET("/:id", r.getCategoryHandler)
-	api.PUT("/:id", r.updateCategoryHandler)
-	api.DELETE("/:id", r.deleteCategoryHandler)
-}
-
-func (r *Router) getCategoriesHandler(c *gin.Context) {
-	var categories []models.Category
-	if err := r.db.Find(&categories).Error; err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	var response []models.CategoryResponse
-	for _, category := range categories {
-		response = append(response, models.CategoryResponse{
-			ID:   category.ID,
-			Name: category.Name,
-		})
-	}
-
-	responses.SuccessResponse(c, http.StatusOK, response)
-}
-
-func (r *Router) createCategoryHandler(c *gin.Context) {
-	var json models.Category
-	if err := c.ShouldBindJSON(&json); err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if err := r.db.Create(&json).Error; err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	response := models.CategoryResponse{
-		ID:   json.ID,
-		Name: json.Name,
-	}
-
-	responses.SuccessResponse(c, http.StatusCreated, response)
-}
-
-func (r *Router) getCategoryHandler(c *gin.Context) {
-	var category models.Category
-	if err := r.db.First(&category, c.Param("id")).Error; err != nil {
-		responses.ErrorResponse(c, http.StatusNotFound, "Category not found")
-		return
-	}
-
-	response := models.CategoryResponse{
-		ID:   category.ID,
-		Name: category.Name,
-	}
-
-	responses.SuccessResponse(c, http.StatusOK, response)
-}
-
-func (r *Router) updateCategoryHandler(c *gin.Context) {
-	var category models.Category
-	if err := r.db.First(&category, c.Param("id")).Error; err != nil {
-		responses.ErrorResponse(c, http.StatusNotFound, "Category not found")
-		return
-	}
-
-	var json models.Category
-	if err := c.ShouldBindJSON(&json); err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
-		return
-	}
-
-	if err := r.db.Model(&category).Updates(json).Error; err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	response := models.CategoryResponse{
-		ID:   category.ID,
-		Name: category.Name,
-	}
-
-	responses.SuccessResponse(c, http.StatusOK, response)
-}
-
-func (r *Router) deleteCategoryHandler(c *gin.Context) {
-	var category models.Category
-	if err := r.db.First(&category, c.Param("id")).Error; err != nil {
-		responses.ErrorResponse(c, http.StatusNotFound, "Category not found")
-		return
-	}
-
-	if err := r.db.Delete(&category).Error; err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-	c.Status(http.StatusNoContent)
+	api.GET("", categoryHandler.GetCategoriesHandler)
+	api.POST("", categoryHandler.CreateCategoryHandler)
+	api.GET("/:id", categoryHandler.GetCategoryHandler)
+	api.PUT("/:id", categoryHandler.UpdateCategoryHandler)
+	api.DELETE("/:id", categoryHandler.DeleteCategoryHandler)
 }
