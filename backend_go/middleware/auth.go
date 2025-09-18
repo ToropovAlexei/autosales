@@ -6,14 +6,14 @@ import (
 	"strings"
 
 	"frbktg/backend_go/config"
-	"frbktg/backend_go/db"
 	"frbktg/backend_go/models"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"gorm.io/gorm"
 )
 
-func AuthMiddleware() gin.HandlerFunc {
+func AuthMiddleware(appSettings config.Settings, db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
@@ -28,7 +28,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
-			return []byte(config.AppSettings.SECRET_KEY), nil
+			return []byte(appSettings.SecretKey), nil
 		})
 
 		if err != nil {
@@ -39,7 +39,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 			var user models.User
-			db.DB.Where("email = ?", claims["sub"]).First(&user)
+			db.Where("email = ?", claims["sub"]).First(&user)
 
 			if user.ID == 0 {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
@@ -57,7 +57,7 @@ func AuthMiddleware() gin.HandlerFunc {
 	}
 }
 
-func ServiceTokenMiddleware() gin.HandlerFunc {
+func ServiceTokenMiddleware(appSettings config.Settings) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		apiKey := c.GetHeader("X-API-KEY")
 		if apiKey == "" {
@@ -66,7 +66,7 @@ func ServiceTokenMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		if apiKey != config.AppSettings.SERVICE_API_KEY {
+		if apiKey != appSettings.ServiceAPIKey {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Invalid service token"})
 			c.Abort()
 			return
@@ -85,7 +85,12 @@ func AdminMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		currentUser := user.(models.User)
+		currentUser, ok := user.(models.User)
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user type in context"})
+			c.Abort()
+			return
+		}
 		if currentUser.Role != models.Admin {
 			c.JSON(http.StatusForbidden, gin.H{"error": "The user doesn't have enough privileges"})
 			c.Abort()

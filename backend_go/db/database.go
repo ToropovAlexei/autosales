@@ -7,13 +7,12 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
-
-func InitDB() (err error) {
-	DB, err = gorm.Open(postgres.Open(config.AppSettings.GetDBConnStr()), &gorm.Config{})
-	return
-}
-
-func GetDB() *gorm.DB {
-	return DB
+func InitDB(appSettings config.Settings) (*gorm.DB, error) {
+	var err error
+	var db *gorm.DB
+	db, err = gorm.Open(postgres.Open(appSettings.GetDBConnStr()), &gorm.Config{})
+	if err != nil {
+		return nil, err
+	}
+	return db, nil
 }

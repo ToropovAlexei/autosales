@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"log/slog"
+	"net/http"
 
 	"frbktg/backend_go/config"
 	"frbktg/backend_go/db"
@@ -12,45 +14,50 @@ import (
 )
 
 func main() {
-	if err := config.LoadConfig(".env.example"); err != nil {
+	appSettings, err := config.LoadConfig(".env.example")
+	if err != nil {
 		log.Fatalf("could not load config: %v", err)
 	}
 
-	if err := db.InitDB(); err != nil {
+	db, err := db.InitDB(appSettings)
+	if err != nil {
 		log.Fatalf("could not initialize database: %v", err)
 	}
 
 	r := gin.Default()
 
 	corsConfig := cors.DefaultConfig()
-	corsConfig.AllowOrigins = config.AppSettings.CORS_ORIGINS
+	corsConfig.AllowOrigins = appSettings.CorsOrigins
 	corsConfig.AllowCredentials = true
 	corsConfig.AddAllowMethods("*")
 	corsConfig.AddAllowHeaders("*")
 	r.Use(cors.New(corsConfig))
 
-	routers.AuthRouter(r)
-	routers.CategoriesRouter(r)
-	routers.ProductsRouter(r)
-	routers.UsersRouter(r)
-	routers.BalanceRouter(r)
-	routers.OrdersRouter(r)
-	routers.AdminRouter(r)
-	routers.TransactionsRouter(r)
-	routers.StockRouter(r)
-	routers.DashboardRouter(r)
-	routers.ReferralsRouter(r)
+	logger := slog.Default()
+	rtr := routers.NewRouter(db, appSettings, logger)
+
+	rtr.AuthRouter(r)
+	rtr.CategoriesRouter(r)
+	rtr.ProductsRouter(r)
+	rtr.UsersRouter(r)
+	rtr.BalanceRouter(r)
+	rtr.OrdersRouter(r)
+	rtr.AdminRouter(r)
+	rtr.TransactionsRouter(r)
+	rtr.StockRouter(r)
+	rtr.DashboardRouter(r)
+	rtr.ReferralsRouter(r)
 
 	for _, route := range r.Routes() {
 		log.Printf("Registered route: %s %s", route.Method, route.Path)
 	}
 
 	r.GET("/api", func(c *gin.Context) {
-		c.JSON(200, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"message": "Welcome to the API",
 		})
 	})
-	if err := r.Run(":" + config.AppSettings.PORT); err != nil {
-		log.Fatalf("failed to run server: %v", err)
+	if runErr := r.Run(":" + appSettings.Port); runErr != nil {
+		log.Fatalf("failed to run server: %v", runErr)
 	}
 }

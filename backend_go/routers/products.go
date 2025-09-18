@@ -1,11 +1,11 @@
 package routers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 	"time"
 
-	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
 
@@ -13,22 +13,22 @@ import (
 	"gorm.io/gorm"
 )
 
-func ProductsRouter(router *gin.Engine) {
+func (r *Router) ProductsRouter(router *gin.Engine) {
 	auth := router.Group("/api/products")
-	auth.Use(middleware.AuthMiddleware())
+	auth.Use(middleware.AuthMiddleware(r.appSettings, r.db))
 	{
-		auth.GET("", getProductsHandler)
-		auth.POST("", createProductHandler)
-		auth.GET("/:id", getProductHandler)
-		auth.PUT("/:id", updateProductHandler)
-		auth.DELETE("/:id", deleteProductHandler)
-		auth.POST("/:id/stock/movements", createStockMovementHandler)
+		auth.GET("", r.getProductsHandler)
+		auth.POST("", r.createProductHandler)
+		auth.GET("/:id", r.getProductHandler)
+		auth.PUT("/:id", r.updateProductHandler)
+		auth.DELETE("/:id", r.deleteProductHandler)
+		auth.POST("/:id/stock/movements", r.createStockMovementHandler)
 	}
 }
 
-func getProductsHandler(c *gin.Context) {
+func (r *Router) getProductsHandler(c *gin.Context) {
 	var products []models.Product
-	query := db.DB
+	query := r.db
 
 	categoryIDs, ok := c.GetQueryArray("category_ids")
 	if ok {
@@ -43,7 +43,8 @@ func getProductsHandler(c *gin.Context) {
 	var response []models.ProductResponse
 	for _, p := range products {
 		var stock int64
-		if err := db.DB.Model(&models.StockMovement{}).Where("product_id = ?", p.ID).Select("sum(quantity)").Row().Scan(&stock); err != nil && err != gorm.ErrRecordNotFound {
+		if err := r.db.Model(&models.StockMovement{}).Where("product_id = ?", p.ID).Select("sum(quantity)").
+			Row().Scan(&stock); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			errorResponse(c, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -66,7 +67,7 @@ type ProductCreate struct {
 	InitialStock int     `json:"initial_stock"`
 }
 
-func createProductHandler(c *gin.Context) {
+func (r *Router) createProductHandler(c *gin.Context) {
 	var json ProductCreate
 	if err := c.ShouldBindJSON(&json); err != nil {
 		errorResponse(c, http.StatusBadRequest, err.Error())
@@ -74,7 +75,7 @@ func createProductHandler(c *gin.Context) {
 	}
 
 	var category models.Category
-	if err := db.DB.First(&category, json.CategoryID).Error; err != nil {
+	if err := r.db.First(&category, json.CategoryID).Error; err != nil {
 		errorResponse(c, http.StatusBadRequest, "Category not found")
 		return
 	}
@@ -84,7 +85,7 @@ func createProductHandler(c *gin.Context) {
 		CategoryID: json.CategoryID,
 		Price:      json.Price,
 	}
-	if err := db.DB.Create(&product).Error; err != nil {
+	if err := r.db.Create(&product).Error; err != nil {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -96,7 +97,7 @@ func createProductHandler(c *gin.Context) {
 		Description: "Initial stock",
 		CreatedAt:   time.Now().UTC(),
 	}
-	if err := db.DB.Create(&stockMovement).Error; err != nil {
+	if err := r.db.Create(&stockMovement).Error; err != nil {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -112,15 +113,16 @@ func createProductHandler(c *gin.Context) {
 	successResponse(c, http.StatusCreated, response)
 }
 
-func getProductHandler(c *gin.Context) {
+func (r *Router) getProductHandler(c *gin.Context) {
 	var product models.Product
-	if err := db.DB.First(&product, c.Param("id")).Error; err != nil {
+	if err := r.db.First(&product, c.Param("id")).Error; err != nil {
 		errorResponse(c, http.StatusNotFound, "Product not found")
 		return
 	}
 
 	var stock int64
-	if err := db.DB.Model(&models.StockMovement{}).Where("product_id = ?", product.ID).Select("sum(quantity)").Row().Scan(&stock); err != nil && err != gorm.ErrRecordNotFound {
+	if err := r.db.Model(&models.StockMovement{}).Where("product_id = ?", product.ID).Select("sum(quantity)").
+			Row().Scan(&stock); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -136,9 +138,9 @@ func getProductHandler(c *gin.Context) {
 	successResponse(c, http.StatusOK, response)
 }
 
-func updateProductHandler(c *gin.Context) {
+func (r *Router) updateProductHandler(c *gin.Context) {
 	var product models.Product
-	if err := db.DB.First(&product, c.Param("id")).Error; err != nil {
+	if err := r.db.First(&product, c.Param("id")).Error; err != nil {
 		errorResponse(c, http.StatusNotFound, "Product not found")
 		return
 	}
@@ -150,18 +152,19 @@ func updateProductHandler(c *gin.Context) {
 	}
 
 	var category models.Category
-	if err := db.DB.First(&category, json.CategoryID).Error; err != nil {
+	if err := r.db.First(&category, json.CategoryID).Error; err != nil {
 		errorResponse(c, http.StatusBadRequest, "Category not found")
 		return
 	}
 
-	if err := db.DB.Model(&product).Updates(json).Error; err != nil {
+	if err := r.db.Model(&product).Updates(json).Error; err != nil {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	var stock int64
-	if err := db.DB.Model(&models.StockMovement{}).Where("product_id = ?", product.ID).Select("sum(quantity)").Row().Scan(&stock); err != nil && err != gorm.ErrRecordNotFound {
+	if err := r.db.Model(&models.StockMovement{}).Where("product_id = ?", product.ID).Select("sum(quantity)").
+			Row().Scan(&stock); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -177,14 +180,14 @@ func updateProductHandler(c *gin.Context) {
 	successResponse(c, http.StatusOK, response)
 }
 
-func deleteProductHandler(c *gin.Context) {
+func (r *Router) deleteProductHandler(c *gin.Context) {
 	var product models.Product
-	if err := db.DB.First(&product, c.Param("id")).Error; err != nil {
+	if err := r.db.First(&product, c.Param("id")).Error; err != nil {
 		errorResponse(c, http.StatusNotFound, "Product not found")
 		return
 	}
 
-	if err := db.DB.Delete(&product).Error; err != nil {
+	if err := r.db.Delete(&product).Error; err != nil {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -192,7 +195,7 @@ func deleteProductHandler(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-func createStockMovementHandler(c *gin.Context) {
+func (r *Router) createStockMovementHandler(c *gin.Context) {
 	productID, err := strconv.Atoi(c.Param("id"))
 	if err != nil || productID < 0 {
 		errorResponse(c, http.StatusBadRequest, "Invalid product ID")
@@ -200,21 +203,21 @@ func createStockMovementHandler(c *gin.Context) {
 	}
 
 	var product models.Product
-	if err := db.DB.First(&product, productID).Error; err != nil {
+	if findErr := r.db.First(&product, productID).Error; findErr != nil {
 		errorResponse(c, http.StatusNotFound, "Product not found")
 		return
 	}
 
 	var json models.StockMovement
-	if err := c.ShouldBindJSON(&json); err != nil {
-		errorResponse(c, http.StatusBadRequest, err.Error())
+	if bindErr := c.ShouldBindJSON(&json); bindErr != nil {
+		errorResponse(c, http.StatusBadRequest, bindErr.Error())
 		return
 	}
 	json.ProductID = uint(productID)
 	json.CreatedAt = time.Now().UTC()
 
-	if err := db.DB.Create(&json).Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+	if createErr := r.db.Create(&json).Error; createErr != nil {
+		errorResponse(c, http.StatusInternalServerError, createErr.Error())
 		return
 	}
 

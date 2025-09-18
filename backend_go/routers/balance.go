@@ -4,19 +4,18 @@ import (
 	"net/http"
 	"time"
 
-	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
 
 	"github.com/gin-gonic/gin"
 )
 
-func BalanceRouter(router *gin.Engine) {
+func (r *Router) BalanceRouter(router *gin.Engine) {
 	service := router.Group("/api/balance")
-	service.Use(middleware.ServiceTokenMiddleware())
-	service.POST("/deposit", depositBalanceHandler)
+	service.Use(middleware.ServiceTokenMiddleware(r.appSettings))
+	service.POST("/deposit", r.depositBalanceHandler)
 
-	router.POST("/api/balance/webhook", paymentWebhookHandler)
+	router.POST("/api/balance/webhook", r.paymentWebhookHandler)
 }
 
 type DepositRequest struct {
@@ -24,33 +23,38 @@ type DepositRequest struct {
 	Amount float64 `json:"amount"`
 }
 
-func depositBalanceHandler(c *gin.Context) {
+func (r *Router) updateBalance(c *gin.Context, userID int64, amount float64, description string) bool {
+	var user models.BotUser
+	if err := r.db.Where("telegram_id = ? AND is_deleted = ?", userID, false).First(&user).Error; err != nil {
+		errorResponse(c, http.StatusNotFound, "Bot user not found")
+		return false
+	}
+
+	transaction := models.Transaction{
+		UserID:      user.ID,
+		Type:        models.Deposit,
+		Amount:      amount,
+		Description: description,
+		CreatedAt:   time.Now().UTC(),
+	}
+
+	if err := r.db.Create(&transaction).Error; err != nil {
+		errorResponse(c, http.StatusInternalServerError, err.Error())
+		return false
+	}
+	return true
+}
+
+func (r *Router) depositBalanceHandler(c *gin.Context) {
 	var json DepositRequest
 	if err := c.ShouldBindJSON(&json); err != nil {
 		errorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	var user models.BotUser
-	if err := db.DB.Where("telegram_id = ? AND is_deleted = ?", json.UserID, false).First(&user).Error; err != nil {
-		errorResponse(c, http.StatusNotFound, "Bot user not found")
-		return
+	if r.updateBalance(c, json.UserID, json.Amount, "Test deposit") {
+		successResponse(c, http.StatusOK, gin.H{"message": "Balance updated successfully"})
 	}
-
-	transaction := models.Transaction{
-		UserID:      user.ID,
-		Type:        models.Deposit,
-		Amount:      json.Amount,
-		Description: "Test deposit",
-		CreatedAt:   time.Now().UTC(),
-	}
-
-	if err := db.DB.Create(&transaction).Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	successResponse(c, http.StatusOK, gin.H{"message": "Balance updated successfully"})
 }
 
 type WebhookPayload struct {
@@ -58,31 +62,14 @@ type WebhookPayload struct {
 	Amount float64 `json:"amount"`
 }
 
-func paymentWebhookHandler(c *gin.Context) {
+func (r *Router) paymentWebhookHandler(c *gin.Context) {
 	var json WebhookPayload
 	if err := c.ShouldBindJSON(&json); err != nil {
 		errorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	var user models.BotUser
-	if err := db.DB.Where("telegram_id = ? AND is_deleted = ?", json.UserID, false).First(&user).Error; err != nil {
-		errorResponse(c, http.StatusNotFound, "Bot user not found")
-		return
+	if r.updateBalance(c, json.UserID, json.Amount, "Deposit via webhook") {
+		successResponse(c, http.StatusOK, gin.H{"message": "Webhook received and balance updated"})
 	}
-
-	transaction := models.Transaction{
-		UserID:      user.ID,
-		Type:        models.Deposit,
-		Amount:      json.Amount,
-		Description: "Deposit via webhook",
-		CreatedAt:   time.Now().UTC(),
-	}
-
-	if err := db.DB.Create(&transaction).Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	successResponse(c, http.StatusOK, gin.H{"message": "Webhook received and balance updated"})
 }

@@ -4,8 +4,6 @@ import (
 	"net/http"
 	"time"
 
-	"frbktg/backend_go/config"
-	"frbktg/backend_go/db"
 	"frbktg/backend_go/models"
 
 	"github.com/gin-gonic/gin"
@@ -13,11 +11,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func AuthRouter(router *gin.Engine) {
-	router.POST("/api/auth/login", loginHandler)
+func (r *Router) AuthRouter(router *gin.Engine) {
+	router.POST("/api/auth/login", r.loginHandler)
 }
 
-func loginHandler(c *gin.Context) {
+func (r *Router) loginHandler(c *gin.Context) {
 	var form struct {
 		Username string `form:"username"`
 		Password string `form:"password"`
@@ -29,7 +27,7 @@ func loginHandler(c *gin.Context) {
 	}
 
 	var user models.User
-	db.DB.Where("email = ?", form.Username).First(&user)
+	r.db.Where("email = ?", form.Username).First(&user)
 
 	if user.ID == 0 {
 		errorResponse(c, http.StatusUnauthorized, "Incorrect username or password")
@@ -44,10 +42,10 @@ func loginHandler(c *gin.Context) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"sub":  user.Email,
 		"role": user.Role,
-		"exp":  time.Now().Add(time.Minute * time.Duration(config.AppSettings.ACCESS_TOKEN_EXPIRE_MINUTES)).Unix(),
+		"exp":  time.Now().Add(time.Minute * time.Duration(r.appSettings.AccessTokenExpireMinutes)).Unix(),
 	})
 
-	tokenString, err := token.SignedString([]byte(config.AppSettings.SECRET_KEY))
+	tokenString, err := token.SignedString([]byte(r.appSettings.SecretKey))
 	if err != nil {
 		errorResponse(c, http.StatusInternalServerError, "Could not generate token")
 		return

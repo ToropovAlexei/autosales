@@ -2,10 +2,9 @@ package routers
 
 import (
 	"database/sql"
-	"log"
+	"errors"
 	"net/http"
 
-	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
 
@@ -13,16 +12,16 @@ import (
 	"gorm.io/gorm"
 )
 
-func AdminRouter(router *gin.Engine) {
+func (r *Router) AdminRouter(router *gin.Engine) {
 	admin := router.Group("/api/admin")
-	admin.Use(middleware.AuthMiddleware(), middleware.AdminMiddleware())
-	admin.GET("/bot-users", getBotUsersHandler)
-	admin.DELETE("/bot-users/:id", deleteBotUserHandler)
+	admin.Use(middleware.AuthMiddleware(r.appSettings, r.db), middleware.AdminMiddleware())
+	admin.GET("/bot-users", r.getBotUsersHandler)
+	admin.DELETE("/bot-users/:id", r.deleteBotUserHandler)
 }
 
-func getBotUsersHandler(c *gin.Context) {
+func (r *Router) getBotUsersHandler(c *gin.Context) {
 	var botUsers []models.BotUser
-	if err := db.DB.Where("is_deleted = ?", false).Find(&botUsers).Error; err != nil {
+	if err := r.db.Where("is_deleted = ?", false).Find(&botUsers).Error; err != nil {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -30,8 +29,9 @@ func getBotUsersHandler(c *gin.Context) {
 	var response []models.BotUserResponse
 	for _, u := range botUsers {
 		var balance sql.NullFloat64
-		if err := db.DB.Model(&models.Transaction{}).Where("user_id = ?", u.ID).Select("sum(amount)").Row().Scan(&balance); err != nil && err != gorm.ErrRecordNotFound {
-			log.Printf("Error scanning balance for user %d: %v", u.ID, err)
+		if err := r.db.Model(&models.Transaction{}).Where("user_id = ?", u.ID).Select("sum(amount)").
+			Row().Scan(&balance); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			r.logger.Error("Error scanning balance for user", "user_id", u.ID, "error", err)
 			// Continue processing, balance will be 0.0 if null or error
 		}
 
@@ -52,15 +52,15 @@ func getBotUsersHandler(c *gin.Context) {
 	successResponse(c, http.StatusOK, response)
 }
 
-func deleteBotUserHandler(c *gin.Context) {
+func (r *Router) deleteBotUserHandler(c *gin.Context) {
 	var botUser models.BotUser
-	if err := db.DB.First(&botUser, c.Param("id")).Error; err != nil {
+	if err := r.db.First(&botUser, c.Param("id")).Error; err != nil {
 		errorResponse(c, http.StatusNotFound, "Bot user not found")
 		return
 	}
 
 	botUser.IsDeleted = true
-	if err := db.DB.Save(&botUser).Error; err != nil {
+	if err := r.db.Save(&botUser).Error; err != nil {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}

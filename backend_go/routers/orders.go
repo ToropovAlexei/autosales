@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"time"
 
-	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
 
@@ -14,18 +13,18 @@ import (
 	"gorm.io/gorm"
 )
 
-func OrdersRouter(router *gin.Engine) {
+func (r *Router) OrdersRouter(router *gin.Engine) {
 	service := router.Group("/api/orders")
-	service.Use(middleware.ServiceTokenMiddleware())
+	service.Use(middleware.ServiceTokenMiddleware(r.appSettings))
 	{
-		service.POST("/buy-from-balance", buyFromBalanceHandler)
+		service.POST("/buy-from-balance", r.buyFromBalanceHandler)
 	}
 
 	auth := router.Group("/api/orders")
-	auth.Use(middleware.AuthMiddleware())
+	auth.Use(middleware.AuthMiddleware(r.appSettings, r.db))
 	{
-		auth.GET("", getOrdersHandler)
-		auth.POST("/:id/cancel", cancelOrderHandler)
+		auth.GET("", r.getOrdersHandler)
+		auth.POST("/:id/cancel", r.cancelOrderHandler)
 	}
 }
 
@@ -44,54 +43,46 @@ type BuyResponse struct {
 }
 
 type OrderValidationData struct {
-	Json        OrderCreate
+	JSON        OrderCreate
 	User        models.BotUser
 	Product     models.Product
 	Balance     float64
 	OrderAmount float64
 }
 
-func buyFromBalanceHandler(c *gin.Context) {
-	data, err := validateAndRetrieveOrderData(c)
+func (r *Router) buyFromBalanceHandler(c *gin.Context) {
+	data, err := r.validateAndRetrieveOrderData(c)
 	if err != nil {
 		return
 	}
 
-	tx := db.DB.Begin()
+	tx := r.db.Begin()
 
 	order := models.Order{
 		UserID:    data.User.ID,
-		ProductID: data.Json.ProductID,
-		Quantity:  data.Json.Quantity,
+		ProductID: data.JSON.ProductID,
+		Quantity:  data.JSON.Quantity,
 		Amount:    data.OrderAmount,
 		Status:    "success",
 		CreatedAt: time.Now().UTC(),
 	}
-	if err := tx.Create(&order).Error; err != nil {
+	if createErr := tx.Create(&order).Error; createErr != nil {
 		tx.Rollback()
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		errorResponse(c, http.StatusInternalServerError, createErr.Error())
 		return
 	}
 
-	if err := createOrderTransactionsAndMovements(tx, data.User, data.Product, data.Json, order, data.OrderAmount); err != nil {
+	if transErr := r.createOrderTransactionsAndMovements(tx, data.User, data.Product, data.JSON, order, data.OrderAmount); transErr != nil {
 		return
 	}
 
-	if err := tx.Commit().Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+	if commitErr := tx.Commit().Error; commitErr != nil {
+		errorResponse(c, http.StatusInternalServerError, commitErr.Error())
 		return
 	}
 
 	newBalance := data.Balance - data.OrderAmount
-	orderResponse := models.OrderSlimResponse{
-		ID:        order.ID,
-		UserID:    order.UserID,
-		ProductID: order.ProductID,
-		Quantity:  order.Quantity,
-		Amount:    order.Amount,
-		Status:    order.Status,
-		CreatedAt: order.CreatedAt,
-	}
+	orderResponse := models.OrderSlimResponse(order)
 	response := BuyResponse{
 		Order:        orderResponse,
 		ProductName:  data.Product.Name,
@@ -102,11 +93,11 @@ func buyFromBalanceHandler(c *gin.Context) {
 	successResponse(c, http.StatusOK, response)
 }
 
-func createOrderTransactionsAndMovements(
+func (r *Router) createOrderTransactionsAndMovements(
 	tx *gorm.DB,
 	user models.BotUser,
 	product models.Product,
-	json OrderCreate,
+	jsonPayload OrderCreate,
 	order models.Order,
 	orderAmount float64,
 ) error {
@@ -126,7 +117,7 @@ func createOrderTransactionsAndMovements(
 		OrderID:     &order.ID,
 		ProductID:   product.ID,
 		Type:        models.Sale,
-		Quantity:    -json.Quantity,
+		Quantity:    -jsonPayload.Quantity,
 		Description: "Sale to user " + strconv.FormatUint(uint64(user.ID), 10),
 		CreatedAt:   time.Now().UTC(),
 	}
@@ -134,58 +125,60 @@ func createOrderTransactionsAndMovements(
 		return err
 	}
 
-	if json.ReferralBotToken != nil {
-		if err := handleReferralTransaction(tx, json.ReferralBotToken, order, orderAmount); err != nil {
+	if jsonPayload.ReferralBotToken != nil {
+		if err := r.handleReferralTransaction(tx, jsonPayload.ReferralBotToken, order, orderAmount); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func validateAndRetrieveOrderData(c *gin.Context) (OrderValidationData, error) {
-	var json OrderCreate
-	if err := c.ShouldBindJSON(&json); err != nil {
+func (r *Router) validateAndRetrieveOrderData(c *gin.Context) (OrderValidationData, error) {
+	var jsonPayload OrderCreate
+	if err := c.ShouldBindJSON(&jsonPayload); err != nil {
 		errorResponse(c, http.StatusBadRequest, err.Error())
 		return OrderValidationData{}, err
 	}
 
 	var user models.BotUser
-	if err := db.DB.Where("telegram_id = ? AND is_deleted = ?", json.UserID, false).First(&user).Error; err != nil {
+	if err := r.db.Where("telegram_id = ? AND is_deleted = ?", jsonPayload.UserID, false).First(&user).Error; err != nil {
 		errorResponse(c, http.StatusNotFound, "Bot user not found")
 		return OrderValidationData{}, err
 	}
 
 	var product models.Product
-	if err := db.DB.First(&product, json.ProductID).Error; err != nil {
+	if err := r.db.First(&product, jsonPayload.ProductID).Error; err != nil {
 		errorResponse(c, http.StatusNotFound, "Product not found")
 		return OrderValidationData{}, err
 	}
 
 	var stock int64
-	if err := db.DB.Model(&models.StockMovement{}).Where("product_id = ?", product.ID).Select("sum(quantity)").Row().Scan(&stock); err != nil && err != gorm.ErrRecordNotFound {
+	if err := r.db.Model(&models.StockMovement{}).Where("product_id = ?", product.ID).Select("sum(quantity)").
+			Row().Scan(&stock); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return OrderValidationData{}, err
 	}
 
 	if stock <= 0 {
 		errorResponse(c, http.StatusBadRequest, "Product out of stock")
-		return OrderValidationData{}, errors.New("Product out of stock")
+		return OrderValidationData{}, errors.New("product out of stock")
 	}
 
 	var balance float64
-	if err := db.DB.Model(&models.Transaction{}).Where("user_id = ?", user.ID).Select("sum(amount)").Row().Scan(&balance); err != nil && err != gorm.ErrRecordNotFound {
+	if err := r.db.Model(&models.Transaction{}).Where("user_id = ?", user.ID).Select("sum(amount)").
+			Row().Scan(&balance); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return OrderValidationData{}, err
 	}
 
-	orderAmount := product.Price * float64(json.Quantity)
+	orderAmount := product.Price * float64(jsonPayload.Quantity)
 	if balance < orderAmount {
 		errorResponse(c, http.StatusBadRequest, "Insufficient balance")
-		return OrderValidationData{}, errors.New("Insufficient balance")
+		return OrderValidationData{}, errors.New("insufficient balance")
 	}
 
 	return OrderValidationData{
-		Json:        json,
+		JSON:        jsonPayload,
 		User:        user,
 		Product:     product,
 		Balance:     balance,
@@ -193,12 +186,15 @@ func validateAndRetrieveOrderData(c *gin.Context) (OrderValidationData, error) {
 	}, nil
 }
 
-func handleReferralTransaction(tx *gorm.DB, referralBotToken *string, order models.Order, orderAmount float64) error {
+const percentDenominator = 100
+
+func (r *Router) handleReferralTransaction(tx *gorm.DB, referralBotToken *string, order models.Order, orderAmount float64) error {
 	var refBot models.ReferralBot
 	if err := tx.Where("bot_token = ?", *referralBotToken).First(&refBot).Error; err == nil && refBot.IsActive {
 		var seller models.User
-		if err := tx.First(&seller, refBot.SellerID).Error; err == nil && seller.ReferralProgramEnabled && seller.ReferralPercentage > 0 {
-			refShare := orderAmount * (seller.ReferralPercentage / 100)
+		if sellerErr := tx.First(&seller, refBot.SellerID).Error; sellerErr == nil &&
+			seller.ReferralProgramEnabled && seller.ReferralPercentage > 0 {
+			refShare := orderAmount * (seller.ReferralPercentage / percentDenominator)
 			refTransaction := models.RefTransaction{
 				RefOwnerID: refBot.OwnerID,
 				SellerID:   seller.ID,
@@ -207,17 +203,17 @@ func handleReferralTransaction(tx *gorm.DB, referralBotToken *string, order mode
 				RefShare:   refShare,
 				CreatedAt:  time.Now().UTC(),
 			}
-			if err := tx.Create(&refTransaction).Error; err != nil {
-				return err
+			if createErr := tx.Create(&refTransaction).Error; createErr != nil {
+				return createErr
 			}
 		}
 	}
 	return nil
 }
 
-func getOrdersHandler(c *gin.Context) {
+func (r *Router) getOrdersHandler(c *gin.Context) {
 	var response []models.OrderResponse
-	if err := db.DB.Table("orders").
+	if err := r.db.Table("orders").
 		Select("orders.*, bot_users.telegram_id as user_telegram_id, products.name as product_name").
 		Joins("join bot_users on bot_users.id = orders.user_id").
 		Joins("join products on products.id = orders.product_id").
@@ -230,9 +226,9 @@ func getOrdersHandler(c *gin.Context) {
 	successResponse(c, http.StatusOK, response)
 }
 
-func cancelOrderHandler(c *gin.Context) {
+func (r *Router) cancelOrderHandler(c *gin.Context) {
 	var order models.Order
-	if err := db.DB.First(&order, c.Param("id")).Error; err != nil {
+	if err := r.db.First(&order, c.Param("id")).Error; err != nil {
 		errorResponse(c, http.StatusNotFound, "Order not found")
 		return
 	}
@@ -242,7 +238,7 @@ func cancelOrderHandler(c *gin.Context) {
 		return
 	}
 
-	tx := db.DB.Begin()
+	tx := r.db.Begin()
 
 	returnMovement := models.StockMovement{
 		OrderID:     &order.ID,

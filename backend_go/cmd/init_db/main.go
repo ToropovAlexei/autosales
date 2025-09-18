@@ -9,15 +9,17 @@ import (
 )
 
 func main() {
-	if err := config.LoadConfig("../../.env.example"); err != nil {
+	appSettings, err := config.LoadConfig("../../.env.example")
+	if err != nil {
 		log.Fatalf("could not load config: %v", err)
 	}
 
-	if err := db.InitDB(); err != nil {
+	db, err := db.InitDB(appSettings)
+	if err != nil {
 		log.Fatalf("could not initialize database: %v", err)
 	}
 
-	if migrateErr := db.DB.AutoMigrate(
+	if migrateErr := db.AutoMigrate(
 		&models.User{},
 		&models.Category{},
 		&models.Product{},
@@ -27,7 +29,7 @@ func main() {
 		&models.StockMovement{},
 		&models.ReferralBot{},
 		&models.RefTransaction{},
-	).Error; migrateErr != nil {
+	); migrateErr != nil {
 		log.Fatalf("failed to migrate database: %v", migrateErr)
 	}
 }

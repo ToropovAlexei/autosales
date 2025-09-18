@@ -10,53 +10,55 @@ import (
 )
 
 type Settings struct {
-	DATABASE_HOST               string
-	DATABASE_PORT               string
-	DATABASE_USER               string
-	DATABASE_PASSWORD           string
-	DATABASE_NAME               string
-	CORS_ORIGINS                []string
-	SECRET_KEY                  string
-	ALGORITHM                   string
-	ACCESS_TOKEN_EXPIRE_MINUTES int
-	SERVICE_API_KEY             string
-	PORT                        string
+	DatabaseHost             string
+	DatabasePort             string
+	DatabaseUser             string
+	DatabasePassword         string
+	DatabaseName             string
+	CorsOrigins              []string
+	SecretKey                string
+	Algorithm                string
+	AccessTokenExpireMinutes int
+	ServiceAPIKey            string
+	Port                     string
 }
 
 func (s *Settings) GetDBConnStr() string {
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable", s.DATABASE_HOST, s.DATABASE_USER, s.DATABASE_PASSWORD, s.DATABASE_NAME, s.DATABASE_PORT)
+	return fmt.Sprintf(
+		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
+		s.DatabaseHost, s.DatabaseUser, s.DatabasePassword, s.DatabaseName, s.DatabasePort,
+	)
 }
 
-var AppSettings Settings
-
-func LoadConfig(path string) (err error) {
-	err = godotenv.Load(path)
+func LoadConfig(path string) (Settings, error) {
+	var appSettings Settings
+	err := godotenv.Load(path)
 	if err != nil {
-		return
+		return appSettings, err
 	}
 
-	AppSettings.DATABASE_HOST = os.Getenv("DATABASE_HOST")
-	AppSettings.DATABASE_PORT = os.Getenv("DATABASE_PORT")
-	AppSettings.DATABASE_USER = os.Getenv("DATABASE_USER")
-	AppSettings.DATABASE_PASSWORD = os.Getenv("DATABASE_PASSWORD")
-	AppSettings.DATABASE_NAME = os.Getenv("DATABASE_NAME")
-	AppSettings.SECRET_KEY = os.Getenv("SECRET_KEY")
-	AppSettings.ALGORITHM = os.Getenv("ALGORITHM")
-	AppSettings.SERVICE_API_KEY = os.Getenv("SERVICE_API_KEY")
+	appSettings.DatabaseHost = os.Getenv("DATABASE_HOST")
+	appSettings.DatabasePort = os.Getenv("DATABASE_PORT")
+	appSettings.DatabaseUser = os.Getenv("DATABASE_USER")
+	appSettings.DatabasePassword = os.Getenv("DATABASE_PASSWORD")
+	appSettings.DatabaseName = os.Getenv("DATABASE_NAME")
+	appSettings.SecretKey = os.Getenv("SECRET_KEY")
+	appSettings.Algorithm = os.Getenv("ALGORITHM")
+	appSettings.ServiceAPIKey = os.Getenv("SERVICE_API_KEY")
 
-	expire_minutes, err := strconv.Atoi(os.Getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
+	expireMinutes, err := strconv.Atoi(os.Getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 	if err != nil {
-		return
+		return appSettings, err
 	}
-	AppSettings.ACCESS_TOKEN_EXPIRE_MINUTES = expire_minutes
-	AppSettings.PORT = os.Getenv("PORT")
+	appSettings.AccessTokenExpireMinutes = expireMinutes
+	appSettings.Port = os.Getenv("PORT")
 
 	var corsOrigins []string
 	err = json.Unmarshal([]byte(os.Getenv("CORS_ORIGINS")), &corsOrigins)
 	if err != nil {
-		return
+		return appSettings, err
 	}
-	AppSettings.CORS_ORIGINS = corsOrigins
+	appSettings.CorsOrigins = corsOrigins
 
-	return
+	return appSettings, nil
 }

@@ -1,10 +1,10 @@
 package routers
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
-	"frbktg/backend_go/db"
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
 
@@ -12,33 +12,37 @@ import (
 	"gorm.io/gorm"
 )
 
-func UsersRouter(router *gin.Engine) {
+func (r *Router) UsersRouter(router *gin.Engine) {
 	auth := router.Group("/api/users")
-	auth.Use(middleware.AuthMiddleware())
+	auth.Use(middleware.AuthMiddleware(r.appSettings, r.db))
 	{
-		auth.GET("/me", getMeHandler)
-		auth.PUT("/me/referral-settings", updateReferralSettingsHandler)
+		auth.GET("/me", r.getMeHandler)
+		auth.PUT("/me/referral-settings", r.updateReferralSettingsHandler)
 	}
 
 	service := router.Group("/api/users")
-	service.Use(middleware.ServiceTokenMiddleware())
+	service.Use(middleware.ServiceTokenMiddleware(r.appSettings))
 	{
-		service.POST("/register", registerBotUserHandler)
-		service.GET("/:id", getBotUserHandler)
-		service.GET("/:id/balance", getBalanceHandler)
-		service.GET("/:id/transactions", getUserTransactionsHandler)
-		service.PUT("/:id/captcha-status", updateUserCaptchaStatusHandler)
-		service.GET("/seller-settings", getSellerSettingsHandler)
+		service.POST("/register", r.registerBotUserHandler)
+		service.GET("/:id", r.getBotUserHandler)
+		service.GET("/:id/balance", r.getBalanceHandler)
+		service.GET("/:id/transactions", r.getUserTransactionsHandler)
+		service.PUT("/:id/captcha-status", r.updateUserCaptchaStatusHandler)
+		service.GET("/seller-settings", r.getSellerSettingsHandler)
 	}
 }
 
-func getMeHandler(c *gin.Context) {
+func (r *Router) getMeHandler(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
 		errorResponse(c, http.StatusUnauthorized, "User not found in context")
 		return
 	}
-	currentUser := user.(models.User)
+	currentUser, ok := user.(models.User)
+	if !ok {
+		errorResponse(c, http.StatusInternalServerError, "Invalid user type in context")
+		return
+	}
 	response := models.UserResponse{
 		ID:                     currentUser.ID,
 		Email:                  currentUser.Email,
@@ -55,14 +59,18 @@ type ReferralSettings struct {
 	ReferralPercentage     float64 `json:"referral_percentage"`
 }
 
-func updateReferralSettingsHandler(c *gin.Context) {
+func (r *Router) updateReferralSettingsHandler(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
 		errorResponse(c, http.StatusUnauthorized, "User not found in context")
 		return
 	}
 
-	currentUser := user.(models.User)
+	currentUser, ok := user.(models.User)
+	if !ok {
+		errorResponse(c, http.StatusInternalServerError, "Invalid user type in context")
+		return
+	}
 	if currentUser.Role != models.Admin && currentUser.Role != models.Seller {
 		errorResponse(c, http.StatusForbidden, "Not enough permissions")
 		return
@@ -79,7 +87,7 @@ func updateReferralSettingsHandler(c *gin.Context) {
 		return
 	}
 
-	if err := db.DB.Model(&currentUser).Updates(models.User{
+	if err := r.db.Model(&currentUser).Updates(models.User{
 		ReferralProgramEnabled: json.ReferralProgramEnabled,
 		ReferralPercentage:     json.ReferralPercentage,
 	}).Error; err != nil {
@@ -90,7 +98,7 @@ func updateReferralSettingsHandler(c *gin.Context) {
 	successResponse(c, http.StatusOK, gin.H{"message": "Referral settings updated successfully"})
 }
 
-func registerBotUserHandler(c *gin.Context) {
+func (r *Router) registerBotUserHandler(c *gin.Context) {
 	var json models.BotUser
 	if err := c.ShouldBindJSON(&json); err != nil {
 		errorResponse(c, http.StatusBadRequest, err.Error())
@@ -98,16 +106,15 @@ func registerBotUserHandler(c *gin.Context) {
 	}
 
 	var existingUser models.BotUser
-	db.DB.Where("telegram_id = ?", json.TelegramID).First(&existingUser)
+	r.db.Where("telegram_id = ?", json.TelegramID).First(&existingUser)
 
 	if existingUser.ID != 0 {
-		if handleExistingBotUser(c, existingUser) {
-			return
-		}
+		r.handleExistingBotUser(c, existingUser)
+		return
 	}
 
 	newUser := models.BotUser{TelegramID: json.TelegramID, HasPassedCaptcha: false}
-	db.DB.Create(&newUser)
+	r.db.Create(&newUser)
 
 	response := models.BotUserResponse{
 		ID:               newUser.ID,
@@ -124,12 +131,13 @@ func registerBotUserHandler(c *gin.Context) {
 	})
 }
 
-func handleExistingBotUser(c *gin.Context, existingUser models.BotUser) bool {
+func (r *Router) handleExistingBotUser(c *gin.Context, existingUser models.BotUser) {
 	if !existingUser.IsDeleted {
 		var balance float64
-		if err := db.DB.Model(&models.Transaction{}).Where("user_id = ?", existingUser.ID).Select("sum(amount)").Row().Scan(&balance); err != nil && err != gorm.ErrRecordNotFound {
+		if err := r.db.Model(&models.Transaction{}).Where("user_id = ?", existingUser.ID).Select("sum(amount)").
+			Row().Scan(&balance); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 			errorResponse(c, http.StatusInternalServerError, err.Error())
-			return true
+			return
 		}
 		response := models.BotUserResponse{
 			ID:               existingUser.ID,
@@ -143,36 +151,35 @@ func handleExistingBotUser(c *gin.Context, existingUser models.BotUser) bool {
 			"is_new":             false,
 			"has_passed_captcha": existingUser.HasPassedCaptcha,
 		})
-		return true
-	} else {
-		existingUser.IsDeleted = false
-		existingUser.HasPassedCaptcha = false
-		db.DB.Save(&existingUser)
-		response := models.BotUserResponse{
-			ID:               existingUser.ID,
-			TelegramID:       existingUser.TelegramID,
-			IsDeleted:        existingUser.IsDeleted,
-			HasPassedCaptcha: existingUser.HasPassedCaptcha,
-			Balance:          0,
-		}
-		successResponse(c, http.StatusCreated, gin.H{
-			"user":               response,
-			"is_new":             true,
-			"has_passed_captcha": false,
-		})
+		return
 	}
-	return true
+	existingUser.IsDeleted = false
+	existingUser.HasPassedCaptcha = false
+	r.db.Save(&existingUser)
+	response := models.BotUserResponse{
+		ID:               existingUser.ID,
+		TelegramID:       existingUser.TelegramID,
+		IsDeleted:        existingUser.IsDeleted,
+		HasPassedCaptcha: existingUser.HasPassedCaptcha,
+		Balance:          0,
+	}
+	successResponse(c, http.StatusCreated, gin.H{
+		"user":               response,
+		"is_new":             true,
+		"has_passed_captcha": false,
+	})
 }
 
-func getBotUserHandler(c *gin.Context) {
+func (r *Router) getBotUserHandler(c *gin.Context) {
 	var user models.BotUser
-	if err := db.DB.Where("id = ? AND is_deleted = ?", c.Param("id"), false).First(&user).Error; err != nil {
+	if err := r.db.Where("id = ? AND is_deleted = ?", c.Param("id"), false).First(&user).Error; err != nil {
 		errorResponse(c, http.StatusNotFound, "Bot user not found")
 		return
 	}
 
 	var balance float64
-	if err := db.DB.Model(&models.Transaction{}).Where("user_id = ?", user.ID).Select("sum(amount)").Row().Scan(&balance); err != nil && err != gorm.ErrRecordNotFound {
+	if err := r.db.Model(&models.Transaction{}).Where("user_id = ?", user.ID).Select("sum(amount)").
+			Row().Scan(&balance); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -188,15 +195,16 @@ func getBotUserHandler(c *gin.Context) {
 	successResponse(c, http.StatusOK, response)
 }
 
-func getBalanceHandler(c *gin.Context) {
+func (r *Router) getBalanceHandler(c *gin.Context) {
 	var user models.BotUser
-	if err := db.DB.Where("telegram_id = ? AND is_deleted = ?", c.Param("id"), false).First(&user).Error; err != nil {
+	if err := r.db.Where("telegram_id = ? AND is_deleted = ?", c.Param("id"), false).First(&user).Error; err != nil {
 		errorResponse(c, http.StatusNotFound, "Bot user not found")
 		return
 	}
 
 	var balance float64
-	if err := db.DB.Model(&models.Transaction{}).Where("user_id = ?", user.ID).Select("sum(amount)").Row().Scan(&balance); err != nil && err != gorm.ErrRecordNotFound {
+	if err := r.db.Model(&models.Transaction{}).Where("user_id = ?", user.ID).Select("sum(amount)").
+			Row().Scan(&balance); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		errorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
@@ -204,36 +212,28 @@ func getBalanceHandler(c *gin.Context) {
 	successResponse(c, http.StatusOK, gin.H{"balance": balance})
 }
 
-func getUserTransactionsHandler(c *gin.Context) {
+func (r *Router) getUserTransactionsHandler(c *gin.Context) {
 	var user models.BotUser
-	if err := db.DB.Where("telegram_id = ? AND is_deleted = ?", c.Param("id"), false).First(&user).Error; err != nil {
+	if err := r.db.Where("telegram_id = ? AND is_deleted = ?", c.Param("id"), false).First(&user).Error; err != nil {
 		errorResponse(c, http.StatusNotFound, "Bot user not found")
 		return
 	}
 
 	var transactions []models.Transaction
-	db.DB.Where("user_id = ?", user.ID).Order("created_at desc").Find(&transactions)
+	r.db.Where("user_id = ?", user.ID).Order("created_at desc").Find(&transactions)
 
 	var response []models.TransactionResponse
 	for _, t := range transactions {
-		response = append(response, models.TransactionResponse{
-			ID:          t.ID,
-			UserID:      t.UserID,
-			OrderID:     t.OrderID,
-			Type:        t.Type,
-			Amount:      t.Amount,
-			CreatedAt:   t.CreatedAt,
-			Description: t.Description,
-		})
+		response = append(response, models.TransactionResponse(t))
 	}
 
 	successResponse(c, http.StatusOK, response)
 }
 
-func updateUserCaptchaStatusHandler(c *gin.Context) {
+func (r *Router) updateUserCaptchaStatusHandler(c *gin.Context) {
 	var user models.BotUser
 	id, _ := strconv.Atoi(c.Param("id"))
-	if err := db.DB.First(&user, id).Error; err != nil {
+	if err := r.db.First(&user, id).Error; err != nil {
 		errorResponse(c, http.StatusNotFound, "Bot user not found")
 		return
 	}
@@ -247,15 +247,15 @@ func updateUserCaptchaStatusHandler(c *gin.Context) {
 	}
 
 	user.HasPassedCaptcha = json.HasPassedCaptcha
-	db.DB.Save(&user)
+	r.db.Save(&user)
 
 	successResponse(c, http.StatusOK, gin.H{"message": "Captcha status updated successfully"})
 }
 
-func getSellerSettingsHandler(c *gin.Context) {
+func (r *Router) getSellerSettingsHandler(c *gin.Context) {
 	var seller models.User
-	if err := db.DB.Where("role = ?", models.Admin).First(&seller).Error; err != nil {
-		if err := db.DB.First(&seller).Error; err != nil {
+	if err := r.db.Where("role = ?", models.Admin).First(&seller).Error; err != nil {
+		if err2 := r.db.First(&seller).Error; err2 != nil {
 			errorResponse(c, http.StatusNotFound, "Seller not found")
 			return
 		}
