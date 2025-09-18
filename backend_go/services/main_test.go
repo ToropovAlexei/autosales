@@ -3,7 +3,9 @@ package services
 import (
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
+	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/mock"
 	"gorm.io/gorm"
 )
@@ -58,3 +60,26 @@ func (m *MockReferralService) CreateReferralBot(ownerTelegramID int64, sellerID 
 func (m *MockReferralService) GetAllReferralBots() ([]models.ReferralBotResponse, error) { return nil, nil }
 func (m *MockReferralService) GetAdminInfoForSeller(sellerID uint) ([]models.ReferralBotAdminInfo, error) { return nil, nil }
 func (m *MockReferralService) ToggleReferralBotStatus(botID uint, sellerID uint) (*models.ReferralBot, error) { return nil, nil }
+
+type MockTokenService struct{ mock.Mock }
+func (m *MockTokenService) GenerateToken(user *models.User, secretKey string, expireMinutes int) (string, error) { args := m.Called(user, secretKey, expireMinutes); return args.String(0), args.Error(1) }
+func (m *MockTokenService) ValidateToken(tokenString string, secretKey string) (*jwt.Token, error) { args := m.Called(tokenString, secretKey); return args.Get(0).(*jwt.Token), args.Error(1) }
+
+type MockAdminRepository struct{ mock.Mock }
+func (m *MockAdminRepository) GetActiveBotUsers() ([]models.BotUser, error) { args := m.Called(); return args.Get(0).([]models.BotUser), args.Error(1) }
+func (m *MockAdminRepository) GetBotUserByID(id uint) (*models.BotUser, error) { args := m.Called(id); if args.Get(0) == nil { return nil, args.Error(1) }; return args.Get(0).(*models.BotUser), args.Error(1) }
+func (m *MockAdminRepository) SoftDeleteBotUser(user *models.BotUser) error { return m.Called(user).Error(0) }
+
+type MockCategoryRepository struct{ mock.Mock }
+func (m *MockCategoryRepository) GetAll() ([]models.Category, error) { args := m.Called(); return args.Get(0).([]models.Category), args.Error(1) }
+func (m *MockCategoryRepository) GetByID(id uint) (*models.Category, error) { args := m.Called(id); if args.Get(0) == nil { return nil, args.Error(1) }; return args.Get(0).(*models.Category), args.Error(1) }
+func (m *MockCategoryRepository) Create(category *models.Category) error { return m.Called(category).Error(0) }
+func (m *MockCategoryRepository) Update(category *models.Category, data models.Category) error { return m.Called(category, data).Error(0) }
+func (m *MockCategoryRepository) Delete(category *models.Category) error { return m.Called(category).Error(0) }
+
+type MockDashboardRepository struct{ mock.Mock }
+func (m *MockDashboardRepository) CountTotalUsers() (int64, error) { args := m.Called(); return args.Get(0).(int64), args.Error(1) }
+func (m *MockDashboardRepository) CountUsersWithPurchases() (int64, error) { args := m.Called(); return args.Get(0).(int64), args.Error(1) }
+func (m *MockDashboardRepository) CountAvailableProducts() (int64, error) { args := m.Called(); return args.Get(0).(int64), args.Error(1) }
+func (m *MockDashboardRepository) GetSalesCountForPeriod(start, end time.Time) (int64, error) { args := m.Called(start, end); return args.Get(0).(int64), args.Error(1) }
+func (m *MockDashboardRepository) GetTotalRevenueForPeriod(start, end time.Time) (float64, error) { args := m.Called(start, end); return args.Get(0).(float64), args.Error(1) }
