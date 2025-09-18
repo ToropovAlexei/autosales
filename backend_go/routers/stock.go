@@ -5,6 +5,7 @@ import (
 
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/responses"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,7 +21,7 @@ func (r *Router) StockRouter(router *gin.Engine) {
 func (r *Router) getStockMovementsHandler(c *gin.Context) {
 	var movements []models.StockMovement
 	if err := r.db.Order("created_at desc").Find(&movements).Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -37,5 +38,5 @@ func (r *Router) getStockMovementsHandler(c *gin.Context) {
 		})
 	}
 
-	successResponse(c, http.StatusOK, response)
+	responses.SuccessResponse(c, http.StatusOK, response)
 }

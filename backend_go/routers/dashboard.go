@@ -7,6 +7,7 @@ import (
 
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/responses"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -42,7 +43,7 @@ func (r *Router) getDashboardStatsHandler(c *gin.Context) {
 		var stock int64
 		if err := r.db.Model(&models.StockMovement{}).Where("product_id = ?", id).Select("sum(quantity)").
 			Row().Scan(&stock); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			errorResponse(c, http.StatusInternalServerError, err.Error())
+			responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 			return
 		}
 		if stock > 0 {
@@ -56,7 +57,7 @@ func (r *Router) getDashboardStatsHandler(c *gin.Context) {
 		AvailableProducts:  availableProducts,
 	}
 
-	successResponse(c, http.StatusOK, stats)
+	responses.SuccessResponse(c, http.StatusOK, stats)
 }
 
 type SalesOverTime struct {
@@ -70,13 +71,13 @@ func (r *Router) getSalesOverTimeHandler(c *gin.Context) {
 
 	startDate, err := time.Parse(time.RFC3339, startDateStr)
 	if err != nil {
-		errorResponse(c, http.StatusBadRequest, "Invalid start_date")
+		responses.ErrorResponse(c, http.StatusBadRequest, "Invalid start_date")
 		return
 	}
 
 	endDate, err := time.Parse(time.RFC3339, endDateStr)
 	if err != nil {
-		errorResponse(c, http.StatusBadRequest, "Invalid end_date")
+		responses.ErrorResponse(c, http.StatusBadRequest, "Invalid end_date")
 		return
 	}
 
@@ -87,8 +88,8 @@ func (r *Router) getSalesOverTimeHandler(c *gin.Context) {
 
 	var totalRevenue float64
 	if totalRevenueErr := r.db.Model(&models.Order{}).Where("created_at >= ? AND created_at < ?", startDate, endDate.AddDate(0, 0, 1)).Select("sum(amount)").
-			Row().Scan(&totalRevenue); totalRevenueErr != nil && !errors.Is(totalRevenueErr, gorm.ErrRecordNotFound) {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		Row().Scan(&totalRevenue); totalRevenueErr != nil && !errors.Is(totalRevenueErr, gorm.ErrRecordNotFound) {
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -97,5 +98,5 @@ func (r *Router) getSalesOverTimeHandler(c *gin.Context) {
 		TotalRevenue: totalRevenue,
 	}
 
-	successResponse(c, http.StatusOK, salesData)
+	responses.SuccessResponse(c, http.StatusOK, salesData)
 }

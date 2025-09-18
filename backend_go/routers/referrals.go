@@ -5,6 +5,7 @@ import (
 
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/responses"
 
 	"github.com/gin-gonic/gin"
 )
@@ -34,25 +35,25 @@ type ReferralBotCreate struct {
 func (r *Router) createReferralBotHandler(c *gin.Context) {
 	var json ReferralBotCreate
 	if err := c.ShouldBindJSON(&json); err != nil {
-		errorResponse(c, http.StatusBadRequest, err.Error())
+		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	var owner models.BotUser
 	if err := r.db.Where("telegram_id = ?", json.OwnerID).First(&owner).Error; err != nil {
-		errorResponse(c, http.StatusNotFound, "Referral owner (user) not found.")
+		responses.ErrorResponse(c, http.StatusNotFound, "Referral owner (user) not found.")
 		return
 	}
 
 	var seller models.User
 	if err := r.db.First(&seller, json.SellerID).Error; err != nil {
-		errorResponse(c, http.StatusNotFound, "Seller not found.")
+		responses.ErrorResponse(c, http.StatusNotFound, "Seller not found.")
 		return
 	}
 
 	var existingBot models.ReferralBot
 	if err := r.db.Where("bot_token = ?", json.BotToken).First(&existingBot).Error; err == nil {
-		errorResponse(c, http.StatusBadRequest, "Bot with this token already exists.")
+		responses.ErrorResponse(c, http.StatusBadRequest, "Bot with this token already exists.")
 		return
 	}
 
@@ -63,19 +64,19 @@ func (r *Router) createReferralBotHandler(c *gin.Context) {
 	}
 
 	if err := r.db.Create(&dbBot).Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	response := models.ReferralBotResponse(dbBot)
 
-	successResponse(c, http.StatusOK, response)
+	responses.SuccessResponse(c, http.StatusOK, response)
 }
 
 func (r *Router) getReferralBotsHandler(c *gin.Context) {
 	var bots []models.ReferralBot
 	if err := r.db.Find(&bots).Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -84,23 +85,23 @@ func (r *Router) getReferralBotsHandler(c *gin.Context) {
 		response = append(response, models.ReferralBotResponse(b))
 	}
 
-	successResponse(c, http.StatusOK, response)
+	responses.SuccessResponse(c, http.StatusOK, response)
 }
 
 func (r *Router) getReferralBotsAdminHandler(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
-		errorResponse(c, http.StatusUnauthorized, "User not found in context")
+		responses.ErrorResponse(c, http.StatusUnauthorized, "User not found in context")
 		return
 	}
 	currentUser, ok := user.(models.User)
 	if !ok {
-		errorResponse(c, http.StatusInternalServerError, "Invalid user type in context")
+		responses.ErrorResponse(c, http.StatusInternalServerError, "Invalid user type in context")
 		return
 	}
 
 	if currentUser.Role != models.Admin && currentUser.Role != models.Seller {
-		errorResponse(c, http.StatusForbidden, "Not enough permissions")
+		responses.ErrorResponse(c, http.StatusForbidden, "Not enough permissions")
 		return
 	}
 
@@ -120,34 +121,34 @@ func (r *Router) getReferralBotsAdminHandler(c *gin.Context) {
 		Group("referral_bots.id, bot_users.telegram_id").
 		Scan(&bots)
 
-	successResponse(c, http.StatusOK, bots)
+	responses.SuccessResponse(c, http.StatusOK, bots)
 }
 
 func (r *Router) toggleReferralBotStatusHandler(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
-		errorResponse(c, http.StatusUnauthorized, "User not found in context")
+		responses.ErrorResponse(c, http.StatusUnauthorized, "User not found in context")
 		return
 	}
 	currentUser, ok := user.(models.User)
 	if !ok {
-		errorResponse(c, http.StatusInternalServerError, "Invalid user type in context")
+		responses.ErrorResponse(c, http.StatusInternalServerError, "Invalid user type in context")
 		return
 	}
 
 	if currentUser.Role != models.Admin && currentUser.Role != models.Seller {
-		errorResponse(c, http.StatusForbidden, "Not enough permissions")
+		responses.ErrorResponse(c, http.StatusForbidden, "Not enough permissions")
 		return
 	}
 
 	var bot models.ReferralBot
 	if err := r.db.First(&bot, c.Param("id")).Error; err != nil {
-		errorResponse(c, http.StatusNotFound, "Referral bot not found")
+		responses.ErrorResponse(c, http.StatusNotFound, "Referral bot not found")
 		return
 	}
 
 	if bot.SellerID != currentUser.ID {
-		errorResponse(c, http.StatusForbidden, "You are not the owner of this referral bot")
+		responses.ErrorResponse(c, http.StatusForbidden, "You are not the owner of this referral bot")
 		return
 	}
 
@@ -156,5 +157,5 @@ func (r *Router) toggleReferralBotStatusHandler(c *gin.Context) {
 
 	response := models.ReferralBotResponse(bot)
 
-	successResponse(c, http.StatusOK, response)
+	responses.SuccessResponse(c, http.StatusOK, response)
 }

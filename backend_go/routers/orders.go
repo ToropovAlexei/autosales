@@ -8,6 +8,7 @@ import (
 
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/responses"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -68,7 +69,7 @@ func (r *Router) buyFromBalanceHandler(c *gin.Context) {
 	}
 	if createErr := tx.Create(&order).Error; createErr != nil {
 		tx.Rollback()
-		errorResponse(c, http.StatusInternalServerError, createErr.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, createErr.Error())
 		return
 	}
 
@@ -77,7 +78,7 @@ func (r *Router) buyFromBalanceHandler(c *gin.Context) {
 	}
 
 	if commitErr := tx.Commit().Error; commitErr != nil {
-		errorResponse(c, http.StatusInternalServerError, commitErr.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, commitErr.Error())
 		return
 	}
 
@@ -90,7 +91,7 @@ func (r *Router) buyFromBalanceHandler(c *gin.Context) {
 		Balance:      newBalance,
 	}
 
-	successResponse(c, http.StatusOK, response)
+	responses.SuccessResponse(c, http.StatusOK, response)
 }
 
 func (r *Router) createOrderTransactionsAndMovements(
@@ -136,44 +137,44 @@ func (r *Router) createOrderTransactionsAndMovements(
 func (r *Router) validateAndRetrieveOrderData(c *gin.Context) (OrderValidationData, error) {
 	var jsonPayload OrderCreate
 	if err := c.ShouldBindJSON(&jsonPayload); err != nil {
-		errorResponse(c, http.StatusBadRequest, err.Error())
+		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return OrderValidationData{}, err
 	}
 
 	var user models.BotUser
 	if err := r.db.Where("telegram_id = ? AND is_deleted = ?", jsonPayload.UserID, false).First(&user).Error; err != nil {
-		errorResponse(c, http.StatusNotFound, "Bot user not found")
+		responses.ErrorResponse(c, http.StatusNotFound, "Bot user not found")
 		return OrderValidationData{}, err
 	}
 
 	var product models.Product
 	if err := r.db.First(&product, jsonPayload.ProductID).Error; err != nil {
-		errorResponse(c, http.StatusNotFound, "Product not found")
+		responses.ErrorResponse(c, http.StatusNotFound, "Product not found")
 		return OrderValidationData{}, err
 	}
 
 	var stock int64
 	if err := r.db.Model(&models.StockMovement{}).Where("product_id = ?", product.ID).Select("sum(quantity)").
-			Row().Scan(&stock); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		Row().Scan(&stock); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return OrderValidationData{}, err
 	}
 
 	if stock <= 0 {
-		errorResponse(c, http.StatusBadRequest, "Product out of stock")
+		responses.ErrorResponse(c, http.StatusBadRequest, "Product out of stock")
 		return OrderValidationData{}, errors.New("product out of stock")
 	}
 
 	var balance float64
 	if err := r.db.Model(&models.Transaction{}).Where("user_id = ?", user.ID).Select("sum(amount)").
-			Row().Scan(&balance); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		Row().Scan(&balance); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return OrderValidationData{}, err
 	}
 
 	orderAmount := product.Price * float64(jsonPayload.Quantity)
 	if balance < orderAmount {
-		errorResponse(c, http.StatusBadRequest, "Insufficient balance")
+		responses.ErrorResponse(c, http.StatusBadRequest, "Insufficient balance")
 		return OrderValidationData{}, errors.New("insufficient balance")
 	}
 
@@ -219,22 +220,22 @@ func (r *Router) getOrdersHandler(c *gin.Context) {
 		Joins("join products on products.id = orders.product_id").
 		Order("orders.created_at desc").
 		Scan(&response).Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	successResponse(c, http.StatusOK, response)
+	responses.SuccessResponse(c, http.StatusOK, response)
 }
 
 func (r *Router) cancelOrderHandler(c *gin.Context) {
 	var order models.Order
 	if err := r.db.First(&order, c.Param("id")).Error; err != nil {
-		errorResponse(c, http.StatusNotFound, "Order not found")
+		responses.ErrorResponse(c, http.StatusNotFound, "Order not found")
 		return
 	}
 
 	if order.Status == "cancelled" {
-		errorResponse(c, http.StatusBadRequest, "Order is already cancelled")
+		responses.ErrorResponse(c, http.StatusBadRequest, "Order is already cancelled")
 		return
 	}
 
@@ -250,7 +251,7 @@ func (r *Router) cancelOrderHandler(c *gin.Context) {
 	}
 	if err := tx.Create(&returnMovement).Error; err != nil {
 		tx.Rollback()
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -264,21 +265,21 @@ func (r *Router) cancelOrderHandler(c *gin.Context) {
 	}
 	if err := tx.Create(&refundTransaction).Error; err != nil {
 		tx.Rollback()
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	order.Status = "cancelled"
 	if err := tx.Save(&order).Error; err != nil {
 		tx.Rollback()
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	successResponse(c, http.StatusOK, gin.H{"message": "Order cancelled successfully"})
+	responses.SuccessResponse(c, http.StatusOK, gin.H{"message": "Order cancelled successfully"})
 }

@@ -5,6 +5,7 @@ import (
 
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/responses"
 
 	"github.com/gin-gonic/gin"
 )
@@ -22,7 +23,7 @@ func (r *Router) CategoriesRouter(router *gin.Engine) {
 func (r *Router) getCategoriesHandler(c *gin.Context) {
 	var categories []models.Category
 	if err := r.db.Find(&categories).Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -34,18 +35,18 @@ func (r *Router) getCategoriesHandler(c *gin.Context) {
 		})
 	}
 
-	successResponse(c, http.StatusOK, response)
+	responses.SuccessResponse(c, http.StatusOK, response)
 }
 
 func (r *Router) createCategoryHandler(c *gin.Context) {
 	var json models.Category
 	if err := c.ShouldBindJSON(&json); err != nil {
-		errorResponse(c, http.StatusBadRequest, err.Error())
+		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err := r.db.Create(&json).Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -54,13 +55,13 @@ func (r *Router) createCategoryHandler(c *gin.Context) {
 		Name: json.Name,
 	}
 
-	successResponse(c, http.StatusCreated, response)
+	responses.SuccessResponse(c, http.StatusCreated, response)
 }
 
 func (r *Router) getCategoryHandler(c *gin.Context) {
 	var category models.Category
 	if err := r.db.First(&category, c.Param("id")).Error; err != nil {
-		errorResponse(c, http.StatusNotFound, "Category not found")
+		responses.ErrorResponse(c, http.StatusNotFound, "Category not found")
 		return
 	}
 
@@ -69,24 +70,24 @@ func (r *Router) getCategoryHandler(c *gin.Context) {
 		Name: category.Name,
 	}
 
-	successResponse(c, http.StatusOK, response)
+	responses.SuccessResponse(c, http.StatusOK, response)
 }
 
 func (r *Router) updateCategoryHandler(c *gin.Context) {
 	var category models.Category
 	if err := r.db.First(&category, c.Param("id")).Error; err != nil {
-		errorResponse(c, http.StatusNotFound, "Category not found")
+		responses.ErrorResponse(c, http.StatusNotFound, "Category not found")
 		return
 	}
 
 	var json models.Category
 	if err := c.ShouldBindJSON(&json); err != nil {
-		errorResponse(c, http.StatusBadRequest, err.Error())
+		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if err := r.db.Model(&category).Updates(json).Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -95,18 +96,18 @@ func (r *Router) updateCategoryHandler(c *gin.Context) {
 		Name: category.Name,
 	}
 
-	successResponse(c, http.StatusOK, response)
+	responses.SuccessResponse(c, http.StatusOK, response)
 }
 
 func (r *Router) deleteCategoryHandler(c *gin.Context) {
 	var category models.Category
 	if err := r.db.First(&category, c.Param("id")).Error; err != nil {
-		errorResponse(c, http.StatusNotFound, "Category not found")
+		responses.ErrorResponse(c, http.StatusNotFound, "Category not found")
 		return
 	}
 
 	if err := r.db.Delete(&category).Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 	c.Status(http.StatusNoContent)

@@ -6,6 +6,7 @@ import (
 
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/responses"
 
 	"github.com/gin-gonic/gin"
 )
@@ -26,7 +27,7 @@ type DepositRequest struct {
 func (r *Router) updateBalance(c *gin.Context, userID int64, amount float64, description string) bool {
 	var user models.BotUser
 	if err := r.db.Where("telegram_id = ? AND is_deleted = ?", userID, false).First(&user).Error; err != nil {
-		errorResponse(c, http.StatusNotFound, "Bot user not found")
+		responses.ErrorResponse(c, http.StatusNotFound, "Bot user not found")
 		return false
 	}
 
@@ -39,7 +40,7 @@ func (r *Router) updateBalance(c *gin.Context, userID int64, amount float64, des
 	}
 
 	if err := r.db.Create(&transaction).Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return false
 	}
 	return true
@@ -48,12 +49,12 @@ func (r *Router) updateBalance(c *gin.Context, userID int64, amount float64, des
 func (r *Router) depositBalanceHandler(c *gin.Context) {
 	var json DepositRequest
 	if err := c.ShouldBindJSON(&json); err != nil {
-		errorResponse(c, http.StatusBadRequest, err.Error())
+		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if r.updateBalance(c, json.UserID, json.Amount, "Test deposit") {
-		successResponse(c, http.StatusOK, gin.H{"message": "Balance updated successfully"})
+		responses.SuccessResponse(c, http.StatusOK, gin.H{"message": "Balance updated successfully"})
 	}
 }
 
@@ -65,11 +66,11 @@ type WebhookPayload struct {
 func (r *Router) paymentWebhookHandler(c *gin.Context) {
 	var json WebhookPayload
 	if err := c.ShouldBindJSON(&json); err != nil {
-		errorResponse(c, http.StatusBadRequest, err.Error())
+		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	if r.updateBalance(c, json.UserID, json.Amount, "Deposit via webhook") {
-		successResponse(c, http.StatusOK, gin.H{"message": "Webhook received and balance updated"})
+		responses.SuccessResponse(c, http.StatusOK, gin.H{"message": "Webhook received and balance updated"})
 	}
 }

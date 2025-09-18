@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/responses"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -22,7 +23,7 @@ func (r *Router) loginHandler(c *gin.Context) {
 	}
 
 	if err := c.ShouldBind(&form); err != nil {
-		errorResponse(c, http.StatusBadRequest, err.Error())
+		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -30,12 +31,12 @@ func (r *Router) loginHandler(c *gin.Context) {
 	r.db.Where("email = ?", form.Username).First(&user)
 
 	if user.ID == 0 {
-		errorResponse(c, http.StatusUnauthorized, "Incorrect username or password")
+		responses.ErrorResponse(c, http.StatusUnauthorized, "Incorrect username or password")
 		return
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(form.Password)); err != nil {
-		errorResponse(c, http.StatusUnauthorized, "Incorrect username or password")
+		responses.ErrorResponse(c, http.StatusUnauthorized, "Incorrect username or password")
 		return
 	}
 
@@ -47,9 +48,9 @@ func (r *Router) loginHandler(c *gin.Context) {
 
 	tokenString, err := token.SignedString([]byte(r.appSettings.SecretKey))
 	if err != nil {
-		errorResponse(c, http.StatusInternalServerError, "Could not generate token")
+		responses.ErrorResponse(c, http.StatusInternalServerError, "Could not generate token")
 		return
 	}
 
-	successResponse(c, http.StatusOK, gin.H{"access_token": tokenString, "token_type": "bearer"})
+	responses.SuccessResponse(c, http.StatusOK, gin.H{"access_token": tokenString, "token_type": "bearer"})
 }

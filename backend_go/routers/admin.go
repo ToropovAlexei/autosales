@@ -7,6 +7,7 @@ import (
 
 	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/responses"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -22,7 +23,7 @@ func (r *Router) AdminRouter(router *gin.Engine) {
 func (r *Router) getBotUsersHandler(c *gin.Context) {
 	var botUsers []models.BotUser
 	if err := r.db.Where("is_deleted = ?", false).Find(&botUsers).Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -49,19 +50,19 @@ func (r *Router) getBotUsersHandler(c *gin.Context) {
 		})
 	}
 
-	successResponse(c, http.StatusOK, response)
+	responses.SuccessResponse(c, http.StatusOK, response)
 }
 
 func (r *Router) deleteBotUserHandler(c *gin.Context) {
 	var botUser models.BotUser
 	if err := r.db.First(&botUser, c.Param("id")).Error; err != nil {
-		errorResponse(c, http.StatusNotFound, "Bot user not found")
+		responses.ErrorResponse(c, http.StatusNotFound, "Bot user not found")
 		return
 	}
 
 	botUser.IsDeleted = true
 	if err := r.db.Save(&botUser).Error; err != nil {
-		errorResponse(c, http.StatusInternalServerError, err.Error())
+		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
 		return
 	}
 

@@ -7,7 +7,10 @@ import (
 
 	"frbktg/backend_go/config"
 	"frbktg/backend_go/db"
+	"frbktg/backend_go/handlers"
+	"frbktg/backend_go/repositories"
 	"frbktg/backend_go/routers"
+	"frbktg/backend_go/services"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -24,6 +27,16 @@ func main() {
 		log.Fatalf("could not initialize database: %v", err)
 	}
 
+	// Init repositories
+	userRepo := repositories.NewUserRepository(db)
+	botUserRepo := repositories.NewBotUserRepository(db)
+
+	// Init services
+	userService := services.NewUserService(userRepo, botUserRepo)
+
+	// Init handlers
+	userHandler := handlers.NewUserHandler(userService)
+
 	r := gin.Default()
 
 	corsConfig := cors.DefaultConfig()
@@ -39,7 +52,7 @@ func main() {
 	rtr.AuthRouter(r)
 	rtr.CategoriesRouter(r)
 	rtr.ProductsRouter(r)
-	rtr.UsersRouter(r)
+	rtr.UsersRouter(r, userHandler)
 	rtr.BalanceRouter(r)
 	rtr.OrdersRouter(r)
 	rtr.AdminRouter(r)
