@@ -36,6 +36,8 @@ func main() {
 	transactionRepo := repositories.NewTransactionRepository(db)
 	referralRepo := repositories.NewReferralRepository(db)
 	dashboardRepo := repositories.NewDashboardRepository(db)
+	balanceRepo := repositories.NewBalanceRepository(db)
+	stockRepo := repositories.NewStockRepository(db)
 
 	// Init services
 	userService := services.NewUserService(userRepo, botUserRepo)
@@ -45,6 +47,8 @@ func main() {
 	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, referralService)
 	transactionService := services.NewTransactionService(transactionRepo)
 	dashboardService := services.NewDashboardService(dashboardRepo)
+	balanceService := services.NewBalanceService(balanceRepo, botUserRepo)
+	stockService := services.NewStockService(stockRepo)
 
 	// Init handlers
 	userHandler := handlers.NewUserHandler(userService)
@@ -54,6 +58,8 @@ func main() {
 	transactionHandler := handlers.NewTransactionHandler(transactionService)
 	referralHandler := handlers.NewReferralHandler(referralService)
 	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
+	balanceHandler := handlers.NewBalanceHandler(balanceService)
+	stockHandler := handlers.NewStockHandler(stockService)
 
 	r := gin.Default()
 
@@ -71,11 +77,11 @@ func main() {
 	rtr.CategoriesRouter(r, categoryHandler)
 	rtr.ProductsRouter(r, productHandler)
 	rtr.UsersRouter(r, userHandler)
-	rtr.BalanceRouter(r)
+	rtr.BalanceRouter(r, balanceHandler)
 	rtr.OrdersRouter(r, orderHandler)
 	rtr.AdminRouter(r)
 	rtr.TransactionsRouter(r, transactionHandler)
-	rtr.StockRouter(r)
+	rtr.StockRouter(r, stockHandler)
 	rtr.DashboardRouter(r, dashboardHandler)
 	rtr.ReferralsRouter(r, referralHandler)
 
