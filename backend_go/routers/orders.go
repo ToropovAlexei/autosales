@@ -15,7 +15,7 @@ func (r *Router) OrdersRouter(router *gin.Engine, orderHandler *handlers.OrderHa
 	}
 
 	auth := router.Group("/api/orders")
-	auth.Use(middleware.AuthMiddleware(r.appSettings, r.db))
+	auth.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo))
 	{
 		auth.GET("", orderHandler.GetOrdersHandler)
 		auth.POST("/:id/cancel", orderHandler.CancelOrderHandler)

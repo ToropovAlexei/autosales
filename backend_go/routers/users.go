@@ -9,7 +9,7 @@ import (
 
 func (r *Router) UsersRouter(router *gin.Engine, userHandler *handlers.UserHandler) {
 	auth := router.Group("/api/users")
-	auth.Use(middleware.AuthMiddleware(r.appSettings, r.db))
+	auth.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo))
 	{
 		auth.GET("/me", userHandler.GetMeHandler)
 		auth.PUT("/me/referral-settings", userHandler.UpdateReferralSettingsHandler)

@@ -38,8 +38,11 @@ func main() {
 	dashboardRepo := repositories.NewDashboardRepository(db)
 	balanceRepo := repositories.NewBalanceRepository(db)
 	stockRepo := repositories.NewStockRepository(db)
+	adminRepo := repositories.NewAdminRepository(db)
 
 	// Init services
+	tokenService := services.NewTokenService()
+	authService := services.NewAuthService(userRepo, tokenService, appSettings)
 	userService := services.NewUserService(userRepo, botUserRepo)
 	productService := services.NewProductService(productRepo)
 	categoryService := services.NewCategoryService(categoryRepo)
@@ -49,8 +52,10 @@ func main() {
 	dashboardService := services.NewDashboardService(dashboardRepo)
 	balanceService := services.NewBalanceService(balanceRepo, botUserRepo)
 	stockService := services.NewStockService(stockRepo)
+	adminService := services.NewAdminService(adminRepo, botUserRepo)
 
 	// Init handlers
+	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService)
 	productHandler := handlers.NewProductHandler(productService)
 	categoryHandler := handlers.NewCategoryHandler(categoryService)
@@ -60,6 +65,7 @@ func main() {
 	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
 	balanceHandler := handlers.NewBalanceHandler(balanceService)
 	stockHandler := handlers.NewStockHandler(stockService)
+	adminHandler := handlers.NewAdminHandler(adminService)
 
 	r := gin.Default()
 
@@ -71,15 +77,15 @@ func main() {
 	r.Use(cors.New(corsConfig))
 
 	logger := slog.Default()
-	rtr := routers.NewRouter(db, appSettings, logger)
+	rtr := routers.NewRouter(db, appSettings, logger, tokenService, userRepo)
 
-	rtr.AuthRouter(r)
+	rtr.AuthRouter(r, authHandler)
 	rtr.CategoriesRouter(r, categoryHandler)
 	rtr.ProductsRouter(r, productHandler)
 	rtr.UsersRouter(r, userHandler)
 	rtr.BalanceRouter(r, balanceHandler)
 	rtr.OrdersRouter(r, orderHandler)
-	rtr.AdminRouter(r)
+	rtr.AdminRouter(r, adminHandler)
 	rtr.TransactionsRouter(r, transactionHandler)
 	rtr.StockRouter(r, stockHandler)
 	rtr.DashboardRouter(r, dashboardHandler)

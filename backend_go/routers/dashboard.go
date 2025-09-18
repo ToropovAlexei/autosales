@@ -9,7 +9,7 @@ import (
 
 func (r *Router) DashboardRouter(router *gin.Engine, dashboardHandler *handlers.DashboardHandler) {
 	auth := router.Group("/api/dashboard")
-	auth.Use(middleware.AuthMiddleware(r.appSettings, r.db))
+	auth.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo))
 	{
 		auth.GET("/stats", dashboardHandler.GetDashboardStatsHandler)
 		auth.GET("/sales-over-time", dashboardHandler.GetSalesOverTimeHandler)

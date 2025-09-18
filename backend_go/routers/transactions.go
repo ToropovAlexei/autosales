@@ -9,7 +9,7 @@ import (
 
 func (r *Router) TransactionsRouter(router *gin.Engine, transactionHandler *handlers.TransactionHandler) {
 	auth := router.Group("/api/transactions")
-	auth.Use(middleware.AuthMiddleware(r.appSettings, r.db))
+	auth.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo))
 	{
 		auth.GET("", transactionHandler.GetAllTransactionsHandler)
 	}

@@ -9,7 +9,7 @@ import (
 
 func (r *Router) StockRouter(router *gin.Engine, stockHandler *handlers.StockHandler) {
 	auth := router.Group("/api/stock")
-	auth.Use(middleware.AuthMiddleware(r.appSettings, r.db))
+	auth.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo))
 	{
 		auth.GET("/movements", stockHandler.GetStockMovementsHandler)
 	}

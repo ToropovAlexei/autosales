@@ -16,7 +16,7 @@ func (r *Router) ReferralsRouter(router *gin.Engine, referralHandler *handlers.R
 	}
 
 	auth := router.Group("/api/referrals")
-	auth.Use(middleware.AuthMiddleware(r.appSettings, r.db))
+	auth.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo))
 	{
 		auth.GET("/admin-list", referralHandler.GetReferralBotsAdminHandler)
 		auth.PUT("/:id", referralHandler.ToggleReferralBotStatusHandler)

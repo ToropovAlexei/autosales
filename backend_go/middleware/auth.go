@@ -1,56 +1,49 @@
 package middleware
 
 import (
-	"fmt"
+	"frbktg/backend_go/config"
+	"frbktg/backend_go/models"
+	"frbktg/backend_go/repositories"
+	"frbktg/backend_go/responses"
+	"frbktg/backend_go/services"
 	"net/http"
 	"strings"
 
-	"frbktg/backend_go/config"
-	"frbktg/backend_go/models"
-
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
-	"gorm.io/gorm"
 )
 
-func AuthMiddleware(appSettings config.Settings, db *gorm.DB) gin.HandlerFunc {
+func AuthMiddleware(appSettings config.Settings, tokenService services.TokenService, userRepo repositories.UserRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header is missing"})
+			responses.ErrorResponse(c, http.StatusUnauthorized, "Authorization header is missing")
 			c.Abort()
 			return
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
-		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-			}
-			return []byte(appSettings.SecretKey), nil
-		})
+		token, err := tokenService.ValidateToken(tokenString, appSettings.SecretKey)
 
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			responses.ErrorResponse(c, http.StatusUnauthorized, "Invalid token")
 			c.Abort()
 			return
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			var user models.User
-			db.Where("email = ?", claims["sub"]).First(&user)
-
-			if user.ID == 0 {
-				c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+			user, err := userRepo.FindByEmail(claims["sub"].(string))
+			if err != nil {
+				responses.ErrorResponse(c, http.StatusUnauthorized, "User not found")
 				c.Abort()
 				return
 			}
 
-			c.Set("user", user)
+			c.Set("user", *user)
 			c.Next()
 		} else {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+			responses.ErrorResponse(c, http.StatusUnauthorized, "Invalid token")
 			c.Abort()
 			return
 		}
@@ -61,13 +54,13 @@ func ServiceTokenMiddleware(appSettings config.Settings) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		apiKey := c.GetHeader("X-API-KEY")
 		if apiKey == "" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "API key is missing"})
+			responses.ErrorResponse(c, http.StatusForbidden, "API key is missing")
 			c.Abort()
 			return
 		}
 
 		if apiKey != appSettings.ServiceAPIKey {
-			c.JSON(http.StatusForbidden, gin.H{"error": "Invalid service token"})
+			responses.ErrorResponse(c, http.StatusForbidden, "Invalid service token")
 			c.Abort()
 			return
 		}
@@ -80,19 +73,19 @@ func AdminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user, exists := c.Get("user")
 		if !exists {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found in context"})
+			responses.ErrorResponse(c, http.StatusUnauthorized, "User not found in context")
 			c.Abort()
 			return
 		}
 
 		currentUser, ok := user.(models.User)
 		if !ok {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid user type in context"})
+			responses.ErrorResponse(c, http.StatusInternalServerError, "Invalid user type in context")
 			c.Abort()
 			return
 		}
 		if currentUser.Role != models.Admin {
-			c.JSON(http.StatusForbidden, gin.H{"error": "The user doesn't have enough privileges"})
+			responses.ErrorResponse(c, http.StatusForbidden, "The user doesn't have enough privileges")
 			c.Abort()
 			return
 		}

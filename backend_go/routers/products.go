@@ -9,7 +9,7 @@ import (
 
 func (r *Router) ProductsRouter(router *gin.Engine, productHandler *handlers.ProductHandler) {
 	auth := router.Group("/api/products")
-	auth.Use(middleware.AuthMiddleware(r.appSettings, r.db))
+	auth.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo))
 	{
 		auth.GET("", productHandler.GetProductsHandler)
 		auth.POST("", productHandler.CreateProductHandler)
