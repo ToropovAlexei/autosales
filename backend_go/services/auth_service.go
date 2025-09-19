@@ -1,7 +1,7 @@
 package services
 
 import (
-	"errors"
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/config"
 	"frbktg/backend_go/repositories"
 
@@ -25,11 +25,11 @@ func NewAuthService(userRepo repositories.UserRepository, tokenService TokenServ
 func (s *authService) Login(username, password string) (string, error) {
 	user, err := s.userRepo.FindByEmail(username)
 	if err != nil {
-		return "", errors.New("incorrect username or password")
+		return "", &apperrors.ErrValidation{Message: "incorrect username or password"}
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(password)); err != nil {
-		return "", errors.New("incorrect username or password")
+		return "", &apperrors.ErrValidation{Message: "incorrect username or password"}
 	}
 
 	return s.tokenService.GenerateToken(user, s.appSettings.SecretKey, s.appSettings.AccessTokenExpireMinutes)

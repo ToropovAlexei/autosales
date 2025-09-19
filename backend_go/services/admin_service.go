@@ -1,7 +1,7 @@
 package services
 
 import (
-	"errors"
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
 )
@@ -49,7 +49,7 @@ func (s *adminService) GetBotUsersWithBalance() ([]models.BotUserResponse, error
 func (s *adminService) SoftDeleteBotUser(id uint) error {
 	user, err := s.adminRepo.GetBotUserByID(id)
 	if err != nil {
-		return errors.New("bot user not found")
+		return &apperrors.ErrNotFound{Resource: "BotUser", ID: id}
 	}
 	return s.adminRepo.SoftDeleteBotUser(user)
 }

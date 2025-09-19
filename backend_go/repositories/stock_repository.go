@@ -7,6 +7,7 @@ import (
 )
 
 type StockRepository interface {
+	WithTx(tx *gorm.DB) StockRepository
 	GetStockMovements() ([]models.StockMovement, error)
 }
 
@@ -16,6 +17,10 @@ type gormStockRepository struct {
 
 func NewStockRepository(db *gorm.DB) StockRepository {
 	return &gormStockRepository{db: db}
+}
+
+func (r *gormStockRepository) WithTx(tx *gorm.DB) StockRepository {
+	return &gormStockRepository{db: tx}
 }
 
 func (r *gormStockRepository) GetStockMovements() ([]models.StockMovement, error) {

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/responses"
 	"frbktg/backend_go/services"
 	"net/http"
@@ -28,7 +29,7 @@ func NewCategoryHandler(categoryService services.CategoryService) *CategoryHandl
 func (h *CategoryHandler) GetCategoriesHandler(c *gin.Context) {
 	categories, err := h.categoryService.GetAll()
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.Error(err)
 		return
 	}
 	responses.SuccessResponse(c, http.StatusOK, categories)
@@ -51,13 +52,13 @@ type categoryPayload struct {
 func (h *CategoryHandler) CreateCategoryHandler(c *gin.Context) {
 	var json categoryPayload
 	if err := c.ShouldBindJSON(&json); err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
 		return
 	}
 
 	category, err := h.categoryService.Create(json.Name)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.Error(err)
 		return
 	}
 
@@ -77,13 +78,13 @@ func (h *CategoryHandler) CreateCategoryHandler(c *gin.Context) {
 func (h *CategoryHandler) GetCategoryHandler(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, "Invalid category ID")
+		c.Error(&apperrors.ErrValidation{Message: "Invalid category ID"})
 		return
 	}
 
 	category, err := h.categoryService.GetByID(uint(id))
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusNotFound, "Category not found")
+		c.Error(err)
 		return
 	}
 
@@ -104,19 +105,19 @@ func (h *CategoryHandler) GetCategoryHandler(c *gin.Context) {
 func (h *CategoryHandler) UpdateCategoryHandler(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, "Invalid category ID")
+		c.Error(&apperrors.ErrValidation{Message: "Invalid category ID"})
 		return
 	}
 
 	var json categoryPayload
 	if err := c.ShouldBindJSON(&json); err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
 		return
 	}
 
 	category, err := h.categoryService.Update(uint(id), json.Name)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.Error(err)
 		return
 	}
 
@@ -136,12 +137,12 @@ func (h *CategoryHandler) UpdateCategoryHandler(c *gin.Context) {
 func (h *CategoryHandler) DeleteCategoryHandler(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, "Invalid category ID")
+		c.Error(&apperrors.ErrValidation{Message: "Invalid category ID"})
 		return
 	}
 
 	if err := h.categoryService.Delete(uint(id)); err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.Error(err)
 		return
 	}
 

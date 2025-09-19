@@ -10,6 +10,7 @@ import (
 	"frbktg/backend_go/db"
 	_ "frbktg/backend_go/docs" // This is required for swag to find your docs
 	"frbktg/backend_go/handlers"
+	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/repositories"
 	"frbktg/backend_go/routers"
 	"frbktg/backend_go/services"
@@ -92,6 +93,8 @@ func main() {
 	adminHandler := handlers.NewAdminHandler(adminService)
 
 	r := gin.Default()
+
+	r.Use(middleware.ErrorHandler())
 
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowOrigins = appSettings.CorsOrigins

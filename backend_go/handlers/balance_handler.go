@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/responses"
 	"frbktg/backend_go/services"
 	"net/http"
@@ -24,12 +25,12 @@ type depositRequest struct {
 func (h *BalanceHandler) DepositBalanceHandler(c *gin.Context) {
 	var json depositRequest
 	if err := c.ShouldBindJSON(&json); err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
 		return
 	}
 
 	if err := h.balanceService.DepositBalance(json.UserID, json.Amount, "Test deposit"); err != nil {
-		responses.ErrorResponse(c, http.StatusNotFound, err.Error())
+		c.Error(err)
 		return
 	}
 
@@ -44,12 +45,12 @@ type webhookPayload struct {
 func (h *BalanceHandler) PaymentWebhookHandler(c *gin.Context) {
 	var json webhookPayload
 	if err := c.ShouldBindJSON(&json); err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
 		return
 	}
 
 	if err := h.balanceService.DepositBalance(json.UserID, json.Amount, "Deposit via webhook"); err != nil {
-		responses.ErrorResponse(c, http.StatusNotFound, err.Error())
+		c.Error(err)
 		return
 	}
 

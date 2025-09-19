@@ -1,6 +1,7 @@
 package services
 
 import (
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
 )
@@ -41,7 +42,7 @@ func (s *categoryService) GetAll() ([]models.CategoryResponse, error) {
 func (s *categoryService) GetByID(id uint) (*models.CategoryResponse, error) {
 	category, err := s.categoryRepo.GetByID(id)
 	if err != nil {
-		return nil, err
+		return nil, &apperrors.ErrNotFound{Resource: "Category", ID: id}
 	}
 
 	return &models.CategoryResponse{
@@ -64,7 +65,7 @@ func (s *categoryService) Create(name string) (*models.CategoryResponse, error) 
 func (s *categoryService) Update(id uint, name string) (*models.CategoryResponse, error) {
 	category, err := s.categoryRepo.GetByID(id)
 	if err != nil {
-		return nil, err
+		return nil, &apperrors.ErrNotFound{Resource: "Category", ID: id}
 	}
 
 	updateData := models.Category{Name: name}
@@ -81,7 +82,7 @@ func (s *categoryService) Update(id uint, name string) (*models.CategoryResponse
 func (s *categoryService) Delete(id uint) error {
 	category, err := s.categoryRepo.GetByID(id)
 	if err != nil {
-		return err
+		return &apperrors.ErrNotFound{Resource: "Category", ID: id}
 	}
 	return s.categoryRepo.Delete(category)
 }

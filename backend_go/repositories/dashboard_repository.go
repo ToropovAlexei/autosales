@@ -9,6 +9,7 @@ import (
 )
 
 type DashboardRepository interface {
+	WithTx(tx *gorm.DB) DashboardRepository
 	CountTotalUsers() (int64, error)
 	CountUsersWithPurchases() (int64, error)
 	CountAvailableProducts() (int64, error)
@@ -24,6 +25,10 @@ func NewDashboardRepository(db *gorm.DB) DashboardRepository {
 	return &gormDashboardRepository{db: db}
 }
 
+func (r *gormDashboardRepository) WithTx(tx *gorm.DB) DashboardRepository {
+	return &gormDashboardRepository{db: tx}
+}
+
 func (r *gormDashboardRepository) CountTotalUsers() (int64, error) {
 	var totalUsers int64
 	err := r.db.Model(&models.BotUser{}).Where("is_deleted = ?", false).Count(&totalUsers).Error
@@ -37,23 +42,13 @@ func (r *gormDashboardRepository) CountUsersWithPurchases() (int64, error) {
 }
 
 func (r *gormDashboardRepository) CountAvailableProducts() (int64, error) {
-	var productIDs []uint
-	if err := r.db.Model(&models.Product{}).Pluck("id", &productIDs).Error; err != nil {
-		return 0, err
-	}
-
 	var availableProducts int64
-	for _, id := range productIDs {
-		var stock int64
-		if err := r.db.Model(&models.StockMovement{}).Where("product_id = ?", id).Select("sum(quantity)").
-			Row().Scan(&stock); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-			return 0, err
-		}
-		if stock > 0 {
-			availableProducts++
-		}
-	}
-	return availableProducts, nil
+	err := r.db.Model(&models.StockMovement{}).
+		Select("product_id").
+		Group("product_id").
+		Having("sum(quantity) > 0").
+		Count(&availableProducts).Error
+	return availableProducts, err
 }
 
 func (r *gormDashboardRepository) GetSalesCountForPeriod(start, end time.Time) (int64, error) {

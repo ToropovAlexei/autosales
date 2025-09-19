@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/responses"
 	"frbktg/backend_go/services"
 	"net/http"
@@ -36,13 +37,13 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	var form loginPayload
 
 	if err := c.ShouldBind(&form); err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
 		return
 	}
 
 	tokenString, err := h.authService.Login(form.Username, form.Password)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusUnauthorized, err.Error())
+		c.Error(err)
 		return
 	}
 

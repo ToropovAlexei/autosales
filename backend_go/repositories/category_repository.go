@@ -7,6 +7,7 @@ import (
 )
 
 type CategoryRepository interface {
+	WithTx(tx *gorm.DB) CategoryRepository
 	GetAll() ([]models.Category, error)
 	GetByID(id uint) (*models.Category, error)
 	Create(category *models.Category) error
@@ -20,6 +21,10 @@ type gormCategoryRepository struct {
 
 func NewCategoryRepository(db *gorm.DB) CategoryRepository {
 	return &gormCategoryRepository{db: db}
+}
+
+func (r *gormCategoryRepository) WithTx(tx *gorm.DB) CategoryRepository {
+	return &gormCategoryRepository{db: tx}
 }
 
 func (r *gormCategoryRepository) GetAll() ([]models.Category, error) {

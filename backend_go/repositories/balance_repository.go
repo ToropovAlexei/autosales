@@ -7,6 +7,7 @@ import (
 )
 
 type BalanceRepository interface {
+	WithTx(tx *gorm.DB) BalanceRepository
 	CreateDepositTransaction(transaction *models.Transaction) error
 }
 
@@ -16,6 +17,10 @@ type gormBalanceRepository struct {
 
 func NewBalanceRepository(db *gorm.DB) BalanceRepository {
 	return &gormBalanceRepository{db: db}
+}
+
+func (r *gormBalanceRepository) WithTx(tx *gorm.DB) BalanceRepository {
+	return &gormBalanceRepository{db: tx}
 }
 
 func (r *gormBalanceRepository) CreateDepositTransaction(transaction *models.Transaction) error {

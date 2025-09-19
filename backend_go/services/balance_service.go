@@ -1,7 +1,7 @@
 package services
 
 import (
-	"errors"
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
 	"time"
@@ -23,7 +23,7 @@ func NewBalanceService(balanceRepo repositories.BalanceRepository, botUserRepo r
 func (s *balanceService) DepositBalance(userID int64, amount float64, description string) error {
 	user, err := s.botUserRepo.FindByTelegramID(userID)
 	if err != nil {
-		return errors.New("bot user not found")
+		return &apperrors.ErrNotFound{Resource: "BotUser", ID: userID}
 	}
 
 	transaction := &models.Transaction{

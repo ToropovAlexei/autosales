@@ -1,7 +1,7 @@
 package services
 
 import (
-	"errors"
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
 	"strconv"
@@ -50,126 +50,110 @@ func (s *orderService) GetOrders() ([]models.OrderResponse, error) {
 }
 
 func (s *orderService) BuyFromBalance(userID int64, productID uint, quantity int, referralBotToken *string) (*BuyResponse, error) {
-	// 1. Validate data
-	user, err := s.botUserRepo.FindByTelegramID(userID)
-	if err != nil {
-		return nil, errors.New("bot user not found")
-	}
+	var response *BuyResponse
 
-	product, err := s.productRepo.GetProductByID(productID)
-	if err != nil {
-		return nil, errors.New("product not found")
-	}
+	err := s.db.Transaction(func(tx *gorm.DB) error {
+		user, err := s.botUserRepo.WithTx(tx).FindByTelegramID(userID)
+		if err != nil {
+			return &apperrors.ErrNotFound{Resource: "BotUser", ID: userID}
+		}
 
-	stock, err := s.productRepo.GetStockForProduct(product.ID)
-	if err != nil {
-		return nil, err
-	}
-	if (stock - quantity) < 0 {
-		return nil, errors.New("product out of stock")
-	}
+		product, err := s.productRepo.WithTx(tx).GetProductByID(productID)
+		if err != nil {
+			return &apperrors.ErrNotFound{Resource: "Product", ID: productID}
+		}
 
-	balance, err := s.botUserRepo.GetUserBalance(user.ID)
-	if err != nil {
-		return nil, err
-	}
+		stock, err := s.productRepo.WithTx(tx).GetStockForProduct(product.ID)
+		if err != nil {
+			return err
+		}
+		if (stock - quantity) < 0 {
+			return &apperrors.ErrOutOfStock{ProductName: product.Name}
+		}
 
-	orderAmount := product.Price * float64(quantity)
-	if balance < orderAmount {
-		return nil, errors.New("insufficient balance")
-	}
+		balance, err := s.botUserRepo.WithTx(tx).GetUserBalance(user.ID)
+		if err != nil {
+			return err
+		}
 
-	// 2. Perform operations in a transaction
-	tx := s.db.Begin()
-	if tx.Error != nil {
-		return nil, tx.Error
-	}
+		orderAmount := product.Price * float64(quantity)
+		if balance < orderAmount {
+			return &apperrors.ErrInsufficientBalance{}
+		}
 
-	order := &models.Order{
-		UserID:    user.ID,
-		ProductID: product.ID,
-		Quantity:  quantity,
-		Amount:    orderAmount,
-		Status:    "success",
-		CreatedAt: time.Now().UTC(),
-	}
+		order := &models.Order{
+			UserID:    user.ID,
+			ProductID: product.ID,
+			Quantity:  quantity,
+			Amount:    orderAmount,
+			Status:    "success",
+			CreatedAt: time.Now().UTC(),
+		}
 
-	if err := s.orderRepo.WithTx(tx).CreateOrder(order); err != nil {
-		tx.Rollback()
-		return nil, err
-	}
+		if err := s.orderRepo.WithTx(tx).CreateOrder(order); err != nil {
+			return err
+		}
 
-	if err := s.createOrderTransactionsAndMovements(tx, user, product, *order, orderAmount, referralBotToken); err != nil {
-		tx.Rollback()
-		return nil, err
-	}
+		if err := s.createOrderTransactionsAndMovements(tx, user, product, *order, orderAmount, referralBotToken); err != nil {
+			return err
+		}
 
-	if err := tx.Commit().Error; err != nil {
-		return nil, err
-	}
+		newBalance := balance - orderAmount
+		response = &BuyResponse{
+			Order:        models.OrderSlimResponse(*order),
+			ProductName:  product.Name,
+			ProductPrice: product.Price,
+			Balance:      newBalance,
+		}
 
-	// 3. Return response
-	newBalance := balance - orderAmount
-	response := &BuyResponse{
-		Order:        models.OrderSlimResponse(*order),
-		ProductName:  product.Name,
-		ProductPrice: product.Price,
-		Balance:      newBalance,
-	}
+		return nil
+	})
 
-	return response, nil
+	return response, err
 }
 
 func (s *orderService) CancelOrder(orderID uint) error {
-	tx := s.db.Begin()
-	if tx.Error != nil {
-		return tx.Error
-	}
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		order, err := s.orderRepo.WithTx(tx).GetOrderForUpdate(orderID)
+		if err != nil {
+			return &apperrors.ErrNotFound{Resource: "Order", ID: orderID}
+		}
 
-	order, err := s.orderRepo.WithTx(tx).GetOrderForUpdate(orderID)
-	if err != nil {
-		tx.Rollback()
-		return errors.New("order not found")
-	}
+		if order.Status == "cancelled" {
+			return &apperrors.ErrValidation{Message: "order is already cancelled"}
+		}
 
-	if order.Status == "cancelled" {
-		tx.Rollback()
-		return errors.New("order is already cancelled")
-	}
+		returnMovement := &models.StockMovement{
+			OrderID:     &order.ID,
+			ProductID:   order.ProductID,
+			Type:        models.Return,
+			Quantity:    order.Quantity,
+			Description: "Return for cancelled order " + strconv.FormatUint(uint64(order.ID), 10),
+			CreatedAt:   time.Now().UTC(),
+		}
+		if err := s.productRepo.WithTx(tx).CreateStockMovement(returnMovement); err != nil {
+			return err
+		}
 
-	returnMovement := &models.StockMovement{
-		OrderID:     &order.ID,
-		ProductID:   order.ProductID,
-		Type:        models.Return,
-		Quantity:    order.Quantity,
-		Description: "Return for cancelled order " + strconv.FormatUint(uint64(order.ID), 10),
-		CreatedAt:   time.Now().UTC(),
-	}
-	if err := s.productRepo.WithTx(tx).CreateStockMovement(returnMovement); err != nil {
-		tx.Rollback()
-		return err
-	}
+		refundTransaction := &models.Transaction{
+			UserID:      order.UserID,
+			OrderID:     &order.ID,
+			Type:        models.Deposit,
+			Amount:      order.Amount,
+			Description: "Refund for cancelled order " + strconv.FormatUint(uint64(order.ID), 10),
+			CreatedAt:   time.Now().UTC(),
+		}
+		if err := s.transactionRepo.WithTx(tx).CreateTransaction(refundTransaction); err != nil {
+			return err
+		}
 
-	refundTransaction := &models.Transaction{
-		UserID:      order.UserID,
-		OrderID:     &order.ID,
-		Type:        models.Deposit,
-		Amount:      order.Amount,
-		Description: "Refund for cancelled order " + strconv.FormatUint(uint64(order.ID), 10),
-		CreatedAt:   time.Now().UTC(),
-	}
-	if err := s.transactionRepo.WithTx(tx).CreateTransaction(refundTransaction); err != nil {
-		tx.Rollback()
-		return err
-	}
+		order.Status = "cancelled"
+		if err := s.orderRepo.WithTx(tx).UpdateOrder(order); err != nil {
+			return err
+		}
 
-	order.Status = "cancelled"
-	if err := s.orderRepo.WithTx(tx).UpdateOrder(order); err != nil {
-		tx.Rollback()
-		return err
-	}
-
-	return tx.Commit().Error
+		return nil
+	})
 }
 
 func (s *orderService) createOrderTransactionsAndMovements(

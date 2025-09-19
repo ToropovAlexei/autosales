@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/responses"
 	"frbktg/backend_go/services"
 	"net/http"
@@ -20,7 +21,7 @@ func NewOrderHandler(orderService services.OrderService) *OrderHandler {
 func (h *OrderHandler) GetOrdersHandler(c *gin.Context) {
 	orders, err := h.orderService.GetOrders()
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.Error(err)
 		return
 	}
 	responses.SuccessResponse(c, http.StatusOK, orders)
@@ -36,13 +37,13 @@ type buyFromBalancePayload struct {
 func (h *OrderHandler) BuyFromBalanceHandler(c *gin.Context) {
 	var json buyFromBalancePayload
 	if err := c.ShouldBindJSON(&json); err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
 		return
 	}
 
 	buyResponse, err := h.orderService.BuyFromBalance(json.UserID, json.ProductID, json.Quantity, json.ReferralBotToken)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error()) // Using 400 for business logic errors like 'out of stock'
+		c.Error(err)
 		return
 	}
 
@@ -52,12 +53,12 @@ func (h *OrderHandler) BuyFromBalanceHandler(c *gin.Context) {
 func (h *OrderHandler) CancelOrderHandler(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, "Invalid order ID")
+		c.Error(&apperrors.ErrValidation{Message: "Invalid order ID"})
 		return
 	}
 
 	if err := h.orderService.CancelOrder(uint(id)); err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error()) // Using 400 for business logic errors
+		c.Error(err)
 		return
 	}
 

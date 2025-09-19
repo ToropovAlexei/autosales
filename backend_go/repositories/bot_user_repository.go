@@ -9,6 +9,7 @@ import (
 )
 
 type BotUserRepository interface {
+	WithTx(tx *gorm.DB) BotUserRepository
 	FindByTelegramID(telegramID int64) (*models.BotUser, error)
 	FindByID(id uint) (*models.BotUser, error)
 	Create(user *models.BotUser) error
@@ -24,6 +25,10 @@ type gormBotUserRepository struct {
 
 func NewBotUserRepository(db *gorm.DB) BotUserRepository {
 	return &gormBotUserRepository{db: db}
+}
+
+func (r *gormBotUserRepository) WithTx(tx *gorm.DB) BotUserRepository {
+	return &gormBotUserRepository{db: tx}
 }
 
 func (r *gormBotUserRepository) FindByTelegramID(telegramID int64) (*models.BotUser, error) {

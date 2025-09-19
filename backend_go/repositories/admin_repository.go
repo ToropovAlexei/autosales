@@ -7,6 +7,7 @@ import (
 )
 
 type AdminRepository interface {
+	WithTx(tx *gorm.DB) AdminRepository
 	GetActiveBotUsers() ([]models.BotUser, error)
 	GetBotUserByID(id uint) (*models.BotUser, error)
 	SoftDeleteBotUser(user *models.BotUser) error
@@ -18,6 +19,10 @@ type gormAdminRepository struct {
 
 func NewAdminRepository(db *gorm.DB) AdminRepository {
 	return &gormAdminRepository{db: db}
+}
+
+func (r *gormAdminRepository) WithTx(tx *gorm.DB) AdminRepository {
+	return &gormAdminRepository{db: tx}
 }
 
 func (r *gormAdminRepository) GetActiveBotUsers() ([]models.BotUser, error) {
