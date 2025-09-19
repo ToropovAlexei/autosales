@@ -1,0 +1,65 @@
+basePath: /api
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is the API for your project.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Your Project API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Logs in a user and returns a JWT token
+      parameters:
+      - description: Username (Email)
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: Password
+        in: formData
+        name: password
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: User Login
+      tags:
+      - Auth
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+  ServiceApiKeyAuth:
+    in: header
+    name: X-API-KEY
+    type: apiKey
+swagger: "2.0"

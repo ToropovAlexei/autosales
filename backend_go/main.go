@@ -1,3 +1,4 @@
+//go:generate /home/user/go/bin/swag init
 package main
 
 import (
@@ -7,6 +8,7 @@ import (
 
 	"frbktg/backend_go/config"
 	"frbktg/backend_go/db"
+	_ "frbktg/backend_go/docs" // This is required for swag to find your docs
 	"frbktg/backend_go/handlers"
 	"frbktg/backend_go/repositories"
 	"frbktg/backend_go/routers"
@@ -16,6 +18,28 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// @title           Your Project API
+// @version         1.0
+// @description     This is the API for your project.
+// @termsOfService  http://swagger.io/terms/
+
+// @contact.name   API Support
+// @contact.url    http://www.swagger.io/support
+// @contact.email  support@swagger.io
+
+// @license.name  Apache 2.0
+// @license.url   http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host      localhost:8000
+// @BasePath  /api
+
+// @securityDefinitions.apiKey  ApiKeyAuth
+// @in header
+// @name Authorization
+
+// @securityDefinitions.apiKey  ServiceApiKeyAuth
+// @in header
+// @name X-API-KEY
 func main() {
 	appSettings, err := config.LoadConfig(".env.example")
 	if err != nil {
@@ -79,6 +103,7 @@ func main() {
 	logger := slog.Default()
 	rtr := routers.NewRouter(db, appSettings, logger, tokenService, userRepo)
 
+	// API routes
 	rtr.AuthRouter(r, authHandler)
 	rtr.CategoriesRouter(r, categoryHandler)
 	rtr.ProductsRouter(r, productHandler)
@@ -90,6 +115,9 @@ func main() {
 	rtr.StockRouter(r, stockHandler)
 	rtr.DashboardRouter(r, dashboardHandler)
 	rtr.ReferralsRouter(r, referralHandler)
+
+	// Swagger route
+	rtr.SwaggerRouter(r)
 
 	for _, route := range r.Routes() {
 		log.Printf("Registered route: %s %s", route.Method, route.Path)

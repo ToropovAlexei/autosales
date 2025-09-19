@@ -1,0 +1,253 @@
+basePath: /api
+definitions:
+  handlers.categoryPayload:
+    properties:
+      name:
+        type: string
+    required:
+    - name
+    type: object
+  models.CategoryResponse:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+    type: object
+  responses.ErrorResponseSchema:
+    description: This is the standard error response structure.
+    properties:
+      data: {}
+      error:
+        type: string
+      success:
+        example: false
+        type: boolean
+    type: object
+  responses.ResponseSchema-array_models_CategoryResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.CategoryResponse'
+        type: array
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.ResponseSchema-models_CategoryResponse:
+    properties:
+      data:
+        $ref: '#/definitions/models.CategoryResponse'
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+host: localhost:8000
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is the API for your project.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Your Project API
+  version: "1.0"
+paths:
+  /auth/login:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: Logs in a user and returns a JWT token
+      parameters:
+      - description: Username (Email)
+        in: formData
+        name: username
+        required: true
+        type: string
+      - description: Password
+        in: formData
+        name: password
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: User Login
+      tags:
+      - Auth
+  /categories:
+    get:
+      consumes:
+      - application/json
+      description: get all categories
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-array_models_CategoryResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      summary: Get all categories
+      tags:
+      - categories
+    post:
+      consumes:
+      - application/json
+      description: create a new category with the given name
+      parameters:
+      - description: Category Name
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.categoryPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-models_CategoryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      summary: Create a new category
+      tags:
+      - categories
+  /categories/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: delete a category by its ID
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      summary: Delete a category
+      tags:
+      - categories
+    get:
+      consumes:
+      - application/json
+      description: get a single category by its ID
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-models_CategoryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      summary: Get a category by ID
+      tags:
+      - categories
+    put:
+      consumes:
+      - application/json
+      description: update a category's name by its ID
+      parameters:
+      - description: Category ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New Category Name
+        in: body
+        name: category
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.categoryPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-models_CategoryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      summary: Update a category
+      tags:
+      - categories
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+  ServiceApiKeyAuth:
+    in: header
+    name: X-API-KEY
+    type: apiKey
+swagger: "2.0"

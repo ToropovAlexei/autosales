@@ -21,6 +21,17 @@ type loginPayload struct {
 	Password string `form:"password" binding:"required"`
 }
 
+// @Summary      User Login
+// @Description  Logs in a user and returns a JWT token
+// @Tags         Auth
+// @Accept       x-www-form-urlencoded
+// @Produce      json
+// @Param        username formData string true "Username (Email)"
+// @Param        password formData string true "Password"
+// @Success      200  {object}  map[string]string
+// @Failure      400  {object}  map[string]string
+// @Failure      401  {object}  map[string]string
+// @Router       /auth/login [post]
 func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	var form loginPayload
 
