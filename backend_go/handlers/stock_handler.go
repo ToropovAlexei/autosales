@@ -19,7 +19,7 @@ func NewStockHandler(stockService services.StockService) *StockHandler {
 func (h *StockHandler) GetStockMovementsHandler(c *gin.Context) {
 	movements, err := h.stockService.GetStockMovements()
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.Error(err)
 		return
 	}
 	responses.SuccessResponse(c, http.StatusOK, movements)

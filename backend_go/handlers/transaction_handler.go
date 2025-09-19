@@ -19,7 +19,7 @@ func NewTransactionHandler(transactionService services.TransactionService) *Tran
 func (h *TransactionHandler) GetAllTransactionsHandler(c *gin.Context) {
 	transactions, err := h.transactionService.GetAll()
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.Error(err)
 		return
 	}
 	responses.SuccessResponse(c, http.StatusOK, transactions)

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/responses"
 	"frbktg/backend_go/services"
@@ -22,7 +23,7 @@ func (h *ProductHandler) GetProductsHandler(c *gin.Context) {
 	categoryIDs, _ := c.GetQueryArray("category_ids")
 	products, err := h.productService.GetProducts(categoryIDs)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.Error(err)
 		return
 	}
 	responses.SuccessResponse(c, http.StatusOK, products)
@@ -38,14 +39,13 @@ type productCreatePayload struct {
 func (h *ProductHandler) CreateProductHandler(c *gin.Context) {
 	var json productCreatePayload
 	if err := c.ShouldBindJSON(&json); err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
 		return
 	}
 
 	product, err := h.productService.CreateProduct(json.Name, json.CategoryID, json.Price, json.InitialStock)
 	if err != nil {
-		// Consider more specific error codes based on the error type
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.Error(err)
 		return
 	}
 
@@ -55,13 +55,13 @@ func (h *ProductHandler) CreateProductHandler(c *gin.Context) {
 func (h *ProductHandler) GetProductHandler(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, "Invalid product ID")
+		c.Error(&apperrors.ErrValidation{Message: "Invalid product ID"})
 		return
 	}
 
 	product, err := h.productService.GetProduct(uint(id))
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusNotFound, "Product not found")
+		c.Error(err)
 		return
 	}
 
@@ -77,13 +77,13 @@ type productUpdatePayload struct {
 func (h *ProductHandler) UpdateProductHandler(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, "Invalid product ID")
+		c.Error(&apperrors.ErrValidation{Message: "Invalid product ID"})
 		return
 	}
 
 	var json productUpdatePayload
 	if err := c.ShouldBindJSON(&json); err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
 		return
 	}
 
@@ -95,7 +95,7 @@ func (h *ProductHandler) UpdateProductHandler(c *gin.Context) {
 
 	updatedProduct, err := h.productService.UpdateProduct(uint(id), productData)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.Error(err)
 		return
 	}
 
@@ -105,12 +105,12 @@ func (h *ProductHandler) UpdateProductHandler(c *gin.Context) {
 func (h *ProductHandler) DeleteProductHandler(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, "Invalid product ID")
+		c.Error(&apperrors.ErrValidation{Message: "Invalid product ID"})
 		return
 	}
 
 	if err := h.productService.DeleteProduct(uint(id)); err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.Error(err)
 		return
 	}
 
@@ -127,19 +127,19 @@ type stockMovementPayload struct {
 func (h *ProductHandler) CreateStockMovementHandler(c *gin.Context) {
 	productID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, "Invalid product ID")
+		c.Error(&apperrors.ErrValidation{Message: "Invalid product ID"})
 		return
 	}
 
 	var json stockMovementPayload
 	if err := c.ShouldBindJSON(&json); err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
 		return
 	}
 
 	movement, err := h.productService.CreateStockMovement(uint(productID), json.Type, json.Quantity, json.Description, json.OrderID)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.Error(err)
 		return
 	}
 

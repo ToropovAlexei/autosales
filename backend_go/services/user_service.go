@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
 
@@ -78,7 +79,7 @@ func (s *userService) RegisterBotUser(telegramID int64) (*models.BotUser, float6
 func (s *userService) GetBotUser(id uint) (*models.BotUser, float64, error) {
 	user, err := s.botUserRepo.FindByID(id)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, &apperrors.ErrNotFound{Resource: "BotUser", ID: id}
 	}
 
 	balance, err := s.botUserRepo.GetUserBalance(user.ID)
@@ -92,7 +93,7 @@ func (s *userService) GetBotUser(id uint) (*models.BotUser, float64, error) {
 func (s *userService) GetUserBalance(telegramID int64) (float64, error) {
 	user, err := s.botUserRepo.FindByTelegramID(telegramID)
 	if err != nil {
-		return 0, err
+		return 0, &apperrors.ErrNotFound{Resource: "BotUser", ID: telegramID}
 	}
 	return s.botUserRepo.GetUserBalance(user.ID)
 }
@@ -100,7 +101,7 @@ func (s *userService) GetUserBalance(telegramID int64) (float64, error) {
 func (s *userService) GetUserTransactions(telegramID int64) ([]models.Transaction, error) {
 	user, err := s.botUserRepo.FindByTelegramID(telegramID)
 	if err != nil {
-		return nil, err
+		return nil, &apperrors.ErrNotFound{Resource: "BotUser", ID: telegramID}
 	}
 	return s.botUserRepo.GetUserTransactions(user.ID)
 }
@@ -108,11 +109,15 @@ func (s *userService) GetUserTransactions(telegramID int64) ([]models.Transactio
 func (s *userService) UpdateUserCaptchaStatus(id uint, hasPassed bool) error {
 	user, err := s.botUserRepo.FindByID(id)
 	if err != nil {
-		return err
+		return &apperrors.ErrNotFound{Resource: "BotUser", ID: id}
 	}
 	return s.botUserRepo.UpdateCaptchaStatus(user, hasPassed)
 }
 
 func (s *userService) GetSellerSettings() (*models.User, error) {
-	return s.userRepo.FindSellerSettings()
+	seller, err := s.userRepo.FindSellerSettings()
+	if err != nil {
+		return nil, &apperrors.ErrNotFound{Resource: "SellerSettings"}
+	}
+	return seller, nil
 }

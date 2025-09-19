@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/responses"
 	"frbktg/backend_go/services"
@@ -21,12 +22,12 @@ func NewUserHandler(userService services.UserService) *UserHandler {
 func (h *UserHandler) GetMeHandler(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
-		responses.ErrorResponse(c, http.StatusUnauthorized, "User not found in context")
+		c.Error(&apperrors.ErrForbidden{Message: "User not found in context"})
 		return
 	}
 	currentUser, ok := user.(models.User)
 	if !ok {
-		responses.ErrorResponse(c, http.StatusInternalServerError, "Invalid user type in context")
+		c.Error(&apperrors.ErrForbidden{Message: "Invalid user type in context"})
 		return
 	}
 	response := h.userService.GetMe(currentUser)
@@ -41,33 +42,33 @@ type referralSettingsPayload struct {
 func (h *UserHandler) UpdateReferralSettingsHandler(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
-		responses.ErrorResponse(c, http.StatusUnauthorized, "User not found in context")
+		c.Error(&apperrors.ErrForbidden{Message: "User not found in context"})
 		return
 	}
 
 	currentUser, ok := user.(models.User)
 	if !ok {
-		responses.ErrorResponse(c, http.StatusInternalServerError, "Invalid user type in context")
+		c.Error(&apperrors.ErrForbidden{Message: "Invalid user type in context"})
 		return
 	}
 	if currentUser.Role != models.Admin && currentUser.Role != models.Seller {
-		responses.ErrorResponse(c, http.StatusForbidden, "Not enough permissions")
+		c.Error(&apperrors.ErrForbidden{Message: "Not enough permissions"})
 		return
 	}
 
 	var json referralSettingsPayload
 	if err := c.ShouldBindJSON(&json); err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
 		return
 	}
 
 	if json.ReferralPercentage < 0 || json.ReferralPercentage > 100 {
-		responses.ErrorResponse(c, http.StatusBadRequest, "Referral percentage must be between 0 and 100")
+		c.Error(&apperrors.ErrValidation{Message: "Referral percentage must be between 0 and 100"})
 		return
 	}
 
 	if err := h.userService.UpdateReferralSettings(&currentUser, json.ReferralProgramEnabled, json.ReferralPercentage); err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.Error(err)
 		return
 	}
 
@@ -81,13 +82,13 @@ type registerBotUserPayload struct {
 func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 	var json registerBotUserPayload
 	if err := c.ShouldBindJSON(&json); err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
 		return
 	}
 
 	user, balance, isNew, hasPassedCaptcha, err := h.userService.RegisterBotUser(json.TelegramID)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.Error(err)
 		return
 	}
 
@@ -114,13 +115,13 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, "Invalid user ID")
+		c.Error(&apperrors.ErrValidation{Message: "Invalid user ID"})
 		return
 	}
 
 	user, balance, err := h.userService.GetBotUser(uint(id))
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusNotFound, "Bot user not found")
+		c.Error(err)
 		return
 	}
 
@@ -138,12 +139,12 @@ func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
 func (h *UserHandler) GetBalanceHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, "Invalid user ID")
+		c.Error(&apperrors.ErrValidation{Message: "Invalid user ID"})
 		return
 	}
 	balance, err := h.userService.GetUserBalance(id)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusNotFound, "Bot user not found")
+		c.Error(err)
 		return
 	}
 
@@ -153,12 +154,12 @@ func (h *UserHandler) GetBalanceHandler(c *gin.Context) {
 func (h *UserHandler) GetUserTransactionsHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, "Invalid user ID")
+		c.Error(&apperrors.ErrValidation{Message: "Invalid user ID"})
 		return
 	}
 	transactions, err := h.userService.GetUserTransactions(id)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusNotFound, "Bot user not found")
+		c.Error(err)
 		return
 	}
 
@@ -177,18 +178,18 @@ type updateUserCaptchaStatusPayload struct {
 func (h *UserHandler) UpdateUserCaptchaStatusHandler(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, "Invalid user ID")
+		c.Error(&apperrors.ErrValidation{Message: "Invalid user ID"})
 		return
 	}
 
 	var json updateUserCaptchaStatusPayload
 	if err := c.ShouldBindJSON(&json); err != nil {
-		responses.ErrorResponse(c, http.StatusBadRequest, err.Error())
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
 		return
 	}
 
 	if err := h.userService.UpdateUserCaptchaStatus(uint(id), json.HasPassedCaptcha); err != nil {
-		responses.ErrorResponse(c, http.StatusInternalServerError, err.Error())
+		c.Error(err)
 		return
 	}
 
@@ -198,7 +199,7 @@ func (h *UserHandler) UpdateUserCaptchaStatusHandler(c *gin.Context) {
 func (h *UserHandler) GetSellerSettingsHandler(c *gin.Context) {
 	seller, err := h.userService.GetSellerSettings()
 	if err != nil {
-		responses.ErrorResponse(c, http.StatusNotFound, "Seller not found")
+		c.Error(err)
 		return
 	}
 

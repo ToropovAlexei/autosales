@@ -1,6 +1,7 @@
 package services
 
 import (
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
 	"time"
@@ -50,7 +51,7 @@ func (s *productService) GetProducts(categoryIDs []string) ([]models.ProductResp
 func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
 	product, err := s.productRepo.GetProductByID(id)
 	if err != nil {
-		return nil, err
+		return nil, &apperrors.ErrNotFound{Resource: "Product", ID: id}
 	}
 
 	stock, err := s.productRepo.GetStockForProduct(product.ID)
@@ -70,7 +71,7 @@ func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
 func (s *productService) CreateProduct(name string, categoryID uint, price float64, initialStock int) (*models.ProductResponse, error) {
 	_, err := s.productRepo.FindCategoryByID(categoryID)
 	if err != nil {
-		return nil, err // Category not found
+		return nil, &apperrors.ErrNotFound{Resource: "Category", ID: categoryID}
 	}
 
 	product := &models.Product{
@@ -106,11 +107,11 @@ func (s *productService) CreateProduct(name string, categoryID uint, price float
 func (s *productService) UpdateProduct(id uint, data models.Product) (*models.ProductResponse, error) {
 	product, err := s.productRepo.GetProductByID(id)
 	if err != nil {
-		return nil, err // Product not found
+		return nil, &apperrors.ErrNotFound{Resource: "Product", ID: id}
 	}
 
 	if _, err := s.productRepo.FindCategoryByID(data.CategoryID); err != nil {
-		return nil, err // Category not found
+		return nil, &apperrors.ErrNotFound{Resource: "Category", ID: data.CategoryID}
 	}
 
 	if err := s.productRepo.UpdateProduct(product, data); err != nil {
@@ -123,7 +124,7 @@ func (s *productService) UpdateProduct(id uint, data models.Product) (*models.Pr
 func (s *productService) DeleteProduct(id uint) error {
 	product, err := s.productRepo.GetProductByID(id)
 	if err != nil {
-		return err
+		return &apperrors.ErrNotFound{Resource: "Product", ID: id}
 	}
 	return s.productRepo.DeleteProduct(product)
 }
@@ -131,7 +132,7 @@ func (s *productService) DeleteProduct(id uint) error {
 func (s *productService) CreateStockMovement(productID uint, movementType models.StockMovementType, quantity int, description string, orderID *uint) (*models.StockMovement, error) {
 	_, err := s.productRepo.GetProductByID(productID)
 	if err != nil {
-		return nil, err // Product not found
+		return nil, &apperrors.ErrNotFound{Resource: "Product", ID: productID}
 	}
 
 	movement := &models.StockMovement{
