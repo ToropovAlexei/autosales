@@ -28,7 +28,7 @@ type referralBotCreatePayload struct {
 func (h *ReferralHandler) CreateReferralBotHandler(c *gin.Context) {
 	var json referralBotCreatePayload
 	if err := c.ShouldBindJSON(&json); err != nil {
-		c.Error(&apperrors.ErrValidation{Message: err.Error()})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: err.Error()})
 		return
 	}
 
@@ -53,17 +53,17 @@ func (h *ReferralHandler) GetReferralBotsHandler(c *gin.Context) {
 func (h *ReferralHandler) GetReferralBotsAdminHandler(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
-		c.Error(&apperrors.ErrForbidden{Message: "User not found in context"})
+		c.Error(apperrors.ErrForbidden)
 		return
 	}
 	currentUser, ok := user.(models.User)
 	if !ok {
-		c.Error(&apperrors.ErrForbidden{Message: "Invalid user type in context"})
+		c.Error(apperrors.ErrForbidden)
 		return
 	}
 
 	if currentUser.Role != models.Admin && currentUser.Role != models.Seller {
-		c.Error(&apperrors.ErrForbidden{Message: "Not enough permissions"})
+		c.Error(apperrors.ErrForbidden)
 		return
 	}
 
@@ -79,18 +79,18 @@ func (h *ReferralHandler) GetReferralBotsAdminHandler(c *gin.Context) {
 func (h *ReferralHandler) ToggleReferralBotStatusHandler(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
-		c.Error(&apperrors.ErrForbidden{Message: "User not found in context"})
+		c.Error(apperrors.ErrForbidden)
 		return
 	}
 	currentUser, ok := user.(models.User)
 	if !ok {
-		c.Error(&apperrors.ErrForbidden{Message: "Invalid user type in context"})
+		c.Error(apperrors.ErrForbidden)
 		return
 	}
 
 	botID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.Error(&apperrors.ErrValidation{Message: "Invalid bot ID"})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid bot ID"})
 		return
 	}
 

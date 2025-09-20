@@ -69,14 +69,14 @@ func (s *referralService) ProcessReferral(tx *gorm.DB, referralBotToken *string,
 func (s *referralService) CreateReferralBot(ownerTelegramID int64, sellerID uint, botToken string) (*models.ReferralBot, error) {
 	owner, err := s.botUserRepo.FindByTelegramID(ownerTelegramID)
 	if err != nil {
-		return nil, &apperrors.ErrNotFound{Resource: "User", ID: ownerTelegramID}
+		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "User", ID: uint(ownerTelegramID)}
 	}
 
 	// We assume seller is validated in the handler via auth context
 
 	_, err = s.referralRepo.FindReferralBotByToken(botToken)
 	if err == nil {
-		return nil, &apperrors.ErrAlreadyExists{Resource: "ReferralBot", Field: "token", Value: botToken}
+		return nil, &apperrors.ErrAlreadyExists{Base: apperrors.New(409, "", nil), Resource: "ReferralBot", Field: "token", Value: botToken}
 	}
 
 	dbBot := &models.ReferralBot{
@@ -86,7 +86,7 @@ func (s *referralService) CreateReferralBot(ownerTelegramID int64, sellerID uint
 	}
 
 	if err := s.referralRepo.CreateReferralBot(dbBot); err != nil {
-		return nil, err
+		return nil, apperrors.New(500, "Failed to create referral bot", err)
 	}
 
 	return dbBot, nil
@@ -95,7 +95,7 @@ func (s *referralService) CreateReferralBot(ownerTelegramID int64, sellerID uint
 func (s *referralService) GetAllReferralBots() ([]models.ReferralBotResponse, error) {
 	bots, err := s.referralRepo.GetAllReferralBots()
 	if err != nil {
-		return nil, err
+		return nil, apperrors.New(500, "Failed to get all referral bots", err)
 	}
 
 	var response []models.ReferralBotResponse
@@ -113,16 +113,16 @@ func (s *referralService) GetAdminInfoForSeller(sellerID uint) ([]models.Referra
 func (s *referralService) ToggleReferralBotStatus(botID uint, sellerID uint) (*models.ReferralBot, error) {
 	bot, err := s.referralRepo.GetReferralBotByID(botID)
 	if err != nil {
-		return nil, &apperrors.ErrNotFound{Resource: "ReferralBot", ID: botID}
+		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "ReferralBot", ID: botID}
 	}
 
 	if bot.SellerID != sellerID {
-		return nil, &apperrors.ErrForbidden{Message: "you are not the owner of this referral bot"}
+		return nil, apperrors.ErrForbidden
 	}
 
 	bot.IsActive = !bot.IsActive
 	if err := s.referralRepo.UpdateReferralBot(bot); err != nil {
-		return nil, err
+		return nil, apperrors.New(500, "Failed to update referral bot", err)
 	}
 
 	return bot, nil

@@ -55,30 +55,30 @@ func (s *orderService) BuyFromBalance(userID int64, productID uint, quantity int
 	err := s.db.Transaction(func(tx *gorm.DB) error {
 		user, err := s.botUserRepo.WithTx(tx).FindByTelegramID(userID)
 		if err != nil {
-			return &apperrors.ErrNotFound{Resource: "BotUser", ID: userID}
+			return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "BotUser", ID: uint(userID)}
 		}
 
 		product, err := s.productRepo.WithTx(tx).GetProductByID(productID)
 		if err != nil {
-			return &apperrors.ErrNotFound{Resource: "Product", ID: productID}
+			return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "Product", ID: productID}
 		}
 
 		stock, err := s.productRepo.WithTx(tx).GetStockForProduct(product.ID)
 		if err != nil {
-			return err
+			return apperrors.New(500, "Failed to get stock for product", err)
 		}
 		if (stock - quantity) < 0 {
-			return &apperrors.ErrOutOfStock{ProductName: product.Name}
+			return &apperrors.ErrOutOfStock{Base: apperrors.New(400, "", nil), ProductName: product.Name}
 		}
 
 		balance, err := s.botUserRepo.WithTx(tx).GetUserBalance(user.ID)
 		if err != nil {
-			return err
+			return apperrors.New(500, "Failed to get user balance", err)
 		}
 
 		orderAmount := product.Price * float64(quantity)
 		if balance < orderAmount {
-			return &apperrors.ErrInsufficientBalance{}
+			return apperrors.ErrInsufficientBalance
 		}
 
 		order := &models.Order{
@@ -91,7 +91,7 @@ func (s *orderService) BuyFromBalance(userID int64, productID uint, quantity int
 		}
 
 		if err := s.orderRepo.WithTx(tx).CreateOrder(order); err != nil {
-			return err
+			return apperrors.New(500, "Failed to create order", err)
 		}
 
 		if err := s.createOrderTransactionsAndMovements(tx, user, product, *order, orderAmount, referralBotToken); err != nil {
@@ -116,11 +116,11 @@ func (s *orderService) CancelOrder(orderID uint) error {
 	return s.db.Transaction(func(tx *gorm.DB) error {
 		order, err := s.orderRepo.WithTx(tx).GetOrderForUpdate(orderID)
 		if err != nil {
-			return &apperrors.ErrNotFound{Resource: "Order", ID: orderID}
+			return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "Order", ID: orderID}
 		}
 
 		if order.Status == "cancelled" {
-			return &apperrors.ErrValidation{Message: "order is already cancelled"}
+			return &apperrors.ErrValidation{Base: apperrors.New(400, "", nil), Message: "order is already cancelled"}
 		}
 
 		returnMovement := &models.StockMovement{
@@ -132,7 +132,7 @@ func (s *orderService) CancelOrder(orderID uint) error {
 			CreatedAt:   time.Now().UTC(),
 		}
 		if err := s.productRepo.WithTx(tx).CreateStockMovement(returnMovement); err != nil {
-			return err
+			return apperrors.New(500, "Failed to create stock movement", err)
 		}
 
 		refundTransaction := &models.Transaction{
@@ -144,12 +144,12 @@ func (s *orderService) CancelOrder(orderID uint) error {
 			CreatedAt:   time.Now().UTC(),
 		}
 		if err := s.transactionRepo.WithTx(tx).CreateTransaction(refundTransaction); err != nil {
-			return err
+			return apperrors.New(500, "Failed to create transaction", err)
 		}
 
 		order.Status = "cancelled"
 		if err := s.orderRepo.WithTx(tx).UpdateOrder(order); err != nil {
-			return err
+			return apperrors.New(500, "Failed to update order", err)
 		}
 
 		return nil

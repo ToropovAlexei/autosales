@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/repositories/mocks"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,8 +11,8 @@ import (
 
 func TestAdminService_GetBotUsersWithBalance(t *testing.T) {
 	// Arrange
-	mockAdminRepo := new(MockAdminRepository)
-	mockBotUserRepo := new(MockBotUserRepository) // Defined in main_test.go
+	mockAdminRepo := new(mocks.MockAdminRepository)
+	mockBotUserRepo := new(mocks.MockBotUserRepository)
 	adminService := NewAdminService(mockAdminRepo, mockBotUserRepo)
 
 	users := []models.BotUser{
@@ -38,8 +39,8 @@ func TestAdminService_GetBotUsersWithBalance(t *testing.T) {
 
 func TestAdminService_SoftDeleteBotUser(t *testing.T) {
 	// Arrange
-	mockAdminRepo := new(MockAdminRepository)
-	mockBotUserRepo := new(MockBotUserRepository)
+	mockAdminRepo := new(mocks.MockAdminRepository)
+	mockBotUserRepo := new(mocks.MockBotUserRepository)
 	adminService := NewAdminService(mockAdminRepo, mockBotUserRepo)
 
 	user := &models.BotUser{ID: 1}
@@ -56,8 +57,8 @@ func TestAdminService_SoftDeleteBotUser(t *testing.T) {
 
 func TestAdminService_SoftDeleteBotUser_NotFound(t *testing.T) {
 	// Arrange
-	mockAdminRepo := new(MockAdminRepository)
-	mockBotUserRepo := new(MockBotUserRepository)
+	mockAdminRepo := new(mocks.MockAdminRepository)
+	mockBotUserRepo := new(mocks.MockBotUserRepository)
 	adminService := NewAdminService(mockAdminRepo, mockBotUserRepo)
 
 	mockAdminRepo.On("GetBotUserByID", uint(99)).Return(nil, errors.New("not found"))
@@ -67,6 +68,6 @@ func TestAdminService_SoftDeleteBotUser_NotFound(t *testing.T) {
 
 	// Assert
 	assert.Error(t, err)
-	assert.Equal(t, "bot user not found", err.Error())
+	assert.Equal(t, "BotUser with ID 99 not found", err.Error())
 	mockAdminRepo.AssertExpectations(t)
 }

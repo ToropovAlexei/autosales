@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/repositories/mocks"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,7 +12,7 @@ import (
 
 func TestCategoryService_GetAll(t *testing.T) {
 	// Arrange
-	mockRepo := new(MockCategoryRepository)
+	mockRepo := new(mocks.MockCategoryRepository)
 	categoryService := NewCategoryService(mockRepo)
 
 	expectedCategories := []models.Category{{ID: 1, Name: "Cat1"}, {ID: 2, Name: "Cat2"}}
@@ -29,7 +30,7 @@ func TestCategoryService_GetAll(t *testing.T) {
 
 func TestCategoryService_Create(t *testing.T) {
 	// Arrange
-	mockRepo := new(MockCategoryRepository)
+	mockRepo := new(mocks.MockCategoryRepository)
 	categoryService := NewCategoryService(mockRepo)
 
 	mockRepo.On("Create", mock.AnythingOfType("*models.Category")).Return(nil)
@@ -46,7 +47,7 @@ func TestCategoryService_Create(t *testing.T) {
 
 func TestCategoryService_Update_NotFound(t *testing.T) {
 	// Arrange
-	mockRepo := new(MockCategoryRepository)
+	mockRepo := new(mocks.MockCategoryRepository)
 	categoryService := NewCategoryService(mockRepo)
 
 	mockRepo.On("GetByID", uint(99)).Return(nil, errors.New("not found"))

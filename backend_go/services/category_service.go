@@ -25,7 +25,7 @@ func NewCategoryService(categoryRepo repositories.CategoryRepository) CategorySe
 func (s *categoryService) GetAll() ([]models.CategoryResponse, error) {
 	categories, err := s.categoryRepo.GetAll()
 	if err != nil {
-		return nil, err
+		return nil, apperrors.New(500, "Failed to get all categories", err)
 	}
 
 	var response []models.CategoryResponse
@@ -42,7 +42,7 @@ func (s *categoryService) GetAll() ([]models.CategoryResponse, error) {
 func (s *categoryService) GetByID(id uint) (*models.CategoryResponse, error) {
 	category, err := s.categoryRepo.GetByID(id)
 	if err != nil {
-		return nil, &apperrors.ErrNotFound{Resource: "Category", ID: id}
+		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "Category", ID: id}
 	}
 
 	return &models.CategoryResponse{
@@ -54,7 +54,7 @@ func (s *categoryService) GetByID(id uint) (*models.CategoryResponse, error) {
 func (s *categoryService) Create(name string) (*models.CategoryResponse, error) {
 	category := &models.Category{Name: name}
 	if err := s.categoryRepo.Create(category); err != nil {
-		return nil, err
+		return nil, apperrors.New(500, "Failed to create category", err)
 	}
 	return &models.CategoryResponse{
 		ID:   category.ID,
@@ -65,12 +65,12 @@ func (s *categoryService) Create(name string) (*models.CategoryResponse, error) 
 func (s *categoryService) Update(id uint, name string) (*models.CategoryResponse, error) {
 	category, err := s.categoryRepo.GetByID(id)
 	if err != nil {
-		return nil, &apperrors.ErrNotFound{Resource: "Category", ID: id}
+		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "Category", ID: id}
 	}
 
 	updateData := models.Category{Name: name}
 	if err := s.categoryRepo.Update(category, updateData); err != nil {
-		return nil, err
+		return nil, apperrors.New(500, "Failed to update category", err)
 	}
 
 	return &models.CategoryResponse{
@@ -82,7 +82,10 @@ func (s *categoryService) Update(id uint, name string) (*models.CategoryResponse
 func (s *categoryService) Delete(id uint) error {
 	category, err := s.categoryRepo.GetByID(id)
 	if err != nil {
-		return &apperrors.ErrNotFound{Resource: "Category", ID: id}
+		return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "Category", ID: id}
 	}
-	return s.categoryRepo.Delete(category)
+	if err := s.categoryRepo.Delete(category); err != nil {
+		return apperrors.New(500, "Failed to delete category", err)
+	}
+	return nil
 }

@@ -29,15 +29,15 @@ type loginPayload struct {
 // @Produce      json
 // @Param        username formData string true "Username (Email)"
 // @Param        password formData string true "Password"
-// @Success      200  {object}  map[string]string
-// @Failure      400  {object}  map[string]string
-// @Failure      401  {object}  map[string]string
+// @Success      200  {object}  responses.ResponseSchema[responses.TokenResponse]
+// @Failure      400  {object}  responses.ErrorResponseSchema
+// @Failure      401  {object}  responses.ErrorResponseSchema
 // @Router       /auth/login [post]
 func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	var form loginPayload
 
 	if err := c.ShouldBind(&form); err != nil {
-		c.Error(&apperrors.ErrValidation{Message: err.Error()})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: err.Error()})
 		return
 	}
 
@@ -47,5 +47,5 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 		return
 	}
 
-	responses.SuccessResponse(c, http.StatusOK, gin.H{"access_token": tokenString, "token_type": "bearer"})
+	responses.SuccessResponse(c, http.StatusOK, responses.TokenResponse{AccessToken: tokenString, TokenType: "bearer"})
 }

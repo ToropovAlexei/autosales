@@ -3,24 +3,23 @@ package config
 import (
 	"encoding/json"
 	"fmt"
-	"os"
-	"strconv"
+	"strings"
 
-	"github.com/joho/godotenv"
+	"github.com/spf13/viper"
 )
 
 type Settings struct {
-	DatabaseHost             string
-	DatabasePort             string
-	DatabaseUser             string
-	DatabasePassword         string
-	DatabaseName             string
-	CorsOrigins              []string
-	SecretKey                string
-	Algorithm                string
-	AccessTokenExpireMinutes int
-	ServiceAPIKey            string
-	Port                     string
+	DatabaseHost             string   `mapstructure:"DATABASE_HOST"`
+	DatabasePort             string   `mapstructure:"DATABASE_PORT"`
+	DatabaseUser             string   `mapstructure:"DATABASE_USER"`
+	DatabasePassword         string   `mapstructure:"DATABASE_PASSWORD"`
+	DatabaseName             string   `mapstructure:"DATABASE_NAME"`
+	CorsOrigins              []string `mapstructure:"CORS_ORIGINS"`
+	SecretKey                string   `mapstructure:"SECRET_KEY"`
+	Algorithm                string   `mapstructure:"ALGORITHM"`
+	AccessTokenExpireMinutes int      `mapstructure:"ACCESS_TOKEN_EXPIRE_MINUTES"`
+	ServiceAPIKey            string   `mapstructure:"SERVICE_API_KEY"`
+	Port                     string   `mapstructure:"PORT"`
 }
 
 func (s *Settings) GetDBConnStr() string {
@@ -32,33 +31,29 @@ func (s *Settings) GetDBConnStr() string {
 
 func LoadConfig(path string) (Settings, error) {
 	var appSettings Settings
-	err := godotenv.Load(path)
-	if err != nil {
+
+	viper.SetConfigFile(path)
+	viper.SetConfigType("env")
+
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	if err := viper.ReadInConfig(); err != nil {
 		return appSettings, err
 	}
 
-	appSettings.DatabaseHost = os.Getenv("DATABASE_HOST")
-	appSettings.DatabasePort = os.Getenv("DATABASE_PORT")
-	appSettings.DatabaseUser = os.Getenv("DATABASE_USER")
-	appSettings.DatabasePassword = os.Getenv("DATABASE_PASSWORD")
-	appSettings.DatabaseName = os.Getenv("DATABASE_NAME")
-	appSettings.SecretKey = os.Getenv("SECRET_KEY")
-	appSettings.Algorithm = os.Getenv("ALGORITHM")
-	appSettings.ServiceAPIKey = os.Getenv("SERVICE_API_KEY")
-
-	expireMinutes, err := strconv.Atoi(os.Getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
-	if err != nil {
+	if err := viper.Unmarshal(&appSettings); err != nil {
 		return appSettings, err
 	}
-	appSettings.AccessTokenExpireMinutes = expireMinutes
-	appSettings.Port = os.Getenv("PORT")
 
-	var corsOrigins []string
-	err = json.Unmarshal([]byte(os.Getenv("CORS_ORIGINS")), &corsOrigins)
-	if err != nil {
-		return appSettings, err
+	corsOriginsStr := viper.GetString("CORS_ORIGINS")
+	if corsOriginsStr != "" {
+		var corsOrigins []string
+		if err := json.Unmarshal([]byte(corsOriginsStr), &corsOrigins); err != nil {
+			return appSettings, err
+		}
+		appSettings.CorsOrigins = corsOrigins
 	}
-	appSettings.CorsOrigins = corsOrigins
 
 	return appSettings, nil
 }

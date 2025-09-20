@@ -1,21 +1,41 @@
 package apperrors
 
-import "fmt"
+import (
+	"fmt"
+)
 
-// ErrNotFound represents a resource not found error.
-// To be converted to a 404 HTTP status.
+// Error represents a base error with a code and a message.
+type Error struct {
+	Code    int
+	Message string
+	Err     error
+}
+
+func (e *Error) Error() string {
+	if e.Err != nil {
+		return fmt.Sprintf("code=%d, msg=%s, err=%v", e.Code, e.Message, e.Err)
+	}
+	return fmt.Sprintf("code=%d, msg=%s", e.Code, e.Message)
+}
+
+func New(code int, message string, err error) *Error {
+	return &Error{Code: code, Message: message, Err: err}
+}
+
+// ErrNotFound is returned when a resource is not found.
 type ErrNotFound struct {
+	Base     *Error
 	Resource string
-	ID       interface{}
+	ID       uint
 }
 
 func (e *ErrNotFound) Error() string {
-	return fmt.Sprintf("%s with ID %v not found", e.Resource, e.ID)
+	return fmt.Sprintf("%s with ID %d not found", e.Resource, e.ID)
 }
 
-// ErrValidation represents a validation error.
-// To be converted to a 400 HTTP status.
+// ErrValidation is returned when input validation fails.
 type ErrValidation struct {
+	Base    *Error
 	Message string
 }
 
@@ -23,46 +43,31 @@ func (e *ErrValidation) Error() string {
 	return e.Message
 }
 
-// ErrInsufficientBalance represents an insufficient balance error.
-// To be converted to a 400 or 402 HTTP status.
-type ErrInsufficientBalance struct {
-}
-
-func (e *ErrInsufficientBalance) Error() string {
-	return "insufficient balance"
-}
-
-// ErrOutOfStock represents an out of stock error.
-// To be converted to a 400 HTTP status.
+// ErrOutOfStock is returned when a product is out of stock.
 type ErrOutOfStock struct {
+	Base        *Error
 	ProductName string
 }
 
 func (e *ErrOutOfStock) Error() string {
-	return fmt.Sprintf("product %s is out of stock", e.ProductName)
+	return fmt.Sprintf("Product %s is out of stock", e.ProductName)
 }
 
-// ErrAlreadyExists represents a resource that already exists.
-// To be converted to a 409 HTTP status.
+// ErrAlreadyExists is returned when a resource already exists.
 type ErrAlreadyExists struct {
+	Base     *Error
 	Resource string
 	Field    string
 	Value    string
 }
 
 func (e *ErrAlreadyExists) Error() string {
-	return fmt.Sprintf("%s with %s '%s' already exists", e.Resource, e.Field, e.Value)
+	return fmt.Sprintf("%s with %s %s already exists", e.Resource, e.Field, e.Value)
 }
 
-// ErrForbidden represents a forbidden action error.
-// To be converted to a 403 HTTP status.
-type ErrForbidden struct {
-	Message string
-}
-
-func (e *ErrForbidden) Error() string {
-	if e.Message == "" {
-		return "user does not have enough privileges for this action"
-	}
-	return e.Message
-}
+var (
+	ErrInsufficientBalance = &Error{Code: 402, Message: "Insufficient Balance"}
+	ErrUnauthorized        = &Error{Code: 401, Message: "Unauthorized"}
+	ErrForbidden           = &Error{Code: 403, Message: "Forbidden"}
+	ErrInternalServer      = &Error{Code: 500, Message: "Internal Server Error"}
+)

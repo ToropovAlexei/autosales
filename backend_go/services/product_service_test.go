@@ -2,7 +2,9 @@ package services
 
 import (
 	"errors"
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/repositories/mocks"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -12,7 +14,7 @@ import (
 
 func TestProductService_GetProduct(t *testing.T) {
 	// Arrange
-	mockRepo := new(MockProductRepository)
+	mockRepo := new(mocks.MockProductRepository)
 	productService := NewProductService(mockRepo)
 
 	expectedProduct := &models.Product{ID: 1, Name: "Test Product", Price: 100, CategoryID: 1}
@@ -35,7 +37,7 @@ func TestProductService_GetProduct(t *testing.T) {
 
 func TestProductService_GetProduct_NotFound(t *testing.T) {
 	// Arrange
-	mockRepo := new(MockProductRepository)
+	mockRepo := new(mocks.MockProductRepository)
 	productService := NewProductService(mockRepo)
 
 	mockRepo.On("GetProductByID", uint(1)).Return(nil, gorm.ErrRecordNotFound)
@@ -46,13 +48,13 @@ func TestProductService_GetProduct_NotFound(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, productResponse)
-	assert.Equal(t, gorm.ErrRecordNotFound, err)
+	assert.IsType(t, &apperrors.ErrNotFound{}, err)
 	mockRepo.AssertExpectations(t)
 }
 
 func TestProductService_CreateProduct(t *testing.T) {
 	// Arrange
-	mockRepo := new(MockProductRepository)
+	mockRepo := new(mocks.MockProductRepository)
 	productService := NewProductService(mockRepo)
 
 	category := &models.Category{ID: 1, Name: "Test"}
@@ -77,7 +79,7 @@ func TestProductService_CreateProduct(t *testing.T) {
 
 func TestProductService_CreateProduct_CategoryNotFound(t *testing.T) {
 	// Arrange
-	mockRepo := new(MockProductRepository)
+	mockRepo := new(mocks.MockProductRepository)
 	productService := NewProductService(mockRepo)
 
 	mockRepo.On("FindCategoryByID", uint(99)).Return(nil, errors.New("category not found"))
@@ -88,6 +90,6 @@ func TestProductService_CreateProduct_CategoryNotFound(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, productResponse)
-	assert.Equal(t, "category not found", err.Error())
+	assert.IsType(t, &apperrors.ErrNotFound{}, err)
 	mockRepo.AssertExpectations(t)
 }

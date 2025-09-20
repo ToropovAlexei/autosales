@@ -20,6 +20,11 @@ type ErrorResponseSchema struct {
 	Error   *string      `json:"error"`
 }
 
+type TokenResponse struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+}
+
 func ErrorResponse(c *gin.Context, statusCode int, message string) {
 	c.JSON(statusCode, gin.H{"success": false, "data": nil, "error": message})
 }

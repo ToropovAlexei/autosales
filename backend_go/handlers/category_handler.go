@@ -1,11 +1,9 @@
 package handlers
 
 import (
-	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/responses"
 	"frbktg/backend_go/services"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -51,8 +49,8 @@ type categoryPayload struct {
 // @Router       /categories [post]
 func (h *CategoryHandler) CreateCategoryHandler(c *gin.Context) {
 	var json categoryPayload
-	if err := c.ShouldBindJSON(&json); err != nil {
-		c.Error(&apperrors.ErrValidation{Message: err.Error()})
+	if err := bindJSON(c, &json); err != nil {
+		c.Error(err)
 		return
 	}
 
@@ -76,13 +74,13 @@ func (h *CategoryHandler) CreateCategoryHandler(c *gin.Context) {
 // @Failure      404      {object}  responses.ErrorResponseSchema
 // @Router       /categories/{id} [get]
 func (h *CategoryHandler) GetCategoryHandler(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := getIDFromParam(c)
 	if err != nil {
-		c.Error(&apperrors.ErrValidation{Message: "Invalid category ID"})
+		c.Error(err)
 		return
 	}
 
-	category, err := h.categoryService.GetByID(uint(id))
+	category, err := h.categoryService.GetByID(id)
 	if err != nil {
 		c.Error(err)
 		return
@@ -103,19 +101,19 @@ func (h *CategoryHandler) GetCategoryHandler(c *gin.Context) {
 // @Failure      500      {object}  responses.ErrorResponseSchema
 // @Router       /categories/{id} [put]
 func (h *CategoryHandler) UpdateCategoryHandler(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := getIDFromParam(c)
 	if err != nil {
-		c.Error(&apperrors.ErrValidation{Message: "Invalid category ID"})
+		c.Error(err)
 		return
 	}
 
 	var json categoryPayload
-	if err := c.ShouldBindJSON(&json); err != nil {
-		c.Error(&apperrors.ErrValidation{Message: err.Error()})
+	if err := bindJSON(c, &json); err != nil {
+		c.Error(err)
 		return
 	}
 
-	category, err := h.categoryService.Update(uint(id), json.Name)
+	category, err := h.categoryService.Update(id, json.Name)
 	if err != nil {
 		c.Error(err)
 		return
@@ -135,13 +133,13 @@ func (h *CategoryHandler) UpdateCategoryHandler(c *gin.Context) {
 // @Failure      500      {object}  responses.ErrorResponseSchema
 // @Router       /categories/{id} [delete]
 func (h *CategoryHandler) DeleteCategoryHandler(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := getIDFromParam(c)
 	if err != nil {
-		c.Error(&apperrors.ErrValidation{Message: "Invalid category ID"})
+		c.Error(err)
 		return
 	}
 
-	if err := h.categoryService.Delete(uint(id)); err != nil {
+	if err := h.categoryService.Delete(id); err != nil {
 		c.Error(err)
 		return
 	}

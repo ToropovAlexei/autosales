@@ -2,6 +2,7 @@ package services
 
 import (
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/repositories/mocks"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,8 +14,8 @@ import (
 
 func TestUserService_RegisterBotUser_NewUser(t *testing.T) {
 	// Arrange
-	mockUserRepo := new(MockUserRepository)
-	mockBotUserRepo := new(MockBotUserRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	mockBotUserRepo := new(mocks.MockBotUserRepository)
 	userService := NewUserService(mockUserRepo, mockBotUserRepo)
 
 	telegramID := int64(12345)
@@ -37,8 +38,8 @@ func TestUserService_RegisterBotUser_NewUser(t *testing.T) {
 
 func TestUserService_RegisterBotUser_ExistingUser(t *testing.T) {
 	// Arrange
-	mockUserRepo := new(MockUserRepository)
-	mockBotUserRepo := new(MockBotUserRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	mockBotUserRepo := new(mocks.MockBotUserRepository)
 	userService := NewUserService(mockUserRepo, mockBotUserRepo)
 
 	telegramID := int64(12345)
@@ -61,8 +62,8 @@ func TestUserService_RegisterBotUser_ExistingUser(t *testing.T) {
 
 func TestUserService_RegisterBotUser_ReactivatedUser(t *testing.T) {
 	// Arrange
-	mockUserRepo := new(MockUserRepository)
-	mockBotUserRepo := new(MockBotUserRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	mockBotUserRepo := new(mocks.MockBotUserRepository)
 	userService := NewUserService(mockUserRepo, mockBotUserRepo)
 
 	telegramID := int64(12345)
@@ -89,8 +90,8 @@ func TestUserService_RegisterBotUser_ReactivatedUser(t *testing.T) {
 
 func TestUserService_GetBotUser_NotFound(t *testing.T) {
 	// Arrange
-	mockUserRepo := new(MockUserRepository)
-	mockBotUserRepo := new(MockBotUserRepository)
+	mockUserRepo := new(mocks.MockUserRepository)
+	mockBotUserRepo := new(mocks.MockBotUserRepository)
 	userService := NewUserService(mockUserRepo, mockBotUserRepo)
 
 	userID := uint(99)

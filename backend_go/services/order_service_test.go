@@ -1,7 +1,10 @@
 package services
 
 import (
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/repositories/mocks"
+	serviceMocks "frbktg/backend_go/services/mocks"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,13 +14,13 @@ import (
 )
 
 // --- Test Setup ---
-func setupOrderServiceTest() (*orderService, *MockOrderRepository, *MockProductRepository, *MockBotUserRepository, *MockTransactionRepository, *MockReferralService) {
+func setupOrderServiceTest() (*orderService, *mocks.MockOrderRepository, *mocks.MockProductRepository, *mocks.MockBotUserRepository, *mocks.MockTransactionRepository, *serviceMocks.MockReferralService) {
 	db, _ := gorm.Open(sqlite.Open("file::memory:"), &gorm.Config{})
-	orderRepo := new(MockOrderRepository)
-	productRepo := new(MockProductRepository)
-	botUserRepo := new(MockBotUserRepository)
-	transactionRepo := new(MockTransactionRepository)
-	referralService := new(MockReferralService)
+	orderRepo := new(mocks.MockOrderRepository)
+	productRepo := new(mocks.MockProductRepository)
+	botUserRepo := new(mocks.MockBotUserRepository)
+	transactionRepo := new(mocks.MockTransactionRepository)
+	referralService := new(serviceMocks.MockReferralService)
 	sut := NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, referralService).(*orderService)
 	return sut, orderRepo, productRepo, botUserRepo, transactionRepo, referralService
 }
@@ -28,16 +31,18 @@ func TestOrderService_BuyFromBalance_Success(t *testing.T) {
 	sut, orderRepo, productRepo, botUserRepo, transactionRepo, referralService := setupOrderServiceTest()
 	user, product, quantity, orderAmount := &models.BotUser{ID: 1, TelegramID: 123}, &models.Product{ID: 10, Name: "Item", Price: 50.0}, 2, 100.0
 
+	botUserRepo.On("WithTx", mock.Anything).Return(botUserRepo)
+	productRepo.On("WithTx", mock.Anything).Return(productRepo)
+	orderRepo.On("WithTx", mock.Anything).Return(orderRepo)
+	transactionRepo.On("WithTx", mock.Anything).Return(transactionRepo)
+
 	botUserRepo.On("FindByTelegramID", user.TelegramID).Return(user, nil)
 	productRepo.On("GetProductByID", product.ID).Return(product, nil)
 	productRepo.On("GetStockForProduct", product.ID).Return(5, nil)
 	botUserRepo.On("GetUserBalance", user.ID).Return(150.0, nil)
 
-	orderRepo.On("WithTx", mock.Anything).Return(orderRepo)
 	orderRepo.On("CreateOrder", mock.AnythingOfType("*models.Order")).Return(nil)
-	transactionRepo.On("WithTx", mock.Anything).Return(transactionRepo)
 	transactionRepo.On("CreateTransaction", mock.AnythingOfType("*models.Transaction")).Return(nil)
-	productRepo.On("WithTx", mock.Anything).Return(productRepo)
 	productRepo.On("CreateStockMovement", mock.AnythingOfType("*models.StockMovement")).Return(nil)
 	referralService.On("ProcessReferral", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
@@ -53,7 +58,10 @@ func TestOrderService_BuyFromBalance_Success(t *testing.T) {
 
 func TestOrderService_BuyFromBalance_OutOfStock(t *testing.T) {
 	sut, _, productRepo, botUserRepo, _, _ := setupOrderServiceTest()
-	user, product := &models.BotUser{ID: 1, TelegramID: 123}, &models.Product{ID: 10}
+	user, product := &models.BotUser{ID: 1, TelegramID: 123}, &models.Product{ID: 10, Name: "Item"}
+
+	botUserRepo.On("WithTx", mock.Anything).Return(botUserRepo)
+	productRepo.On("WithTx", mock.Anything).Return(productRepo)
 
 	botUserRepo.On("FindByTelegramID", user.TelegramID).Return(user, nil)
 	productRepo.On("GetProductByID", product.ID).Return(product, nil)
@@ -63,12 +71,15 @@ func TestOrderService_BuyFromBalance_OutOfStock(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, resp)
-	assert.Equal(t, "product out of stock", err.Error())
+	assert.IsType(t, &apperrors.ErrOutOfStock{}, err)
 }
 
 func TestOrderService_BuyFromBalance_InsufficientBalance(t *testing.T) {
 	sut, _, productRepo, botUserRepo, _, _ := setupOrderServiceTest()
 	user, product := &models.BotUser{ID: 1, TelegramID: 123}, &models.Product{ID: 10, Price: 50.0}
+
+	botUserRepo.On("WithTx", mock.Anything).Return(botUserRepo)
+	productRepo.On("WithTx", mock.Anything).Return(productRepo)
 
 	botUserRepo.On("FindByTelegramID", user.TelegramID).Return(user, nil)
 	productRepo.On("GetProductByID", product.ID).Return(product, nil)
@@ -79,7 +90,7 @@ func TestOrderService_BuyFromBalance_InsufficientBalance(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Nil(t, resp)
-	assert.Equal(t, "insufficient balance", err.Error())
+	assert.Equal(t, apperrors.ErrInsufficientBalance, err)
 }
 
 func TestOrderService_CancelOrder_Success(t *testing.T) {
@@ -110,5 +121,5 @@ func TestOrderService_CancelOrder_AlreadyCancelled(t *testing.T) {
 	err := sut.CancelOrder(order.ID)
 
 	assert.Error(t, err)
-	assert.Equal(t, "order is already cancelled", err.Error())
+	assert.IsType(t, &apperrors.ErrValidation{}, err)
 }

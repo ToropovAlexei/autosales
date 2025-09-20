@@ -2,18 +2,15 @@
 package main
 
 import (
+	"flag"
 	"log"
-	"log/slog"
 	"net/http"
 
 	"frbktg/backend_go/config"
-	"frbktg/backend_go/db"
+	"frbktg/backend_go/di"
 	_ "frbktg/backend_go/docs" // This is required for swag to find your docs
-	"frbktg/backend_go/handlers"
 	"frbktg/backend_go/middleware"
-	"frbktg/backend_go/repositories"
 	"frbktg/backend_go/routers"
-	"frbktg/backend_go/services"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
@@ -42,55 +39,18 @@ import (
 // @in header
 // @name X-API-KEY
 func main() {
-	appSettings, err := config.LoadConfig(".env.example")
+	configPath := flag.String("config", ".env.example", "path to config file")
+	flag.Parse()
+
+	appSettings, err := config.LoadConfig(*configPath)
 	if err != nil {
 		log.Fatalf("could not load config: %v", err)
 	}
 
-	db, err := db.InitDB(appSettings)
+	container, err := di.NewContainer(appSettings)
 	if err != nil {
-		log.Fatalf("could not initialize database: %v", err)
+		log.Fatalf("failed to create container: %v", err)
 	}
-
-	// Init repositories
-	userRepo := repositories.NewUserRepository(db)
-	botUserRepo := repositories.NewBotUserRepository(db)
-	productRepo := repositories.NewProductRepository(db)
-	categoryRepo := repositories.NewCategoryRepository(db)
-	orderRepo := repositories.NewOrderRepository(db)
-	transactionRepo := repositories.NewTransactionRepository(db)
-	referralRepo := repositories.NewReferralRepository(db)
-	dashboardRepo := repositories.NewDashboardRepository(db)
-	balanceRepo := repositories.NewBalanceRepository(db)
-	stockRepo := repositories.NewStockRepository(db)
-	adminRepo := repositories.NewAdminRepository(db)
-
-	// Init services
-	tokenService := services.NewTokenService()
-	authService := services.NewAuthService(userRepo, tokenService, appSettings)
-	userService := services.NewUserService(userRepo, botUserRepo)
-	productService := services.NewProductService(productRepo)
-	categoryService := services.NewCategoryService(categoryRepo)
-	referralService := services.NewReferralService(userRepo, botUserRepo, referralRepo, transactionRepo)
-	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, referralService)
-	transactionService := services.NewTransactionService(transactionRepo)
-	dashboardService := services.NewDashboardService(dashboardRepo)
-	balanceService := services.NewBalanceService(balanceRepo, botUserRepo)
-	stockService := services.NewStockService(stockRepo)
-	adminService := services.NewAdminService(adminRepo, botUserRepo)
-
-	// Init handlers
-	authHandler := handlers.NewAuthHandler(authService)
-	userHandler := handlers.NewUserHandler(userService)
-	productHandler := handlers.NewProductHandler(productService)
-	categoryHandler := handlers.NewCategoryHandler(categoryService)
-	orderHandler := handlers.NewOrderHandler(orderService)
-	transactionHandler := handlers.NewTransactionHandler(transactionService)
-	referralHandler := handlers.NewReferralHandler(referralService)
-	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
-	balanceHandler := handlers.NewBalanceHandler(balanceService)
-	stockHandler := handlers.NewStockHandler(stockService)
-	adminHandler := handlers.NewAdminHandler(adminService)
 
 	r := gin.Default()
 
@@ -103,21 +63,20 @@ func main() {
 	corsConfig.AddAllowHeaders("*")
 	r.Use(cors.New(corsConfig))
 
-	logger := slog.Default()
-	rtr := routers.NewRouter(db, appSettings, logger, tokenService, userRepo)
+	rtr := routers.NewRouter(container.DB, container.AppSettings, container.Logger, container.TokenService, container.UserRepo)
 
 	// API routes
-	rtr.AuthRouter(r, authHandler)
-	rtr.CategoriesRouter(r, categoryHandler)
-	rtr.ProductsRouter(r, productHandler)
-	rtr.UsersRouter(r, userHandler)
-	rtr.BalanceRouter(r, balanceHandler)
-	rtr.OrdersRouter(r, orderHandler)
-	rtr.AdminRouter(r, adminHandler)
-	rtr.TransactionsRouter(r, transactionHandler)
-	rtr.StockRouter(r, stockHandler)
-	rtr.DashboardRouter(r, dashboardHandler)
-	rtr.ReferralsRouter(r, referralHandler)
+	rtr.AuthRouter(r, container.AuthHandler)
+	rtr.CategoriesRouter(r, container.CategoryHandler)
+	rtr.ProductsRouter(r, container.ProductHandler)
+	rtr.UsersRouter(r, container.UserHandler)
+	rtr.BalanceRouter(r, container.BalanceHandler)
+	rtr.OrdersRouter(r, container.OrderHandler)
+	rtr.AdminRouter(r, container.AdminHandler)
+	rtr.TransactionsRouter(r, container.TransactionHandler)
+	rtr.StockRouter(r, container.StockHandler)
+	rtr.DashboardRouter(r, container.DashboardHandler)
+	rtr.ReferralsRouter(r, container.ReferralHandler)
 
 	// Swagger route
 	rtr.SwaggerRouter(r)

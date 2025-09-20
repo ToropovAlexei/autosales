@@ -4,6 +4,8 @@ import (
 	"errors"
 	"frbktg/backend_go/config"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/repositories/mocks"
+	serviceMocks "frbktg/backend_go/services/mocks"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -11,9 +13,9 @@ import (
 	"gorm.io/gorm"
 )
 
-func setupAuthServiceTest() (*authService, *MockUserRepository, *MockTokenService) {
-	userRepo := new(MockUserRepository)
-	tokenService := new(MockTokenService)
+func setupAuthServiceTest() (*authService, *mocks.MockUserRepository, *serviceMocks.MockTokenService) {
+	userRepo := new(mocks.MockUserRepository)
+	tokenService := new(serviceMocks.MockTokenService)
 	appSettings := config.Settings{SecretKey: "test-secret", AccessTokenExpireMinutes: 15}
 
 	sut := NewAuthService(userRepo, tokenService, appSettings).(*authService)

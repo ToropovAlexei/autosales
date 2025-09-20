@@ -50,6 +50,25 @@ definitions:
         example: true
         type: boolean
     type: object
+  responses.ResponseSchema-responses_TokenResponse:
+    properties:
+      data:
+        $ref: '#/definitions/responses.TokenResponse'
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.TokenResponse:
+    properties:
+      access_token:
+        type: string
+      token_type:
+        type: string
+    type: object
 host: localhost:8000
 info:
   contact:
@@ -86,21 +105,15 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/responses.ResponseSchema-responses_TokenResponse'
         "400":
           description: Bad Request
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/responses.ErrorResponseSchema'
         "401":
           description: Unauthorized
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/responses.ErrorResponseSchema'
       summary: User Login
       tags:
       - Auth

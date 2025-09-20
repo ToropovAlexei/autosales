@@ -22,12 +22,12 @@ func NewUserHandler(userService services.UserService) *UserHandler {
 func (h *UserHandler) GetMeHandler(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
-		c.Error(&apperrors.ErrForbidden{Message: "User not found in context"})
+		c.Error(apperrors.ErrForbidden)
 		return
 	}
 	currentUser, ok := user.(models.User)
 	if !ok {
-		c.Error(&apperrors.ErrForbidden{Message: "Invalid user type in context"})
+		c.Error(apperrors.ErrForbidden)
 		return
 	}
 	response := h.userService.GetMe(currentUser)
@@ -42,28 +42,28 @@ type referralSettingsPayload struct {
 func (h *UserHandler) UpdateReferralSettingsHandler(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
-		c.Error(&apperrors.ErrForbidden{Message: "User not found in context"})
+		c.Error(apperrors.ErrForbidden)
 		return
 	}
 
 	currentUser, ok := user.(models.User)
 	if !ok {
-		c.Error(&apperrors.ErrForbidden{Message: "Invalid user type in context"})
+		c.Error(apperrors.ErrForbidden)
 		return
 	}
 	if currentUser.Role != models.Admin && currentUser.Role != models.Seller {
-		c.Error(&apperrors.ErrForbidden{Message: "Not enough permissions"})
+		c.Error(apperrors.ErrForbidden)
 		return
 	}
 
 	var json referralSettingsPayload
 	if err := c.ShouldBindJSON(&json); err != nil {
-		c.Error(&apperrors.ErrValidation{Message: err.Error()})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: err.Error()})
 		return
 	}
 
 	if json.ReferralPercentage < 0 || json.ReferralPercentage > 100 {
-		c.Error(&apperrors.ErrValidation{Message: "Referral percentage must be between 0 and 100"})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", nil), Message: "Referral percentage must be between 0 and 100"})
 		return
 	}
 
@@ -82,7 +82,7 @@ type registerBotUserPayload struct {
 func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 	var json registerBotUserPayload
 	if err := c.ShouldBindJSON(&json); err != nil {
-		c.Error(&apperrors.ErrValidation{Message: err.Error()})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: err.Error()})
 		return
 	}
 
@@ -115,7 +115,7 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.Error(&apperrors.ErrValidation{Message: "Invalid user ID"})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid user ID"})
 		return
 	}
 
@@ -139,7 +139,7 @@ func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
 func (h *UserHandler) GetBalanceHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.Error(&apperrors.ErrValidation{Message: "Invalid user ID"})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid user ID"})
 		return
 	}
 	balance, err := h.userService.GetUserBalance(id)
@@ -154,7 +154,7 @@ func (h *UserHandler) GetBalanceHandler(c *gin.Context) {
 func (h *UserHandler) GetUserTransactionsHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.Error(&apperrors.ErrValidation{Message: "Invalid user ID"})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid user ID"})
 		return
 	}
 	transactions, err := h.userService.GetUserTransactions(id)
@@ -178,13 +178,13 @@ type updateUserCaptchaStatusPayload struct {
 func (h *UserHandler) UpdateUserCaptchaStatusHandler(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.Error(&apperrors.ErrValidation{Message: "Invalid user ID"})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid user ID"})
 		return
 	}
 
 	var json updateUserCaptchaStatusPayload
 	if err := c.ShouldBindJSON(&json); err != nil {
-		c.Error(&apperrors.ErrValidation{Message: err.Error()})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: err.Error()})
 		return
 	}
 

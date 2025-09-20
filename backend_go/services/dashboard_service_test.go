@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"frbktg/backend_go/repositories/mocks"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,7 +10,7 @@ import (
 
 func TestDashboardService_GetDashboardStats(t *testing.T) {
 	// Arrange
-	mockRepo := new(MockDashboardRepository)
+	mockRepo := new(mocks.MockDashboardRepository)
 	dashboardService := NewDashboardService(mockRepo)
 
 	mockRepo.On("CountTotalUsers").Return(int64(100), nil)
@@ -30,7 +31,7 @@ func TestDashboardService_GetDashboardStats(t *testing.T) {
 
 func TestDashboardService_GetDashboardStats_Error(t *testing.T) {
 	// Arrange
-	mockRepo := new(MockDashboardRepository)
+	mockRepo := new(mocks.MockDashboardRepository)
 	dashboardService := NewDashboardService(mockRepo)
 
 	expectedError := errors.New("db error")
