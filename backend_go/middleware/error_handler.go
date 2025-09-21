@@ -14,6 +14,7 @@ func ErrorHandler() gin.HandlerFunc {
 
 		if len(c.Errors) > 0 {
 			err := c.Errors.Last().Err
+			logger := GetLogger(c) // Получаем обогащенный логгер
 
 			var notFoundErr *apperrors.ErrNotFound
 			var validationErr *apperrors.ErrValidation
@@ -21,24 +22,29 @@ func ErrorHandler() gin.HandlerFunc {
 
 			switch {
 			case errors.As(err, &notFoundErr):
+				logger.Warn().Err(err).Msg("Not found error")
 				c.JSON(http.StatusNotFound, gin.H{
 					"success": false,
 					"error":   notFoundErr.Error(),
 				})
 			case errors.As(err, &validationErr):
+				logger.Warn().Err(err).Msg("Validation error")
 				c.JSON(http.StatusBadRequest, gin.H{
 					"success": false,
 					"error":   validationErr.Error(),
 				})
 			case errors.As(err, &appErr):
+				logger.Warn().Err(err).Int("code", appErr.Code).Msg("Application error")
 				c.JSON(appErr.Code, gin.H{
 					"success": false,
 					"error":   appErr.Message,
 				})
 			default:
+				// Для всех остальных (неожиданных) ошибок, логируем со stack trace
+				logger.Error().Stack().Err(err).Msg("Internal server error")
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"success": false,
-					"error":   err.Error(),
+					"error":   "Internal Server Error", // Не показываем детали ошибки пользователю
 				})
 			}
 		}

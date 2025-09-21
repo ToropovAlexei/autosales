@@ -3,8 +3,8 @@ package main
 
 import (
 	"flag"
-	"log"
 	"net/http"
+	"strings"
 
 	"frbktg/backend_go/config"
 	"frbktg/backend_go/di"
@@ -14,7 +14,22 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 )
+
+// GinLogAdapter перенаправляет логи Gin в zerolog.
+type GinLogAdapter struct{}
+
+// Write анализирует сообщение от Gin и логирует его с подходящим уровнем.
+func (gla GinLogAdapter) Write(p []byte) (n int, err error) {
+	msg := strings.TrimSpace(string(p))
+	if strings.HasPrefix(msg, "[WARNING]") {
+		log.Warn().Msg(msg)
+	} else {
+		log.Debug().Msg(msg)
+	}
+	return len(p), nil
+}
 
 // @title           Your Project API
 // @version         1.0
@@ -39,22 +54,30 @@ import (
 // @in header
 // @name X-API-KEY
 func main() {
+	config.InitLogger()
+
 	configPath := flag.String("config", ".env.example", "path to config file")
 	flag.Parse()
 
 	appSettings, err := config.LoadConfig(*configPath)
 	if err != nil {
-		log.Fatalf("could not load config: %v", err)
+		log.Fatal().Err(err).Msg("could not load config")
 	}
 
 	container, err := di.NewContainer(appSettings)
 	if err != nil {
-		log.Fatalf("failed to create container: %v", err)
+		log.Fatal().Err(err).Msg("failed to create container")
 	}
 
-	r := gin.Default()
+	// Перенаправляем стандартный логгер Gin в zerolog через наш адаптер
+	gin.DefaultWriter = GinLogAdapter{}
 
-	r.Use(middleware.ErrorHandler())
+	r := gin.New()
+
+	// Используем стандартный Recovery middleware и наши кастомные
+	r.Use(gin.Recovery())
+	r.Use(middleware.LogContext())   // Добавляет контекст в логгер
+	r.Use(middleware.ErrorHandler()) // Должен быть после LogContext
 
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowOrigins = appSettings.CorsOrigins
@@ -82,7 +105,7 @@ func main() {
 	rtr.SwaggerRouter(r)
 
 	for _, route := range r.Routes() {
-		log.Printf("Registered route: %s %s", route.Method, route.Path)
+		log.Info().Msgf("Registered route: %s %s", route.Method, route.Path)
 	}
 
 	r.GET("/api", func(c *gin.Context) {
@@ -91,6 +114,6 @@ func main() {
 		})
 	})
 	if runErr := r.Run(":" + appSettings.Port); runErr != nil {
-		log.Fatalf("failed to run server: %v", runErr)
+		log.Fatal().Err(runErr).Msg("failed to run server")
 	}
 }
