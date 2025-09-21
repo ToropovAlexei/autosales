@@ -8,14 +8,20 @@ import (
 )
 
 func (r *Router) ProductsRouter(router *gin.Engine, productHandler *handlers.ProductHandler) {
-	auth := router.Group("/api/products")
-	auth.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo))
+	// Группа для роутов, доступных и для пользователей, и для сервисов
+	openAPI := router.Group("/api")
 	{
-		auth.GET("", productHandler.GetProductsHandler)
-		auth.POST("", productHandler.CreateProductHandler)
-		auth.GET("/:id", productHandler.GetProductHandler)
-		auth.PUT("/:id", productHandler.UpdateProductHandler)
-		auth.DELETE("/:id", productHandler.DeleteProductHandler)
-		auth.POST("/:id/stock/movements", productHandler.CreateStockMovementHandler)
+		openAPI.GET("/products", middleware.AuthOrServiceTokenMiddleware(r.appSettings, r.tokenService, r.userRepo), productHandler.GetProductsHandler)
+	}
+
+	// Группа для роутов, требующих строгой аутентификации пользователя (JWT)
+	authAPI := router.Group("/api/products")
+	authAPI.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo))
+	{
+		authAPI.POST("", productHandler.CreateProductHandler)
+		authAPI.GET("/:id", productHandler.GetProductHandler)
+		authAPI.PUT("/:id", productHandler.UpdateProductHandler)
+		authAPI.DELETE("/:id", productHandler.DeleteProductHandler)
+		authAPI.POST("/:id/stock/movements", productHandler.CreateStockMovementHandler)
 	}
 }

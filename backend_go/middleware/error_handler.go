@@ -18,6 +18,7 @@ func ErrorHandler() gin.HandlerFunc {
 
 			var notFoundErr *apperrors.ErrNotFound
 			var validationErr *apperrors.ErrValidation
+			var outOfStockErr *apperrors.ErrOutOfStock
 			var appErr *apperrors.Error
 
 			switch {
@@ -32,6 +33,12 @@ func ErrorHandler() gin.HandlerFunc {
 				c.JSON(http.StatusBadRequest, gin.H{
 					"success": false,
 					"error":   validationErr.Error(),
+				})
+			case errors.As(err, &outOfStockErr):
+				logger.Warn().Err(err).Msg("Out of stock error")
+				c.JSON(http.StatusBadRequest, gin.H{
+					"success": false,
+					"error":   "Product out of stock", // Стабильное сообщение для бота
 				})
 			case errors.As(err, &appErr):
 				logger.Warn().Err(err).Int("code", appErr.Code).Msg("Application error")

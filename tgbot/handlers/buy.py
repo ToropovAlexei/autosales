@@ -36,7 +36,7 @@ async def buy_handler(callback_query: CallbackQuery):
                 await callback_query.message.edit_text("Произошла ошибка при обработке покупки.")
         else:
             error = result.get("error", "Произошла неизвестная ошибка.")
-            if error == "Insufficient balance":
+            if error == "Insufficient Balance":
                 error_message = "😔 Недостаточно средств на балансе для совершения покупки. Пожалуйста, пополните баланс."
             elif error == "Product out of stock":
                 error_message = "😔 К сожалению, этот товар закончился."
