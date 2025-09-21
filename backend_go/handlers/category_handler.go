@@ -34,15 +34,16 @@ func (h *CategoryHandler) GetCategoriesHandler(c *gin.Context) {
 }
 
 type categoryPayload struct {
-	Name string `json:"name" binding:"required"`
+	Name     string `json:"name" binding:"required"`
+	ParentID *uint  `json:"parent_id"`
 }
 
 // @Summary      Create a new category
-// @Description  create a new category with the given name
+// @Description  create a new category with the given name and optional parent_id
 // @Tags         categories
 // @Accept       json
 // @Produce      json
-// @Param        category  body      categoryPayload  true  "Category Name"
+// @Param        category  body      categoryPayload  true  "Category Name and Parent ID"
 // @Success      201      {object}  responses.ResponseSchema[models.CategoryResponse]
 // @Failure      400      {object}  responses.ErrorResponseSchema
 // @Failure      500      {object}  responses.ErrorResponseSchema
@@ -54,7 +55,7 @@ func (h *CategoryHandler) CreateCategoryHandler(c *gin.Context) {
 		return
 	}
 
-	category, err := h.categoryService.Create(json.Name)
+	category, err := h.categoryService.Create(json.Name, json.ParentID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -90,12 +91,12 @@ func (h *CategoryHandler) GetCategoryHandler(c *gin.Context) {
 }
 
 // @Summary      Update a category
-// @Description  update a category's name by its ID
+// @Description  update a category's name and/or parent by its ID
 // @Tags         categories
 // @Accept       json
 // @Produce      json
 // @Param        id   path      int              true  "Category ID"
-// @Param        category  body      categoryPayload  true  "New Category Name"
+// @Param        category  body      categoryPayload  true  "New Category Name and/or Parent ID"
 // @Success      200  {object}  responses.ResponseSchema[models.CategoryResponse]
 // @Failure      400      {object}  responses.ErrorResponseSchema
 // @Failure      500      {object}  responses.ErrorResponseSchema
@@ -113,7 +114,7 @@ func (h *CategoryHandler) UpdateCategoryHandler(c *gin.Context) {
 		return
 	}
 
-	category, err := h.categoryService.Update(id, json.Name)
+	category, err := h.categoryService.Update(id, json.Name, json.ParentID)
 	if err != nil {
 		c.Error(err)
 		return

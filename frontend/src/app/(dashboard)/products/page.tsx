@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,6 +34,8 @@ import { List } from "@/components/List";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { MultiSelect } from "@/components/ui/multi-select";
+import { CategoryResponse } from "@/types";
+import { flattenCategoriesForSelect, findCategoryNameById } from "@/lib/utils";
 
 interface Product {
   id: number;
@@ -41,11 +43,6 @@ interface Product {
   category_id: number;
   price: number;
   stock: number;
-}
-
-interface Category {
-  id: number;
-  name: string;
 }
 
 interface ProductFormData {
@@ -74,14 +71,15 @@ export default function ProductsPage() {
   });
 
   const { data: categories, isLoading: isLoadingCategories } =
-    useList<Category>({
-      endpoint: ENDPOINTS.CATEGORIES,
-    });
+    useList<CategoryResponse>({ endpoint: ENDPOINTS.CATEGORIES });
+
+  const flattenedCategories = useMemo(
+    () => (categories?.data ? flattenCategoriesForSelect(categories.data) : []),
+    [categories]
+  );
 
   const getCategoryName = (categoryId: number) => {
-    return (
-      categories?.data?.find((cat) => cat.id === categoryId)?.name || "N/A"
-    );
+    return findCategoryNameById(categories?.data || [], categoryId) || "N/A";
   };
 
   const addMutation = useMutation({
@@ -182,7 +180,7 @@ export default function ProductsPage() {
                       <SelectValue placeholder="Выберите категорию" />
                     </SelectTrigger>
                     <SelectContent>
-                      {categories?.data?.map((cat) => (
+                      {flattenedCategories.map((cat) => (
                         <SelectItem key={cat.id} value={cat.id.toString()}>
                           {cat.name}
                         </SelectItem>
@@ -230,12 +228,10 @@ export default function ProductsPage() {
       >
         <div className="mb-4">
           <MultiSelect
-            options={
-              categories?.data?.map((cat) => ({
-                value: cat.id.toString(),
-                label: cat.name,
-              })) || []
-            }
+            options={flattenedCategories.map((cat) => ({
+              value: cat.id.toString(),
+              label: cat.name,
+            }))}
             selected={selectedCategories}
             onChange={setSelectedCategories}
             placeholder="Фильтр по категориям"
@@ -324,7 +320,7 @@ export default function ProductsPage() {
                     <SelectValue placeholder="Выберите категорию" />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories?.data?.map((cat) => (
+                    {flattenedCategories.map((cat) => (
                       <SelectItem key={cat.id} value={cat.id.toString()}>
                         {cat.name}
                       </SelectItem>
