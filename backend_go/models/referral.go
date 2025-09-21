@@ -3,12 +3,12 @@ package models
 import "time"
 
 type ReferralBot struct {
-	ID        uint `gorm:"primaryKey"`
+	ID        uint      `gorm:"primaryKey"`
 	OwnerID   uint
 	SellerID  uint
 	BotToken  string    `gorm:"unique"`
 	IsActive  bool      `gorm:"default:true"`
-	CreatedAt time.Time `gorm:"not null;default:now()"`
+	CreatedAt time.Time `gorm:"autoCreateTime"`
 }
 
 type RefTransaction struct {
@@ -18,7 +18,7 @@ type RefTransaction struct {
 	OrderID    uint
 	Amount     float64   `gorm:"not null"`
 	RefShare   float64   `gorm:"not null"`
-	CreatedAt  time.Time `gorm:"not null;default:now()"`
+	CreatedAt  time.Time `gorm:"autoCreateTime"`
 }
 
 type ReferralBotAdminInfo struct {
