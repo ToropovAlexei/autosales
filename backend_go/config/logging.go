@@ -27,8 +27,14 @@ func InitLogger() {
 	// MultiWriter для одновременной записи в файл (в формате JSON) и в консоль (в текстовом формате)
 	multiWriter := io.MultiWriter(consoleWriter, logRotator)
 
-	// Устанавливаем глобальный логгер
-	log.Logger = zerolog.New(multiWriter).With().Timestamp().Logger()
+	// Устанавливаем глобальный логгер с хуком для добавления stack trace к ошибкам
+	log.Logger = zerolog.New(multiWriter).With().Timestamp().Logger().Hook(zerolog.HookFunc(
+		func(e *zerolog.Event, level zerolog.Level, msg string) {
+			if level == zerolog.ErrorLevel {
+				e.Stack()
+			}
+		},
+	))
 
 	log.Info().Msg("Logger initialized successfully")
 }

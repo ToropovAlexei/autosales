@@ -40,8 +40,8 @@ func ErrorHandler() gin.HandlerFunc {
 					"error":   appErr.Message,
 				})
 			default:
-				// Для всех остальных (неожиданных) ошибок, логируем со stack trace
-				logger.Error().Stack().Err(err).Msg("Internal server error")
+				// zerolog автоматически подхватит stack trace из ошибки, обернутой с помощью pkg/errors
+				logger.Error().Err(err).Msg("Internal server error")
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"success": false,
 					"error":   "Internal Server Error", // Не показываем детали ошибки пользователю

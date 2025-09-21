@@ -1,14 +1,18 @@
 package middleware
 
 import (
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )
 
-// LogContext добавляет в контекст запроса логгер с полями, специфичными для этого запроса.
+// LogContext добавляет в контекст запроса логгер и логирует сам запрос после его выполнения.
 func LogContext() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		start := time.Now()
+
 		// Создаем дочерний логгер для этого конкретного запроса
 		logger := log.With().
 			Str("method", c.Request.Method).
@@ -21,6 +25,24 @@ func LogContext() gin.HandlerFunc {
 		c.Set("logger", &logger)
 
 		c.Next()
+
+		// После выполнения запроса логируем результат
+		latency := time.Since(start)
+		status := c.Writer.Status()
+
+		var logEvent *zerolog.Event
+		if status >= 500 {
+			logEvent = logger.Error()
+		} else if status >= 400 {
+			logEvent = logger.Warn()
+		} else {
+			logEvent = logger.Info()
+		}
+
+		logEvent.Int("status", status).
+			Dur("latency", latency).
+			Int("body_size", c.Writer.Size()).
+			Send()
 	}
 }
 
