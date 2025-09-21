@@ -8,6 +8,7 @@ from redis.asyncio import Redis
 from config import settings
 from handlers import start, balance, catalog, buy, referral
 from api import api_client
+from logging_config import setup_logging
 
 async def run_bot(token: str, storage: RedisStorage):
     bot = Bot(token=token)
@@ -23,7 +24,7 @@ async def run_bot(token: str, storage: RedisStorage):
     await dp.start_polling(bot)
 
 async def main():
-    logging.basicConfig(level=logging.INFO)
+    setup_logging()
 
     redis = Redis(host=settings.redis_host, port=settings.redis_port)
     storage = RedisStorage(redis)

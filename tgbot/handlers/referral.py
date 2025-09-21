@@ -1,4 +1,5 @@
 from aiogram import Router, F
+import logging
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.markdown import hbold
@@ -90,8 +91,9 @@ async def token_handler(message: Message, state: FSMContext):
                 error_message = f"😔 Произошла ошибка при создании бота: {error}"
             await message.answer(error_message)
 
-    except Exception as e:
-        await message.answer(f"Произошла непредвиденная ошибка: {e}")
+    except Exception:
+        logging.exception("An unexpected error occurred in token_handler")
+        await message.answer("Произошла непредвиденная ошибка. Попробуйте позже.")
     
     finally:
         await state.clear()

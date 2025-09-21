@@ -1,4 +1,5 @@
 from aiogram import Router, F
+import logging
 from aiogram.types import CallbackQuery
 from aiogram.utils.markdown import hbold
 
@@ -30,8 +31,9 @@ async def balance_handler(callback_query: CallbackQuery):
                     fallback_bot_username=settings.fallback_bot_username
                 )
             )
-    except Exception as e:
-        await callback_query.message.answer(f"Произошла ошибка: {e}")
+    except Exception:
+        logging.exception("An error occurred in balance_handler")
+        await callback_query.message.answer("Произошла непредвиденная ошибка. Попробуйте позже.")
     await callback_query.answer()
 
 @router.callback_query(F.data == 'deposit')
@@ -69,6 +71,7 @@ async def deposit_amount_handler(callback_query: CallbackQuery):
                     fallback_bot_username=settings.fallback_bot_username
                 )
             )
-    except Exception as e:
-        await callback_query.message.edit_text(f"Произошла ошибка: {e}")
+    except Exception:
+        logging.exception("An error occurred in deposit_amount_handler")
+        await callback_query.message.edit_text("Произошла непредвиденная ошибка. Попробуйте позже.")
     await callback_query.answer()

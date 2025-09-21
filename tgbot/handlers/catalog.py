@@ -1,4 +1,5 @@
 from aiogram import Router, F
+import logging
 from aiogram.types import CallbackQuery
 from aiogram.utils.markdown import hbold, hitalic
 
@@ -80,8 +81,9 @@ async def navigate_categories(callback_query: CallbackQuery, callback_data: Cate
                     reply_markup=categories_menu([], parent_id=category_id) # Позволяет вернуться назад
                 )
 
-    except Exception as e:
-        await callback_query.message.edit_text(f"Произошла ошибка: {e}")
+    except Exception:
+        logging.exception("An error occurred in navigate_categories")
+        await callback_query.message.edit_text("Произошла непредвиденная ошибка. Попробуйте позже.")
     
     await callback_query.answer()
 
@@ -123,8 +125,9 @@ async def go_back_category(callback_query: CallbackQuery, callback_data: Categor
                 reply_markup=categories_menu(categories_to_show, grandparent_id)
             )
 
-    except Exception as e:
-        await callback_query.message.edit_text(f"Произошла ошибка: {e}")
+    except Exception:
+        logging.exception("An error occurred in go_back_category")
+        await callback_query.message.edit_text("Произошла непредвиденная ошибка. Попробуйте позже.")
 
     await callback_query.answer()
 
@@ -152,6 +155,7 @@ async def product_handler(callback_query: CallbackQuery):
         else:
             await callback_query.message.edit_text(f"Не удалось загрузить товар: {response.get('error')}")
 
-    except Exception as e:
-        await callback_qwery.message.edit_text(f"Произошла ошибка: {e}")
+    except Exception:
+        logging.exception("An error occurred in product_handler")
+        await callback_query.message.edit_text("Произошла непредвиденная ошибка. Попробуйте позже.")
     await callback_query.answer()

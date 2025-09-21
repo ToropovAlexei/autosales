@@ -16,6 +16,8 @@ from urllib3.util.retry import Retry
 from telethon.sync import TelegramClient
 from telethon.errors import SessionPasswordNeededError
 
+from logging_config import setup_logging
+
 # --- Конфигурация ---
 # Учетные данные Telegram API для создания новых ботов. Получите их на my.telegram.org
 API_ID = os.getenv("API_ID")
@@ -28,8 +30,6 @@ BOT_COMMAND = ["python", "main.py"]
 HEALTH_CHECK_INTERVAL = 60
 STARTUP_WAIT_TIME = 10 # секунды ожидания запуска бота перед первой проверкой
 # --- Конец конфигурации ---
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def load_tokens() -> list[str]:
     """Загружает токены из файла токенов."""
@@ -145,6 +145,7 @@ async def request_new_bot_token() -> bool:
 
 async def main():
     """Основная функция, которая запускает и отслеживает бота."""
+    setup_logging()
     bot_process = None
     try:
         while True:

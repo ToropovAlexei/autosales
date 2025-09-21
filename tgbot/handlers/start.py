@@ -1,4 +1,5 @@
 from aiogram import Router, F
+import logging
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, BufferedInputFile, InlineKeyboardButton, InputMediaPhoto
 from aiogram.utils.markdown import hbold
@@ -73,8 +74,9 @@ async def start_handler(message: Message, state: FSMContext):
                     ),
                     parse_mode="HTML"
                 )
-    except Exception as e:
-        await message.answer(f"Произошла ошибка: {e}")
+    except Exception:
+        logging.exception("An error occurred in start_handler")
+        await message.answer("Произошла непредвиденная ошибка. Попробуйте позже.")
 
 @router.callback_query(CaptchaState.waiting_for_answer, F.data.startswith("captcha_"))
 async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContext):
