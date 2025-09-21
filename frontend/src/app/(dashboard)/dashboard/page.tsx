@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { useOne } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 
@@ -36,11 +35,7 @@ export default function DashboardPage() {
     endpoint: ENDPOINTS.DASHBOARD_STATS,
   });
 
-  const {
-    data: sales,
-    isPending: isSalesPending,
-    refetch,
-  } = useOne<SalesOverTime>({
+  const { data: sales, isPending: isSalesPending } = useOne<SalesOverTime>({
     endpoint: ENDPOINTS.SALES_OVER_TIME,
     params: {
       start_date: startDate,
@@ -99,19 +94,16 @@ export default function DashboardPage() {
         <div className="flex gap-4 mb-4 items-center">
           <Input
             type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            value={startDate.split("T")[0]}
+            onChange={(e) => setStartDate(`${e.target.value}T00:00:00.000Z`)}
             className="max-w-sm"
           />
           <Input
             type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
+            value={endDate.split("T")[0]}
+            onChange={(e) => setEndDate(`${e.target.value}T00:00:00.000Z`)}
             className="max-w-sm"
           />
-          <Button onClick={() => refetch()} disabled={isSalesPending}>
-            {isSalesPending ? "Загрузка..." : "Получить продажи"}
-          </Button>
         </div>
 
         {isSalesPending && <p>Загрузка...</p>}

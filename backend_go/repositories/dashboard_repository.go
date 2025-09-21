@@ -61,7 +61,7 @@ func (r *gormDashboardRepository) GetSalesCountForPeriod(start, end time.Time) (
 
 func (r *gormDashboardRepository) GetTotalRevenueForPeriod(start, end time.Time) (float64, error) {
 	var totalRevenue float64
-	if err := r.db.Model(&models.Order{}).Where("created_at >= ? AND created_at < ?", start, end.AddDate(0, 0, 1)).Select("sum(amount)").
+	if err := r.db.Model(&models.Order{}).Where("created_at >= ? AND created_at < ?", start, end.AddDate(0, 0, 1)).Select("COALESCE(sum(amount), 0)").
 		Row().Scan(&totalRevenue); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return 0, err
 	}
