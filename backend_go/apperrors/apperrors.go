@@ -67,6 +67,7 @@ func (e *ErrAlreadyExists) Error() string {
 
 var (
 	ErrInsufficientBalance = &Error{Code: 402, Message: "Insufficient Balance"}
+	ErrBotLimitExceeded    = &Error{Code: 400, Message: "Bot limit reached. A user can have a maximum of 3 bots."}
 	ErrUnauthorized        = &Error{Code: 401, Message: "Unauthorized"}
 	ErrForbidden           = &Error{Code: 403, Message: "Forbidden"}
 	ErrInternalServer      = &Error{Code: 500, Message: "Internal Server Error"}

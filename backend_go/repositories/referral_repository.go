@@ -8,6 +8,8 @@ import (
 
 type ReferralRepository interface {
 	WithTx(tx *gorm.DB) ReferralRepository
+	CountByOwnerID(ownerID uint) (int64, error)
+	SetPrimary(sellerID, botID uint) error
 	FindByBotToken(botToken string) (*models.ReferralBot, error)
 	CreateReferralBot(bot *models.ReferralBot) error
 	FindReferralBotByToken(botToken string) (*models.ReferralBot, error)
@@ -15,6 +17,7 @@ type ReferralRepository interface {
 	GetAdminInfoForSeller(sellerID uint) ([]models.ReferralBotAdminInfo, error)
 	GetReferralBotByID(id uint) (*models.ReferralBot, error)
 	UpdateReferralBot(bot *models.ReferralBot) error
+	DeleteReferralBot(bot *models.ReferralBot) error
 }
 
 type gormReferralRepository struct {
@@ -27,6 +30,12 @@ func NewReferralRepository(db *gorm.DB) ReferralRepository {
 
 func (r *gormReferralRepository) WithTx(tx *gorm.DB) ReferralRepository {
 	return &gormReferralRepository{db: tx}
+}
+
+func (r *gormReferralRepository) CountByOwnerID(ownerID uint) (int64, error) {
+	var count int64
+	err := r.db.Model(&models.ReferralBot{}).Where("owner_id = ?", ownerID).Count(&count).Error
+	return count, err
 }
 
 func (r *gormReferralRepository) FindByBotToken(botToken string) (*models.ReferralBot, error) {
@@ -87,4 +96,24 @@ func (r *gormReferralRepository) GetReferralBotByID(id uint) (*models.ReferralBo
 
 func (r *gormReferralRepository) UpdateReferralBot(bot *models.ReferralBot) error {
 	return r.db.Save(bot).Error
+}
+
+func (r *gormReferralRepository) SetPrimary(sellerID, botID uint) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		// Шаг 1: Сбросить флаг IsPrimary для всех ботов этого продавца
+		if err := tx.Model(&models.ReferralBot{}).Where("seller_id = ?", sellerID).Update("is_primary", false).Error; err != nil {
+			return err
+		}
+
+		// Шаг 2: Установить флаг IsPrimary для выбранного бота
+		if err := tx.Model(&models.ReferralBot{}).Where("id = ? AND seller_id = ?", botID, sellerID).Update("is_primary", true).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func (r *gormReferralRepository) DeleteReferralBot(bot *models.ReferralBot) error {
+	return r.db.Delete(bot).Error
 }

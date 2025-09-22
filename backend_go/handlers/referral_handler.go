@@ -76,7 +76,11 @@ func (h *ReferralHandler) GetReferralBotsAdminHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusOK, bots)
 }
 
-func (h *ReferralHandler) ToggleReferralBotStatusHandler(c *gin.Context) {
+type updateBotStatusPayload struct {
+	IsActive bool `json:"is_active"`
+}
+
+func (h *ReferralHandler) UpdateReferralBotStatusHandler(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
 		c.Error(apperrors.ErrForbidden)
@@ -94,11 +98,69 @@ func (h *ReferralHandler) ToggleReferralBotStatusHandler(c *gin.Context) {
 		return
 	}
 
-	bot, err := h.referralService.ToggleReferralBotStatus(uint(botID), currentUser.ID)
+	var json updateBotStatusPayload
+	if err := bindJSON(c, &json); err != nil {
+		c.Error(err)
+		return
+	}
+
+	bot, err := h.referralService.UpdateReferralBotStatus(uint(botID), currentUser.ID, json.IsActive)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
 	responses.SuccessResponse(c, http.StatusOK, bot)
+}
+
+func (h *ReferralHandler) SetPrimaryBotHandler(c *gin.Context) {
+	user, exists := c.Get("user")
+	if !exists {
+		c.Error(apperrors.ErrForbidden)
+		return
+	}
+	currentUser, ok := user.(models.User)
+	if !ok {
+		c.Error(apperrors.ErrForbidden)
+		return
+	}
+
+	botID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid bot ID"})
+		return
+	}
+
+	if err := h.referralService.SetPrimary(uint(botID), currentUser.ID); err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusNoContent, nil)
+}
+
+func (h *ReferralHandler) DeleteReferralBotHandler(c *gin.Context) {
+	user, exists := c.Get("user")
+	if !exists {
+		c.Error(apperrors.ErrForbidden)
+		return
+	}
+	currentUser, ok := user.(models.User)
+	if !ok {
+		c.Error(apperrors.ErrForbidden)
+		return
+	}
+
+	botID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid bot ID"})
+		return
+	}
+
+	if err := h.referralService.DeleteReferralBot(uint(botID), currentUser.ID); err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusNoContent, nil)
 }

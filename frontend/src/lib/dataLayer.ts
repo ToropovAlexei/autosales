@@ -1,7 +1,7 @@
-import { IFilter } from "@/types";
 import { newApi } from "./api";
 import { serializeFilter } from "@/utils";
 import { ENDPOINT_UPDATE_PUT_EXCEPTIONS } from "@/constants";
+import { IFilter } from "@/types/common";
 
 const fillUrlWithMeta = (url: string, meta?: Record<string, unknown>) => {
   for (const key in meta) {
@@ -75,6 +75,20 @@ class DataLayer {
     const response = await newApi[method]<T>(baseUrl, { json: params }).json<{
       data: T;
     }>();
+    return response.data;
+  };
+
+  public delete = async <T>({
+    url,
+    id,
+    meta,
+  }: {
+    url: string;
+    id?: string | number;
+    meta?: Record<string, unknown>;
+  }) => {
+    const baseUrl = fillUrlWithMeta(id ? `${url}/${id}` : url, meta);
+    const response = await newApi.delete(baseUrl).json<{ data: T }>();
     return response.data;
   };
 }

@@ -14,7 +14,9 @@ type ReferralService interface {
 	CreateReferralBot(ownerTelegramID int64, sellerID uint, botToken string) (*models.ReferralBot, error)
 	GetAllReferralBots() ([]models.ReferralBotResponse, error)
 	GetAdminInfoForSeller(sellerID uint) ([]models.ReferralBotAdminInfo, error)
-	ToggleReferralBotStatus(botID uint, sellerID uint) (*models.ReferralBot, error)
+	UpdateReferralBotStatus(botID uint, sellerID uint, isActive bool) (*models.ReferralBot, error)
+	SetPrimary(botID uint, sellerID uint) error
+	DeleteReferralBot(botID uint, sellerID uint) error
 }
 
 type referralService struct {
@@ -72,6 +74,15 @@ func (s *referralService) CreateReferralBot(ownerTelegramID int64, sellerID uint
 		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "User", ID: uint(ownerTelegramID)}
 	}
 
+	// Проверяем лимит ботов
+	count, err := s.referralRepo.CountByOwnerID(owner.ID)
+	if err != nil {
+		return nil, apperrors.New(500, "Failed to count user bots", err)
+	}
+	if count >= 3 {
+		return nil, apperrors.ErrBotLimitExceeded
+	}
+
 	// We assume seller is validated in the handler via auth context
 
 	_, err = s.referralRepo.FindReferralBotByToken(botToken)
@@ -110,7 +121,7 @@ func (s *referralService) GetAdminInfoForSeller(sellerID uint) ([]models.Referra
 	return s.referralRepo.GetAdminInfoForSeller(sellerID)
 }
 
-func (s *referralService) ToggleReferralBotStatus(botID uint, sellerID uint) (*models.ReferralBot, error) {
+func (s *referralService) UpdateReferralBotStatus(botID uint, sellerID uint, isActive bool) (*models.ReferralBot, error) {
 	bot, err := s.referralRepo.GetReferralBotByID(botID)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "ReferralBot", ID: botID}
@@ -120,10 +131,36 @@ func (s *referralService) ToggleReferralBotStatus(botID uint, sellerID uint) (*m
 		return nil, apperrors.ErrForbidden
 	}
 
-	bot.IsActive = !bot.IsActive
+	bot.IsActive = isActive
 	if err := s.referralRepo.UpdateReferralBot(bot); err != nil {
 		return nil, apperrors.New(500, "Failed to update referral bot", err)
 	}
 
 	return bot, nil
+}
+
+func (s *referralService) SetPrimary(botID uint, sellerID uint) error {
+	bot, err := s.referralRepo.GetReferralBotByID(botID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "ReferralBot", ID: botID}
+	}
+
+	if bot.SellerID != sellerID {
+		return apperrors.ErrForbidden
+	}
+
+	return s.referralRepo.SetPrimary(sellerID, botID)
+}
+
+func (s *referralService) DeleteReferralBot(botID uint, sellerID uint) error {
+	bot, err := s.referralRepo.GetReferralBotByID(botID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "ReferralBot", ID: botID}
+	}
+
+	if bot.SellerID != sellerID {
+		return apperrors.ErrForbidden
+	}
+
+	return s.referralRepo.DeleteReferralBot(bot)
 }

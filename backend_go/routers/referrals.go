@@ -19,6 +19,8 @@ func (r *Router) ReferralsRouter(router *gin.Engine, referralHandler *handlers.R
 	auth.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo))
 	{
 		auth.GET("/admin-list", referralHandler.GetReferralBotsAdminHandler)
-		auth.PUT("/:id", referralHandler.ToggleReferralBotStatusHandler)
+		auth.PUT("/:id/status", referralHandler.UpdateReferralBotStatusHandler)
+		auth.PUT("/:id/set-primary", referralHandler.SetPrimaryBotHandler)
+		auth.DELETE("/:id", referralHandler.DeleteReferralBotHandler)
 	}
 }

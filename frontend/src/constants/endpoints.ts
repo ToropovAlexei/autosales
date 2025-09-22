@@ -11,9 +11,11 @@ export const ENDPOINTS = {
   BOT_USERS: "admin/bot-users",
   SALES_OVER_TIME: "dashboard/sales-over-time",
   ORDERS: "orders",
+  SET_BOT_PRIMARY: "referrals/:id/set-primary",
 };
 
 export const ENDPOINT_UPDATE_PUT_EXCEPTIONS = new Set<string>([
   ENDPOINTS.USERS_ME_REFERRAL_SETTINGS,
   ENDPOINTS.REFERRALS,
+  ENDPOINTS.SET_BOT_PRIMARY,
 ]);

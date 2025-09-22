@@ -4,10 +4,11 @@ import "time"
 
 type ReferralBot struct {
 	ID        uint      `gorm:"primaryKey"`
-	OwnerID   uint
+	OwnerID   uint      `gorm:"index"`
 	SellerID  uint
 	BotToken  string    `gorm:"unique"`
 	IsActive  bool      `gorm:"default:true"`
+	IsPrimary bool      `gorm:"default:false"`
 	CreatedAt time.Time `gorm:"autoCreateTime"`
 }
 
@@ -27,6 +28,7 @@ type ReferralBotAdminInfo struct {
 	SellerID        uint      `json:"seller_id"`
 	BotToken        string    `json:"bot_token"`
 	IsActive        bool      `json:"is_active"`
+	IsPrimary       bool      `json:"is_primary"`
 	CreatedAt       time.Time `json:"created_at"`
 	OwnerTelegramID int64     `json:"owner_telegram_id"`
 	Turnover        float64   `json:"turnover"`
@@ -39,5 +41,6 @@ type ReferralBotResponse struct {
 	SellerID  uint      `json:"seller_id"`
 	BotToken  string    `json:"bot_token"`
 	IsActive  bool      `json:"is_active"`
+	IsPrimary bool      `json:"is_primary"`
 	CreatedAt time.Time `json:"created_at"`
 }
