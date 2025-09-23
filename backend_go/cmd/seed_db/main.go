@@ -49,7 +49,7 @@ func seedData(db *gorm.DB) {
 
 func dropAllTables(db *gorm.DB) {
 	fmt.Println("Dropping all tables...")
-	tables := []interface{}{&models.Transaction{}, &models.StockMovement{}, &models.Order{}, &models.Product{}, &models.Category{}, &models.BotUser{}, &models.User{}}
+	tables := []interface{}{&models.Transaction{}, &models.StockMovement{}, &models.Order{}, &models.Product{}, &models.Category{}, &models.BotUser{}, &models.User{}, &models.ReferralBot{}, &models.RefTransaction{}}
 	if err := db.Migrator().DropTable(tables...); err != nil {
 		log.Fatalf("Failed to drop tables: %v", err)
 	}
@@ -57,7 +57,7 @@ func dropAllTables(db *gorm.DB) {
 
 func autoMigrate(db *gorm.DB) {
 	fmt.Println("Auto-migrating tables...")
-	if err := db.AutoMigrate(&models.User{}, &models.BotUser{}, &models.Category{}, &models.Product{}, &models.Order{}, &models.Transaction{}, &models.StockMovement{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}, &models.BotUser{}, &models.Category{}, &models.Product{}, &models.Order{}, &models.Transaction{}, &models.StockMovement{}, &models.ReferralBot{}, &models.RefTransaction{}); err != nil {
 		log.Fatalf("Failed to auto-migrate: %v", err)
 	}
 }

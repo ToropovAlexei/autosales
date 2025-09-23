@@ -52,7 +52,9 @@ export default function ReferralBotsPage() {
     mutationFn: ({ botId, isActive }: { botId: number; isActive: boolean }) =>
       api.put(`/referrals/${botId}/status`, { is_active: isActive }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["referral-bots-admin"] });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.REFERRAL_BOTS_ADMIN),
+      });
     },
   });
 
@@ -63,7 +65,9 @@ export default function ReferralBotsPage() {
         meta: { ":id": botId },
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["referral-bots-admin"] });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.REFERRAL_BOTS_ADMIN),
+      });
     },
   });
 
@@ -71,7 +75,9 @@ export default function ReferralBotsPage() {
     mutationFn: (botId: number) =>
       dataLayer.delete({ url: ENDPOINTS.REFERRALS, id: botId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["referral-bots-admin"] });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.REFERRAL_BOTS_ADMIN),
+      });
     },
   });
 

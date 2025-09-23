@@ -93,8 +93,10 @@ async def manage_referral_bots():
 
     while True:
         try:
-            bots_to_run = { 
-                b["id"]: b for b in get_all_referral_bots_from_api(session) 
+            api_bots = get_all_referral_bots_from_api(session) or []
+            bots_to_run = {
+                b["id"]: b
+                for b in api_bots
                 if b.get("is_active") and b.get("is_primary")
             }
             running_bot_ids = set(running_procs.keys())

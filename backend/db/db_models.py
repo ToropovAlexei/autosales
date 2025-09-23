@@ -97,6 +97,7 @@ class ReferralBot(Base):
     seller_id = Column(Integer, ForeignKey("users.id"))
     bot_token = Column(String, unique=True)
     is_active = Column(Boolean, default=True)
+    is_primary = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime(timezone=True), nullable=False, default=datetime.datetime.now(datetime.UTC))
 
 class RefTransaction(Base):
