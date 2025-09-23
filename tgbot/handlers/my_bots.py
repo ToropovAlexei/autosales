@@ -16,12 +16,26 @@ class BotCallback(CallbackData, prefix="bot"):
     action: str
     bot_id: int = 0
 
+class BotInfoCallback(CallbackData, prefix="bot_info"):
+    username: str
+    is_primary: str # '1' or '0'
+    is_active: str  # '1' or '0'
+
 def my_bots_keyboard(bots: list):
     buttons = []
     for bot in bots:
         status = "(Основной)" if bot.get('is_primary') else "(Активен)" if bot.get('is_active') else "(Неактивен)"
         bot_username = bot.get('bot_token').split(':')[0] # Simplified, should get from getMe
-        buttons.append([InlineKeyboardButton(text=f"@{bot_username} {status}", callback_data="noop")]) # noop to prevent press
+        
+        is_primary_str = '1' if bot.get('is_primary') else '0'
+        is_active_str = '1' if bot.get('is_active') else '0'
+        info_callback_data = BotInfoCallback(
+            username=bot_username,
+            is_primary=is_primary_str,
+            is_active=is_active_str
+        ).pack()
+
+        buttons.append([InlineKeyboardButton(text=f"@{bot_username} {status}", callback_data=info_callback_data)])
         
         action_buttons = []
         if not bot.get('is_primary'):
@@ -47,13 +61,22 @@ async def show_my_bots(query: CallbackQuery):
         await query.message.edit_text("Не удалось получить список ваших ботов. Попробуйте позже.", reply_markup=inline.main_menu())
     await query.answer()
 
+@router.callback_query(BotInfoCallback.filter())
+async def bot_info_handler(callback_query: CallbackQuery, callback_data: BotInfoCallback):
+    primary_status = "Основной" if callback_data.is_primary == '1' else "Резервный"
+    active_status = "Активен" if callback_data.is_active == '1' else "Неактивен"
+    
+    text = f"Бот @{callback_data.username}\nСтатус: {active_status}, {primary_status}"
+    
+    await callback_query.answer(text, show_alert=True)
+
 @router.callback_query(F.data == "referral_program")
 async def my_bots_handler(callback_query: CallbackQuery):
     await show_my_bots(callback_query)
 
 @router.callback_query(BotCallback.filter(F.action == "set_primary"))
 async def set_primary_handler(callback_query: CallbackQuery, callback_data: BotCallback):
-    response = await api_client.set_primary_bot(callback_data.bot_id)
+    response = await api_client.set_primary_bot(callback_data.bot_id, callback_query.from_user.id)
     if response.get("success"):
         bots = response.get("data", [])
         await callback_query.message.edit_text(
@@ -66,7 +89,7 @@ async def set_primary_handler(callback_query: CallbackQuery, callback_data: BotC
 
 @router.callback_query(BotCallback.filter(F.action == "delete"))
 async def delete_bot_handler(callback_query: CallbackQuery, callback_data: BotCallback):
-    await api_client.delete_referral_bot(callback_data.bot_id)
+    await api_client.delete_referral_bot(callback_data.bot_id, callback_query.from_user.id)
     await callback_query.answer("Бот удален.", show_alert=True)
     await show_my_bots(callback_query)
 

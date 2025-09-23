@@ -80,6 +80,10 @@ type updateBotStatusPayload struct {
 	IsActive bool `json:"is_active"`
 }
 
+type botActionPayload struct {
+	TelegramID int64 `json:"telegram_id" binding:"required"`
+}
+
 func (h *ReferralHandler) UpdateReferralBotStatusHandler(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
@@ -113,30 +117,26 @@ func (h *ReferralHandler) UpdateReferralBotStatusHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusOK, bot)
 }
 
-func (h *ReferralHandler) SetPrimaryBotHandler(c *gin.Context) {
-	user, exists := c.Get("user")
-	if !exists {
-		c.Error(apperrors.ErrForbidden)
-		return
-	}
-	currentUser, ok := user.(models.User)
-	if !ok {
-		c.Error(apperrors.ErrForbidden)
-		return
-	}
-
+func (h *ReferralHandler) ServiceSetPrimaryBotHandler(c *gin.Context) {
 	botID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid bot ID"})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(http.StatusBadRequest, "", err), Message: "Invalid bot ID"})
 		return
 	}
 
-	if err := h.referralService.SetPrimary(uint(botID), currentUser.ID); err != nil {
+	var json botActionPayload
+	if err := c.ShouldBindJSON(&json); err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(http.StatusBadRequest, "", err), Message: err.Error()})
+		return
+	}
+
+	if err := h.referralService.ServiceSetPrimary(uint(botID), json.TelegramID); err != nil {
 		c.Error(err)
 		return
 	}
 
-	bots, err := h.referralService.GetAdminInfoForSeller(currentUser.ID)
+	// Return the updated list of bots for the user
+	bots, err := h.referralService.GetReferralBotsByTelegramID(json.TelegramID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -145,25 +145,20 @@ func (h *ReferralHandler) SetPrimaryBotHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusOK, bots)
 }
 
-func (h *ReferralHandler) DeleteReferralBotHandler(c *gin.Context) {
-	user, exists := c.Get("user")
-	if !exists {
-		c.Error(apperrors.ErrForbidden)
-		return
-	}
-	currentUser, ok := user.(models.User)
-	if !ok {
-		c.Error(apperrors.ErrForbidden)
-		return
-	}
-
+func (h *ReferralHandler) ServiceDeleteReferralBotHandler(c *gin.Context) {
 	botID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid bot ID"})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(http.StatusBadRequest, "", err), Message: "Invalid bot ID"})
 		return
 	}
 
-	if err := h.referralService.DeleteReferralBot(uint(botID), currentUser.ID); err != nil {
+	var json botActionPayload
+	if err := c.ShouldBindJSON(&json); err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(http.StatusBadRequest, "", err), Message: err.Error()})
+		return
+	}
+
+	if err := h.referralService.ServiceDeleteReferralBot(uint(botID), json.TelegramID); err != nil {
 		c.Error(err)
 		return
 	}

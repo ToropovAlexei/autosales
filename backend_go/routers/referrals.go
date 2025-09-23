@@ -14,6 +14,8 @@ func (r *Router) ReferralsRouter(router *gin.Engine, referralHandler *handlers.R
 		service.POST("", referralHandler.CreateReferralBotHandler)
 		service.GET("", referralHandler.GetReferralBotsHandler)
 		service.GET("/user/:telegram_id", referralHandler.GetReferralBotsByTelegramIDHandler)
+		service.PUT("/:id/set-primary", referralHandler.ServiceSetPrimaryBotHandler)
+		service.DELETE("/:id", referralHandler.ServiceDeleteReferralBotHandler)
 	}
 
 	auth := router.Group("/api/referrals")
@@ -21,7 +23,5 @@ func (r *Router) ReferralsRouter(router *gin.Engine, referralHandler *handlers.R
 	{
 		auth.GET("/admin-list", referralHandler.GetReferralBotsAdminHandler)
 		auth.PUT("/:id/status", referralHandler.UpdateReferralBotStatusHandler)
-		auth.PUT("/:id/set-primary", referralHandler.SetPrimaryBotHandler)
-		auth.DELETE("/:id", referralHandler.DeleteReferralBotHandler)
 	}
 }

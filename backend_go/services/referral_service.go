@@ -21,6 +21,8 @@ type ReferralService interface {
 	UpdateReferralBotStatus(botID uint, sellerID uint, isActive bool) (*models.ReferralBot, error)
 	SetPrimary(botID uint, sellerID uint) error
 	DeleteReferralBot(botID uint, sellerID uint) error
+	ServiceSetPrimary(botID uint, telegramID int64) error
+	ServiceDeleteReferralBot(botID uint, telegramID int64) error
 }
 
 type referralService struct {
@@ -181,6 +183,44 @@ func (s *referralService) DeleteReferralBot(botID uint, sellerID uint) error {
 	}
 
 	if bot.SellerID != sellerID {
+		return apperrors.ErrForbidden
+	}
+
+	return s.referralRepo.DeleteReferralBot(bot)
+}
+
+func (s *referralService) ServiceSetPrimary(botID uint, telegramID int64) error {
+	user, err := s.botUserRepo.FindByTelegramID(telegramID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Base: apperrors.New(http.StatusNotFound, "", err), Resource: "User", ID: uint(telegramID)}
+	}
+
+	bot, err := s.referralRepo.GetReferralBotByID(botID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Base: apperrors.New(http.StatusNotFound, "", err), Resource: "ReferralBot", ID: botID}
+	}
+
+	if bot.OwnerID != user.ID {
+		return apperrors.ErrForbidden
+	}
+
+	// The SetPrimary method in the repository takes a sellerID.
+	// All bots for a given owner should have the same sellerID.
+	return s.referralRepo.SetPrimary(bot.SellerID, botID)
+}
+
+func (s *referralService) ServiceDeleteReferralBot(botID uint, telegramID int64) error {
+	user, err := s.botUserRepo.FindByTelegramID(telegramID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Base: apperrors.New(http.StatusNotFound, "", err), Resource: "User", ID: uint(telegramID)}
+	}
+
+	bot, err := s.referralRepo.GetReferralBotByID(botID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Base: apperrors.New(http.StatusNotFound, "", err), Resource: "ReferralBot", ID: botID}
+	}
+
+	if bot.OwnerID != user.ID {
 		return apperrors.ErrForbidden
 	}
 

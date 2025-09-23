@@ -47,10 +47,10 @@ class APIClient:
     async def get_my_referral_bots(self, telegram_id: int):
         return await self._request("GET", f"/referrals/user/{telegram_id}")
 
-    async def set_primary_bot(self, bot_id: int):
-        return await self._request("PUT", f"/referrals/{bot_id}/set-primary")
+    async def set_primary_bot(self, bot_id: int, telegram_id: int):
+        return await self._request("PUT", f"/referrals/{bot_id}/set-primary", json={"telegram_id": telegram_id})
 
-    async def delete_referral_bot(self, bot_id: int):
-        return await self._request("DELETE", f"/referrals/{bot_id}")
+    async def delete_referral_bot(self, bot_id: int, telegram_id: int):
+        return await self._request("DELETE", f"/referrals/{bot_id}", json={"telegram_id": telegram_id})
 
 api_client = APIClient()
