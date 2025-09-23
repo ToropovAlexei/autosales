@@ -13,6 +13,7 @@ func (r *Router) ReferralsRouter(router *gin.Engine, referralHandler *handlers.R
 	{
 		service.POST("", referralHandler.CreateReferralBotHandler)
 		service.GET("", referralHandler.GetReferralBotsHandler)
+		service.GET("/user/:telegram_id", referralHandler.GetReferralBotsByTelegramIDHandler)
 	}
 
 	auth := router.Group("/api/referrals")

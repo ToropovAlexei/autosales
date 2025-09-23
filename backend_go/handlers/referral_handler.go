@@ -136,7 +136,13 @@ func (h *ReferralHandler) SetPrimaryBotHandler(c *gin.Context) {
 		return
 	}
 
-	responses.SuccessResponse(c, http.StatusNoContent, nil)
+	bots, err := h.referralService.GetAdminInfoForSeller(currentUser.ID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, bots)
 }
 
 func (h *ReferralHandler) DeleteReferralBotHandler(c *gin.Context) {
@@ -163,4 +169,20 @@ func (h *ReferralHandler) DeleteReferralBotHandler(c *gin.Context) {
 	}
 
 	responses.SuccessResponse(c, http.StatusNoContent, nil)
+}
+
+func (h *ReferralHandler) GetReferralBotsByTelegramIDHandler(c *gin.Context) {
+	telegramID, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
+	if err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid Telegram ID"})
+		return
+	}
+
+	bots, err := h.referralService.GetReferralBotsByTelegramID(telegramID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, bots)
 }

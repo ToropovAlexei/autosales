@@ -1,11 +1,14 @@
 package services
 
 import (
+	"errors"
 	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
+	"net/http"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
 
@@ -14,6 +17,7 @@ type ReferralService interface {
 	CreateReferralBot(ownerTelegramID int64, sellerID uint, botToken string) (*models.ReferralBot, error)
 	GetAllReferralBots() ([]models.ReferralBotResponse, error)
 	GetAdminInfoForSeller(sellerID uint) ([]models.ReferralBotAdminInfo, error)
+	GetReferralBotsByTelegramID(telegramID int64) ([]models.ReferralBotAdminInfo, error)
 	UpdateReferralBotStatus(botID uint, sellerID uint, isActive bool) (*models.ReferralBot, error)
 	SetPrimary(botID uint, sellerID uint) error
 	DeleteReferralBot(botID uint, sellerID uint) error
@@ -71,13 +75,13 @@ func (s *referralService) ProcessReferral(tx *gorm.DB, referralBotToken *string,
 func (s *referralService) CreateReferralBot(ownerTelegramID int64, sellerID uint, botToken string) (*models.ReferralBot, error) {
 	owner, err := s.botUserRepo.FindByTelegramID(ownerTelegramID)
 	if err != nil {
-		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "User", ID: uint(ownerTelegramID)}
+		return nil, &apperrors.ErrNotFound{Base: apperrors.New(http.StatusNotFound, "", err), Resource: "User", ID: uint(ownerTelegramID)}
 	}
 
 	// Проверяем лимит ботов
 	count, err := s.referralRepo.CountByOwnerID(owner.ID)
 	if err != nil {
-		return nil, apperrors.New(500, "Failed to count user bots", err)
+		return nil, apperrors.New(http.StatusInternalServerError, "Failed to count user bots", err)
 	}
 	if count >= 3 {
 		return nil, apperrors.ErrBotLimitExceeded
@@ -86,8 +90,13 @@ func (s *referralService) CreateReferralBot(ownerTelegramID int64, sellerID uint
 	// We assume seller is validated in the handler via auth context
 
 	_, err = s.referralRepo.FindReferralBotByToken(botToken)
-	if err == nil {
-		return nil, &apperrors.ErrAlreadyExists{Base: apperrors.New(409, "", nil), Resource: "ReferralBot", Field: "token", Value: botToken}
+	// We expect a "not found" error here. If any other error occurs, or if no error occurs (meaning bot was found), we fail.
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		if err == nil { // Bot was found
+			return nil, &apperrors.ErrAlreadyExists{Base: apperrors.New(http.StatusConflict, "", nil), Resource: "ReferralBot", Field: "token", Value: botToken}
+		}
+		// Another unexpected error
+		return nil, apperrors.New(http.StatusInternalServerError, "Failed to check for existing bot", err)
 	}
 
 	dbBot := &models.ReferralBot{
@@ -97,7 +106,11 @@ func (s *referralService) CreateReferralBot(ownerTelegramID int64, sellerID uint
 	}
 
 	if err := s.referralRepo.CreateReferralBot(dbBot); err != nil {
-		return nil, apperrors.New(500, "Failed to create referral bot", err)
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" { // unique_violation
+			return nil, &apperrors.ErrAlreadyExists{Base: apperrors.New(http.StatusConflict, "", nil), Resource: "ReferralBot", Field: "token", Value: botToken}
+		}
+		return nil, apperrors.New(http.StatusInternalServerError, "Failed to create referral bot", err)
 	}
 
 	return dbBot, nil
@@ -119,6 +132,15 @@ func (s *referralService) GetAllReferralBots() ([]models.ReferralBotResponse, er
 
 func (s *referralService) GetAdminInfoForSeller(sellerID uint) ([]models.ReferralBotAdminInfo, error) {
 	return s.referralRepo.GetAdminInfoForSeller(sellerID)
+}
+
+func (s *referralService) GetReferralBotsByTelegramID(telegramID int64) ([]models.ReferralBotAdminInfo, error) {
+	owner, err := s.botUserRepo.FindByTelegramID(telegramID)
+	if err != nil {
+		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "User", ID: uint(telegramID)}
+	}
+
+	return s.referralRepo.GetAdminInfoForOwner(owner.ID)
 }
 
 func (s *referralService) UpdateReferralBotStatus(botID uint, sellerID uint, isActive bool) (*models.ReferralBot, error) {

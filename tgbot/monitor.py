@@ -86,49 +86,96 @@ def set_bot_status_api(session: requests.Session, bot_id: int, is_active: bool):
         logging.error(f"Failed to set bot status for ID {bot_id} via API: {e}")
 
 async def manage_referral_bots():
-    """Отслеживает, запускает и останавливает все активные основные реферальные боты."""
+    """Monitors, starts, and stops all active referral bots with failover."""
     logging.info("Starting referral bot management task...")
+    # owner_id -> (process, running_bot_id)
     running_procs = {}
     session = requests_session()
 
     while True:
         try:
             api_bots = get_all_referral_bots_from_api(session) or []
-            bots_to_run = {
-                b["id"]: b
-                for b in api_bots
-                if b.get("is_active") and b.get("is_primary")
-            }
-            running_bot_ids = set(running_procs.keys())
-
-            for bot_id in running_bot_ids:
-                if bot_id not in bots_to_run:
-                    logging.info(f"Referral bot ID {bot_id} is no longer primary/active. Stopping process.")
-                    running_procs[bot_id].kill()
-                    del running_procs[bot_id]
-
-            for bot_id, bot_data in bots_to_run.items():
-                token = bot_data.get("bot_token")
-                if not token:
+            
+            # Group active bots by owner
+            bots_by_owner = {}
+            for bot in api_bots:
+                if not bot.get("is_active"):
                     continue
+                owner_id = bot.get("owner_id")
+                if owner_id not in bots_by_owner:
+                    bots_by_owner[owner_id] = []
+                bots_by_owner[owner_id].append(bot)
 
-                if bot_id in running_procs:
-                    if running_procs[bot_id].poll() is not None:
-                        logging.error(f"Referral bot ID {bot_id} terminated unexpectedly. Marking as inactive.")
-                        set_bot_status_api(session, bot_id, False)
-                        del running_procs[bot_id]
-                    continue
-
-                if not get_bot_info(token):
-                    logging.warning(f"Referral bot ID {bot_id} is primary/active but failed health check. Setting to inactive.")
-                    set_bot_status_api(session, bot_id, False)
-                    continue
+            # Stop processes for owners who no longer have active bots
+            # or if the specific running bot was deactivated/deleted
+            running_owners = set(running_procs.keys())
+            for owner_id in running_owners:
+                proc, running_bot_id = running_procs[owner_id]
                 
-                logging.info(f"Found new primary/active referral bot ID {bot_id}. Starting process.")
-                env = os.environ.copy()
-                env["BOT_TOKEN"] = token
-                proc = subprocess.Popen(BOT_COMMAND, env=env, cwd=str(Path(__file__).parent))
-                running_procs[bot_id] = proc
+                owner_bots = bots_by_owner.get(owner_id, [])
+                running_bot_still_active = any(b['id'] == running_bot_id and b['is_active'] for b in owner_bots)
+
+                if not owner_bots or not running_bot_still_active:
+                    logging.info(f"Stopping bot process for owner {owner_id} (bot {running_bot_id}) as it's no longer active/valid.")
+                    proc.kill()
+                    del running_procs[owner_id]
+
+            # Check running processes and start new ones
+            for owner_id, owner_bots in bots_by_owner.items():
+                # If a bot is already running for this owner, check its health
+                if owner_id in running_procs:
+                    proc, running_bot_id = running_procs[owner_id]
+                    
+                    # Check if process terminated
+                    if proc.poll() is not None:
+                        logging.error(f"Referral bot ID {running_bot_id} for owner {owner_id} terminated unexpectedly.")
+                        set_bot_status_api(session, running_bot_id, False)
+                        del running_procs[owner_id]
+                        # Failover will be attempted in the next section
+                    else:
+                        # Check token health
+                        running_bot_token = next((b['bot_token'] for b in owner_bots if b['id'] == running_bot_id), None)
+                        if not running_bot_token or not get_bot_info(running_bot_token):
+                            logging.warning(f"Health check failed for running bot ID {running_bot_id}. Killing process.")
+                            proc.kill()
+                            set_bot_status_api(session, running_bot_id, False)
+                            del running_procs[owner_id]
+                            # Failover will be attempted in the next section
+                    
+                    # If after checks, a process is still running, continue
+                    if owner_id in running_procs:
+                        continue
+
+                # If no bot is running for this owner, try to start one
+                # Prioritize primary bot
+                primary_bot = next((b for b in owner_bots if b.get("is_primary")), None)
+                bot_to_start = None
+
+                if primary_bot and get_bot_info(primary_bot.get("bot_token")):
+                    bot_to_start = primary_bot
+                    logging.info(f"Primary bot ID {bot_to_start['id']} for owner {owner_id} is healthy. Will attempt to start.")
+                else:
+                    if primary_bot:
+                        logging.warning(f"Primary bot ID {primary_bot['id']} for owner {owner_id} failed health check.")
+                    
+                    # Try to find a healthy reserve bot
+                    for reserve_bot in sorted(owner_bots, key=lambda b: b.get('id')): # sort for consistent order
+                        if not reserve_bot.get("is_primary"):
+                            if get_bot_info(reserve_bot.get("bot_token")):
+                                bot_to_start = reserve_bot
+                                logging.info(f"Found healthy reserve bot ID {bot_to_start['id']} for owner {owner_id}. Will attempt to start.")
+                                break
+                
+                if bot_to_start:
+                    logging.info(f"Starting process for bot ID {bot_to_start['id']} (Owner: {owner_id}).")
+                    env = os.environ.copy()
+                    env["BOT_TOKEN"] = bot_to_start["bot_token"]
+                    # Ensure FALLBACK_BOT_USERNAME is not set for referral bots
+                    if "FALLBACK_BOT_USERNAME" in env:
+                        del env["FALLBACK_BOT_USERNAME"]
+                    
+                    proc = subprocess.Popen(BOT_COMMAND, env=env, cwd=str(Path(__file__).parent))
+                    running_procs[owner_id] = (proc, bot_to_start['id'])
 
         except Exception as e:
             logging.exception("An error occurred in the referral bot management loop.")

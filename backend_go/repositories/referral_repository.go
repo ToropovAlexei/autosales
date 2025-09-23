@@ -15,6 +15,7 @@ type ReferralRepository interface {
 	FindReferralBotByToken(botToken string) (*models.ReferralBot, error)
 	GetAllReferralBots() ([]models.ReferralBot, error)
 	GetAdminInfoForSeller(sellerID uint) ([]models.ReferralBotAdminInfo, error)
+	GetAdminInfoForOwner(ownerID uint) ([]models.ReferralBotAdminInfo, error)
 	GetReferralBotByID(id uint) (*models.ReferralBot, error)
 	UpdateReferralBot(bot *models.ReferralBot) error
 	DeleteReferralBot(bot *models.ReferralBot) error
@@ -72,7 +73,7 @@ func (r *gormReferralRepository) GetAdminInfoForSeller(sellerID uint) ([]models.
 	err := r.db.Table("referral_bots").
 		Select(
 			"referral_bots.id, referral_bots.owner_id, referral_bots.seller_id, "+
-				"referral_bots.bot_token, referral_bots.is_active, referral_bots.created_at, "+
+				"referral_bots.bot_token, referral_bots.is_active, referral_bots.is_primary, referral_bots.created_at, "+
 				"bot_users.telegram_id as owner_telegram_id, "+
 				"COALESCE(SUM(ref_transactions.amount), 0) as turnover, "+
 				"COALESCE(SUM(ref_transactions.ref_share), 0) as accruals",
@@ -80,6 +81,26 @@ func (r *gormReferralRepository) GetAdminInfoForSeller(sellerID uint) ([]models.
 		Joins("join bot_users on referral_bots.owner_id = bot_users.id").
 		Joins("left join ref_transactions on referral_bots.owner_id = ref_transactions.ref_owner_id").
 		Where("referral_bots.seller_id = ?", sellerID).
+		Group("referral_bots.id, bot_users.telegram_id").
+		Scan(&bots).Error
+
+	return bots, err
+}
+
+func (r *gormReferralRepository) GetAdminInfoForOwner(ownerID uint) ([]models.ReferralBotAdminInfo, error) {
+	var bots []models.ReferralBotAdminInfo
+
+	err := r.db.Table("referral_bots").
+		Select(
+			"referral_bots.id, referral_bots.owner_id, referral_bots.seller_id, "+
+				"referral_bots.bot_token, referral_bots.is_active, referral_bots.is_primary, referral_bots.created_at, "+
+				"bot_users.telegram_id as owner_telegram_id, "+
+				"COALESCE(SUM(ref_transactions.amount), 0) as turnover, "+
+				"COALESCE(SUM(ref_transactions.ref_share), 0) as accruals",
+		).
+		Joins("join bot_users on referral_bots.owner_id = bot_users.id").
+		Joins("left join ref_transactions on referral_bots.owner_id = ref_transactions.ref_owner_id").
+		Where("referral_bots.owner_id = ?", ownerID).
 		Group("referral_bots.id, bot_users.telegram_id").
 		Scan(&bots).Error
 
