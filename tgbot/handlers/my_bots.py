@@ -9,6 +9,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from states import ReferralState
 from api import api_client
 from keyboards import inline
+from config import settings
 
 router = Router()
 
@@ -58,7 +59,12 @@ async def show_my_bots(query: CallbackQuery):
             reply_markup=my_bots_keyboard(bots)
         )
     else:
-        await query.message.edit_text("Не удалось получить список ваших ботов. Попробуйте позже.", reply_markup=inline.main_menu())
+        seller_info_response = await api_client.get_seller_info()
+        referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
+        await query.message.edit_text("Не удалось получить список ваших ботов. Попробуйте позже.", reply_markup=inline.main_menu(
+            referral_program_enabled=referral_program_enabled,
+            bot_type=settings.bot_type
+        ))
     await query.answer()
 
 @router.callback_query(BotInfoCallback.filter())
@@ -100,7 +106,7 @@ async def add_bot_handler(callback_query: CallbackQuery, state: FSMContext):
     if not seller_info_response.get("success"):
         await callback_query.message.edit_text(
             "Не удалось загрузить информацию о реферальной программе. Попробуйте позже.",
-            reply_markup=inline.main_menu()
+            reply_markup=inline.main_menu(bot_type=settings.bot_type)
         )
         return
 

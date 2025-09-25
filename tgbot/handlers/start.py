@@ -70,7 +70,8 @@ async def start_handler(message: Message, state: FSMContext):
                 await message.answer(
                     f"С возвращением, {hbold(message.from_user.full_name)}!",
                     reply_markup=inline.main_menu(
-                        referral_program_enabled=referral_program_enabled
+                        referral_program_enabled=referral_program_enabled,
+                        bot_type=settings.bot_type
                     ),
                     parse_mode="HTML"
                 )
@@ -113,7 +114,8 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
             f"- 💳 Проверять свой счет\n\n"
             f"Выберите действие в меню ниже:",
             reply_markup=inline.main_menu(
-                referral_program_enabled=referral_program_enabled
+                referral_program_enabled=referral_program_enabled,
+                bot_type=settings.bot_type
             ),
             parse_mode="HTML"
         )
@@ -134,7 +136,8 @@ async def main_menu_handler(callback_query: CallbackQuery):
     await callback_query.message.edit_text(
         "Главное меню",
         reply_markup=inline.main_menu(
-            referral_program_enabled=referral_program_enabled
+            referral_program_enabled=referral_program_enabled,
+            bot_type=settings.bot_type
         )
     )
 
@@ -145,6 +148,7 @@ async def support_handler(callback_query: CallbackQuery):
     await callback_query.message.edit_text(
         f"Для связи с поддержкой, пожалуйста, напишите нам: {settings.support_url}",
         reply_markup=inline.main_menu(
-            referral_program_enabled=referral_program_enabled
+            referral_program_enabled=referral_program_enabled,
+            bot_type=settings.bot_type
         )
     )

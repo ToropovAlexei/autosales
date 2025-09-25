@@ -8,13 +8,13 @@ class CategoryCallback(CallbackData, prefix="cat"):
     category_id: int = 0
     parent_id: int = 0 # ID родителя, чтобы знать, куда возвращаться
 
-def main_menu(referral_program_enabled: bool = False, fallback_bot_username: Optional[str] = None):
+def main_menu(referral_program_enabled: bool = False, bot_type: str = "main"):
     buttons = [
         [InlineKeyboardButton(text="🛍️ Каталог", callback_data=CategoryCallback(action="view", category_id=0).pack())],
         [InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="deposit")],
         [InlineKeyboardButton(text="💳 Баланс", callback_data="balance")],
     ]
-    if referral_program_enabled:
+    if referral_program_enabled and bot_type == "main":
         buttons.append([InlineKeyboardButton(text="🤝 Реферальный магазин", callback_data="referral_program")])
     
     buttons.append([InlineKeyboardButton(text="💬 Поддержка", callback_data="support")])

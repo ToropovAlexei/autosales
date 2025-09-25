@@ -12,6 +12,7 @@ from logging_config import setup_logging
 
 async def main():
     setup_logging()
+    logging.info(f"Bot starting. Type: {settings.bot_type}")
 
     if not settings.bot_token:
         logging.error("BOT_TOKEN environment variable not set. Exiting.")

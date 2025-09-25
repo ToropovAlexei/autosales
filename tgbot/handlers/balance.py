@@ -28,7 +28,7 @@ async def balance_handler(callback_query: CallbackQuery):
                 f"Не удалось получить баланс: {response.get('error')}",
                 reply_markup=inline.main_menu(
                     referral_program_enabled=referral_program_enabled,
-                    fallback_bot_username=settings.fallback_bot_username
+                    bot_type=settings.bot_type
                 )
             )
     except Exception:
@@ -59,7 +59,7 @@ async def deposit_amount_handler(callback_query: CallbackQuery):
                 f"В реальном приложении здесь была бы ссылка на оплату.",
                 reply_markup=inline.main_menu(
                     referral_program_enabled=referral_program_enabled,
-                    fallback_bot_username=settings.fallback_bot_username
+                    bot_type=settings.bot_type
                 ),
                 parse_mode="HTML"
             )
@@ -68,7 +68,7 @@ async def deposit_amount_handler(callback_query: CallbackQuery):
                 f"Не удалось создать заявку: {response.get('error')}",
                 reply_markup=inline.main_menu(
                     referral_program_enabled=referral_program_enabled,
-                    fallback_bot_username=settings.fallback_bot_username
+                    bot_type=settings.bot_type
                 )
             )
     except Exception:

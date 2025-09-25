@@ -272,27 +272,32 @@ async def manage_main_bots():
                 if info: healthy_bots.append({'token': token, 'info': info})
                 else: mark_main_token_as_unavailable(token)
             
-            if len(healthy_bots) < 2:
-                logging.warning(f"Found only {len(healthy_bots)} healthy main bots. Requesting a new one.")
+            if not healthy_bots:
+                logging.warning("No healthy main bots found. Requesting a new one.")
                 success = await request_new_main_bot_token()
                 if not success: 
                     logging.error("Failed to create a new main bot. Will retry in 5 minutes.")
                     await asyncio.sleep(300)
-                    continue
-                continue # Перезапускаем цикл для переоценки
+                continue
 
             active_bot = healthy_bots.popleft()
-            fallback_bot = healthy_bots[0]
             active_token = active_bot['token']
             active_bot_info = active_bot['info']
-            fallback_bot_info = fallback_bot['info']
-
             logging.info(f"Assigning ACTIVE main bot: @{active_bot_info['username']} (...{active_token[-4:]})")
-            logging.info(f"Assigning FALLBACK main bot: @{fallback_bot_info['username']}")
 
             env = os.environ.copy()
             env["BOT_TOKEN"] = active_token
-            env["FALLBACK_BOT_USERNAME"] = fallback_bot_info['username']
+            env["BOT_TYPE"] = "main"
+
+            if healthy_bots:
+                fallback_bot = healthy_bots[0]
+                fallback_bot_info = fallback_bot['info']
+                logging.info(f"Assigning FALLBACK main bot: @{fallback_bot_info['username']}")
+                env["FALLBACK_BOT_USERNAME"] = fallback_bot_info['username']
+            else:
+                logging.warning("Only one healthy main bot found. No fallback will be assigned.")
+                if "FALLBACK_BOT_USERNAME" in env:
+                    del env["FALLBACK_BOT_USERNAME"]
             
             bot_process = subprocess.Popen(BOT_COMMAND, env=env, cwd=str(Path(__file__).parent))
             await asyncio.sleep(STARTUP_WAIT_TIME)
