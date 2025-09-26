@@ -39,18 +39,27 @@ async def navigate_categories(callback_query: CallbackQuery, callback_data: Cate
     category_id = callback_data.category_id
 
     try:
-        response = await api_client.get_categories()
-        if not response.get("success"):
+        # Fetch categories for navigation
+        categories_response = await api_client.get_categories()
+        if not categories_response.get("success"):
             await callback_query.message.edit_text("Не удалось загрузить категории.")
             await callback_query.answer()
             return
-
-        all_categories = response["data"]
+        all_categories = categories_response["data"]
 
         if category_id == 0: # Root level
-            current_level_categories = all_categories
-            parent_id = 0
-        else:
+            # Fetch external products
+            products_response = await api_client.get_products()
+            external_products = []
+            if products_response.get("success"):
+                external_products = [p for p in products_response["data"] if p.get('provider')]
+            
+            await callback_query.message.edit_text(
+                "🛍️ Выберите категорию или товар:",
+                reply_markup=categories_menu(all_categories, 0, products=external_products)
+            )
+
+        else: # Category level
             selected_category = find_category_by_id(all_categories, category_id)
             if not selected_category:
                 await callback_query.message.edit_text("Категория не найдена.")
@@ -58,28 +67,25 @@ async def navigate_categories(callback_query: CallbackQuery, callback_data: Cate
                 return
             
             current_level_categories = selected_category.get('sub_categories', [])
-            parent_id = selected_category.get('parent_id') or 0
 
-        # Если есть подкатегории, показываем их. Иначе - показываем товары.
-        if current_level_categories:
-            await callback_query.message.edit_text(
-                "🛍️ Выберите категорию:",
-                reply_markup=categories_menu(current_level_categories, category_id)
-            )
-        else:
-            # Это конечная категория, показываем товары
-            products_response = await api_client.get_products(category_id)
-            if products_response.get("success"):
-                products = products_response["data"]
+            if current_level_categories:
                 await callback_query.message.edit_text(
-                    "Выберите товар:",
-                    reply_markup=products_menu(products, category_id)
+                    "🛍️ Выберите категорию:",
+                    reply_markup=categories_menu(current_level_categories, category_id)
                 )
             else:
-                await callback_query.message.edit_text(
-                    f"Не удалось загрузить товары: {products_response.get('error')}",
-                    reply_markup=categories_menu([], parent_id=category_id) # Позволяет вернуться назад
-                )
+                products_response = await api_client.get_products(category_id)
+                if products_response.get("success"):
+                    products = products_response["data"]
+                    await callback_query.message.edit_text(
+                        "Выберите товар:",
+                        reply_markup=products_menu(products, category_id)
+                    )
+                else:
+                    await callback_query.message.edit_text(
+                        f"Не удалось загрузить товары: {products_response.get('error')}",
+                        reply_markup=categories_menu([], parent_id=category_id)
+                    )
 
     except Exception:
         logging.exception("An error occurred in navigate_categories")
@@ -89,7 +95,6 @@ async def navigate_categories(callback_query: CallbackQuery, callback_data: Cate
 
 @router.callback_query(CategoryCallback.filter(F.action == 'back'))
 async def go_back_category(callback_query: CallbackQuery, callback_data: CategoryCallback):
-    # ID категории, к которой мы возвращаемся (это родитель)
     target_category_id = callback_data.category_id
 
     try:
@@ -102,23 +107,24 @@ async def go_back_category(callback_query: CallbackQuery, callback_data: Categor
         all_categories = response["data"]
 
         if target_category_id == 0:
-            # Возвращаемся в корень
+            # At root, also fetch external products
+            products_response = await api_client.get_products()
+            external_products = []
+            if products_response.get("success"):
+                external_products = [p for p in products_response["data"] if p.get('provider')]
             await callback_query.message.edit_text(
-                "🛍️ Выберите категорию:",
-                reply_markup=categories_menu(all_categories, 0)
+                "🛍️ Выберите категорию или товар:",
+                reply_markup=categories_menu(all_categories, 0, products=external_products)
             )
         else:
-            # Находим "дедушку", чтобы знать, куда вернется кнопка "Назад" со следующего уровня
             grandparent_id = find_parent_id(all_categories, target_category_id) or 0
-            parent_category = find_category_by_id(all_categories, target_category_id)
-            
-            # Нам нужно показать категории того же уровня, что и target_category_id
-            # Для этого найдем их общего родителя
+            categories_to_show = []
             if grandparent_id == 0:
                 categories_to_show = all_categories
             else:
                 grandparent = find_category_by_id(all_categories, grandparent_id)
-                categories_to_show = grandparent.get('sub_categories', [])
+                if grandparent:
+                    categories_to_show = grandparent.get('sub_categories', [])
 
             await callback_query.message.edit_text(
                 "🛍️ Выберите категорию:",
@@ -142,7 +148,7 @@ async def product_handler(callback_query: CallbackQuery):
         response = await api_client.get_products(category_id)
         if response.get("success"):
             products = response["data"]
-            product = next((p for p in products if p['id'] == product_id), None)
+            product = next((p for p in products if p.get('id') == product_id), None)
             if product:
                 await callback_query.message.edit_text(
                     f"{hbold(product['name'])}\n\n"
@@ -157,5 +163,34 @@ async def product_handler(callback_query: CallbackQuery):
 
     except Exception:
         logging.exception("An error occurred in product_handler")
+        await callback_query.message.edit_text("Произошла непредвиденная ошибка. Попробуйте позже.")
+    await callback_query.answer()
+
+@router.callback_query(F.data.startswith('extproduct_'))
+async def external_product_handler(callback_query: CallbackQuery):
+    try:
+        _, provider, external_id = callback_query.data.split('_', 2)
+        
+        response = await api_client.get_products()
+        if response.get("success"):
+            products = response["data"]
+            product = next((p for p in products if p.get('provider') == provider and p.get('external_id') == external_id), None)
+            if product:
+                # Assuming external products are always subscriptions
+                description = f"Подписка на {product.get('subscription_period_days', 30)} дней"
+                await callback_query.message.edit_text(
+                    f"{hbold(product['name'])}\n\n"
+                    f"{hitalic(description)}\n\n"
+                    f"{hitalic('Цена:')} {product['price']} ₽",
+                    reply_markup=product_card(product),
+                    parse_mode="HTML"
+                )
+            else:
+                await callback_query.message.edit_text("Товар не найден.")
+        else:
+            await callback_query.message.edit_text(f"Не удалось загрузить товар: {response.get('error')}")
+
+    except Exception:
+        logging.exception("An error occurred in external_product_handler")
         await callback_query.message.edit_text("Произошла непредвиденная ошибка. Попробуйте позже.")
     await callback_query.answer()

@@ -2,8 +2,10 @@ package services
 
 import (
 	"frbktg/backend_go/apperrors"
+	"frbktg/backend_go/external_providers"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
+	"log/slog"
 	"time"
 )
 
@@ -17,21 +19,23 @@ type ProductService interface {
 }
 
 type productService struct {
-	productRepo repositories.ProductRepository
+	productRepo      repositories.ProductRepository
+	providerRegistry *external_providers.ProviderRegistry
 }
 
-func NewProductService(productRepo repositories.ProductRepository) ProductService {
-	return &productService{productRepo: productRepo}
+func NewProductService(productRepo repositories.ProductRepository, providerRegistry *external_providers.ProviderRegistry) ProductService {
+	return &productService{productRepo: productRepo, providerRegistry: providerRegistry}
 }
 
 func (s *productService) GetProducts(categoryIDs []string) ([]models.ProductResponse, error) {
-	products, err := s.productRepo.GetProducts(categoryIDs)
+	// 1. Get internal products
+	internalProducts, err := s.productRepo.GetProducts(categoryIDs)
 	if err != nil {
 		return nil, err
 	}
 
 	var response []models.ProductResponse
-	for _, p := range products {
+	for _, p := range internalProducts {
 		stock := 0
 		if p.Type == "item" {
 			stock, err = s.productRepo.GetStockForProduct(p.ID)
@@ -53,10 +57,37 @@ func (s *productService) GetProducts(categoryIDs []string) ([]models.ProductResp
 		})
 	}
 
+	// 2. Get external products if no category filter is applied
+	if len(categoryIDs) == 0 {
+		providers := s.providerRegistry.GetAllProviders()
+		for _, provider := range providers {
+			externalProducts, err := provider.GetProducts()
+			if err != nil {
+				slog.Error("failed to get products from provider", "provider", provider.GetName(), "error", err)
+				continue // Skip this provider if it fails
+			}
+
+			for _, p := range externalProducts {
+				response = append(response, models.ProductResponse{
+					// ID is 0 because it's not an internal product
+					Name:                   p.Name,
+					Price:                  p.Price,
+					Stock:                  -1, // External products are like subscriptions
+					Type:                   "subscription",
+					SubscriptionPeriodDays: 30, // Assuming 30 days for now, this could be part of ProviderProduct
+					Provider:               provider.GetName(),
+					ExternalID:             p.ExternalID,
+				})
+			}
+		}
+	}
+
 	return response, nil
 }
 
 func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
+	// This now only works for internal products. 
+	// To support external products, we would need to change the ID system or the method signature.
 	product, err := s.productRepo.GetProductByID(id)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Resource: "Product", ID: id}

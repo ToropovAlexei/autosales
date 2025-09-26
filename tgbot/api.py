@@ -23,11 +23,22 @@ class APIClient:
     async def get_categories(self):
         return await self._request("GET", "/categories")
 
-    async def get_products(self, category_id: int):
-        return await self._request("GET", f"/products?category_id={category_id}")
+    async def get_products(self, category_id: int = None):
+        endpoint = "/products"
+        if category_id:
+            endpoint += f"?category_ids[]={category_id}"
+        return await self._request("GET", endpoint)
 
     async def buy_product(self, user_id: int, product_id: int):
         return await self._request("POST", "/orders/buy-from-balance", json={"user_id": user_id, "product_id": product_id, "quantity": 1})
+
+    async def buy_external_product(self, user_id: int, provider: str, external_product_id: str):
+        return await self._request("POST", "/orders/buy-from-balance", json={
+            "user_id": user_id, 
+            "provider": provider, 
+            "external_product_id": external_product_id, 
+            "quantity": 1
+        })
 
     async def create_deposit(self, user_id: int, amount: int):
         return await self._request("POST", "/balance/deposit", json={"user_id": user_id, "amount": amount})

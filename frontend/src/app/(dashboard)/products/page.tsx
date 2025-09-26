@@ -43,6 +43,10 @@ interface Product {
   category_id: number;
   price: number;
   stock: number;
+  type: "item" | "subscription";
+  subscription_period_days: number;
+  provider?: string;
+  external_id?: string;
 }
 
 interface ProductFormData {
@@ -50,6 +54,8 @@ interface ProductFormData {
   category_id: number;
   price: number;
   initial_stock: number;
+  type: "item" | "subscription";
+  subscription_period_days: number;
 }
 
 export default function ProductsPage() {
@@ -64,6 +70,8 @@ export default function ProductsPage() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [price, setPrice] = useState("");
   const [initialStock, setInitialStock] = useState("");
+  const [productType, setProductType] = useState<"item" | "subscription">("item");
+  const [subscriptionDays, setSubscriptionDays] = useState("30");
 
   const { data: products, isLoading: isLoadingProducts } = useList<Product>({
     endpoint: ENDPOINTS.PRODUCTS,
@@ -79,18 +87,22 @@ export default function ProductsPage() {
   );
 
   const getCategoryName = (categoryId: number) => {
+    if (!categoryId) return "N/A";
     return findCategoryNameById(categories?.data || [], categoryId) || "N/A";
   };
 
   const addMutation = useMutation({
-    mutationFn: (newProduct: ProductFormData) =>
+    mutationFn: (newProduct: Partial<ProductFormData>) =>
       api.post("/products", newProduct),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      // Reset form
       setName("");
       setCategoryId(null);
       setPrice("");
       setInitialStock("");
+      setProductType("item");
+      setSubscriptionDays("30");
       setIsAddOpen(false);
     },
   });
@@ -117,14 +129,24 @@ export default function ProductsPage() {
   });
 
   const handleAddProduct = () => {
-    if (name.trim() !== "" && categoryId && price && initialStock) {
-      addMutation.mutate({
-        name,
-        category_id: categoryId,
-        price: parseFloat(price),
-        initial_stock: parseInt(initialStock, 10),
-      });
+    if (name.trim() === "" || !categoryId || !price) return;
+
+    const newProduct: Partial<ProductFormData> = {
+      name,
+      category_id: categoryId,
+      price: parseFloat(price),
+      type: productType,
+    };
+
+    if (productType === "item") {
+      newProduct.initial_stock = parseInt(initialStock, 10) || 0;
+      newProduct.subscription_period_days = 0;
+    } else {
+      newProduct.initial_stock = 0;
+      newProduct.subscription_period_days = parseInt(subscriptionDays, 10) || 30;
     }
+
+    addMutation.mutate(newProduct);
   };
 
   const handleEditProduct = () => {
@@ -158,6 +180,25 @@ export default function ProductsPage() {
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
+                <div className="grid items-center grid-cols-4 gap-4">
+                  <Label htmlFor="type" className="text-right">
+                    Тип
+                  </Label>
+                  <Select
+                    onValueChange={(value: "item" | "subscription") =>
+                      setProductType(value)
+                    }
+                    defaultValue="item"
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Выберите тип" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="item">Товар</SelectItem>
+                      <SelectItem value="subscription">Подписка</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="grid items-center grid-cols-4 gap-4">
                   <Label htmlFor="name" className="text-right">
                     Название
@@ -200,18 +241,33 @@ export default function ProductsPage() {
                     className="col-span-3"
                   />
                 </div>
-                <div className="grid items-center grid-cols-4 gap-4">
-                  <Label htmlFor="initial_stock" className="text-right">
-                    Начальный остаток
-                  </Label>
-                  <Input
-                    id="initial_stock"
-                    type="number"
-                    value={initialStock}
-                    onChange={(e) => setInitialStock(e.target.value)}
-                    className="col-span-3"
-                  />
-                </div>
+                {productType === "item" ? (
+                  <div className="grid items-center grid-cols-4 gap-4">
+                    <Label htmlFor="initial_stock" className="text-right">
+                      Начальный остаток
+                    </Label>
+                    <Input
+                      id="initial_stock"
+                      type="number"
+                      value={initialStock}
+                      onChange={(e) => setInitialStock(e.target.value)}
+                      className="col-span-3"
+                    />
+                  </div>
+                ) : (
+                  <div className="grid items-center grid-cols-4 gap-4">
+                    <Label htmlFor="subscription_days" className="text-right">
+                      Срок (дней)
+                    </Label>
+                    <Input
+                      id="subscription_days"
+                      type="number"
+                      value={subscriptionDays}
+                      onChange={(e) => setSubscriptionDays(e.target.value)}
+                      className="col-span-3"
+                    />
+                  </div>
+                )}
               </div>
               <DialogFooter>
                 <Button
@@ -242,6 +298,7 @@ export default function ProductsPage() {
             <TableRow>
               <TableHead>ID</TableHead>
               <TableHead>Название</TableHead>
+              <TableHead>Тип</TableHead>
               <TableHead>Категория</TableHead>
               <TableHead>Цена</TableHead>
               <TableHead>Остаток</TableHead>
@@ -250,17 +307,27 @@ export default function ProductsPage() {
           </TableHeader>
           <TableBody>
             {products?.data?.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell>{product.id}</TableCell>
+              <TableRow key={product.id || product.external_id}>
+                <TableCell>{product.provider ? "-" : product.id}</TableCell>
                 <TableCell>{product.name}</TableCell>
+                <TableCell>
+                  {product.provider
+                    ? `Внешний (${product.provider})`
+                    : product.type === "subscription"
+                    ? `Подписка (${product.subscription_period_days} дн.)`
+                    : "Товар"}
+                </TableCell>
                 <TableCell>{getCategoryName(product.category_id)}</TableCell>
                 <TableCell>{product.price} ₽</TableCell>
-                <TableCell>{product.stock}</TableCell>
+                <TableCell>
+                  {product.type === "subscription" ? "∞" : product.stock}
+                </TableCell>
                 <TableCell className="text-right">
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => openEditDialog(product)}
+                    disabled={!!product.provider}
                   >
                     ✏️
                   </Button>
@@ -268,6 +335,7 @@ export default function ProductsPage() {
                     variant="ghost"
                     size="icon"
                     onClick={() => deleteMutation.mutate(product.id)}
+                    disabled={!!product.provider}
                   >
                     🗑️
                   </Button>

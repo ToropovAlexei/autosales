@@ -7,42 +7,54 @@ from api import api_client
 
 router = Router()
 
+async def process_buy_result(callback_query: CallbackQuery, result: dict):
+    if result.get("success"):
+        data = result.get("data")
+        if not isinstance(data, dict):
+            logging.error(f"API returned success but data is not a dict: {data}")
+            await callback_query.message.edit_text("Произошла ошибка при обработке ответа сервера.")
+            return
+
+        new_balance = data.get("balance")
+        product_name = data.get("product_name")
+        product_price = data.get("product_price")
+
+        if new_balance is not None and product_name and product_price is not None:
+            await callback_query.message.edit_text(
+                f"✅ Поздравляем! Вы успешно купили товар {hbold(product_name)} за {hbold(f'{product_price} ₽')}.\n\n"
+                f"💳 Ваш новый баланс: {hbold(f'{new_balance} ₽')}",
+                parse_mode="HTML"
+            )
+        else:
+            logging.error(f"Missing keys in successful buy response data: {data}")
+            await callback_query.message.edit_text("Произошла ошибка при обработке покупки.")
+    else:
+        error = result.get("error", "Произошла неизвестная ошибка.")
+        if error == "Insufficient Balance":
+            error_message = "😔 Недостаточно средств на балансе для совершения покупки. Пожалуйста, пополните баланс."
+        elif error == "Product out of stock":
+            error_message = "😔 К сожалению, этот товар закончился."
+        else:
+            error_message = f"Произошла ошибка: {error}"
+        await callback_query.message.edit_text(error_message)
+
 @router.callback_query(F.data.startswith("buy_"))
 async def buy_handler(callback_query: CallbackQuery):
-    product_id = int(callback_query.data.split("_")[1])
-    user_id = callback_query.from_user.id
     try:
-        result = await api_client.buy_product(user_id, product_id)
+        parts = callback_query.data.split('_')
+        user_id = callback_query.from_user.id
 
-        if result.get("success"):
-            data = result.get("data")
-            if not isinstance(data, dict):
-                logging.error(f"API returned success but data is not a dict: {data}")
-                await callback_query.message.edit_text("Произошла ошибка при обработке ответа сервера.")
-                return
-
-            new_balance = data.get("balance")
-            product_name = data.get("product_name")
-            product_price = data.get("product_price")
-
-            if new_balance is not None and product_name and product_price is not None:
-                await callback_query.message.edit_text(
-                    f"✅ Поздравляем! Вы успешно купили товар {hbold(product_name)} за {hbold(f'{product_price} ₽')}.\n\n"
-                    f"💳 Ваш новый баланс: {hbold(f'{new_balance} ₽')}",
-                    parse_mode="HTML"
-                )
-            else:
-                logging.error(f"Missing keys in successful buy response data: {data}")
-                await callback_query.message.edit_text("Произошла ошибка при обработке покупки.")
+        if parts[1] == 'ext':
+            # External product: buy_ext_{provider}_{external_id}
+            _, _, provider, external_id = parts
+            result = await api_client.buy_external_product(user_id, provider, external_id)
         else:
-            error = result.get("error", "Произошла неизвестная ошибка.")
-            if error == "Insufficient Balance":
-                error_message = "😔 Недостаточно средств на балансе для совершения покупки. Пожалуйста, пополните баланс."
-            elif error == "Product out of stock":
-                error_message = "😔 К сожалению, этот товар закончился."
-            else:
-                error_message = f"Произошла ошибка: {error}"
-            await callback_query.message.edit_text(error_message)
+            # Internal product: buy_{product_id}
+            _, product_id_str = parts
+            product_id = int(product_id_str)
+            result = await api_client.buy_product(user_id, product_id)
+        
+        await process_buy_result(callback_query, result)
 
     except Exception as e:
         logging.exception("An unexpected error occurred in buy_handler")

@@ -11,7 +11,8 @@ type UserSubscription struct {
 	OrderID   uint      `gorm:"index"`
 	Order     Order     `gorm:"foreignKey:OrderID"`
 	ExpiresAt time.Time `gorm:"index"`
-	IsActive  bool      `gorm:"default:true"`
+	IsActive      bool      `gorm:"default:true"`
+	ProvisionedID string    `gorm:"index"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

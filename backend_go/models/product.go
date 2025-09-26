@@ -18,4 +18,6 @@ type ProductResponse struct {
 	Stock                  int      `json:"stock"`
 	Type                   string   `json:"type"`
 	SubscriptionPeriodDays int      `json:"subscription_period_days"`
+	Provider               string   `json:"provider,omitempty"`
+	ExternalID             string   `json:"external_id,omitempty"`
 }

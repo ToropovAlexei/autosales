@@ -3,6 +3,8 @@ package di
 import (
 	"frbktg/backend_go/config"
 	"frbktg/backend_go/db"
+	"frbktg/backend_go/external_providers"
+	"frbktg/backend_go/external_providers/contms"
 	"frbktg/backend_go/handlers"
 	"frbktg/backend_go/repositories"
 	"frbktg/backend_go/services"
@@ -17,6 +19,7 @@ type Container struct {
 	DB                   *gorm.DB
 	AppSettings          config.Settings
 	Logger               *slog.Logger
+	ProviderRegistry     *external_providers.ProviderRegistry
 	TokenService         services.TokenService
 	AuthService          services.AuthService
 	UserService          services.UserService
@@ -53,6 +56,11 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 
 	logger := slog.Default()
 
+	// Init provider registry
+	providerRegistry := external_providers.NewProviderRegistry()
+	contmsAdapter := contms.NewContMSProxyAdapter("http://contms.ru:2525/api")
+	providerRegistry.RegisterProvider(contmsAdapter)
+
 	// Init repositories
 	userRepo := repositories.NewUserRepository(db)
 	botUserRepo := repositories.NewBotUserRepository(db)
@@ -71,10 +79,10 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	tokenService := services.NewTokenService()
 	authService := services.NewAuthService(userRepo, tokenService, appSettings)
 	userService := services.NewUserService(userRepo, botUserRepo)
-	productService := services.NewProductService(productRepo)
+	productService := services.NewProductService(productRepo, providerRegistry)
 	categoryService := services.NewCategoryService(categoryRepo)
 	referralService := services.NewReferralService(userRepo, botUserRepo, referralRepo, transactionRepo)
-	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, userSubscriptionRepo, referralService)
+	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, userSubscriptionRepo, referralService, providerRegistry)
 	transactionService := services.NewTransactionService(transactionRepo)
 	dashboardService := services.NewDashboardService(dashboardRepo)
 	balanceService := services.NewBalanceService(balanceRepo, botUserRepo)
@@ -101,6 +109,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 		DB:                   db,
 		AppSettings:          appSettings,
 		Logger:               logger,
+		ProviderRegistry:     providerRegistry,
 		TokenService:         tokenService,
 		AuthService:          authService,
 		UserService:          userService,
