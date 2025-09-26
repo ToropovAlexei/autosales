@@ -6,6 +6,7 @@ import (
 	"frbktg/backend_go/handlers"
 	"frbktg/backend_go/repositories"
 	"frbktg/backend_go/services"
+	"frbktg/backend_go/workers"
 	"log/slog"
 
 	"gorm.io/gorm"
@@ -13,33 +14,34 @@ import (
 
 // Container holds all the dependencies of the application.
 type Container struct {
-	DB                 *gorm.DB
-	AppSettings        config.Settings
-	Logger             *slog.Logger
-	TokenService       services.TokenService
-	AuthService        services.AuthService
-	UserService        services.UserService
-	ProductService     services.ProductService
-	CategoryService    services.CategoryService
-	ReferralService    services.ReferralService
-	OrderService       services.OrderService
-	TransactionService services.TransactionService
-	DashboardService   services.DashboardService
-	BalanceService     services.BalanceService
-	StockService       services.StockService
-	AdminService       services.AdminService
-	UserRepo           repositories.UserRepository
-	AuthHandler        *handlers.AuthHandler
-	UserHandler        *handlers.UserHandler
-	ProductHandler     *handlers.ProductHandler
-	CategoryHandler    *handlers.CategoryHandler
-	OrderHandler       *handlers.OrderHandler
-	TransactionHandler *handlers.TransactionHandler
-	ReferralHandler    *handlers.ReferralHandler
-	DashboardHandler   *handlers.DashboardHandler
-	BalanceHandler     *handlers.BalanceHandler
-	StockHandler       *handlers.StockHandler
-	AdminHandler       *handlers.AdminHandler
+	DB                   *gorm.DB
+	AppSettings          config.Settings
+	Logger               *slog.Logger
+	TokenService         services.TokenService
+	AuthService          services.AuthService
+	UserService          services.UserService
+	ProductService       services.ProductService
+	CategoryService      services.CategoryService
+	ReferralService      services.ReferralService
+	OrderService         services.OrderService
+	TransactionService   services.TransactionService
+	DashboardService     services.DashboardService
+	BalanceService       services.BalanceService
+	StockService         services.StockService
+	AdminService         services.AdminService
+	UserRepo             repositories.UserRepository
+	AuthHandler          *handlers.AuthHandler
+	UserHandler          *handlers.UserHandler
+	ProductHandler       *handlers.ProductHandler
+	CategoryHandler      *handlers.CategoryHandler
+	OrderHandler         *handlers.OrderHandler
+	TransactionHandler   *handlers.TransactionHandler
+	ReferralHandler      *handlers.ReferralHandler
+	DashboardHandler     *handlers.DashboardHandler
+	BalanceHandler       *handlers.BalanceHandler
+	StockHandler         *handlers.StockHandler
+	AdminHandler         *handlers.AdminHandler
+	SubscriptionWorker   *workers.SubscriptionWorker
 }
 
 // NewContainer creates a new dependency container.
@@ -48,6 +50,8 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	logger := slog.Default()
 
 	// Init repositories
 	userRepo := repositories.NewUserRepository(db)
@@ -61,6 +65,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	balanceRepo := repositories.NewBalanceRepository(db)
 	stockRepo := repositories.NewStockRepository(db)
 	adminRepo := repositories.NewAdminRepository(db)
+	userSubscriptionRepo := repositories.NewUserSubscriptionRepository(db)
 
 	// Init services
 	tokenService := services.NewTokenService()
@@ -69,12 +74,15 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	productService := services.NewProductService(productRepo)
 	categoryService := services.NewCategoryService(categoryRepo)
 	referralService := services.NewReferralService(userRepo, botUserRepo, referralRepo, transactionRepo)
-	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, referralService)
+	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, userSubscriptionRepo, referralService)
 	transactionService := services.NewTransactionService(transactionRepo)
 	dashboardService := services.NewDashboardService(dashboardRepo)
 	balanceService := services.NewBalanceService(balanceRepo, botUserRepo)
 	stockService := services.NewStockService(stockRepo)
 	adminService := services.NewAdminService(adminRepo, botUserRepo)
+
+	// Init workers
+	subscriptionWorker := workers.NewSubscriptionWorker(orderService, userSubscriptionRepo, logger)
 
 	// Init handlers
 	authHandler := handlers.NewAuthHandler(authService)
@@ -90,32 +98,33 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	adminHandler := handlers.NewAdminHandler(adminService)
 
 	return &Container{
-		DB:                 db,
-		AppSettings:        appSettings,
-		Logger:             slog.Default(),
-		TokenService:       tokenService,
-		AuthService:        authService,
-		UserService:        userService,
-		ProductService:     productService,
-		CategoryService:    categoryService,
-		ReferralService:    referralService,
-		OrderService:       orderService,
-		TransactionService: transactionService,
-		DashboardService:   dashboardService,
-		BalanceService:     balanceService,
-		StockService:       stockService,
-		AdminService:       adminService,
-		UserRepo:           userRepo,
-		AuthHandler:        authHandler,
-		UserHandler:        userHandler,
-		ProductHandler:     productHandler,
-		CategoryHandler:    categoryHandler,
-		OrderHandler:       orderHandler,
-		TransactionHandler: transactionHandler,
-		ReferralHandler:    referralHandler,
-		DashboardHandler:   dashboardHandler,
-		BalanceHandler:     balanceHandler,
-		StockHandler:       stockHandler,
-		AdminHandler:       adminHandler,
+		DB:                   db,
+		AppSettings:          appSettings,
+		Logger:               logger,
+		TokenService:         tokenService,
+		AuthService:          authService,
+		UserService:          userService,
+		ProductService:       productService,
+		CategoryService:      categoryService,
+		ReferralService:      referralService,
+		OrderService:         orderService,
+		TransactionService:   transactionService,
+		DashboardService:     dashboardService,
+		BalanceService:       balanceService,
+		StockService:         stockService,
+		AdminService:         adminService,
+		UserRepo:             userRepo,
+		AuthHandler:          authHandler,
+		UserHandler:          userHandler,
+		ProductHandler:       productHandler,
+		CategoryHandler:      categoryHandler,
+		OrderHandler:         orderHandler,
+		TransactionHandler:   transactionHandler,
+		ReferralHandler:      referralHandler,
+		DashboardHandler:     dashboardHandler,
+		BalanceHandler:       balanceHandler,
+		StockHandler:         stockHandler,
+		AdminHandler:         adminHandler,
+		SubscriptionWorker:   subscriptionWorker,
 	}, nil
 }

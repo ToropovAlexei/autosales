@@ -30,10 +30,12 @@ func (h *ProductHandler) GetProductsHandler(c *gin.Context) {
 }
 
 type productCreatePayload struct {
-	Name         string  `json:"name" binding:"required"`
-	CategoryID   uint    `json:"category_id" binding:"required"`
-	Price        float64 `json:"price" binding:"gte=0"`
-	InitialStock int     `json:"initial_stock" binding:"gte=0"`
+	Name                   string  `json:"name" binding:"required"`
+	CategoryID             uint    `json:"category_id" binding:"required"`
+	Price                  float64 `json:"price" binding:"gte=0"`
+	InitialStock           int     `json:"initial_stock" binding:"gte=0"`
+	Type                   string  `json:"type" binding:"oneof=item subscription"`
+	SubscriptionPeriodDays int     `json:"subscription_period_days" binding:"gte=0"`
 }
 
 func (h *ProductHandler) CreateProductHandler(c *gin.Context) {
@@ -43,7 +45,7 @@ func (h *ProductHandler) CreateProductHandler(c *gin.Context) {
 		return
 	}
 
-	product, err := h.productService.CreateProduct(json.Name, json.CategoryID, json.Price, json.InitialStock)
+	product, err := h.productService.CreateProduct(json.Name, json.CategoryID, json.Price, json.InitialStock, json.Type, json.SubscriptionPeriodDays)
 	if err != nil {
 		c.Error(err)
 		return
@@ -69,9 +71,11 @@ func (h *ProductHandler) GetProductHandler(c *gin.Context) {
 }
 
 type productUpdatePayload struct {
-	Name       string  `json:"name" binding:"required"`
-	CategoryID uint    `json:"category_id" binding:"required"`
-	Price      float64 `json:"price" binding:"gte=0"`
+	Name                   string  `json:"name" binding:"required"`
+	CategoryID             uint    `json:"category_id" binding:"required"`
+	Price                  float64 `json:"price" binding:"gte=0"`
+	Type                   string  `json:"type" binding:"oneof=item subscription"`
+	SubscriptionPeriodDays int     `json:"subscription_period_days" binding:"gte=0"`
 }
 
 func (h *ProductHandler) UpdateProductHandler(c *gin.Context) {
@@ -88,9 +92,11 @@ func (h *ProductHandler) UpdateProductHandler(c *gin.Context) {
 	}
 
 	productData := models.Product{
-		Name:       json.Name,
-		CategoryID: json.CategoryID,
-		Price:      json.Price,
+		Name:                   json.Name,
+		CategoryID:             json.CategoryID,
+		Price:                  json.Price,
+		Type:                   json.Type,
+		SubscriptionPeriodDays: json.SubscriptionPeriodDays,
 	}
 
 	updatedProduct, err := h.productService.UpdateProduct(uint(id), productData)

@@ -10,7 +10,7 @@ import (
 type ProductService interface {
 	GetProducts(categoryIDs []string) ([]models.ProductResponse, error)
 	GetProduct(id uint) (*models.ProductResponse, error)
-	CreateProduct(name string, categoryID uint, price float64, initialStock int) (*models.ProductResponse, error)
+	CreateProduct(name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int) (*models.ProductResponse, error)
 	UpdateProduct(id uint, data models.Product) (*models.ProductResponse, error)
 	DeleteProduct(id uint) error
 	CreateStockMovement(productID uint, movementType models.StockMovementType, quantity int, description string, orderID *uint) (*models.StockMovement, error)
@@ -32,16 +32,24 @@ func (s *productService) GetProducts(categoryIDs []string) ([]models.ProductResp
 
 	var response []models.ProductResponse
 	for _, p := range products {
-		stock, err := s.productRepo.GetStockForProduct(p.ID)
-		if err != nil {
-			return nil, err
+		stock := 0
+		if p.Type == "item" {
+			stock, err = s.productRepo.GetStockForProduct(p.ID)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			stock = -1 // Infinite stock for subscriptions
 		}
+
 		response = append(response, models.ProductResponse{
-			ID:         p.ID,
-			Name:       p.Name,
-			Price:      p.Price,
-			CategoryID: p.CategoryID,
-			Stock:      stock,
+			ID:                     p.ID,
+			Name:                   p.Name,
+			Price:                  p.Price,
+			CategoryID:             p.CategoryID,
+			Stock:                  stock,
+			Type:                   p.Type,
+			SubscriptionPeriodDays: p.SubscriptionPeriodDays,
 		})
 	}
 
@@ -54,53 +62,70 @@ func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
 		return nil, &apperrors.ErrNotFound{Resource: "Product", ID: id}
 	}
 
-	stock, err := s.productRepo.GetStockForProduct(product.ID)
-	if err != nil {
-		return nil, err
+	stock := 0
+	if product.Type == "item" {
+		stock, err = s.productRepo.GetStockForProduct(product.ID)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		stock = -1 // Infinite stock for subscriptions
 	}
 
 	return &models.ProductResponse{
-		ID:         product.ID,
-		Name:       product.Name,
-		Price:      product.Price,
-		CategoryID: product.CategoryID,
-		Stock:      stock,
+		ID:                     product.ID,
+		Name:                   product.Name,
+		Price:                  product.Price,
+		CategoryID:             product.CategoryID,
+		Stock:                  stock,
+		Type:                   product.Type,
+		SubscriptionPeriodDays: product.SubscriptionPeriodDays,
 	}, nil
 }
 
-func (s *productService) CreateProduct(name string, categoryID uint, price float64, initialStock int) (*models.ProductResponse, error) {
+func (s *productService) CreateProduct(name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int) (*models.ProductResponse, error) {
 	_, err := s.productRepo.FindCategoryByID(categoryID)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Resource: "Category", ID: categoryID}
 	}
 
 	product := &models.Product{
-		Name:       name,
-		CategoryID: categoryID,
-		Price:      price,
+		Name:                   name,
+		CategoryID:             categoryID,
+		Price:                  price,
+		Type:                   productType,
+		SubscriptionPeriodDays: subscriptionPeriodDays,
 	}
 	if err := s.productRepo.CreateProduct(product); err != nil {
 		return nil, err
 	}
 
-	stockMovement := &models.StockMovement{
-		ProductID:   product.ID,
-		Type:        models.Initial,
-		Quantity:    initialStock,
-		Description: "Initial stock",
-		CreatedAt:   time.Now().UTC(),
-	}
-	if err := s.productRepo.CreateStockMovement(stockMovement); err != nil {
-		// Here you might want to consider rolling back the product creation
-		return nil, err
+	stock := 0
+	if product.Type == "item" {
+		stockMovement := &models.StockMovement{
+			ProductID:   product.ID,
+			Type:        models.Initial,
+			Quantity:    initialStock,
+			Description: "Initial stock",
+			CreatedAt:   time.Now().UTC(),
+		}
+		if err := s.productRepo.CreateStockMovement(stockMovement); err != nil {
+			// Here you might want to consider rolling back the product creation
+			return nil, err
+		}
+		stock = initialStock
+	} else {
+		stock = -1 // Infinite stock for subscriptions
 	}
 
 	return &models.ProductResponse{
-		ID:         product.ID,
-		Name:       product.Name,
-		Price:      product.Price,
-		CategoryID: product.CategoryID,
-		Stock:      initialStock,
+		ID:                     product.ID,
+		Name:                   product.Name,
+		Price:                  product.Price,
+		CategoryID:             product.CategoryID,
+		Stock:                  stock,
+		Type:                   product.Type,
+		SubscriptionPeriodDays: product.SubscriptionPeriodDays,
 	}, nil
 }
 
@@ -130,9 +155,13 @@ func (s *productService) DeleteProduct(id uint) error {
 }
 
 func (s *productService) CreateStockMovement(productID uint, movementType models.StockMovementType, quantity int, description string, orderID *uint) (*models.StockMovement, error) {
-	_, err := s.productRepo.GetProductByID(productID)
+	product, err := s.productRepo.GetProductByID(productID)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Resource: "Product", ID: productID}
+	}
+
+	if product.Type != "item" {
+		return nil, apperrors.New(400, "stock movements are not applicable to subscription products", nil)
 	}
 
 	movement := &models.StockMovement{

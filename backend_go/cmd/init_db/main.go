@@ -29,6 +29,7 @@ func main() {
 		&models.StockMovement{},
 		&models.ReferralBot{},
 		&models.RefTransaction{},
+		&models.UserSubscription{},
 	); migrateErr != nil {
 		log.Fatalf("failed to migrate database: %v", migrateErr)
 	}

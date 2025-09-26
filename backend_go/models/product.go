@@ -3,9 +3,11 @@ package models
 type Product struct {
 	ID         uint   `gorm:"primaryKey"`
 	Name       string `gorm:"index"`
-	Price      float64
-	CategoryID uint
-	Category   Category `gorm:"foreignKey:CategoryID"`
+	Price                  float64
+	CategoryID             uint
+	Category               Category `gorm:"foreignKey:CategoryID"`
+	Type                   string   `gorm:"default:'item'"`
+	SubscriptionPeriodDays int      `gorm:"default:0"`
 }
 
 type ProductResponse struct {
@@ -13,5 +15,7 @@ type ProductResponse struct {
 	Name       string  `json:"name"`
 	Price      float64 `json:"price"`
 	CategoryID uint    `json:"category_id"`
-	Stock      int     `json:"stock"`
+	Stock                  int      `json:"stock"`
+	Type                   string   `json:"type"`
+	SubscriptionPeriodDays int      `json:"subscription_period_days"`
 }
