@@ -47,12 +47,12 @@ async def deposit_handler(callback_query: CallbackQuery):
 @router.callback_query(F.data.startswith('deposit_'))
 async def deposit_amount_handler(callback_query: CallbackQuery):
     amount = int(callback_query.data.split('_')[1])
-    user_id = callback_query.from_user.id
+    telegram_id = callback_query.from_user.id
     try:
         seller_info_response = await api_client.get_seller_info()
         referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
 
-        response = await api_client.create_deposit(user_id, amount)
+        response = await api_client.create_deposit(telegram_id, amount)
         if response.get("success"):
             await callback_query.message.edit_text(
                 f"✅ Заявка на пополнение на {hbold(f'{amount} ₽')} успешно создана.\n\n" 

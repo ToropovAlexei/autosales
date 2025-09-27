@@ -78,7 +78,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	// Init services
 	tokenService := services.NewTokenService()
 	authService := services.NewAuthService(userRepo, tokenService, appSettings)
-	userService := services.NewUserService(userRepo, botUserRepo)
+	userService := services.NewUserService(userRepo, botUserRepo, userSubscriptionRepo, orderRepo)
 	productService := services.NewProductService(productRepo, providerRegistry)
 	categoryService := services.NewCategoryService(categoryRepo)
 	referralService := services.NewReferralService(userRepo, botUserRepo, referralRepo, transactionRepo)

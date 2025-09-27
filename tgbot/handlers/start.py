@@ -55,7 +55,7 @@ async def start_handler(message: Message, state: FSMContext):
             if is_new or not has_passed_captcha:
                 captcha_image, correct_answer, options = generate_captcha_and_options()
                 await state.set_state(CaptchaState.waiting_for_answer)
-                await state.update_data(correct_answer=correct_answer, user_id=user_data["id"])
+                await state.update_data(correct_answer=correct_answer, user_id=user_data["id"], telegram_id=message.from_user.id)
                 
                 await message.answer_photo(
                     photo=BufferedInputFile(captcha_image.getvalue(), "captcha.png"),
@@ -85,15 +85,16 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
     data = await state.get_data()
     correct_answer = data.get("correct_answer")
     user_id = data.get("user_id")
+    telegram_id = data.get("telegram_id")
 
-    if user_id is None:
+    if user_id is None or telegram_id is None:
         await callback_query.answer("Произошла ошибка. Пожалуйста, попробуйте начать заново (/start).", show_alert=True)
         await state.clear()
         return
 
     if answer == correct_answer:
         try:
-            update_response = await api_client.update_user_captcha_status(user_id, True)
+            update_response = await api_client.update_user_captcha_status(telegram_id, True)
             if not update_response.get("success"):
                 await callback_query.answer(f"Ошибка при обновлении статуса капчи: {update_response.get('error')}", show_alert=True)
                 return

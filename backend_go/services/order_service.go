@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"fmt"
 	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/external_providers"
@@ -15,12 +16,12 @@ const percentDenominator = 100
 
 // BuyRequest defines the parameters for buying a product.
 type BuyRequest struct {
-	UserID           int64
-	ProductID        *uint
-	Provider         *string
-	ExternalProductID *string
-	Quantity         int
-	ReferralBotToken *string
+	UserID           int64   `json:"user_id"`
+	ProductID        *uint   `json:"product_id"`
+	Provider         *string `json:"provider"`
+	ExternalProductID *string `json:"external_product_id"`
+	Quantity         int     `json:"quantity"`
+	ReferralBotToken *string `json:"referral_bot_token"`
 }
 
 type OrderService interface {
@@ -130,7 +131,7 @@ func (s *orderService) handleInternalProductPurchase(tx *gorm.DB, user *models.B
 	}
 
 	if product.Type == "subscription" {
-		if err := s.handleSubscriptionPurchase(tx, user.ID, product, order.ID, ""); err != nil {
+		if err := s.handleSubscriptionPurchase(tx, user.ID, product, order.ID, "", nil); err != nil {
 			return nil, err
 		}
 	}
@@ -141,7 +142,15 @@ func (s *orderService) handleInternalProductPurchase(tx *gorm.DB, user *models.B
 
 	newBalance := balance - orderAmount
 	return &BuyResponse{
-		Order:        models.OrderSlimResponse(*order),
+		Order: models.OrderSlimResponse{
+			ID:        order.ID,
+			UserID:    order.UserID,
+			ProductID: order.ProductID,
+			Quantity:  order.Quantity,
+			Amount:    order.Amount,
+			Status:    order.Status,
+			CreatedAt: order.CreatedAt,
+		},
 		ProductName:  product.Name,
 		ProductPrice: product.Price,
 		Balance:      newBalance,
@@ -174,9 +183,10 @@ func (s *orderService) handleExternalProductPurchase(tx *gorm.DB, user *models.B
 
 	// Check provider type and provision accordingly
 	var provisionedID string
+	var provisionResult *external_providers.ProvisioningResult
 	if subProvider, ok := provider.(external_providers.SubscriptionProvider); ok {
 		// It's a subscription provider
-		provisionResult, err := subProvider.ProvisionSubscription(*req.ExternalProductID, *user, 30*24*time.Hour) // Assuming 30 days
+		provisionResult, err = subProvider.ProvisionSubscription(*req.ExternalProductID, *user, 30*24*time.Hour) // Assuming 30 days
 		if err != nil {
 			return nil, apperrors.New(500, "failed to provision external subscription", err)
 		}
@@ -186,7 +196,8 @@ func (s *orderService) handleExternalProductPurchase(tx *gorm.DB, user *models.B
 		return nil, apperrors.New(501, fmt.Sprintf("provider %s does not support the required provisioning interface", *req.Provider), nil)
 	}
 
-	balance, err := s.botUserRepo.WithTx(tx).GetUserBalance(user.ID)
+	var balance float64
+	balance, err = s.botUserRepo.WithTx(tx).GetUserBalance(user.ID)
 	if err != nil {
 		return nil, apperrors.New(500, "Failed to get user balance", err)
 	}
@@ -220,7 +231,7 @@ func (s *orderService) handleExternalProductPurchase(tx *gorm.DB, user *models.B
 		return nil, apperrors.New(500, "Failed to create order for external product", err)
 	}
 
-	if err := s.handleSubscriptionPurchase(tx, user.ID, placeholderProduct, order.ID, provisionedID); err != nil {
+	if err := s.handleSubscriptionPurchase(tx, user.ID, placeholderProduct, order.ID, provisionedID, provisionResult.Details); err != nil {
 		return nil, err
 	}
 
@@ -230,15 +241,29 @@ func (s *orderService) handleExternalProductPurchase(tx *gorm.DB, user *models.B
 
 	newBalance := balance - orderAmount
 	return &BuyResponse{
-		Order:        models.OrderSlimResponse(*order),
+		Order: models.OrderSlimResponse{
+			ID:        order.ID,
+			UserID:    order.UserID,
+			ProductID: order.ProductID,
+			Quantity:  order.Quantity,
+			Amount:    order.Amount,
+			Status:    order.Status,
+			CreatedAt: order.CreatedAt,
+		},
 		ProductName:  product.Name,
 		ProductPrice: product.Price,
 		Balance:      newBalance,
 	}, nil
 }
 
-func (s *orderService) handleSubscriptionPurchase(tx *gorm.DB, botUserID uint, product *models.Product, orderID uint, provisionedID string) error {
+func (s *orderService) handleSubscriptionPurchase(tx *gorm.DB, botUserID uint, product *models.Product, orderID uint, provisionedID string, details map[string]interface{}) error {
 	subscriptionRepo := s.userSubscriptionRepo.WithTx(tx)
+
+	// Convert details to JSON
+	detailsJSON, err := json.Marshal(details)
+	if err != nil {
+		return apperrors.New(500, "failed to marshal subscription details", err)
+	}
 
 	existingSub, err := subscriptionRepo.FindActiveSubscription(botUserID, product.ID)
 	if err != nil {
@@ -246,15 +271,18 @@ func (s *orderService) handleSubscriptionPurchase(tx *gorm.DB, botUserID uint, p
 	}
 
 	if existingSub != nil {
+		// Extend existing subscription
 		existingSub.ExpiresAt = existingSub.ExpiresAt.AddDate(0, 0, product.SubscriptionPeriodDays)
-		existingSub.OrderID = orderID
+		existingSub.OrderID = orderID // Link to the new order
 		if provisionedID != "" {
 			existingSub.ProvisionedID = provisionedID
 		}
+		existingSub.Details = detailsJSON
 		if err := subscriptionRepo.UpdateSubscription(existingSub); err != nil {
 			return apperrors.New(500, "failed to update subscription", err)
 		}
 	} else {
+		// Create new subscription
 		newSub := &models.UserSubscription{
 			BotUserID:     botUserID,
 			ProductID:     product.ID,
@@ -262,6 +290,7 @@ func (s *orderService) handleSubscriptionPurchase(tx *gorm.DB, botUserID uint, p
 			ExpiresAt:     time.Now().AddDate(0, 0, product.SubscriptionPeriodDays),
 			IsActive:      true,
 			ProvisionedID: provisionedID,
+			Details:       detailsJSON,
 		}
 		if err := subscriptionRepo.CreateSubscription(newSub); err != nil {
 			return apperrors.New(500, "failed to create subscription", err)

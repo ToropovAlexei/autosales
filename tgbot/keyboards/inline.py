@@ -11,8 +11,10 @@ class CategoryCallback(CallbackData, prefix="cat"):
 def main_menu(referral_program_enabled: bool = False, bot_type: str = "main"):
     buttons = [
         [InlineKeyboardButton(text="🛍️ Каталог", callback_data=CategoryCallback(action="view", category_id=0).pack())],
-        [InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="deposit")],
         [InlineKeyboardButton(text="💳 Баланс", callback_data="balance")],
+        [InlineKeyboardButton(text="🧾 Мои заказы", callback_data="my_orders")],
+        [InlineKeyboardButton(text="🧾 Мои подписки", callback_data="my_subscriptions")],
+        [InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="deposit")],
     ]
     if referral_program_enabled and bot_type == "main":
         buttons.append([InlineKeyboardButton(text="🤝 Реферальный магазин", callback_data="referral_program")])

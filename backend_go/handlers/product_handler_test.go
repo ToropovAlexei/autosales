@@ -42,7 +42,7 @@ func TestProductHandler_CreateProductHandler(t *testing.T) {
 		mockProductService := new(mocks.MockProductService)
 		product := &models.ProductResponse{ID: 1, Name: "Test Product"}
 
-		mockProductService.On("CreateProduct", "Test Product", uint(1), 10.0, 100).Return(product, nil)
+		mockProductService.On("CreateProduct", "Test Product", uint(1), 10.0, 100, "item", 0).Return(product, nil)
 
 		rr := httptest.NewRecorder()
 		c, _ := gin.CreateTestContext(rr)

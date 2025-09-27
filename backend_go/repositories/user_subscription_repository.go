@@ -8,9 +8,10 @@ import (
 
 type UserSubscriptionRepository interface {
 	WithTx(tx *gorm.DB) UserSubscriptionRepository
-	FindActiveSubscription(userID, productID uint) (*models.UserSubscription, error)
+	FindActiveSubscription(botUserID, productID uint) (*models.UserSubscription, error)
 	FindActiveSubscriptionByID(id uint) (*models.UserSubscription, error)
 	GetExpiringSubscriptions(within time.Duration) ([]models.UserSubscription, error)
+	FindSubscriptionsByBotUserID(botUserID uint) ([]models.UserSubscription, error)
 	CreateSubscription(subscription *models.UserSubscription) error
 	UpdateSubscription(subscription *models.UserSubscription) error
 }
@@ -57,6 +58,14 @@ func (r *gormUserSubscriptionRepository) GetExpiringSubscriptions(within time.Du
 	expiresAtLimit := now.Add(within)
 	err := r.db.Where("is_active = ? AND expires_at BETWEEN ? AND ?", true, now, expiresAtLimit).Find(&subscriptions).Error
 	if err != nil {
+		return nil, err
+	}
+	return subscriptions, nil
+}
+
+func (r *gormUserSubscriptionRepository) FindSubscriptionsByBotUserID(botUserID uint) ([]models.UserSubscription, error) {
+	var subscriptions []models.UserSubscription
+	if err := r.db.Preload("Product").Where("bot_user_id = ?", botUserID).Order("created_at desc").Find(&subscriptions).Error; err != nil {
 		return nil, err
 	}
 	return subscriptions, nil

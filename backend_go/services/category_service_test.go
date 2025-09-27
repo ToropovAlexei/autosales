@@ -36,7 +36,7 @@ func TestCategoryService_Create(t *testing.T) {
 	mockRepo.On("Create", mock.AnythingOfType("*models.Category")).Return(nil)
 
 	// Act
-	category, err := categoryService.Create("New Category")
+	category, err := categoryService.Create("New Category", nil)
 
 	// Assert
 	assert.NoError(t, err)
@@ -53,7 +53,7 @@ func TestCategoryService_Update_NotFound(t *testing.T) {
 	mockRepo.On("GetByID", uint(99)).Return(nil, errors.New("not found"))
 
 	// Act
-	category, err := categoryService.Update(99, "Updated Name")
+	category, err := categoryService.Update(99, "Updated Name", nil)
 
 	// Assert
 	assert.Error(t, err)

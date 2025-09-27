@@ -16,8 +16,8 @@ func (m *MockProductService) GetProduct(id uint) (*models.ProductResponse, error
 	args := m.Called(id)
 	return args.Get(0).(*models.ProductResponse), args.Error(1)
 }
-func (m *MockProductService) CreateProduct(name string, categoryID uint, price float64, initialStock int) (*models.ProductResponse, error) {
-	args := m.Called(name, categoryID, price, initialStock)
+func (m *MockProductService) CreateProduct(name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int) (*models.ProductResponse, error) {
+	args := m.Called(name, categoryID, price, initialStock, productType, subscriptionPeriodDays)
 	return args.Get(0).(*models.ProductResponse), args.Error(1)
 }
 func (m *MockProductService) UpdateProduct(id uint, data models.Product) (*models.ProductResponse, error) {

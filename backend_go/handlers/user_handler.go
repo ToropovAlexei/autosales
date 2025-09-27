@@ -113,13 +113,13 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 }
 
 func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
 	if err != nil {
 		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid user ID"})
 		return
 	}
 
-	user, balance, err := h.userService.GetBotUser(uint(id))
+	user, balance, err := h.userService.GetBotUserByTelegramID(id)
 	if err != nil {
 		c.Error(err)
 		return
@@ -137,7 +137,7 @@ func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
 }
 
 func (h *UserHandler) GetBalanceHandler(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
 	if err != nil {
 		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid user ID"})
 		return
@@ -152,7 +152,7 @@ func (h *UserHandler) GetBalanceHandler(c *gin.Context) {
 }
 
 func (h *UserHandler) GetUserTransactionsHandler(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
 	if err != nil {
 		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid user ID"})
 		return
@@ -176,7 +176,7 @@ type updateUserCaptchaStatusPayload struct {
 }
 
 func (h *UserHandler) UpdateUserCaptchaStatusHandler(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
 	if err != nil {
 		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid user ID"})
 		return
@@ -188,7 +188,7 @@ func (h *UserHandler) UpdateUserCaptchaStatusHandler(c *gin.Context) {
 		return
 	}
 
-	if err := h.userService.UpdateUserCaptchaStatus(uint(id), json.HasPassedCaptcha); err != nil {
+	if err := h.userService.UpdateUserCaptchaStatusByTelegramID(id, json.HasPassedCaptcha); err != nil {
 		c.Error(err)
 		return
 	}
@@ -208,4 +208,34 @@ func (h *UserHandler) GetSellerSettingsHandler(c *gin.Context) {
 		"referral_program_enabled": seller.ReferralProgramEnabled,
 		"referral_percentage":      seller.ReferralPercentage,
 	})
+}
+
+func (h *UserHandler) GetUserSubscriptionsHandler(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
+	if err != nil {
+		c.Error(&apperrors.ErrValidation{Message: "Invalid telegram ID"})
+		return
+	}
+	subscriptions, err := h.userService.GetUserSubscriptionsByTelegramID(id)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, subscriptions)
+}
+
+func (h *UserHandler) GetUserOrdersHandler(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
+	if err != nil {
+		c.Error(&apperrors.ErrValidation{Message: "Invalid telegram ID"})
+		return
+	}
+	orders, err := h.userService.GetUserOrdersByTelegramID(id)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, orders)
 }

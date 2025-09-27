@@ -29,13 +29,13 @@ func (m *MockCategoryService) GetByID(id uint) (*models.CategoryResponse, error)
 	return args.Get(0).(*models.CategoryResponse), args.Error(1)
 }
 
-func (m *MockCategoryService) Create(name string) (*models.CategoryResponse, error) {
-	args := m.Called(name)
+func (m *MockCategoryService) Create(name string, parentID *uint) (*models.CategoryResponse, error) {
+	args := m.Called(name, parentID)
 	return args.Get(0).(*models.CategoryResponse), args.Error(1)
 }
 
-func (m *MockCategoryService) Update(id uint, name string) (*models.CategoryResponse, error) {
-	args := m.Called(id, name)
+func (m *MockCategoryService) Update(id uint, name string, parentID *uint) (*models.CategoryResponse, error) {
+	args := m.Called(id, name, parentID)
 	return args.Get(0).(*models.CategoryResponse), args.Error(1)
 }
 
@@ -96,7 +96,7 @@ func TestCategoryHandler_CreateCategoryHandler(t *testing.T) {
 		mockService := new(MockCategoryService)
 		categoryName := "New Category"
 		mockCategory := &models.CategoryResponse{ID: 1, Name: categoryName}
-		mockService.On("Create", categoryName).Return(mockCategory, nil)
+		mockService.On("Create", categoryName, (*uint)(nil)).Return(mockCategory, nil)
 
 		rr := httptest.NewRecorder()
 		_, router := gin.CreateTestContext(rr)
@@ -214,7 +214,7 @@ func TestCategoryHandler_UpdateCategoryHandler(t *testing.T) {
 		mockService := new(MockCategoryService)
 		categoryName := "Updated Category"
 		mockCategory := &models.CategoryResponse{ID: 1, Name: categoryName}
-		mockService.On("Update", uint(1), categoryName).Return(mockCategory, nil)
+		mockService.On("Update", uint(1), categoryName, (*uint)(nil)).Return(mockCategory, nil)
 
 		rr := httptest.NewRecorder()
 		_, router := gin.CreateTestContext(rr)
@@ -236,7 +236,7 @@ func TestCategoryHandler_UpdateCategoryHandler(t *testing.T) {
 	t.Run("Not Found", func(t *testing.T) {
 		mockService := new(MockCategoryService)
 		categoryName := "Updated Category"
-		mockService.On("Update", uint(1), categoryName).Return((*models.CategoryResponse)(nil), &apperrors.ErrNotFound{Resource: "Category", ID: 1})
+		mockService.On("Update", uint(1), categoryName, (*uint)(nil)).Return((*models.CategoryResponse)(nil), &apperrors.ErrNotFound{Resource: "Category", ID: 1})
 
 		rr := httptest.NewRecorder()
 		_, router := gin.CreateTestContext(rr)

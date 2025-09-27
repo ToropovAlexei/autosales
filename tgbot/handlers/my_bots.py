@@ -126,7 +126,7 @@ async def add_bot_handler(callback_query: CallbackQuery, state: FSMContext):
 @router.message(ReferralState.waiting_for_token)
 async def token_handler(message: Message, state: FSMContext):
     token = message.text
-    user_id = message.from_user.id
+    telegram_id = message.from_user.id
 
     if not token or len(token.split(':')) != 2:
         await message.answer(
@@ -135,6 +135,18 @@ async def token_handler(message: Message, state: FSMContext):
         return
 
     try:
+        user_response = await api_client.get_user(telegram_id)
+        if not user_response.get("success"):
+            await message.answer(f"Не удалось получить информацию о пользователе: {user_response.get('error')}")
+            await state.clear()
+            return
+        
+        user_id = user_response.get("data", {}).get("id")
+        if not user_id:
+            await message.answer("Не удалось получить ID пользователя.")
+            await state.clear()
+            return
+
         seller_info_response = await api_client.get_seller_info()
         if not seller_info_response.get("success"):
             await message.answer("Не удалось получить информацию о продавце. Попробуйте позже.")
@@ -149,7 +161,7 @@ async def token_handler(message: Message, state: FSMContext):
             await state.clear()
             return
 
-        result = await api_client.create_referral_bot(user_id, seller_id, token)
+        result = await api_client.create_referral_bot(telegram_id, seller_id, token)
         
         if result.get("success"):
             await message.answer(

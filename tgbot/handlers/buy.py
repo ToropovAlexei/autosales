@@ -35,14 +35,14 @@ async def process_buy_result(callback_query: CallbackQuery, result: dict):
         elif error == "Product out of stock":
             error_message = "😔 К сожалению, этот товар закончился."
         else:
-            error_message = f"Произошла ошибка: {error}"
+            error_message = "Произошла непредвиденная ошибка. Попробуйте позже."
         await callback_query.message.edit_text(error_message)
 
 @router.callback_query(F.data.startswith("buy_"))
 async def buy_handler(callback_query: CallbackQuery):
     try:
         parts = callback_query.data.split('_')
-        user_id = callback_query.from_user.id
+        telegram_id = callback_query.from_user.id
 
         if len(parts) >= 2 and parts[1] == 'ext':
             # External product: buy_ext_{provider}_{external_id}
@@ -52,12 +52,12 @@ async def buy_handler(callback_query: CallbackQuery):
             
             provider = '_'.join(parts[2:-1])
             external_id = parts[-1]
-            result = await api_client.buy_external_product(user_id, provider, external_id)
+            result = await api_client.buy_external_product(telegram_id, provider, external_id)
         else:
             # Internal product: buy_{product_id}
             _, product_id_str = parts
             product_id = int(product_id_str)
-            result = await api_client.buy_product(user_id, product_id)
+            result = await api_client.buy_product(telegram_id, product_id)
         
         await process_buy_result(callback_query, result)
 

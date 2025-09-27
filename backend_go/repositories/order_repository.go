@@ -15,6 +15,7 @@ type OrderRepository interface {
 	GetOrderForUpdate(orderID uint) (*models.Order, error)
 	UpdateOrder(order *models.Order) error
 	GetOrders() ([]models.OrderResponse, error)
+	FindOrdersByBotUserID(botUserID uint) ([]models.Order, error)
 }
 
 type gormOrderRepository struct {
@@ -56,4 +57,12 @@ func (r *gormOrderRepository) GetOrders() ([]models.OrderResponse, error) {
 		return nil, err
 	}
 	return response, nil
+}
+
+func (r *gormOrderRepository) FindOrdersByBotUserID(botUserID uint) ([]models.Order, error) {
+	var orders []models.Order
+	if err := r.db.Preload("Product").Where("user_id = ?", botUserID).Order("created_at desc").Find(&orders).Error; err != nil {
+		return nil, err
+	}
+	return orders, nil
 }

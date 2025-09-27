@@ -7,22 +7,25 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (r *Router) UsersRouter(router *gin.Engine, userHandler *handlers.UserHandler) {
-	auth := router.Group("/api/users")
-	auth.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo))
-	{
-		auth.GET("/me", userHandler.GetMeHandler)
-		auth.PUT("/me/referral-settings", userHandler.UpdateReferralSettingsHandler)
-	}
+func (rtr *Router) UsersRouter(r *gin.Engine, userHandler *handlers.UserHandler) {
+	users := r.Group("/api/users")
+	// Service API, not for end-users
+	users.Use(middleware.ServiceTokenMiddleware(rtr.appSettings))
 
-	service := router.Group("/api/users")
-	service.Use(middleware.ServiceTokenMiddleware(r.appSettings))
-	{
-		service.POST("/register", userHandler.RegisterBotUserHandler)
-		service.GET("/:id", userHandler.GetBotUserHandler)
-		service.GET("/:id/balance", userHandler.GetBalanceHandler)
-		service.GET("/:id/transactions", userHandler.GetUserTransactionsHandler)
-		service.PUT("/:id/captcha-status", userHandler.UpdateUserCaptchaStatusHandler)
-		service.GET("/seller-settings", userHandler.GetSellerSettingsHandler)
-	}
+	users.POST("/register", userHandler.RegisterBotUserHandler)
+	users.GET("/:telegram_id", userHandler.GetBotUserHandler)
+	users.GET("/:telegram_id/balance", userHandler.GetBalanceHandler)
+	users.GET("/:telegram_id/transactions", userHandler.GetUserTransactionsHandler)
+	users.GET("/:telegram_id/subscriptions", userHandler.GetUserSubscriptionsHandler)
+	users.GET("/:telegram_id/orders", userHandler.GetUserOrdersHandler)
+	users.PUT("/:telegram_id/captcha-status", userHandler.UpdateUserCaptchaStatusHandler)
+
+	// Admin/Seller API
+	me := r.Group("/api/me")
+	me.Use(middleware.AuthMiddleware(rtr.appSettings, rtr.tokenService, rtr.userRepo))
+	me.GET("", userHandler.GetMeHandler)
+	me.PUT("/referral-settings", userHandler.UpdateReferralSettingsHandler)
+
+	// Public API
+	r.GET("/api/users/seller-settings", userHandler.GetSellerSettingsHandler)
 }

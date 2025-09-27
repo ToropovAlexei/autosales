@@ -31,6 +31,14 @@ func (m *MockUserService) GetUserTransactions(telegramID int64) ([]models.Transa
 	args := m.Called(telegramID)
 	return args.Get(0).([]models.Transaction), args.Error(1)
 }
+func (m *MockUserService) GetUserSubscriptionsByTelegramID(telegramID int64) ([]models.UserSubscription, error) {
+	args := m.Called(telegramID)
+	return args.Get(0).([]models.UserSubscription), args.Error(1)
+}
+func (m *MockUserService) GetUserOrdersByTelegramID(telegramID int64) ([]models.Order, error) {
+	args := m.Called(telegramID)
+	return args.Get(0).([]models.Order), args.Error(1)
+}
 func (m *MockUserService) UpdateUserCaptchaStatus(id uint, hasPassed bool) error {
 	return m.Called(id, hasPassed).Error(0)
 }
