@@ -169,7 +169,12 @@ async def product_handler(callback_query: CallbackQuery):
 @router.callback_query(F.data.startswith('extproduct_'))
 async def external_product_handler(callback_query: CallbackQuery):
     try:
-        _, provider, external_id = callback_query.data.split('_', 2)
+        parts = callback_query.data.split('_')
+        if len(parts) < 3:
+            raise ValueError("Invalid extproduct callback format")
+
+        provider = '_'.join(parts[1:-1])
+        external_id = parts[-1]
         
         response = await api_client.get_products()
         if response.get("success"):

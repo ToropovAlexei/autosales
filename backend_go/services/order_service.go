@@ -172,6 +172,20 @@ func (s *orderService) handleExternalProductPurchase(tx *gorm.DB, user *models.B
 		return nil, &apperrors.ErrNotFound{Resource: "External Product", ID: 0} // ID is not applicable here
 	}
 
+	// Check provider type and provision accordingly
+	var provisionedID string
+	if subProvider, ok := provider.(external_providers.SubscriptionProvider); ok {
+		// It's a subscription provider
+		provisionResult, err := subProvider.ProvisionSubscription(*req.ExternalProductID, *user, 30*24*time.Hour) // Assuming 30 days
+		if err != nil {
+			return nil, apperrors.New(500, "failed to provision external subscription", err)
+		}
+		provisionedID = provisionResult.ProvisionedID
+	} else {
+		// Here we would handle other provider types like ItemProvider
+		return nil, apperrors.New(501, fmt.Sprintf("provider %s does not support the required provisioning interface", *req.Provider), nil)
+	}
+
 	balance, err := s.botUserRepo.WithTx(tx).GetUserBalance(user.ID)
 	if err != nil {
 		return nil, apperrors.New(500, "Failed to get user balance", err)
@@ -206,13 +220,7 @@ func (s *orderService) handleExternalProductPurchase(tx *gorm.DB, user *models.B
 		return nil, apperrors.New(500, "Failed to create order for external product", err)
 	}
 
-	// Provision the product via the provider
-	provisionResult, err := provider.ProvisionProduct(*req.ExternalProductID, *user, 30*24*time.Hour) // Assuming 30 days
-	if err != nil {
-		return nil, apperrors.New(500, "failed to provision external product", err)
-	}
-
-	if err := s.handleSubscriptionPurchase(tx, user.ID, placeholderProduct, order.ID, provisionResult.ProvisionedID); err != nil {
+	if err := s.handleSubscriptionPurchase(tx, user.ID, placeholderProduct, order.ID, provisionedID); err != nil {
 		return nil, err
 	}
 
@@ -229,10 +237,10 @@ func (s *orderService) handleExternalProductPurchase(tx *gorm.DB, user *models.B
 	}, nil
 }
 
-func (s *orderService) handleSubscriptionPurchase(tx *gorm.DB, userID uint, product *models.Product, orderID uint, provisionedID string) error {
+func (s *orderService) handleSubscriptionPurchase(tx *gorm.DB, botUserID uint, product *models.Product, orderID uint, provisionedID string) error {
 	subscriptionRepo := s.userSubscriptionRepo.WithTx(tx)
 
-	existingSub, err := subscriptionRepo.FindActiveSubscription(userID, product.ID)
+	existingSub, err := subscriptionRepo.FindActiveSubscription(botUserID, product.ID)
 	if err != nil {
 		return apperrors.New(500, "failed to find active subscription", err)
 	}
@@ -248,7 +256,7 @@ func (s *orderService) handleSubscriptionPurchase(tx *gorm.DB, userID uint, prod
 		}
 	} else {
 		newSub := &models.UserSubscription{
-			UserID:        userID,
+			BotUserID:     botUserID,
 			ProductID:     product.ID,
 			OrderID:       orderID,
 			ExpiresAt:     time.Now().AddDate(0, 0, product.SubscriptionPeriodDays),
@@ -326,9 +334,9 @@ func (s *orderService) RenewSubscription(subscriptionID uint) error {
 			return nil
 		}
 
-		user, err := s.botUserRepo.WithTx(tx).FindByID(subscription.UserID)
+		user, err := s.botUserRepo.WithTx(tx).FindByID(subscription.BotUserID)
 		if err != nil {
-			return &apperrors.ErrNotFound{Resource: "BotUser", ID: subscription.UserID}
+			return &apperrors.ErrNotFound{Resource: "BotUser", ID: subscription.BotUserID}
 		}
 
 		product, err := s.productRepo.WithTx(tx).GetProductByID(subscription.ProductID)

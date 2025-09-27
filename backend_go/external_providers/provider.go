@@ -11,40 +11,51 @@ type ProviderProduct struct {
 	Name        string
 	Price       float64
 	Description string
+	Type        string // e.g., "item", "subscription"
 	// Metadata can store any other provider-specific information.
 	Metadata map[string]interface{}
 }
 
-// ProvisioningResult holds the information about a newly provisioned product.
+// ProvisioningResult holds the information about a newly provisioned subscription.
 type ProvisioningResult struct {
 	ProvisionedID string // The unique ID for this instance (e.g., a username, a server ID).
 	Details       map[string]interface{} // IP address, password, etc.
 }
 
-// StatusResult holds the status of a provisioned product.
+// StatusResult holds the status of a provisioned subscription.
 type StatusResult struct {
 	IsActive  bool
 	ExpiresAt time.Time
 	Details   map[string]interface{}
 }
 
-// ExternalProductProvider defines the contract for interacting with an external service that provides products.
+// ItemPurchaseResult holds the result of purchasing a one-time item.
+type ItemPurchaseResult struct {
+	Details map[string]interface{} // e.g., a license key, a download link
+}
+
+// ExternalProductProvider is the base interface for all external providers.
 type ExternalProductProvider interface {
 	// GetName returns the unique name of the provider (e.g., "contms_proxy").
 	GetName() string
 
 	// GetProducts fetches available products from the external provider.
 	GetProducts() ([]ProviderProduct, error)
+}
 
-	// ProvisionProduct creates a new instance of a product for a user.
-	ProvisionProduct(productExternalID string, user models.BotUser, duration time.Duration) (*ProvisioningResult, error)
+// SubscriptionProvider is an interface for providers that manage subscriptions.
+type SubscriptionProvider interface {
+	ExternalProductProvider // Embeds the base interface
 
-	// DeprovisionProduct removes/deactivates a provisioned product.
-	DeprovisionProduct(provisionedID string) error
+	ProvisionSubscription(productExternalID string, user models.BotUser, duration time.Duration) (*ProvisioningResult, error)
+	DeprovisionSubscription(provisionedID string) error
+	RenewSubscription(provisionedID string, duration time.Duration) error
+	GetSubscriptionStatus(provisionedID string) (*StatusResult, error)
+}
 
-	// RenewProduct extends the lifecycle of a provisioned product.
-	RenewProduct(provisionedID string, duration time.Duration) error
+// ItemProvider is an interface for providers that sell one-time items.
+type ItemProvider interface {
+	ExternalProductProvider // Embeds the base interface
 
-	// GetProductStatus checks the status of a provisioned product.
-	GetProductStatus(provisionedID string) (*StatusResult, error)
+	PurchaseItem(productExternalID string, user models.BotUser) (*ItemPurchaseResult, error)
 }

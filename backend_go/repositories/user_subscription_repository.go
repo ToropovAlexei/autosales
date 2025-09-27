@@ -27,9 +27,9 @@ func (r *gormUserSubscriptionRepository) WithTx(tx *gorm.DB) UserSubscriptionRep
 	return &gormUserSubscriptionRepository{db: tx}
 }
 
-func (r *gormUserSubscriptionRepository) FindActiveSubscription(userID, productID uint) (*models.UserSubscription, error) {
+func (r *gormUserSubscriptionRepository) FindActiveSubscription(botUserID, productID uint) (*models.UserSubscription, error) {
 	var subscription models.UserSubscription
-	err := r.db.Where("user_id = ? AND product_id = ? AND is_active = ? AND expires_at > ?", userID, productID, true, time.Now()).First(&subscription).Error
+	err := r.db.Where("bot_user_id = ? AND product_id = ? AND is_active = ? AND expires_at > ?", botUserID, productID, true, time.Now()).First(&subscription).Error
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil, nil // Not found is not an error here

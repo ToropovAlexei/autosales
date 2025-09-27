@@ -44,9 +44,14 @@ async def buy_handler(callback_query: CallbackQuery):
         parts = callback_query.data.split('_')
         user_id = callback_query.from_user.id
 
-        if parts[1] == 'ext':
+        if len(parts) >= 2 and parts[1] == 'ext':
             # External product: buy_ext_{provider}_{external_id}
-            _, _, provider, external_id = parts
+            # Provider name can contain underscores, so we reassemble it.
+            if len(parts) < 4:
+                raise ValueError("Invalid external buy callback format")
+            
+            provider = '_'.join(parts[2:-1])
+            external_id = parts[-1]
             result = await api_client.buy_external_product(user_id, provider, external_id)
         else:
             # Internal product: buy_{product_id}

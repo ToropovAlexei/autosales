@@ -66,7 +66,7 @@ type RenewResponse struct {
 	Status string `json:"status"`
 }
 
-// ContMSProxyAdapter implements the ExternalProductProvider interface for the contms.ru proxy API.
+// ContMSProxyAdapter implements the SubscriptionProvider interface.
 type ContMSProxyAdapter struct {
 	client  *http.Client
 	baseURL string
@@ -137,13 +137,14 @@ func (a *ContMSProxyAdapter) GetProducts() ([]external_providers.ProviderProduct
 			Name:        fmt.Sprintf("Proxy %s (%s)", p.Name, p.Type),
 			Price:       100, // Price is not in the API, so we assume a fixed price.
 			Description: fmt.Sprintf("A %s proxy server at %s", p.Type, p.Host),
+			Type:        "subscription",
 		})
 	}
 
 	return products, nil
 }
 
-func (a *ContMSProxyAdapter) ProvisionProduct(productExternalID string, user models.BotUser, duration time.Duration) (*external_providers.ProvisioningResult, error) {
+func (a *ContMSProxyAdapter) ProvisionSubscription(productExternalID string, user models.BotUser, duration time.Duration) (*external_providers.ProvisioningResult, error) {
 	payload := Request{
 		Action: "up",
 		Proxy:  map[string]interface{}{"name": productExternalID, "expires": duration.Milliseconds()},
@@ -167,7 +168,7 @@ func (a *ContMSProxyAdapter) ProvisionProduct(productExternalID string, user mod
 	}, nil
 }
 
-func (a *ContMSProxyAdapter) DeprovisionProduct(provisionedID string) error {
+func (a *ContMSProxyAdapter) DeprovisionSubscription(provisionedID string) error {
 	payload := Request{Action: "down", User: provisionedID}
 	var resp DownResponse
 
@@ -182,7 +183,7 @@ func (a *ContMSProxyAdapter) DeprovisionProduct(provisionedID string) error {
 	return nil
 }
 
-func (a *ContMSProxyAdapter) RenewProduct(provisionedID string, duration time.Duration) error {
+func (a *ContMSProxyAdapter) RenewSubscription(provisionedID string, duration time.Duration) error {
 	payload := Request{
 		Action:  "renew",
 		User:    provisionedID,
@@ -201,7 +202,7 @@ func (a *ContMSProxyAdapter) RenewProduct(provisionedID string, duration time.Du
 	return nil
 }
 
-func (a *ContMSProxyAdapter) GetProductStatus(provisionedID string) (*external_providers.StatusResult, error) {
+func (a *ContMSProxyAdapter) GetSubscriptionStatus(provisionedID string) (*external_providers.StatusResult, error) {
 	payload := Request{Action: "status", User: provisionedID}
 	var resp StatusResponse
 
