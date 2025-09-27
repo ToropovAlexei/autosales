@@ -6,7 +6,7 @@ type Order struct {
 	ID        uint `gorm:"primaryKey"`
 	UserID    uint
 	ProductID uint
-	Product   Product
+	Product   Product `gorm:"foreignKey:ProductID"`
 	Quantity  int `gorm:"default:1"`
 	Amount    float64
 	Status    string

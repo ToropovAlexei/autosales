@@ -18,30 +18,29 @@ func NewAuthHandler(authService services.AuthService) *AuthHandler {
 }
 
 type loginPayload struct {
-	Username string `form:"username" binding:"required"`
-	Password string `form:"password" binding:"required"`
+	Email    string `json:"email" binding:"required"`
+	Password string `json:"password" binding:"required"`
 }
 
 // @Summary      User Login
 // @Description  Logs in a user and returns a JWT token
 // @Tags         Auth
-// @Accept       x-www-form-urlencoded
+// @Accept       json
 // @Produce      json
-// @Param        username formData string true "Username (Email)"
-// @Param        password formData string true "Password"
+// @Param        login body loginPayload true "Login credentials"
 // @Success      200  {object}  responses.ResponseSchema[responses.TokenResponse]
 // @Failure      400  {object}  responses.ErrorResponseSchema
 // @Failure      401  {object}  responses.ErrorResponseSchema
 // @Router       /auth/login [post]
 func (h *AuthHandler) LoginHandler(c *gin.Context) {
-	var form loginPayload
+	var payload loginPayload
 
-	if err := c.ShouldBind(&form); err != nil {
+	if err := c.ShouldBindJSON(&payload); err != nil {
 		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: err.Error()})
 		return
 	}
 
-	tokenString, err := h.authService.Login(form.Username, form.Password)
+	tokenString, err := h.authService.Login(payload.Email, payload.Password)
 	if err != nil {
 		c.Error(err)
 		return

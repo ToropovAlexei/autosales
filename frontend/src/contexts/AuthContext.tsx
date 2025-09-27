@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const data = await api.postForm("/auth/login", { username: email, password });
+      const data = await api.post("/auth/login", { email, password });
       if (data.access_token) {
         localStorage.setItem("jwt", data.access_token);
         await fetchUser();

@@ -14,7 +14,7 @@ func ErrorHandler() gin.HandlerFunc {
 
 		if len(c.Errors) > 0 {
 			err := c.Errors.Last().Err
-			logger := GetLogger(c) // Получаем обогащенный логгер
+			logger := GetLogger(c)
 
 			var notFoundErr *apperrors.ErrNotFound
 			var validationErr *apperrors.ErrValidation
@@ -39,26 +39,33 @@ func ErrorHandler() gin.HandlerFunc {
 				logger.Warn().Err(err).Msg("Out of stock error")
 				c.JSON(http.StatusBadRequest, gin.H{
 					"success": false,
-					"error":   "Product out of stock", // Стабильное сообщение для бота
+					"error":   "Product out of stock",
 				})
 			case errors.As(err, &alreadyExistsErr):
 				logger.Warn().Err(err).Msg("Already exists error")
-				c.JSON(http.StatusConflict, gin.H{ // 409 Conflict
+				c.JSON(http.StatusConflict, gin.H{
 					"success": false,
 					"error":   alreadyExistsErr.Error(),
 				})
 			case errors.As(err, &appErr):
 				logger.Warn().Err(err).Int("code", appErr.Code).Msg("Application error")
+				// For specific app errors like InsufficientBalance, we can return a more specific message
+				if appErr == apperrors.ErrInsufficientBalance {
+					c.JSON(appErr.Code, gin.H{
+						"success": false,
+						"error":   "Insufficient Balance",
+					})
+					return
+				}
 				c.JSON(appErr.Code, gin.H{
 					"success": false,
 					"error":   appErr.Message,
 				})
 			default:
-				// zerolog автоматически подхватит stack trace из ошибки, обернутой с помощью pkg/errors
 				logger.Error().Err(err).Msg("Internal server error")
 				c.JSON(http.StatusInternalServerError, gin.H{
 					"success": false,
-					"error":   "Internal Server Error", // Не показываем детали ошибки пользователю
+					"error":   "Internal Server Error",
 				})
 			}
 		}
