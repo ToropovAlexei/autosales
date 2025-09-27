@@ -1,6 +1,6 @@
 export const ENDPOINTS = {
-  USERS_ME: "users/me",
-  USERS_ME_REFERRAL_SETTINGS: "users/me/referral-settings",
+  USERS_ME: "me",
+  USERS_ME_REFERRAL_SETTINGS: "me/referral-settings",
   REFERRALS: "referrals",
   REFERRAL_BOTS_ADMIN: "referrals/admin-list",
   CATEGORIES: "categories",

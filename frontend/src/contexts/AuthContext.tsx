@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const fetchUser = async () => {
     try {
-      const userData = await api.get("/users/me");
+      const userData = await api.get("/me");
       setUser(userData);
       setIsAuthenticated(true);
     } catch (error) {
