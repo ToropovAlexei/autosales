@@ -1,13 +1,14 @@
 package models
 
 type Product struct {
-	ID         uint   `gorm:"primaryKey"`
-	Name       string `gorm:"index"`
-	Price                  float64
-	CategoryID             uint
-	Category               Category `gorm:"foreignKey:CategoryID"`
-	Type                   string   `gorm:"default:'item'"`
-	SubscriptionPeriodDays int      `gorm:"default:0"`
+	ID                     uint     `gorm:"primaryKey" json:"id"`
+	Name                   string   `gorm:"index" json:"name"`
+	Price                  float64  `json:"price"`
+	CategoryID             uint     `json:"category_id"`
+	Category               Category `gorm:"foreignKey:CategoryID" json:"category"`
+	Type                   string   `gorm:"default:'item'" json:"type"`
+	SubscriptionPeriodDays int      `gorm:"default:0" json:"subscription_period_days"`
+	Details                string   `gorm:"type:jsonb" json:"details"`
 }
 
 type ProductResponse struct {

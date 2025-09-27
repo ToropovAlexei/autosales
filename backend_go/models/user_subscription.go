@@ -7,17 +7,17 @@ import (
 )
 
 type UserSubscription struct {
-	ID          uint           `gorm:"primaryKey"`
-	BotUserID   uint           `gorm:"index"`
-	BotUser     BotUser        `gorm:"foreignKey:BotUserID"`
-	ProductID   uint           `gorm:"index"`
-	Product     Product        `gorm:"foreignKey:ProductID"`
-	OrderID     uint           `gorm:"index"`
-	Order       Order          `gorm:"foreignKey:OrderID"`
-	ExpiresAt   time.Time      `gorm:"index"`
-	IsActive    bool           `gorm:"default:true"`
-	ProvisionedID string         `gorm:"index"`
-	Details     datatypes.JSON `gorm:"type:jsonb"`
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	ID            uint           `gorm:"primaryKey" json:"id"`
+	BotUserID     uint           `gorm:"index" json:"bot_user_id"`
+	BotUser       BotUser        `gorm:"foreignKey:BotUserID" json:"bot_user"`
+	ProductID     uint           `gorm:"index" json:"product_id"`
+	Product       Product        `gorm:"foreignKey:ProductID" json:"Product"`
+	OrderID       uint           `gorm:"index" json:"order_id"`
+	Order         Order          `gorm:"foreignKey:OrderID" json:"order"`
+	ExpiresAt     time.Time      `gorm:"index" json:"expires_at"`
+	IsActive      bool           `gorm:"default:true" json:"is_active"`
+	ProvisionedID string         `gorm:"index" json:"provisioned_id"`
+	Details       datatypes.JSON `gorm:"type:jsonb" json:"details"`
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
 }
