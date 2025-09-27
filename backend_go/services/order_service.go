@@ -209,10 +209,12 @@ func (s *orderService) handleExternalProductPurchase(tx *gorm.DB, user *models.B
 
 	// Create a local product placeholder for the external product
 	placeholderProduct := &models.Product{
-		Name:       fmt.Sprintf("%s (%s)", product.Name, *req.Provider),
-		Price:      product.Price,
-		Type:       "subscription",
-		CategoryID: 1, // Or a dedicated category for external products
+		Name:                   fmt.Sprintf("%s (%s)", product.Name, *req.Provider),
+		Price:                  product.Price,
+		Type:                   "subscription",
+		CategoryID:             1, // Or a dedicated category for external products
+		Details:                "{}",
+		SubscriptionPeriodDays: 30,
 	}
 	if err := s.productRepo.WithTx(tx).CreateProduct(placeholderProduct); err != nil {
 		return nil, apperrors.New(500, "failed to create placeholder product", err)

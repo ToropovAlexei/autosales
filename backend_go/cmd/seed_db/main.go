@@ -148,6 +148,7 @@ func createProducts(db *gorm.DB, categories []models.Category, count int) []mode
 			Name:       fmt.Sprintf("Product %d", i+1),
 			Price:      float64(rand.Intn(50000-100) + 100),
 			CategoryID: leafCategoryIDs[rand.Intn(len(leafCategoryIDs))],
+			Details:    "{}",
 		})
 	}
 	db.Create(&products)

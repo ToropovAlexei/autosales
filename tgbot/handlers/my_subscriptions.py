@@ -25,7 +25,7 @@ async def my_subscriptions_handler(callback_query: CallbackQuery):
             response_text = f"{hbold('🧾 Ваши подписки:')}\n\n"
             for sub in subscriptions:
                 product_name = sub.get('Product', {}).get('name', 'Неизвестный продукт')
-                expires_at_str = sub.get('ExpiresAt', '')
+                expires_at_str = sub.get('expires_at', '')
                 
                 try:
                     expires_dt = datetime.fromisoformat(expires_at_str.replace('Z', '+00:00'))

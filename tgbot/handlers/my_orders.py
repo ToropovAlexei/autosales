@@ -25,7 +25,7 @@ async def my_orders_handler(callback_query: CallbackQuery):
             response_text = f"{hbold('🧾 Ваши заказы:')}\n\n"
             for order in orders:
                 product_name = order.get('Product', {}).get('name', 'Неизвестный продукт')
-                created_at_str = order.get('CreatedAt', '')
+                created_at_str = order.get('created_at', '')
                 
                 try:
                     created_dt = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
@@ -33,7 +33,7 @@ async def my_orders_handler(callback_query: CallbackQuery):
                 except ValueError:
                     created_formatted = "неизвестно"
 
-                response_text += f"🔹 {hbold(product_name)} - {order.get('Amount')} ₽\n"
+                response_text += f"🔹 {hbold(product_name)} - {order.get('amount')} ₽\n"
                 response_text += f"   {hitalic(created_formatted)}\n"
 
                 details_json = order.get('Product', {}).get('details')
