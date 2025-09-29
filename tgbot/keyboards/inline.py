@@ -29,6 +29,14 @@ def main_menu(referral_program_enabled: bool = False, bot_type: str = "main"):
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
+def balance_menu():
+    buttons = [
+        [InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="deposit")],
+        [InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
 def payment_gateways_menu(gateways: list, instructions_url: str):
     buttons = []
     if instructions_url:

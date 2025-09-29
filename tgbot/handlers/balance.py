@@ -19,7 +19,7 @@ async def balance_handler(callback_query: CallbackQuery):
             balance = response["data"]["balance"]
             await callback_query.message.edit_text(
                 f"💳 Ваш текущий баланс: {hbold(f'{balance} ₽')}",
-                reply_markup=inline.main_menu(bot_type=settings.bot_type), # Simplified back button
+                reply_markup=inline.balance_menu(),
                 parse_mode="HTML"
             )
         else:
