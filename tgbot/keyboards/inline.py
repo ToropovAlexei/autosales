@@ -40,7 +40,7 @@ def balance_menu():
 def payment_gateways_menu(gateways: list, instructions_url: str):
     buttons = []
     if instructions_url:
-        buttons.append([InlineKeyboardButton(text="Как пополнить баланс?", url=instructions_url)])
+        buttons.append([InlineKeyboardButton(text="ℹ️ Как пополнить баланс?", url=instructions_url)])
     
     for gw in gateways:
         buttons.append([InlineKeyboardButton(
