@@ -84,6 +84,13 @@ func (r *gormReferralRepository) GetAdminInfoForSeller(sellerID uint) ([]models.
 		Group("referral_bots.id, bot_users.telegram_id").
 		Scan(&bots).Error
 
+	if err != nil {
+		return nil, err
+	}
+	if bots == nil {
+		return []models.ReferralBotAdminInfo{}, nil
+	}
+
 	return bots, err
 }
 
@@ -103,6 +110,13 @@ func (r *gormReferralRepository) GetAdminInfoForOwner(ownerID uint) ([]models.Re
 		Where("referral_bots.owner_id = ?", ownerID).
 		Group("referral_bots.id, bot_users.telegram_id").
 		Scan(&bots).Error
+
+	if err != nil {
+		return nil, err
+	}
+	if bots == nil {
+		return []models.ReferralBotAdminInfo{}, nil
+	}
 
 	return bots, err
 }
