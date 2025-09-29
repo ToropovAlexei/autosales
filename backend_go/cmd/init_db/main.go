@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	appSettings, err := config.LoadConfig("../../.env.example")
+	appSettings, err := config.LoadConfig(".env")
 	if err != nil {
 		log.Fatalf("could not load config: %v", err)
 	}
@@ -30,6 +30,7 @@ func main() {
 		&models.ReferralBot{},
 		&models.RefTransaction{},
 		&models.UserSubscription{},
+		&models.PaymentInvoice{},
 	); migrateErr != nil {
 		log.Fatalf("failed to migrate database: %v", migrateErr)
 	}

@@ -165,7 +165,15 @@ func (h *UserHandler) GetUserTransactionsHandler(c *gin.Context) {
 
 	var response []models.TransactionResponse
 	for _, t := range transactions {
-		response = append(response, models.TransactionResponse(t))
+		response = append(response, models.TransactionResponse{
+			ID:          t.ID,
+			UserID:      t.UserID,
+			OrderID:     t.OrderID,
+			Type:        t.Type,
+			Amount:      t.Amount,
+			CreatedAt:   t.CreatedAt,
+			Description: t.Description,
+		})
 	}
 
 	responses.SuccessResponse(c, http.StatusOK, response)

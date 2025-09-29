@@ -5,6 +5,8 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/external_providers"
 	"frbktg/backend_go/external_providers/contms"
+	"frbktg/backend_go/gateways"
+	"frbktg/backend_go/gateways/mock"
 	"frbktg/backend_go/handlers"
 	"frbktg/backend_go/repositories"
 	"frbktg/backend_go/services"
@@ -16,35 +18,38 @@ import (
 
 // Container holds all the dependencies of the application.
 type Container struct {
-	DB                   *gorm.DB
-	AppSettings          config.Settings
-	Logger               *slog.Logger
-	ProviderRegistry     *external_providers.ProviderRegistry
-	TokenService         services.TokenService
-	AuthService          services.AuthService
-	UserService          services.UserService
-	ProductService       services.ProductService
-	CategoryService      services.CategoryService
-	ReferralService      services.ReferralService
-	OrderService         services.OrderService
-	TransactionService   services.TransactionService
-	DashboardService     services.DashboardService
-	BalanceService       services.BalanceService
-	StockService         services.StockService
-	AdminService         services.AdminService
-	UserRepo             repositories.UserRepository
-	AuthHandler          *handlers.AuthHandler
-	UserHandler          *handlers.UserHandler
-	ProductHandler       *handlers.ProductHandler
-	CategoryHandler      *handlers.CategoryHandler
-	OrderHandler         *handlers.OrderHandler
-	TransactionHandler   *handlers.TransactionHandler
-	ReferralHandler      *handlers.ReferralHandler
-	DashboardHandler     *handlers.DashboardHandler
-	BalanceHandler       *handlers.BalanceHandler
-	StockHandler         *handlers.StockHandler
-	AdminHandler         *handlers.AdminHandler
-	SubscriptionWorker   *workers.SubscriptionWorker
+	DB                     *gorm.DB
+	AppSettings            config.Settings
+	Logger                 *slog.Logger
+	ProviderRegistry       *external_providers.ProviderRegistry
+	PaymentGatewayRegistry *gateways.ProviderRegistry
+	TokenService           services.TokenService
+	AuthService            services.AuthService
+	UserService            services.UserService
+	ProductService         services.ProductService
+	CategoryService        services.CategoryService
+	ReferralService        services.ReferralService
+	OrderService           services.OrderService
+	TransactionService     services.TransactionService
+	DashboardService       services.DashboardService
+	BalanceService         services.BalanceService
+	StockService           services.StockService
+	AdminService           services.AdminService
+	PaymentService         services.PaymentService
+	UserRepo               repositories.UserRepository
+	AuthHandler            *handlers.AuthHandler
+	UserHandler            *handlers.UserHandler
+	ProductHandler         *handlers.ProductHandler
+	CategoryHandler        *handlers.CategoryHandler
+	OrderHandler           *handlers.OrderHandler
+	TransactionHandler     *handlers.TransactionHandler
+	ReferralHandler        *handlers.ReferralHandler
+	DashboardHandler       *handlers.DashboardHandler
+	BalanceHandler         *handlers.BalanceHandler
+	StockHandler           *handlers.StockHandler
+	AdminHandler           *handlers.AdminHandler
+	PaymentHandler         *handlers.PaymentHandler
+	SubscriptionWorker     *workers.SubscriptionWorker
 }
 
 // NewContainer creates a new dependency container.
@@ -61,6 +66,11 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	contmsAdapter := contms.NewContMSProxyAdapter("http://contms.ru:2525/api")
 	providerRegistry.RegisterProvider(contmsAdapter)
 
+	// Init payment gateway registry
+	paymentGatewayRegistry := gateways.NewProviderRegistry()
+	mockGatewayAdapter := mock.NewMockGatewayAdapter(appSettings.MockGatewayURL)
+	paymentGatewayRegistry.RegisterProvider(mockGatewayAdapter)
+
 	// Init repositories
 	userRepo := repositories.NewUserRepository(db)
 	botUserRepo := repositories.NewBotUserRepository(db)
@@ -74,6 +84,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	stockRepo := repositories.NewStockRepository(db)
 	adminRepo := repositories.NewAdminRepository(db)
 	userSubscriptionRepo := repositories.NewUserSubscriptionRepository(db)
+	paymentInvoiceRepo := repositories.NewPaymentInvoiceRepository(db)
 
 	// Init services
 	tokenService := services.NewTokenService()
@@ -88,6 +99,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	balanceService := services.NewBalanceService(balanceRepo, botUserRepo)
 	stockService := services.NewStockService(stockRepo)
 	adminService := services.NewAdminService(adminRepo, botUserRepo)
+	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo)
 
 	// Init workers
 	subscriptionWorker := workers.NewSubscriptionWorker(orderService, userSubscriptionRepo, logger)
@@ -104,12 +116,14 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	balanceHandler := handlers.NewBalanceHandler(balanceService)
 	stockHandler := handlers.NewStockHandler(stockService)
 	adminHandler := handlers.NewAdminHandler(adminService)
+	paymentHandler := handlers.NewPaymentHandler(paymentService)
 
 	return &Container{
 		DB:                   db,
 		AppSettings:          appSettings,
 		Logger:               logger,
 		ProviderRegistry:     providerRegistry,
+		PaymentGatewayRegistry: paymentGatewayRegistry,
 		TokenService:         tokenService,
 		AuthService:          authService,
 		UserService:          userService,
@@ -122,6 +136,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 		BalanceService:       balanceService,
 		StockService:         stockService,
 		AdminService:         adminService,
+		PaymentService:       paymentService,
 		UserRepo:             userRepo,
 		AuthHandler:          authHandler,
 		UserHandler:          userHandler,
@@ -134,6 +149,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 		BalanceHandler:       balanceHandler,
 		StockHandler:         stockHandler,
 		AdminHandler:         adminHandler,
+		PaymentHandler:       paymentHandler,
 		SubscriptionWorker:   subscriptionWorker,
 	}, nil
 }

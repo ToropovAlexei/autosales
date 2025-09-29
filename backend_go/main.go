@@ -56,7 +56,7 @@ func (gla GinLogAdapter) Write(p []byte) (n int, err error) {
 func main() {
 	config.InitLogger()
 
-	configPath := flag.String("config", ".env.example", "path to config file")
+	configPath := flag.String("config", ".env", "path to config file")
 	flag.Parse()
 
 	appSettings, err := config.LoadConfig(*configPath)
@@ -103,6 +103,7 @@ func main() {
 	rtr.StockRouter(r, container.StockHandler)
 	rtr.DashboardRouter(r, container.DashboardHandler)
 	rtr.ReferralsRouter(r, container.ReferralHandler)
+	rtr.PaymentRouter(r, container.PaymentHandler)
 
 	// Swagger route
 	rtr.SwaggerRouter(r)

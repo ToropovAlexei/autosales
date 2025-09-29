@@ -20,6 +20,7 @@ type Settings struct {
 	AccessTokenExpireMinutes int      `mapstructure:"ACCESS_TOKEN_EXPIRE_MINUTES"`
 	ServiceAPIKey            string   `mapstructure:"SERVICE_API_KEY"`
 	Port                     string   `mapstructure:"PORT"`
+	MockGatewayURL           string   `mapstructure:"MOCK_GATEWAY_URL"`
 }
 
 func (s *Settings) GetDBConnStr() string {

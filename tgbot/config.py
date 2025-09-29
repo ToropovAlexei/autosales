@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     support_url: str
     api_id: str
     api_hash: str
+    payment_instructions_url: Optional[str] = None
 
     @model_validator(mode='after')
     def set_bot_type(self) -> 'Settings':

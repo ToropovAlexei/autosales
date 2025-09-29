@@ -25,7 +25,15 @@ func (s *transactionService) GetAll() ([]models.TransactionResponse, error) {
 
 	var response []models.TransactionResponse
 	for _, t := range transactions {
-		response = append(response, models.TransactionResponse(t))
+		response = append(response, models.TransactionResponse{
+			ID:          t.ID,
+			UserID:      t.UserID,
+			OrderID:     t.OrderID,
+			Type:        t.Type,
+			Amount:      t.Amount,
+			CreatedAt:   t.CreatedAt,
+			Description: t.Description,
+		})
 	}
 
 	return response, nil

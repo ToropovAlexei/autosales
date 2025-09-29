@@ -12,8 +12,9 @@ const (
 )
 
 type Transaction struct {
-	ID          uint `gorm:"primaryKey"`
-	UserID      uint
+	ID          uint    `gorm:"primaryKey"`
+	UserID      uint    `gorm:"index"`
+	User        BotUser `gorm:"foreignKey:UserID"`
 	OrderID     *uint
 	Type        TransactionType `gorm:"not null"`
 	Amount      float64         `gorm:"not null"`

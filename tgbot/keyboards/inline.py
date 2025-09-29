@@ -8,6 +8,12 @@ class CategoryCallback(CallbackData, prefix="cat"):
     category_id: int = 0
     parent_id: int = 0 # ID родителя, чтобы знать, куда возвращаться
 
+# Фабрика колбэков для процесса оплаты
+class PaymentCallback(CallbackData, prefix="pay"):
+    action: str       # e.g., 'select_gateway', 'select_amount'
+    gateway: Optional[str] = None
+    amount: Optional[float] = None
+
 def main_menu(referral_program_enabled: bool = False, bot_type: str = "main"):
     buttons = [
         [InlineKeyboardButton(text="🛍️ Каталог", callback_data=CategoryCallback(action="view", category_id=0).pack())],
@@ -23,12 +29,26 @@ def main_menu(referral_program_enabled: bool = False, bot_type: str = "main"):
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-def deposit_menu():
+def payment_gateways_menu(gateways: list, instructions_url: str):
+    buttons = []
+    if instructions_url:
+        buttons.append([InlineKeyboardButton(text="Как пополнить баланс?", url=instructions_url)])
+    
+    for gw in gateways:
+        buttons.append([InlineKeyboardButton(
+            text=gw['display_name'], 
+            callback_data=PaymentCallback(action="select_gateway", gateway=gw['name']).pack()
+        )])
+
+    buttons.append([InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def deposit_amount_menu(gateway: str):
     buttons = [
-        [InlineKeyboardButton(text="100 ₽", callback_data="deposit_100")],
-        [InlineKeyboardButton(text="500 ₽", callback_data="deposit_500")],
-        [InlineKeyboardButton(text="1000 ₽", callback_data="deposit_1000")],
-        [InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu")]
+        [InlineKeyboardButton(text="100 ₽", callback_data=PaymentCallback(action="select_amount", gateway=gateway, amount=100).pack())],
+        [InlineKeyboardButton(text="500 ₽", callback_data=PaymentCallback(action="select_amount", gateway=gateway, amount=500).pack())],
+        [InlineKeyboardButton(text="1000 ₽", callback_data=PaymentCallback(action="select_amount", gateway=gateway, amount=1000).pack())],
+        [InlineKeyboardButton(text="⬅️ Назад", callback_data="deposit")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 

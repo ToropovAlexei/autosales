@@ -43,8 +43,16 @@ class APIClient:
             "quantity": 1
         })
 
-    async def create_deposit(self, telegram_id: int, amount: int):
-        return await self._request("POST", "/balance/deposit", json={"user_id": telegram_id, "amount": amount})
+    async def get_payment_gateways(self):
+        return await self._request("GET", "/gateways")
+
+    async def create_deposit_invoice(self, bot_user_id: int, gateway_name: str, amount: float):
+        return await self._request("POST", "/deposit/invoice", json={
+            "bot_user_id": bot_user_id,
+            "gateway_name": gateway_name,
+            "amount": amount
+        })
+
 
     async def update_user_captcha_status(self, telegram_id: int, status: bool):
         return await self._request("PUT", f"/users/{telegram_id}/captcha-status", json={"has_passed_captcha": status})
