@@ -20,7 +20,15 @@ func NewProductHandler(productService services.ProductService) *ProductHandler {
 }
 
 func (h *ProductHandler) GetProductsHandler(c *gin.Context) {
-	categoryIDs, _ := c.GetQueryArray("category_ids")
+	categoryIDStrs, _ := c.GetQueryArray("category_ids[]")
+	var categoryIDs []uint
+	for _, s := range categoryIDStrs {
+		id, err := strconv.ParseUint(s, 10, 32)
+		if err == nil {
+			categoryIDs = append(categoryIDs, uint(id))
+		}
+	}
+
 	products, err := h.productService.GetProducts(categoryIDs)
 	if err != nil {
 		c.Error(err)

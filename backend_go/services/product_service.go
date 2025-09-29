@@ -10,7 +10,7 @@ import (
 )
 
 type ProductService interface {
-	GetProducts(categoryIDs []string) ([]models.ProductResponse, error)
+	GetProducts(categoryIDs []uint) ([]models.ProductResponse, error)
 	GetProduct(id uint) (*models.ProductResponse, error)
 	CreateProduct(name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int) (*models.ProductResponse, error)
 	UpdateProduct(id uint, data models.Product) (*models.ProductResponse, error)
@@ -20,14 +20,15 @@ type ProductService interface {
 
 type productService struct {
 	productRepo      repositories.ProductRepository
+	categoryRepo     repositories.CategoryRepository
 	providerRegistry *external_providers.ProviderRegistry
 }
 
-func NewProductService(productRepo repositories.ProductRepository, providerRegistry *external_providers.ProviderRegistry) ProductService {
-	return &productService{productRepo: productRepo, providerRegistry: providerRegistry}
+func NewProductService(productRepo repositories.ProductRepository, categoryRepo repositories.CategoryRepository, providerRegistry *external_providers.ProviderRegistry) ProductService {
+	return &productService{productRepo: productRepo, categoryRepo: categoryRepo, providerRegistry: providerRegistry}
 }
 
-func (s *productService) GetProducts(categoryIDs []string) ([]models.ProductResponse, error) {
+func (s *productService) GetProducts(categoryIDs []uint) ([]models.ProductResponse, error) {
 	// 1. Get internal products
 	internalProducts, err := s.productRepo.GetProducts(categoryIDs)
 	if err != nil {
@@ -57,28 +58,50 @@ func (s *productService) GetProducts(categoryIDs []string) ([]models.ProductResp
 		})
 	}
 
-	// 2. Get external products if no category filter is applied
-	if len(categoryIDs) == 0 {
-		providers := s.providerRegistry.GetAllProviders()
-		for _, provider := range providers {
-			externalProducts, err := provider.GetProducts()
-			if err != nil {
-				slog.Error("failed to get products from provider", "provider", provider.GetName(), "error", err)
-				continue // Skip this provider if it fails
+	// 2. Get external products
+	providers := s.providerRegistry.GetAllProviders()
+	for _, provider := range providers {
+		externalProducts, err := provider.GetProducts()
+		if err != nil {
+			slog.Error("failed to get products from provider", "provider", provider.GetName(), "error", err)
+			continue // Skip this provider if it fails
+		}
+
+		for _, p := range externalProducts {
+			var categoryID uint
+			if len(p.Category) > 0 {
+				category, err := s.categoryRepo.FindOrCreateByPath(p.Category)
+				if err != nil {
+					slog.Error("failed to find or create category path for external product", "provider", provider.GetName(), "path", p.Category, "error", err)
+				} else if category != nil {
+					categoryID = category.ID
+				}
 			}
 
-			for _, p := range externalProducts {
-				response = append(response, models.ProductResponse{
-					// ID is 0 because it's not an internal product
-					Name:                   p.Name,
-					Price:                  p.Price,
-					Stock:                  -1, // External products are like subscriptions
-					Type:                   "subscription",
-					SubscriptionPeriodDays: 30, // Assuming 30 days for now, this could be part of ProviderProduct
-					Provider:               provider.GetName(),
-					ExternalID:             p.ExternalID,
-				})
+			// Filter by category if categoryIDs are provided
+			if len(categoryIDs) > 0 {
+				match := false
+				for _, catID := range categoryIDs {
+					if catID == categoryID {
+						match = true
+						break
+					}
+				}
+				if !match {
+					continue // Skip product if it doesn't match the category filter
+				}
 			}
+
+			response = append(response, models.ProductResponse{
+				Name:                   p.Name,
+				Price:                  p.Price,
+				CategoryID:             categoryID,
+				Stock:                  -1,
+				Type:                   "subscription",
+				SubscriptionPeriodDays: 30,
+				Provider:               provider.GetName(),
+				ExternalID:             p.ExternalID,
+			})
 		}
 	}
 
@@ -86,7 +109,7 @@ func (s *productService) GetProducts(categoryIDs []string) ([]models.ProductResp
 }
 
 func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
-	// This now only works for internal products. 
+	// This now only works for internal products.
 	// To support external products, we would need to change the ID system or the method signature.
 	product, err := s.productRepo.GetProductByID(id)
 	if err != nil {

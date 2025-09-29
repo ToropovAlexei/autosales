@@ -138,6 +138,7 @@ func (a *ContMSProxyAdapter) GetProducts() ([]external_providers.ProviderProduct
 			Price:       100, // Price is not in the API, so we assume a fixed price.
 			Description: fmt.Sprintf("A %s proxy server at %s", p.Type, p.Host),
 			Type:        "subscription",
+			Category:    []string{"PROXY", p.Type},
 		})
 	}
 
@@ -162,6 +163,7 @@ func (a *ContMSProxyAdapter) ProvisionSubscription(productExternalID string, use
 	return &external_providers.ProvisioningResult{
 		ProvisionedID: resp.User.Name,
 		Details: map[string]interface{}{
+			"username": resp.User.Name,
 			"password": resp.User.Pass,
 			"expires":  time.Unix(0, resp.User.Expires*int64(time.Millisecond)),
 		},

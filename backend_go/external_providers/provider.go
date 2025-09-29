@@ -12,6 +12,7 @@ type ProviderProduct struct {
 	Price       float64
 	Description string
 	Type        string // e.g., "item", "subscription"
+	Category    []string
 	// Metadata can store any other provider-specific information.
 	Metadata map[string]interface{}
 }

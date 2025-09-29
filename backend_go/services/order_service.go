@@ -45,11 +45,12 @@ type orderService struct {
 	botUserRepo          repositories.BotUserRepository
 	transactionRepo      repositories.TransactionRepository
 	userSubscriptionRepo repositories.UserSubscriptionRepository
+	categoryRepo         repositories.CategoryRepository
 	referralService      ReferralService
 	providerRegistry     *external_providers.ProviderRegistry
 }
 
-func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, productRepo repositories.ProductRepository, botUserRepo repositories.BotUserRepository, transactionRepo repositories.TransactionRepository, userSubscriptionRepo repositories.UserSubscriptionRepository, referralService ReferralService, providerRegistry *external_providers.ProviderRegistry) OrderService {
+func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, productRepo repositories.ProductRepository, botUserRepo repositories.BotUserRepository, transactionRepo repositories.TransactionRepository, userSubscriptionRepo repositories.UserSubscriptionRepository, categoryRepo repositories.CategoryRepository, referralService ReferralService, providerRegistry *external_providers.ProviderRegistry) OrderService {
 	return &orderService{
 		db:                   db,
 		orderRepo:            orderRepo,
@@ -57,6 +58,7 @@ func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, produc
 		botUserRepo:          botUserRepo,
 		transactionRepo:      transactionRepo,
 		userSubscriptionRepo: userSubscriptionRepo,
+		categoryRepo:         categoryRepo,
 		referralService:      referralService,
 		providerRegistry:     providerRegistry,
 	}
@@ -207,12 +209,31 @@ func (s *orderService) handleExternalProductPurchase(tx *gorm.DB, user *models.B
 		return nil, apperrors.ErrInsufficientBalance
 	}
 
+	// Find or create the category path
+	var parentID *uint
+	var categoryID uint
+	for _, categoryName := range product.Category {
+		category, err := s.categoryRepo.WithTx(tx).FindByNameAndParent(categoryName, parentID)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				category = &models.Category{Name: categoryName, ParentID: parentID}
+				if err := s.categoryRepo.WithTx(tx).Create(category); err != nil {
+					return nil, apperrors.New(500, "failed to create category", err)
+				}
+			} else {
+				return nil, apperrors.New(500, "failed to find category", err)
+			}
+		}
+		parentID = &category.ID
+		categoryID = category.ID
+	}
+
 	// Create a local product placeholder for the external product
 	placeholderProduct := &models.Product{
 		Name:                   fmt.Sprintf("%s (%s)", product.Name, *req.Provider),
 		Price:                  product.Price,
 		Type:                   "subscription",
-		CategoryID:             1, // Or a dedicated category for external products
+		CategoryID:             categoryID,
 		Details:                "{}",
 		SubscriptionPeriodDays: 30,
 	}
@@ -267,6 +288,13 @@ func (s *orderService) handleSubscriptionPurchase(tx *gorm.DB, botUserID uint, p
 		return apperrors.New(500, "failed to marshal subscription details", err)
 	}
 
+	var expiresAt time.Time
+	if expires, ok := details["expires"].(time.Time); ok {
+		expiresAt = expires
+	} else {
+		expiresAt = time.Now().AddDate(0, 0, product.SubscriptionPeriodDays)
+	}
+
 	existingSub, err := subscriptionRepo.FindActiveSubscription(botUserID, product.ID)
 	if err != nil {
 		return apperrors.New(500, "failed to find active subscription", err)
@@ -289,7 +317,7 @@ func (s *orderService) handleSubscriptionPurchase(tx *gorm.DB, botUserID uint, p
 			BotUserID:     botUserID,
 			ProductID:     product.ID,
 			OrderID:       orderID,
-			ExpiresAt:     time.Now().AddDate(0, 0, product.SubscriptionPeriodDays),
+			ExpiresAt:     expiresAt,
 			IsActive:      true,
 			ProvisionedID: provisionedID,
 			Details:       detailsJSON,

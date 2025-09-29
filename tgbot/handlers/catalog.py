@@ -39,7 +39,6 @@ async def navigate_categories(callback_query: CallbackQuery, callback_data: Cate
     category_id = callback_data.category_id
 
     try:
-        # Fetch categories for navigation
         categories_response = await api_client.get_categories()
         if not categories_response.get("success"):
             await callback_query.message.edit_text("Не удалось загрузить категории.")
@@ -47,39 +46,34 @@ async def navigate_categories(callback_query: CallbackQuery, callback_data: Cate
             return
         all_categories = categories_response["data"]
 
-        if category_id == 0: # Root level
-            # Fetch external products
-            products_response = await api_client.get_products()
-            external_products = []
-            if products_response.get("success"):
-                external_products = [p for p in products_response["data"] if p.get('provider')]
-            
+        if category_id == 0:  # Root level
             await callback_query.message.edit_text(
-                "🛍️ Выберите категорию или товар:",
-                reply_markup=categories_menu(all_categories, 0, products=external_products)
+                "🛍️ Выберите категорию:",
+                reply_markup=categories_menu(all_categories, 0)
             )
-
-        else: # Category level
+        else:  # Category level
             selected_category = find_category_by_id(all_categories, category_id)
             if not selected_category:
                 await callback_query.message.edit_text("Категория не найдена.")
                 await callback_query.answer()
                 return
-            
-            current_level_categories = selected_category.get('sub_categories', [])
 
-            if current_level_categories:
+            sub_categories = selected_category.get('sub_categories', [])
+            parent_id_for_back = selected_category.get('parent_id')
+
+            if sub_categories:
                 await callback_query.message.edit_text(
                     "🛍️ Выберите категорию:",
-                    reply_markup=categories_menu(current_level_categories, category_id)
+                    reply_markup=categories_menu(sub_categories, parent_id_for_back or 0)
                 )
             else:
+                parent_id = selected_category.get('parent_id') or 0
                 products_response = await api_client.get_products(category_id)
                 if products_response.get("success"):
                     products = products_response["data"]
                     await callback_query.message.edit_text(
                         "Выберите товар:",
-                        reply_markup=products_menu(products, category_id)
+                        reply_markup=products_menu(products, category_id, parent_id)
                     )
                 else:
                     await callback_query.message.edit_text(
@@ -90,8 +84,11 @@ async def navigate_categories(callback_query: CallbackQuery, callback_data: Cate
     except Exception:
         logging.exception("An error occurred in navigate_categories")
         await callback_query.message.edit_text("Произошла непредвиденная ошибка. Попробуйте позже.")
-    
+
     await callback_query.answer()
+
+
+
 
 @router.callback_query(CategoryCallback.filter(F.action == 'back'))
 async def go_back_category(callback_query: CallbackQuery, callback_data: CategoryCallback):
@@ -107,14 +104,9 @@ async def go_back_category(callback_query: CallbackQuery, callback_data: Categor
         all_categories = response["data"]
 
         if target_category_id == 0:
-            # At root, also fetch external products
-            products_response = await api_client.get_products()
-            external_products = []
-            if products_response.get("success"):
-                external_products = [p for p in products_response["data"] if p.get('provider')]
             await callback_query.message.edit_text(
                 "🛍️ Выберите категорию или товар:",
-                reply_markup=categories_menu(all_categories, 0, products=external_products)
+                reply_markup=categories_menu(all_categories, 0)
             )
         else:
             grandparent_id = find_parent_id(all_categories, target_category_id) or 0
@@ -199,3 +191,5 @@ async def external_product_handler(callback_query: CallbackQuery):
         logging.exception("An error occurred in external_product_handler")
         await callback_query.message.edit_text("Произошла непредвиденная ошибка. Попробуйте позже.")
     await callback_query.answer()
+
+

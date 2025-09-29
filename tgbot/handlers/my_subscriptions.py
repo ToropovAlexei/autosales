@@ -38,15 +38,17 @@ async def my_subscriptions_handler(callback_query: CallbackQuery):
                 response_text += f"🔹 {hbold(product_name)}\n"
                 response_text += f"   {status} {hitalic(expires_formatted)}\n"
 
-                details_json = sub.get('Details')
+                details_json = sub.get('details')
                 if details_json:
                     try:
                         # The details might be a string that needs to be loaded, or already a dict
                         details = json.loads(details_json) if isinstance(details_json, str) else details_json
                         if details:
                             response_text += f"   {hbold('Данные для доступа:')}\n"
-                            for key, value in details.items():
-                                response_text += f"     - {key}: {hcode(str(value))}\n"
+                            if 'username' in details:
+                                response_text += f"     - Логин: {hcode(str(details['username']))}\n"
+                            if 'password' in details:
+                                response_text += f"     - Пароль: {hcode(str(details['password']))}\n"
                     except (json.JSONDecodeError, TypeError):
                         logging.warning(f"Could not parse subscription details: {details_json}")
                 

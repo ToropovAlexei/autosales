@@ -9,7 +9,7 @@ import (
 
 type ProductRepository interface {
 	WithTx(tx *gorm.DB) ProductRepository
-	GetProducts(categoryIDs []string) ([]models.Product, error)
+GetProducts(categoryIDs []uint) ([]models.Product, error)
 	GetProductByID(id uint) (*models.Product, error)
 	CreateProduct(product *models.Product) error
 	UpdateProduct(product *models.Product, data models.Product) error
@@ -31,7 +31,7 @@ func (r *gormProductRepository) WithTx(tx *gorm.DB) ProductRepository {
 	return &gormProductRepository{db: tx}
 }
 
-func (r *gormProductRepository) GetProducts(categoryIDs []string) ([]models.Product, error) {
+func (r *gormProductRepository) GetProducts(categoryIDs []uint) ([]models.Product, error) {
 	var products []models.Product
 	query := r.db
 	if len(categoryIDs) > 0 {

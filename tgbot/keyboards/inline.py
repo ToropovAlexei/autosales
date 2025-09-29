@@ -56,7 +56,7 @@ def categories_menu(categories: list, parent_id: int = 0, products: list = []):
         
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-def products_menu(products: list, category_id: int):
+def products_menu(products: list, category_id: int, parent_id: int):
     buttons = []
     for product in products:
         if product.get('provider'):
@@ -66,7 +66,7 @@ def products_menu(products: list, category_id: int):
     
     buttons.append([InlineKeyboardButton(
         text="⬅️ Назад к категориям", 
-        callback_data=CategoryCallback(action="view", category_id=category_id).pack()
+        callback_data=CategoryCallback(action="view", category_id=parent_id).pack()
     )])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
