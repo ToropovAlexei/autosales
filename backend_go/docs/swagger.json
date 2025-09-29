@@ -22,7 +22,7 @@
             "post": {
                 "description": "Logs in a user and returns a JWT token",
                 "consumes": [
-                    "application/x-www-form-urlencoded"
+                    "application/json"
                 ],
                 "produces": [
                     "application/json"
@@ -33,18 +33,13 @@
                 "summary": "User Login",
                 "parameters": [
                     {
-                        "type": "string",
-                        "description": "Username (Email)",
-                        "name": "username",
-                        "in": "formData",
-                        "required": true
-                    },
-                    {
-                        "type": "string",
-                        "description": "Password",
-                        "name": "password",
-                        "in": "formData",
-                        "required": true
+                        "description": "Login credentials",
+                        "name": "login",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.loginPayload"
+                        }
                     }
                 ],
                 "responses": {
@@ -69,9 +64,14 @@
                 }
             }
         },
-        "/categories": {
-            "get": {
-                "description": "get all categories",
+        "/balance/deposit": {
+            "post": {
+                "security": [
+                    {
+                        "ServiceApiKeyAuth": []
+                    }
+                ],
+                "description": "Manually adds a deposit transaction to a user's balance. Prefer using the /deposit/invoice flow.",
                 "consumes": [
                     "application/json"
                 ],
@@ -79,7 +79,58 @@
                     "application/json"
                 ],
                 "tags": [
-                    "categories"
+                    "Balance"
+                ],
+                "summary": "(DEPRECATED) Deposit Balance",
+                "parameters": [
+                    {
+                        "description": "Deposit data",
+                        "name": "deposit",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.depositRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-responses_MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/categories": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    },
+                    {
+                        "ServiceApiKeyAuth": []
+                    }
+                ],
+                "description": "Get a hierarchical list of all categories.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Categories"
                 ],
                 "summary": "Get all categories",
                 "responses": {
@@ -98,7 +149,12 @@
                 }
             },
             "post": {
-                "description": "create a new category with the given name",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Create a new category with the given name and optional parent_id.",
                 "consumes": [
                     "application/json"
                 ],
@@ -106,12 +162,12 @@
                     "application/json"
                 ],
                 "tags": [
-                    "categories"
+                    "Categories"
                 ],
                 "summary": "Create a new category",
                 "parameters": [
                     {
-                        "description": "Category Name",
+                        "description": "Category Name and Parent ID",
                         "name": "category",
                         "in": "body",
                         "required": true,
@@ -144,15 +200,17 @@
         },
         "/categories/{id}": {
             "get": {
-                "description": "get a single category by its ID",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
                 ],
+                "description": "Get a single category by its ID.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "categories"
+                    "Categories"
                 ],
                 "summary": "Get a category by ID",
                 "parameters": [
@@ -186,7 +244,12 @@
                 }
             },
             "put": {
-                "description": "update a category's name by its ID",
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Update a category's name and/or parent by its ID.",
                 "consumes": [
                     "application/json"
                 ],
@@ -194,7 +257,7 @@
                     "application/json"
                 ],
                 "tags": [
-                    "categories"
+                    "Categories"
                 ],
                 "summary": "Update a category",
                 "parameters": [
@@ -206,7 +269,7 @@
                         "required": true
                     },
                     {
-                        "description": "New Category Name",
+                        "description": "New Category Name and/or Parent ID",
                         "name": "category",
                         "in": "body",
                         "required": true,
@@ -228,6 +291,12 @@
                             "$ref": "#/definitions/responses.ErrorResponseSchema"
                         }
                     },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -237,15 +306,17 @@
                 }
             },
             "delete": {
-                "description": "delete a category by its ID",
-                "consumes": [
-                    "application/json"
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
                 ],
+                "description": "Delete a category by its ID.",
                 "produces": [
                     "application/json"
                 ],
                 "tags": [
-                    "categories"
+                    "Categories"
                 ],
                 "summary": "Delete a category",
                 "parameters": [
@@ -267,6 +338,1051 @@
                             "$ref": "#/definitions/responses.ErrorResponseSchema"
                         }
                     },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/deposit/invoice": {
+            "post": {
+                "security": [
+                    {
+                        "ServiceApiKeyAuth": []
+                    }
+                ],
+                "description": "Creates a new payment invoice for a selected gateway and amount.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Create Payment Invoice",
+                "parameters": [
+                    {
+                        "description": "Invoice creation data",
+                        "name": "invoice",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.createInvoicePayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-gateways_Invoice"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/gateways": {
+            "get": {
+                "security": [
+                    {
+                        "ServiceApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves a list of available payment gateways.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Get Payment Gateways",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-array_handlers_gatewayDTO"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/me": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves details for the currently authenticated admin/seller user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get Current User",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-models_UserResponse"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/me/referral-settings": {
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Updates the referral program settings for the current admin/seller.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users",
+                    "Referrals"
+                ],
+                "summary": "Update Referral Settings",
+                "parameters": [
+                    {
+                        "description": "Referral settings",
+                        "name": "settings",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.referralSettingsPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-responses_MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/orders": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves a list of all orders.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "List Orders",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-array_models_OrderResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/orders/buy-from-balance": {
+            "post": {
+                "security": [
+                    {
+                        "ServiceApiKeyAuth": []
+                    }
+                ],
+                "description": "Creates an order and processes the purchase of a product from the user's balance.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "Buy a Product",
+                "parameters": [
+                    {
+                        "description": "Purchase data",
+                        "name": "purchase",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.BuyPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-services_BuyResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "402": {
+                        "description": "Payment Required",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/orders/{id}/cancel": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Cancels an order and refunds the user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Orders"
+                ],
+                "summary": "Cancel an Order",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Order ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-responses_MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/products": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    },
+                    {
+                        "ServiceApiKeyAuth": []
+                    }
+                ],
+                "description": "Get a list of all products, optionally filtered by category.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Products"
+                ],
+                "summary": "List products",
+                "parameters": [
+                    {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        },
+                        "collectionFormat": "csv",
+                        "description": "Category IDs to filter by",
+                        "name": "category_ids[]",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-array_models_ProductResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Adds a new product to the store.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Create a product",
+                "parameters": [
+                    {
+                        "description": "Product data",
+                        "name": "product",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.productCreatePayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-models_ProductResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves details for a single product.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Get a product by ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-models_ProductResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Updates an existing product.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Update a product",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Product data",
+                        "name": "product",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.productUpdatePayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-models_ProductResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Deletes a product by its ID.",
+                "tags": [
+                    "Products"
+                ],
+                "summary": "Delete a product",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/products/{id}/stock/movements": {
+            "post": {
+                "security": [
+                    {
+                        "ApiKeyAuth": []
+                    }
+                ],
+                "description": "Adds a stock movement (e.g., initial stock, sale, return) for a product.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Products",
+                    "Stock"
+                ],
+                "summary": "Create a stock movement",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Product ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Stock movement data",
+                        "name": "movement",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.stockMovementPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-models_StockMovement"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/register": {
+            "post": {
+                "security": [
+                    {
+                        "ServiceApiKeyAuth": []
+                    }
+                ],
+                "description": "Registers a new user from a Telegram bot or reactivates a deleted one.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Register a Bot User",
+                "parameters": [
+                    {
+                        "description": "User Telegram ID",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.registerBotUserPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-responses_RegisterBotUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/seller-settings": {
+            "get": {
+                "description": "Retrieves public settings for the seller, like referral program status.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get Seller Settings",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-responses_SellerSettingsResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{telegram_id}": {
+            "get": {
+                "security": [
+                    {
+                        "ServiceApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves bot user details by their Telegram ID.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Get Bot User by Telegram ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User Telegram ID",
+                        "name": "telegram_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-models_BotUserResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{telegram_id}/balance": {
+            "get": {
+                "security": [
+                    {
+                        "ServiceApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves the current balance for a bot user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users",
+                    "Balance"
+                ],
+                "summary": "Get User Balance",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User Telegram ID",
+                        "name": "telegram_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-responses_BalanceResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{telegram_id}/captcha-status": {
+            "put": {
+                "security": [
+                    {
+                        "ServiceApiKeyAuth": []
+                    }
+                ],
+                "description": "Updates the captcha verification status for a bot user.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "Update User Captcha Status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User Telegram ID",
+                        "name": "telegram_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Captcha status",
+                        "name": "status",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/handlers.updateUserCaptchaStatusPayload"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-responses_MessageResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{telegram_id}/orders": {
+            "get": {
+                "security": [
+                    {
+                        "ServiceApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves the order history for a bot user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users",
+                    "Orders"
+                ],
+                "summary": "Get User Orders",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User Telegram ID",
+                        "name": "telegram_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-array_models_Order"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{telegram_id}/subscriptions": {
+            "get": {
+                "security": [
+                    {
+                        "ServiceApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves a list of a bot user's active and expired subscriptions.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users",
+                    "Subscriptions"
+                ],
+                "summary": "Get User Subscriptions",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User Telegram ID",
+                        "name": "telegram_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-array_models_UserSubscription"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{telegram_id}/transactions": {
+            "get": {
+                "security": [
+                    {
+                        "ServiceApiKeyAuth": []
+                    }
+                ],
+                "description": "Retrieves the transaction history for a bot user.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users",
+                    "Transactions"
+                ],
+                "summary": "Get User Transactions",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "User Telegram ID",
+                        "name": "telegram_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ResponseSchema-array_models_TransactionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    }
+                }
+            }
+        },
+        "/webhooks/{gateway_name}": {
+            "post": {
+                "description": "Handles incoming webhook notifications from a payment gateway.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Payments"
+                ],
+                "summary": "Handle Gateway Webhook",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Gateway Name",
+                        "name": "gateway_name",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/responses.ErrorResponseSchema"
+                        }
+                    },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
@@ -278,6 +1394,46 @@
         }
     },
     "definitions": {
+        "gateways.Invoice": {
+            "type": "object",
+            "properties": {
+                "gateway_invoice_id": {
+                    "description": "The ID of the invoice in the gateway's system",
+                    "type": "string"
+                },
+                "pay_url": {
+                    "description": "The URL the user should be redirected to for payment",
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.BuyPayload": {
+            "type": "object",
+            "required": [
+                "quantity",
+                "user_id"
+            ],
+            "properties": {
+                "external_product_id": {
+                    "type": "string"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "referral_bot_token": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
         "handlers.categoryPayload": {
             "type": "object",
             "required": [
@@ -286,6 +1442,248 @@
             "properties": {
                 "name": {
                     "type": "string"
+                },
+                "parent_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.createInvoicePayload": {
+            "type": "object",
+            "required": [
+                "amount",
+                "bot_user_id",
+                "gateway_name"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "bot_user_id": {
+                    "type": "integer"
+                },
+                "gateway_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.depositRequest": {
+            "type": "object",
+            "required": [
+                "amount",
+                "user_id"
+            ],
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.gatewayDTO": {
+            "type": "object",
+            "properties": {
+                "display_name": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.loginPayload": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "handlers.productCreatePayload": {
+            "type": "object",
+            "required": [
+                "category_id",
+                "name"
+            ],
+            "properties": {
+                "category_id": {
+                    "type": "integer"
+                },
+                "initial_stock": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "subscription_period_days": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "item",
+                        "subscription"
+                    ]
+                }
+            }
+        },
+        "handlers.productUpdatePayload": {
+            "type": "object",
+            "required": [
+                "category_id",
+                "name"
+            ],
+            "properties": {
+                "category_id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "subscription_period_days": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "type": {
+                    "type": "string",
+                    "enum": [
+                        "item",
+                        "subscription"
+                    ]
+                }
+            }
+        },
+        "handlers.referralSettingsPayload": {
+            "type": "object",
+            "properties": {
+                "referral_percentage": {
+                    "type": "number"
+                },
+                "referral_program_enabled": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "handlers.registerBotUserPayload": {
+            "type": "object",
+            "properties": {
+                "telegram_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "handlers.stockMovementPayload": {
+            "type": "object",
+            "required": [
+                "quantity",
+                "type"
+            ],
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "order_id": {
+                    "type": "integer"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "type": {
+                    "$ref": "#/definitions/models.StockMovementType"
+                }
+            }
+        },
+        "handlers.updateUserCaptchaStatusPayload": {
+            "type": "object",
+            "properties": {
+                "has_passed_captcha": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "models.BotUser": {
+            "type": "object",
+            "properties": {
+                "hasPassedCaptcha": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "isDeleted": {
+                    "type": "boolean"
+                },
+                "telegramID": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.BotUserResponse": {
+            "type": "object",
+            "properties": {
+                "balance": {
+                    "type": "number"
+                },
+                "has_passed_captcha": {
+                    "type": "boolean"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_deleted": {
+                    "type": "boolean"
+                },
+                "telegram_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Category": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "parent": {
+                    "$ref": "#/definitions/models.Category"
+                },
+                "parentID": {
+                    "description": "Указатель, чтобы разрешить NULL",
+                    "type": "integer"
+                },
+                "products": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Product"
+                    }
+                },
+                "subCategories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Category"
+                    }
                 }
             }
         },
@@ -297,6 +1695,327 @@
                 },
                 "name": {
                     "type": "string"
+                },
+                "parent_id": {
+                    "type": "integer"
+                },
+                "sub_categories": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.CategoryResponse"
+                    }
+                }
+            }
+        },
+        "models.Order": {
+            "type": "object",
+            "properties": {
+                "Product": {
+                    "$ref": "#/definitions/models.Product"
+                },
+                "amount": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.OrderResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                },
+                "user_telegram_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.OrderSlimResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.Product": {
+            "type": "object",
+            "properties": {
+                "category": {
+                    "$ref": "#/definitions/models.Category"
+                },
+                "category_id": {
+                    "type": "integer"
+                },
+                "details": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "subscription_period_days": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.ProductResponse": {
+            "type": "object",
+            "properties": {
+                "category_id": {
+                    "type": "integer"
+                },
+                "external_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "stock": {
+                    "type": "integer"
+                },
+                "subscription_period_days": {
+                    "type": "integer"
+                },
+                "type": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.StockMovement": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "orderID": {
+                    "type": "integer"
+                },
+                "productID": {
+                    "type": "integer"
+                },
+                "quantity": {
+                    "type": "integer"
+                },
+                "type": {
+                    "$ref": "#/definitions/models.StockMovementType"
+                }
+            }
+        },
+        "models.StockMovementType": {
+            "type": "string",
+            "enum": [
+                "initial",
+                "sale",
+                "restock",
+                "return"
+            ],
+            "x-enum-varnames": [
+                "Initial",
+                "Sale",
+                "Restock",
+                "Return"
+            ]
+        },
+        "models.TransactionResponse": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "number"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "order_id": {
+                    "type": "integer"
+                },
+                "type": {
+                    "$ref": "#/definitions/models.TransactionType"
+                },
+                "user_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.TransactionType": {
+            "type": "string",
+            "enum": [
+                "deposit",
+                "purchase"
+            ],
+            "x-enum-varnames": [
+                "Deposit",
+                "Purchase"
+            ]
+        },
+        "models.UserResponse": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "referral_percentage": {
+                    "type": "number"
+                },
+                "referral_program_enabled": {
+                    "type": "boolean"
+                },
+                "role": {
+                    "$ref": "#/definitions/models.UserRole"
+                }
+            }
+        },
+        "models.UserRole": {
+            "type": "string",
+            "enum": [
+                "admin",
+                "seller"
+            ],
+            "x-enum-varnames": [
+                "Admin",
+                "Seller"
+            ]
+        },
+        "models.UserSubscription": {
+            "type": "object",
+            "properties": {
+                "Product": {
+                    "$ref": "#/definitions/models.Product"
+                },
+                "bot_user": {
+                    "$ref": "#/definitions/models.BotUser"
+                },
+                "bot_user_id": {
+                    "type": "integer"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "details": {
+                    "type": "object"
+                },
+                "expires_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
+                },
+                "order": {
+                    "$ref": "#/definitions/models.Order"
+                },
+                "order_id": {
+                    "type": "integer"
+                },
+                "product_id": {
+                    "type": "integer"
+                },
+                "provisioned_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "responses.BalanceResponse": {
+            "type": "object",
+            "properties": {
+                "balance": {
+                    "type": "number"
                 }
             }
         },
@@ -314,6 +2033,48 @@
                 }
             }
         },
+        "responses.MessageResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "responses.RegisterBotUserResponse": {
+            "type": "object",
+            "properties": {
+                "has_passed_captcha": {
+                    "type": "boolean"
+                },
+                "is_new": {
+                    "type": "boolean"
+                },
+                "user": {
+                    "$ref": "#/definitions/models.BotUserResponse"
+                }
+            }
+        },
+        "responses.ResponseSchema-array_handlers_gatewayDTO": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/handlers.gatewayDTO"
+                    }
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
         "responses.ResponseSchema-array_models_CategoryResponse": {
             "type": "object",
             "properties": {
@@ -322,6 +2083,140 @@
                     "items": {
                         "$ref": "#/definitions/models.CategoryResponse"
                     }
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "responses.ResponseSchema-array_models_Order": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.Order"
+                    }
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "responses.ResponseSchema-array_models_OrderResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.OrderResponse"
+                    }
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "responses.ResponseSchema-array_models_ProductResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.ProductResponse"
+                    }
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "responses.ResponseSchema-array_models_TransactionResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.TransactionResponse"
+                    }
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "responses.ResponseSchema-array_models_UserSubscription": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.UserSubscription"
+                    }
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "responses.ResponseSchema-gateways_Invoice": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/gateways.Invoice"
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "responses.ResponseSchema-models_BotUserResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.BotUserResponse"
                 },
                 "error": {
                     "type": "string",
@@ -351,6 +2246,125 @@
                 }
             }
         },
+        "responses.ResponseSchema-models_ProductResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.ProductResponse"
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "responses.ResponseSchema-models_StockMovement": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.StockMovement"
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "responses.ResponseSchema-models_UserResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/models.UserResponse"
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "responses.ResponseSchema-responses_BalanceResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/responses.BalanceResponse"
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "responses.ResponseSchema-responses_MessageResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/responses.MessageResponse"
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "responses.ResponseSchema-responses_RegisterBotUserResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/responses.RegisterBotUserResponse"
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "responses.ResponseSchema-responses_SellerSettingsResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/responses.SellerSettingsResponse"
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
         "responses.ResponseSchema-responses_TokenResponse": {
             "type": "object",
             "properties": {
@@ -368,6 +2382,37 @@
                 }
             }
         },
+        "responses.ResponseSchema-services_BuyResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "$ref": "#/definitions/services.BuyResponse"
+                },
+                "error": {
+                    "type": "string",
+                    "x-nullable": "true",
+                    "example": "null"
+                },
+                "success": {
+                    "type": "boolean",
+                    "example": true
+                }
+            }
+        },
+        "responses.SellerSettingsResponse": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "integer"
+                },
+                "referral_percentage": {
+                    "type": "number"
+                },
+                "referral_program_enabled": {
+                    "type": "boolean"
+                }
+            }
+        },
         "responses.TokenResponse": {
             "type": "object",
             "properties": {
@@ -376,6 +2421,23 @@
                 },
                 "token_type": {
                     "type": "string"
+                }
+            }
+        },
+        "services.BuyResponse": {
+            "type": "object",
+            "properties": {
+                "balance": {
+                    "type": "number"
+                },
+                "order": {
+                    "$ref": "#/definitions/models.OrderSlimResponse"
+                },
+                "product_name": {
+                    "type": "string"
+                },
+                "product_price": {
+                    "type": "number"
                 }
             }
         }

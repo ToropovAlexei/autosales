@@ -19,6 +19,14 @@ func NewUserHandler(userService services.UserService) *UserHandler {
 	return &UserHandler{userService: userService}
 }
 
+// @Summary      Get Current User
+// @Description  Retrieves details for the currently authenticated admin/seller user.
+// @Tags         Users
+// @Produce      json
+// @Success      200 {object} responses.ResponseSchema[models.UserResponse]
+// @Failure      403 {object} responses.ErrorResponseSchema
+// @Router       /me [get]
+// @Security     ApiKeyAuth
 func (h *UserHandler) GetMeHandler(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
@@ -39,6 +47,18 @@ type referralSettingsPayload struct {
 	ReferralPercentage     float64 `json:"referral_percentage"`
 }
 
+// @Summary      Update Referral Settings
+// @Description  Updates the referral program settings for the current admin/seller.
+// @Tags         Users, Referrals
+// @Accept       json
+// @Produce      json
+// @Param        settings body referralSettingsPayload true "Referral settings"
+// @Success      200 {object} responses.ResponseSchema[responses.MessageResponse]
+// @Failure      400 {object} responses.ErrorResponseSchema
+// @Failure      403 {object} responses.ErrorResponseSchema
+// @Failure      500 {object} responses.ErrorResponseSchema
+// @Router       /me/referral-settings [put]
+// @Security     ApiKeyAuth
 func (h *UserHandler) UpdateReferralSettingsHandler(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
@@ -72,13 +92,24 @@ func (h *UserHandler) UpdateReferralSettingsHandler(c *gin.Context) {
 		return
 	}
 
-	responses.SuccessResponse(c, http.StatusOK, gin.H{"message": "Referral settings updated successfully"})
+	responses.SuccessResponse(c, http.StatusOK, responses.MessageResponse{Message: "Referral settings updated successfully"})
 }
 
 type registerBotUserPayload struct {
 	TelegramID int64 `json:"telegram_id"`
 }
 
+// @Summary      Register a Bot User
+// @Description  Registers a new user from a Telegram bot or reactivates a deleted one.
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        user body registerBotUserPayload true "User Telegram ID"
+// @Success      201 {object} responses.ResponseSchema[responses.RegisterBotUserResponse]
+// @Failure      400 {object} responses.ErrorResponseSchema
+// @Failure      500 {object} responses.ErrorResponseSchema
+// @Router       /users/register [post]
+// @Security     ServiceApiKeyAuth
 func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 	var json registerBotUserPayload
 	if err := c.ShouldBindJSON(&json); err != nil {
@@ -92,7 +123,7 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 		return
 	}
 
-	response := models.BotUserResponse{
+	userResponse := models.BotUserResponse{
 		ID:               user.ID,
 		TelegramID:       user.TelegramID,
 		IsDeleted:        user.IsDeleted,
@@ -105,13 +136,23 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 		status = http.StatusCreated
 	}
 
-	responses.SuccessResponse(c, status, gin.H{
-		"user":               response,
-		"is_new":             isNew,
-		"has_passed_captcha": hasPassedCaptcha,
+	responses.SuccessResponse(c, status, responses.RegisterBotUserResponse{
+		User:               userResponse,
+		IsNew:             isNew,
+		HasPassedCaptcha: hasPassedCaptcha,
 	})
 }
 
+// @Summary      Get Bot User by Telegram ID
+// @Description  Retrieves bot user details by their Telegram ID.
+// @Tags         Users
+// @Produce      json
+// @Param        telegram_id path int true "User Telegram ID"
+// @Success      200 {object} responses.ResponseSchema[models.BotUserResponse]
+// @Failure      400 {object} responses.ErrorResponseSchema
+// @Failure      404 {object} responses.ErrorResponseSchema
+// @Router       /users/{telegram_id} [get]
+// @Security     ServiceApiKeyAuth
 func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
 	if err != nil {
@@ -136,6 +177,16 @@ func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusOK, response)
 }
 
+// @Summary      Get User Balance
+// @Description  Retrieves the current balance for a bot user.
+// @Tags         Users, Balance
+// @Produce      json
+// @Param        telegram_id path int true "User Telegram ID"
+// @Success      200 {object} responses.ResponseSchema[responses.BalanceResponse]
+// @Failure      400 {object} responses.ErrorResponseSchema
+// @Failure      404 {object} responses.ErrorResponseSchema
+// @Router       /users/{telegram_id}/balance [get]
+// @Security     ServiceApiKeyAuth
 func (h *UserHandler) GetBalanceHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
 	if err != nil {
@@ -148,9 +199,19 @@ func (h *UserHandler) GetBalanceHandler(c *gin.Context) {
 		return
 	}
 
-	responses.SuccessResponse(c, http.StatusOK, gin.H{"balance": balance})
+	responses.SuccessResponse(c, http.StatusOK, responses.BalanceResponse{Balance: balance})
 }
 
+// @Summary      Get User Transactions
+// @Description  Retrieves the transaction history for a bot user.
+// @Tags         Users, Transactions
+// @Produce      json
+// @Param        telegram_id path int true "User Telegram ID"
+// @Success      200 {object} responses.ResponseSchema[[]models.TransactionResponse]
+// @Failure      400 {object} responses.ErrorResponseSchema
+// @Failure      404 {object} responses.ErrorResponseSchema
+// @Router       /users/{telegram_id}/transactions [get]
+// @Security     ServiceApiKeyAuth
 func (h *UserHandler) GetUserTransactionsHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
 	if err != nil {
@@ -183,6 +244,18 @@ type updateUserCaptchaStatusPayload struct {
 	HasPassedCaptcha bool `json:"has_passed_captcha"`
 }
 
+// @Summary      Update User Captcha Status
+// @Description  Updates the captcha verification status for a bot user.
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        telegram_id path int true "User Telegram ID"
+// @Param        status body updateUserCaptchaStatusPayload true "Captcha status"
+// @Success      200 {object} responses.ResponseSchema[responses.MessageResponse]
+// @Failure      400 {object} responses.ErrorResponseSchema
+// @Failure      404 {object} responses.ErrorResponseSchema
+// @Router       /users/{telegram_id}/captcha-status [put]
+// @Security     ServiceApiKeyAuth
 func (h *UserHandler) UpdateUserCaptchaStatusHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
 	if err != nil {
@@ -201,9 +274,16 @@ func (h *UserHandler) UpdateUserCaptchaStatusHandler(c *gin.Context) {
 		return
 	}
 
-	responses.SuccessResponse(c, http.StatusOK, gin.H{"message": "Captcha status updated successfully"})
+	responses.SuccessResponse(c, http.StatusOK, responses.MessageResponse{Message: "Captcha status updated successfully"})
 }
 
+// @Summary      Get Seller Settings
+// @Description  Retrieves public settings for the seller, like referral program status.
+// @Tags         Users
+// @Produce      json
+// @Success      200 {object} responses.ResponseSchema[responses.SellerSettingsResponse]
+// @Failure      404 {object} responses.ErrorResponseSchema
+// @Router       /users/seller-settings [get]
 func (h *UserHandler) GetSellerSettingsHandler(c *gin.Context) {
 	seller, err := h.userService.GetSellerSettings()
 	if err != nil {
@@ -211,13 +291,23 @@ func (h *UserHandler) GetSellerSettingsHandler(c *gin.Context) {
 		return
 	}
 
-	responses.SuccessResponse(c, http.StatusOK, gin.H{
-		"id":                       seller.ID,
-		"referral_program_enabled": seller.ReferralProgramEnabled,
-		"referral_percentage":      seller.ReferralPercentage,
+	responses.SuccessResponse(c, http.StatusOK, responses.SellerSettingsResponse{
+		ID:                       seller.ID,
+		ReferralProgramEnabled: seller.ReferralProgramEnabled,
+		ReferralPercentage:     seller.ReferralPercentage,
 	})
 }
 
+// @Summary      Get User Subscriptions
+// @Description  Retrieves a list of a bot user's active and expired subscriptions.
+// @Tags         Users, Subscriptions
+// @Produce      json
+// @Param        telegram_id path int true "User Telegram ID"
+// @Success      200 {object} responses.ResponseSchema[[]models.UserSubscription]
+// @Failure      400 {object} responses.ErrorResponseSchema
+// @Failure      404 {object} responses.ErrorResponseSchema
+// @Router       /users/{telegram_id}/subscriptions [get]
+// @Security     ServiceApiKeyAuth
 func (h *UserHandler) GetUserSubscriptionsHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
 	if err != nil {
@@ -233,6 +323,16 @@ func (h *UserHandler) GetUserSubscriptionsHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusOK, subscriptions)
 }
 
+// @Summary      Get User Orders
+// @Description  Retrieves the order history for a bot user.
+// @Tags         Users, Orders
+// @Produce      json
+// @Param        telegram_id path int true "User Telegram ID"
+// @Success      200 {object} responses.ResponseSchema[[]models.Order]
+// @Failure      400 {object} responses.ErrorResponseSchema
+// @Failure      404 {object} responses.ErrorResponseSchema
+// @Router       /users/{telegram_id}/orders [get]
+// @Security     ServiceApiKeyAuth
 func (h *UserHandler) GetUserOrdersHandler(c *gin.Context) {
 	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
 	if err != nil {

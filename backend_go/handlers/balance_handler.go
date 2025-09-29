@@ -22,6 +22,17 @@ type depositRequest struct {
 	Amount float64 `json:"amount" binding:"required,gt=0"`
 }
 
+// @Summary      (DEPRECATED) Deposit Balance
+// @Description  Manually adds a deposit transaction to a user's balance. Prefer using the /deposit/invoice flow.
+// @Tags         Balance
+// @Accept       json
+// @Produce      json
+// @Param        deposit body depositRequest true "Deposit data"
+// @Success      200 {object} responses.ResponseSchema[responses.MessageResponse]
+// @Failure      400 {object} responses.ErrorResponseSchema
+// @Failure      404 {object} responses.ErrorResponseSchema
+// @Router       /balance/deposit [post]
+// @Security     ServiceApiKeyAuth
 func (h *BalanceHandler) DepositBalanceHandler(c *gin.Context) {
 	var json depositRequest
 	if err := c.ShouldBindJSON(&json); err != nil {
@@ -34,7 +45,7 @@ func (h *BalanceHandler) DepositBalanceHandler(c *gin.Context) {
 		return
 	}
 
-	responses.SuccessResponse(c, http.StatusOK, gin.H{"message": "Balance updated successfully"})
+	responses.SuccessResponse(c, http.StatusOK, responses.MessageResponse{Message: "Balance updated successfully"})
 }
 
 type webhookPayload struct {

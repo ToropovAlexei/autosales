@@ -1,11 +1,200 @@
 basePath: /api
 definitions:
+  gateways.Invoice:
+    properties:
+      gateway_invoice_id:
+        description: The ID of the invoice in the gateway's system
+        type: string
+      pay_url:
+        description: The URL the user should be redirected to for payment
+        type: string
+    type: object
+  handlers.BuyPayload:
+    properties:
+      external_product_id:
+        type: string
+      product_id:
+        type: integer
+      provider:
+        type: string
+      quantity:
+        type: integer
+      referral_bot_token:
+        type: string
+      user_id:
+        type: integer
+    required:
+    - quantity
+    - user_id
+    type: object
   handlers.categoryPayload:
     properties:
       name:
         type: string
+      parent_id:
+        type: integer
     required:
     - name
+    type: object
+  handlers.createInvoicePayload:
+    properties:
+      amount:
+        type: number
+      bot_user_id:
+        type: integer
+      gateway_name:
+        type: string
+    required:
+    - amount
+    - bot_user_id
+    - gateway_name
+    type: object
+  handlers.depositRequest:
+    properties:
+      amount:
+        type: number
+      user_id:
+        type: integer
+    required:
+    - amount
+    - user_id
+    type: object
+  handlers.gatewayDTO:
+    properties:
+      display_name:
+        type: string
+      name:
+        type: string
+    type: object
+  handlers.loginPayload:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  handlers.productCreatePayload:
+    properties:
+      category_id:
+        type: integer
+      initial_stock:
+        minimum: 0
+        type: integer
+      name:
+        type: string
+      price:
+        minimum: 0
+        type: number
+      subscription_period_days:
+        minimum: 0
+        type: integer
+      type:
+        enum:
+        - item
+        - subscription
+        type: string
+    required:
+    - category_id
+    - name
+    type: object
+  handlers.productUpdatePayload:
+    properties:
+      category_id:
+        type: integer
+      name:
+        type: string
+      price:
+        minimum: 0
+        type: number
+      subscription_period_days:
+        minimum: 0
+        type: integer
+      type:
+        enum:
+        - item
+        - subscription
+        type: string
+    required:
+    - category_id
+    - name
+    type: object
+  handlers.referralSettingsPayload:
+    properties:
+      referral_percentage:
+        type: number
+      referral_program_enabled:
+        type: boolean
+    type: object
+  handlers.registerBotUserPayload:
+    properties:
+      telegram_id:
+        type: integer
+    type: object
+  handlers.stockMovementPayload:
+    properties:
+      description:
+        type: string
+      order_id:
+        type: integer
+      quantity:
+        type: integer
+      type:
+        $ref: '#/definitions/models.StockMovementType'
+    required:
+    - quantity
+    - type
+    type: object
+  handlers.updateUserCaptchaStatusPayload:
+    properties:
+      has_passed_captcha:
+        type: boolean
+    type: object
+  models.BotUser:
+    properties:
+      hasPassedCaptcha:
+        type: boolean
+      id:
+        type: integer
+      isDeleted:
+        type: boolean
+      telegramID:
+        type: integer
+    type: object
+  models.BotUserResponse:
+    properties:
+      balance:
+        type: number
+      has_passed_captcha:
+        type: boolean
+      id:
+        type: integer
+      is_deleted:
+        type: boolean
+      telegram_id:
+        type: integer
+    type: object
+  models.Category:
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      parent:
+        $ref: '#/definitions/models.Category'
+      parentID:
+        description: Указатель, чтобы разрешить NULL
+        type: integer
+      products:
+        items:
+          $ref: '#/definitions/models.Product'
+        type: array
+      subCategories:
+        items:
+          $ref: '#/definitions/models.Category'
+        type: array
     type: object
   models.CategoryResponse:
     properties:
@@ -13,6 +202,220 @@ definitions:
         type: integer
       name:
         type: string
+      parent_id:
+        type: integer
+      sub_categories:
+        items:
+          $ref: '#/definitions/models.CategoryResponse'
+        type: array
+    type: object
+  models.Order:
+    properties:
+      Product:
+        $ref: '#/definitions/models.Product'
+      amount:
+        type: number
+      created_at:
+        type: string
+      id:
+        type: integer
+      product_id:
+        type: integer
+      quantity:
+        type: integer
+      status:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.OrderResponse:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      id:
+        type: integer
+      product_id:
+        type: integer
+      product_name:
+        type: string
+      quantity:
+        type: integer
+      status:
+        type: string
+      user_id:
+        type: integer
+      user_telegram_id:
+        type: integer
+    type: object
+  models.OrderSlimResponse:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      id:
+        type: integer
+      product_id:
+        type: integer
+      quantity:
+        type: integer
+      status:
+        type: string
+      user_id:
+        type: integer
+    type: object
+  models.Product:
+    properties:
+      category:
+        $ref: '#/definitions/models.Category'
+      category_id:
+        type: integer
+      details:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      price:
+        type: number
+      subscription_period_days:
+        type: integer
+      type:
+        type: string
+    type: object
+  models.ProductResponse:
+    properties:
+      category_id:
+        type: integer
+      external_id:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      price:
+        type: number
+      provider:
+        type: string
+      stock:
+        type: integer
+      subscription_period_days:
+        type: integer
+      type:
+        type: string
+    type: object
+  models.StockMovement:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      orderID:
+        type: integer
+      productID:
+        type: integer
+      quantity:
+        type: integer
+      type:
+        $ref: '#/definitions/models.StockMovementType'
+    type: object
+  models.StockMovementType:
+    enum:
+    - initial
+    - sale
+    - restock
+    - return
+    type: string
+    x-enum-varnames:
+    - Initial
+    - Sale
+    - Restock
+    - Return
+  models.TransactionResponse:
+    properties:
+      amount:
+        type: number
+      created_at:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      order_id:
+        type: integer
+      type:
+        $ref: '#/definitions/models.TransactionType'
+      user_id:
+        type: integer
+    type: object
+  models.TransactionType:
+    enum:
+    - deposit
+    - purchase
+    type: string
+    x-enum-varnames:
+    - Deposit
+    - Purchase
+  models.UserResponse:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      referral_percentage:
+        type: number
+      referral_program_enabled:
+        type: boolean
+      role:
+        $ref: '#/definitions/models.UserRole'
+    type: object
+  models.UserRole:
+    enum:
+    - admin
+    - seller
+    type: string
+    x-enum-varnames:
+    - Admin
+    - Seller
+  models.UserSubscription:
+    properties:
+      Product:
+        $ref: '#/definitions/models.Product'
+      bot_user:
+        $ref: '#/definitions/models.BotUser'
+      bot_user_id:
+        type: integer
+      created_at:
+        type: string
+      details:
+        type: object
+      expires_at:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      order:
+        $ref: '#/definitions/models.Order'
+      order_id:
+        type: integer
+      product_id:
+        type: integer
+      provisioned_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  responses.BalanceResponse:
+    properties:
+      balance:
+        type: number
     type: object
   responses.ErrorResponseSchema:
     description: This is the standard error response structure.
@@ -24,12 +427,134 @@ definitions:
         example: false
         type: boolean
     type: object
+  responses.MessageResponse:
+    properties:
+      message:
+        type: string
+    type: object
+  responses.RegisterBotUserResponse:
+    properties:
+      has_passed_captcha:
+        type: boolean
+      is_new:
+        type: boolean
+      user:
+        $ref: '#/definitions/models.BotUserResponse'
+    type: object
+  responses.ResponseSchema-array_handlers_gatewayDTO:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/handlers.gatewayDTO'
+        type: array
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
   responses.ResponseSchema-array_models_CategoryResponse:
     properties:
       data:
         items:
           $ref: '#/definitions/models.CategoryResponse'
         type: array
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.ResponseSchema-array_models_Order:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.Order'
+        type: array
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.ResponseSchema-array_models_OrderResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.OrderResponse'
+        type: array
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.ResponseSchema-array_models_ProductResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.ProductResponse'
+        type: array
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.ResponseSchema-array_models_TransactionResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.TransactionResponse'
+        type: array
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.ResponseSchema-array_models_UserSubscription:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/models.UserSubscription'
+        type: array
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.ResponseSchema-gateways_Invoice:
+    properties:
+      data:
+        $ref: '#/definitions/gateways.Invoice'
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.ResponseSchema-models_BotUserResponse:
+    properties:
+      data:
+        $ref: '#/definitions/models.BotUserResponse'
       error:
         example: "null"
         type: string
@@ -50,6 +575,90 @@ definitions:
         example: true
         type: boolean
     type: object
+  responses.ResponseSchema-models_ProductResponse:
+    properties:
+      data:
+        $ref: '#/definitions/models.ProductResponse'
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.ResponseSchema-models_StockMovement:
+    properties:
+      data:
+        $ref: '#/definitions/models.StockMovement'
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.ResponseSchema-models_UserResponse:
+    properties:
+      data:
+        $ref: '#/definitions/models.UserResponse'
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.ResponseSchema-responses_BalanceResponse:
+    properties:
+      data:
+        $ref: '#/definitions/responses.BalanceResponse'
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.ResponseSchema-responses_MessageResponse:
+    properties:
+      data:
+        $ref: '#/definitions/responses.MessageResponse'
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.ResponseSchema-responses_RegisterBotUserResponse:
+    properties:
+      data:
+        $ref: '#/definitions/responses.RegisterBotUserResponse'
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.ResponseSchema-responses_SellerSettingsResponse:
+    properties:
+      data:
+        $ref: '#/definitions/responses.SellerSettingsResponse'
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
   responses.ResponseSchema-responses_TokenResponse:
     properties:
       data:
@@ -62,12 +671,44 @@ definitions:
         example: true
         type: boolean
     type: object
+  responses.ResponseSchema-services_BuyResponse:
+    properties:
+      data:
+        $ref: '#/definitions/services.BuyResponse'
+      error:
+        example: "null"
+        type: string
+        x-nullable: "true"
+      success:
+        example: true
+        type: boolean
+    type: object
+  responses.SellerSettingsResponse:
+    properties:
+      id:
+        type: integer
+      referral_percentage:
+        type: number
+      referral_program_enabled:
+        type: boolean
+    type: object
   responses.TokenResponse:
     properties:
       access_token:
         type: string
       token_type:
         type: string
+    type: object
+  services.BuyResponse:
+    properties:
+      balance:
+        type: number
+      order:
+        $ref: '#/definitions/models.OrderSlimResponse'
+      product_name:
+        type: string
+      product_price:
+        type: number
     type: object
 host: localhost:8000
 info:
@@ -86,19 +727,15 @@ paths:
   /auth/login:
     post:
       consumes:
-      - application/x-www-form-urlencoded
+      - application/json
       description: Logs in a user and returns a JWT token
       parameters:
-      - description: Username (Email)
-        in: formData
-        name: username
+      - description: Login credentials
+        in: body
+        name: login
         required: true
-        type: string
-      - description: Password
-        in: formData
-        name: password
-        required: true
-        type: string
+        schema:
+          $ref: '#/definitions/handlers.loginPayload'
       produces:
       - application/json
       responses:
@@ -117,11 +754,42 @@ paths:
       summary: User Login
       tags:
       - Auth
-  /categories:
-    get:
+  /balance/deposit:
+    post:
       consumes:
       - application/json
-      description: get all categories
+      description: Manually adds a deposit transaction to a user's balance. Prefer
+        using the /deposit/invoice flow.
+      parameters:
+      - description: Deposit data
+        in: body
+        name: deposit
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.depositRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-responses_MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ServiceApiKeyAuth: []
+      summary: (DEPRECATED) Deposit Balance
+      tags:
+      - Balance
+  /categories:
+    get:
+      description: Get a hierarchical list of all categories.
       produces:
       - application/json
       responses:
@@ -133,15 +801,18 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ApiKeyAuth: []
+      - ServiceApiKeyAuth: []
       summary: Get all categories
       tags:
-      - categories
+      - Categories
     post:
       consumes:
       - application/json
-      description: create a new category with the given name
+      description: Create a new category with the given name and optional parent_id.
       parameters:
-      - description: Category Name
+      - description: Category Name and Parent ID
         in: body
         name: category
         required: true
@@ -162,14 +833,14 @@ paths:
           description: Internal Server Error
           schema:
             $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ApiKeyAuth: []
       summary: Create a new category
       tags:
-      - categories
+      - Categories
   /categories/{id}:
     delete:
-      consumes:
-      - application/json
-      description: delete a category by its ID
+      description: Delete a category by its ID.
       parameters:
       - description: Category ID
         in: path
@@ -185,17 +856,21 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ApiKeyAuth: []
       summary: Delete a category
       tags:
-      - categories
+      - Categories
     get:
-      consumes:
-      - application/json
-      description: get a single category by its ID
+      description: Get a single category by its ID.
       parameters:
       - description: Category ID
         in: path
@@ -217,20 +892,22 @@ paths:
           description: Not Found
           schema:
             $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ApiKeyAuth: []
       summary: Get a category by ID
       tags:
-      - categories
+      - Categories
     put:
       consumes:
       - application/json
-      description: update a category's name by its ID
+      description: Update a category's name and/or parent by its ID.
       parameters:
       - description: Category ID
         in: path
         name: id
         required: true
         type: integer
-      - description: New Category Name
+      - description: New Category Name and/or Parent ID
         in: body
         name: category
         required: true
@@ -247,13 +924,683 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
         "500":
           description: Internal Server Error
           schema:
             $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ApiKeyAuth: []
       summary: Update a category
       tags:
-      - categories
+      - Categories
+  /deposit/invoice:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new payment invoice for a selected gateway and amount.
+      parameters:
+      - description: Invoice creation data
+        in: body
+        name: invoice
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.createInvoicePayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-gateways_Invoice'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ServiceApiKeyAuth: []
+      summary: Create Payment Invoice
+      tags:
+      - Payments
+  /gateways:
+    get:
+      description: Retrieves a list of available payment gateways.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-array_handlers_gatewayDTO'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ServiceApiKeyAuth: []
+      summary: Get Payment Gateways
+      tags:
+      - Payments
+  /me:
+    get:
+      description: Retrieves details for the currently authenticated admin/seller
+        user.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-models_UserResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ApiKeyAuth: []
+      summary: Get Current User
+      tags:
+      - Users
+  /me/referral-settings:
+    put:
+      consumes:
+      - application/json
+      description: Updates the referral program settings for the current admin/seller.
+      parameters:
+      - description: Referral settings
+        in: body
+        name: settings
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.referralSettingsPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-responses_MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ApiKeyAuth: []
+      summary: Update Referral Settings
+      tags:
+      - Users
+      - Referrals
+  /orders:
+    get:
+      description: Retrieves a list of all orders.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-array_models_OrderResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ApiKeyAuth: []
+      summary: List Orders
+      tags:
+      - Orders
+  /orders/{id}/cancel:
+    post:
+      description: Cancels an order and refunds the user.
+      parameters:
+      - description: Order ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-responses_MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ApiKeyAuth: []
+      summary: Cancel an Order
+      tags:
+      - Orders
+  /orders/buy-from-balance:
+    post:
+      consumes:
+      - application/json
+      description: Creates an order and processes the purchase of a product from the
+        user's balance.
+      parameters:
+      - description: Purchase data
+        in: body
+        name: purchase
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.BuyPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-services_BuyResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "402":
+          description: Payment Required
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ServiceApiKeyAuth: []
+      summary: Buy a Product
+      tags:
+      - Orders
+  /products:
+    get:
+      description: Get a list of all products, optionally filtered by category.
+      parameters:
+      - collectionFormat: csv
+        description: Category IDs to filter by
+        in: query
+        items:
+          type: string
+        name: category_ids[]
+        type: array
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-array_models_ProductResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ApiKeyAuth: []
+      - ServiceApiKeyAuth: []
+      summary: List products
+      tags:
+      - Products
+    post:
+      consumes:
+      - application/json
+      description: Adds a new product to the store.
+      parameters:
+      - description: Product data
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.productCreatePayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-models_ProductResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ApiKeyAuth: []
+      summary: Create a product
+      tags:
+      - Products
+  /products/{id}:
+    delete:
+      description: Deletes a product by its ID.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ApiKeyAuth: []
+      summary: Delete a product
+      tags:
+      - Products
+    get:
+      description: Retrieves details for a single product.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-models_ProductResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ApiKeyAuth: []
+      summary: Get a product by ID
+      tags:
+      - Products
+    put:
+      consumes:
+      - application/json
+      description: Updates an existing product.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Product data
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.productUpdatePayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-models_ProductResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ApiKeyAuth: []
+      summary: Update a product
+      tags:
+      - Products
+  /products/{id}/stock/movements:
+    post:
+      consumes:
+      - application/json
+      description: Adds a stock movement (e.g., initial stock, sale, return) for a
+        product.
+      parameters:
+      - description: Product ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Stock movement data
+        in: body
+        name: movement
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.stockMovementPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-models_StockMovement'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ApiKeyAuth: []
+      summary: Create a stock movement
+      tags:
+      - Products
+      - Stock
+  /users/{telegram_id}:
+    get:
+      description: Retrieves bot user details by their Telegram ID.
+      parameters:
+      - description: User Telegram ID
+        in: path
+        name: telegram_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-models_BotUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ServiceApiKeyAuth: []
+      summary: Get Bot User by Telegram ID
+      tags:
+      - Users
+  /users/{telegram_id}/balance:
+    get:
+      description: Retrieves the current balance for a bot user.
+      parameters:
+      - description: User Telegram ID
+        in: path
+        name: telegram_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-responses_BalanceResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ServiceApiKeyAuth: []
+      summary: Get User Balance
+      tags:
+      - Users
+      - Balance
+  /users/{telegram_id}/captcha-status:
+    put:
+      consumes:
+      - application/json
+      description: Updates the captcha verification status for a bot user.
+      parameters:
+      - description: User Telegram ID
+        in: path
+        name: telegram_id
+        required: true
+        type: integer
+      - description: Captcha status
+        in: body
+        name: status
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.updateUserCaptchaStatusPayload'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-responses_MessageResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ServiceApiKeyAuth: []
+      summary: Update User Captcha Status
+      tags:
+      - Users
+  /users/{telegram_id}/orders:
+    get:
+      description: Retrieves the order history for a bot user.
+      parameters:
+      - description: User Telegram ID
+        in: path
+        name: telegram_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-array_models_Order'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ServiceApiKeyAuth: []
+      summary: Get User Orders
+      tags:
+      - Users
+      - Orders
+  /users/{telegram_id}/subscriptions:
+    get:
+      description: Retrieves a list of a bot user's active and expired subscriptions.
+      parameters:
+      - description: User Telegram ID
+        in: path
+        name: telegram_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-array_models_UserSubscription'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ServiceApiKeyAuth: []
+      summary: Get User Subscriptions
+      tags:
+      - Users
+      - Subscriptions
+  /users/{telegram_id}/transactions:
+    get:
+      description: Retrieves the transaction history for a bot user.
+      parameters:
+      - description: User Telegram ID
+        in: path
+        name: telegram_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-array_models_TransactionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ServiceApiKeyAuth: []
+      summary: Get User Transactions
+      tags:
+      - Users
+      - Transactions
+  /users/register:
+    post:
+      consumes:
+      - application/json
+      description: Registers a new user from a Telegram bot or reactivates a deleted
+        one.
+      parameters:
+      - description: User Telegram ID
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/handlers.registerBotUserPayload'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-responses_RegisterBotUserResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      security:
+      - ServiceApiKeyAuth: []
+      summary: Register a Bot User
+      tags:
+      - Users
+  /users/seller-settings:
+    get:
+      description: Retrieves public settings for the seller, like referral program
+        status.
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/responses.ResponseSchema-responses_SellerSettingsResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      summary: Get Seller Settings
+      tags:
+      - Users
+  /webhooks/{gateway_name}:
+    post:
+      consumes:
+      - application/json
+      description: Handles incoming webhook notifications from a payment gateway.
+      parameters:
+      - description: Gateway Name
+        in: path
+        name: gateway_name
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/responses.ErrorResponseSchema'
+      summary: Handle Gateway Webhook
+      tags:
+      - Payments
 securityDefinitions:
   ApiKeyAuth:
     in: header

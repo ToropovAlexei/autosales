@@ -17,13 +17,14 @@ func NewCategoryHandler(categoryService services.CategoryService) *CategoryHandl
 }
 
 // @Summary      Get all categories
-// @Description  get all categories
-// @Tags         categories
-// @Accept       json
+// @Description  Get a hierarchical list of all categories.
+// @Tags         Categories
 // @Produce      json
 // @Success      200  {object}  responses.ResponseSchema[[]models.CategoryResponse]
 // @Failure      500  {object}  responses.ErrorResponseSchema
 // @Router       /categories [get]
+// @Security     ApiKeyAuth
+// @Security     ServiceApiKeyAuth
 func (h *CategoryHandler) GetCategoriesHandler(c *gin.Context) {
 	categories, err := h.categoryService.GetAll()
 	if err != nil {
@@ -39,8 +40,8 @@ type categoryPayload struct {
 }
 
 // @Summary      Create a new category
-// @Description  create a new category with the given name and optional parent_id
-// @Tags         categories
+// @Description  Create a new category with the given name and optional parent_id.
+// @Tags         Categories
 // @Accept       json
 // @Produce      json
 // @Param        category  body      categoryPayload  true  "Category Name and Parent ID"
@@ -48,6 +49,7 @@ type categoryPayload struct {
 // @Failure      400      {object}  responses.ErrorResponseSchema
 // @Failure      500      {object}  responses.ErrorResponseSchema
 // @Router       /categories [post]
+// @Security     ApiKeyAuth
 func (h *CategoryHandler) CreateCategoryHandler(c *gin.Context) {
 	var json categoryPayload
 	if err := bindJSON(c, &json); err != nil {
@@ -65,15 +67,15 @@ func (h *CategoryHandler) CreateCategoryHandler(c *gin.Context) {
 }
 
 // @Summary      Get a category by ID
-// @Description  get a single category by its ID
-// @Tags         categories
-// @Accept       json
+// @Description  Get a single category by its ID.
+// @Tags         Categories
 // @Produce      json
 // @Param        id   path      int  true  "Category ID"
 // @Success      200  {object}  responses.ResponseSchema[models.CategoryResponse]
 // @Failure      400      {object}  responses.ErrorResponseSchema
 // @Failure      404      {object}  responses.ErrorResponseSchema
 // @Router       /categories/{id} [get]
+// @Security     ApiKeyAuth
 func (h *CategoryHandler) GetCategoryHandler(c *gin.Context) {
 	id, err := getIDFromParam(c)
 	if err != nil {
@@ -91,16 +93,18 @@ func (h *CategoryHandler) GetCategoryHandler(c *gin.Context) {
 }
 
 // @Summary      Update a category
-// @Description  update a category's name and/or parent by its ID
-// @Tags         categories
+// @Description  Update a category's name and/or parent by its ID.
+// @Tags         Categories
 // @Accept       json
 // @Produce      json
 // @Param        id   path      int              true  "Category ID"
 // @Param        category  body      categoryPayload  true  "New Category Name and/or Parent ID"
 // @Success      200  {object}  responses.ResponseSchema[models.CategoryResponse]
 // @Failure      400      {object}  responses.ErrorResponseSchema
+// @Failure      404      {object}  responses.ErrorResponseSchema
 // @Failure      500      {object}  responses.ErrorResponseSchema
 // @Router       /categories/{id} [put]
+// @Security     ApiKeyAuth
 func (h *CategoryHandler) UpdateCategoryHandler(c *gin.Context) {
 	id, err := getIDFromParam(c)
 	if err != nil {
@@ -124,15 +128,16 @@ func (h *CategoryHandler) UpdateCategoryHandler(c *gin.Context) {
 }
 
 // @Summary      Delete a category
-// @Description  delete a category by its ID
-// @Tags         categories
-// @Accept       json
+// @Description  Delete a category by its ID.
+// @Tags         Categories
 // @Produce      json
 // @Param        id   path      int  true  "Category ID"
 // @Success      204  {object}  nil
 // @Failure      400      {object}  responses.ErrorResponseSchema
+// @Failure      404      {object}  responses.ErrorResponseSchema
 // @Failure      500      {object}  responses.ErrorResponseSchema
 // @Router       /categories/{id} [delete]
+// @Security     ApiKeyAuth
 func (h *CategoryHandler) DeleteCategoryHandler(c *gin.Context) {
 	id, err := getIDFromParam(c)
 	if err != nil {

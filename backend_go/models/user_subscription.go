@@ -17,7 +17,7 @@ type UserSubscription struct {
 	ExpiresAt     time.Time      `gorm:"index" json:"expires_at"`
 	IsActive      bool           `gorm:"default:true" json:"is_active"`
 	ProvisionedID string         `gorm:"index" json:"provisioned_id"`
-	Details       datatypes.JSON `gorm:"type:jsonb" json:"details"`
+	Details       datatypes.JSON `gorm:"type:jsonb" json:"details" swaggertype:"object"`
 	CreatedAt     time.Time      `json:"created_at"`
 	UpdatedAt     time.Time      `json:"updated_at"`
 }

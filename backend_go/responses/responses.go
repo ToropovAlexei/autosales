@@ -1,6 +1,8 @@
 package responses
 
 import (
+	"frbktg/backend_go/models"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -23,6 +25,26 @@ type ErrorResponseSchema struct {
 type TokenResponse struct {
 	AccessToken string `json:"access_token"`
 	TokenType   string `json:"token_type"`
+}
+
+type MessageResponse struct {
+	Message string `json:"message"`
+}
+
+type RegisterBotUserResponse struct {
+	User             models.BotUserResponse `json:"user"`
+	IsNew            bool                   `json:"is_new"`
+	HasPassedCaptcha bool                   `json:"has_passed_captcha"`
+}
+
+type BalanceResponse struct {
+	Balance float64 `json:"balance"`
+}
+
+type SellerSettingsResponse struct {
+	ID                     uint    `json:"id"`
+	ReferralProgramEnabled bool    `json:"referral_program_enabled"`
+	ReferralPercentage     float64 `json:"referral_percentage"`
 }
 
 func ErrorResponse(c *gin.Context, statusCode int, message string) {

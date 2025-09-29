@@ -23,6 +23,14 @@ type gatewayDTO struct {
 	DisplayName string `json:"display_name"`
 }
 
+// @Summary      Get Payment Gateways
+// @Description  Retrieves a list of available payment gateways.
+// @Tags         Payments
+// @Produce      json
+// @Success      200  {object}  responses.ResponseSchema[[]gatewayDTO]
+// @Failure      500  {object}  responses.ErrorResponseSchema
+// @Router       /gateways [get]
+// @Security     ServiceApiKeyAuth
 func (h *PaymentHandler) GetGatewaysHandler(c *gin.Context) {
 	gateways := h.paymentService.GetAvailableGateways()
 	var response []gatewayDTO
@@ -42,6 +50,17 @@ type createInvoicePayload struct {
 	BotUserID   uint    `json:"bot_user_id" binding:"required"`
 }
 
+// @Summary      Create Payment Invoice
+// @Description  Creates a new payment invoice for a selected gateway and amount.
+// @Tags         Payments
+// @Accept       json
+// @Produce      json
+// @Param        invoice body createInvoicePayload true "Invoice creation data"
+// @Success      201  {object}  responses.ResponseSchema[gateways.Invoice]
+// @Failure      400  {object}  responses.ErrorResponseSchema
+// @Failure      500  {object}  responses.ErrorResponseSchema
+// @Router       /deposit/invoice [post]
+// @Security     ServiceApiKeyAuth
 func (h *PaymentHandler) CreateInvoiceHandler(c *gin.Context) {
 	var json createInvoicePayload
 	if err := c.ShouldBindJSON(&json); err != nil {
@@ -58,6 +77,17 @@ func (h *PaymentHandler) CreateInvoiceHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusCreated, invoice)
 }
 
+// @Summary      Handle Gateway Webhook
+// @Description  Handles incoming webhook notifications from a payment gateway.
+// @Tags         Payments
+// @Accept       json
+// @Produce      json
+// @Param        gateway_name path string true "Gateway Name"
+// @Success      200
+// @Failure      400  {object}  responses.ErrorResponseSchema
+// @Failure      404  {object}  responses.ErrorResponseSchema
+// @Failure      500  {object}  responses.ErrorResponseSchema
+// @Router       /webhooks/{gateway_name} [post]
 func (h *PaymentHandler) WebhookHandler(c *gin.Context) {
 	gatewayName := c.Param("gateway_name")
 	if gatewayName == "" {
