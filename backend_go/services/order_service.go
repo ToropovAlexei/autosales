@@ -2,6 +2,7 @@ package services
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/external_providers"
@@ -16,12 +17,12 @@ const percentDenominator = 100
 
 // BuyRequest defines the parameters for buying a product.
 type BuyRequest struct {
-	UserID           int64   `json:"user_id"`
-	ProductID        *uint   `json:"product_id"`
-	Provider         *string `json:"provider"`
+	UserID            int64   `json:"user_id"`
+	ProductID         *uint   `json:"product_id"`
+	Provider          *string `json:"provider"`
 	ExternalProductID *string `json:"external_product_id"`
-	Quantity         int     `json:"quantity"`
-	ReferralBotToken *string `json:"referral_bot_token"`
+	Quantity          int     `json:"quantity"`
+	ReferralBotToken  *string `json:"referral_bot_token"`
 }
 
 type OrderService interface {
@@ -209,36 +210,48 @@ func (s *orderService) handleExternalProductPurchase(tx *gorm.DB, user *models.B
 		return nil, apperrors.ErrInsufficientBalance
 	}
 
-	// Find or create the category path
-	var parentID *uint
-	var categoryID uint
-	for _, categoryName := range product.Category {
-		category, err := s.categoryRepo.WithTx(tx).FindByNameAndParent(categoryName, parentID)
-		if err != nil {
-			if err == gorm.ErrRecordNotFound {
-				category = &models.Category{Name: categoryName, ParentID: parentID}
-				if err := s.categoryRepo.WithTx(tx).Create(category); err != nil {
-					return nil, apperrors.New(500, "failed to create category", err)
-				}
-			} else {
-				return nil, apperrors.New(500, "failed to find category", err)
-			}
-		}
-		parentID = &category.ID
-		categoryID = category.ID
+	// Check if a placeholder product already exists, if not create one.
+	placeholderName := fmt.Sprintf("%s (%s)", product.Name, *req.Provider)
+	placeholderProduct, err := s.productRepo.WithTx(tx).FindByName(placeholderName)
+	if err != nil {
+		// This is a real error, not just not found
+		return nil, apperrors.New(500, "failed to find placeholder product by name", err)
 	}
 
-	// Create a local product placeholder for the external product
-	placeholderProduct := &models.Product{
-		Name:                   fmt.Sprintf("%s (%s)", product.Name, *req.Provider),
-		Price:                  product.Price,
-		Type:                   "subscription",
-		CategoryID:             categoryID,
-		Details:                "{}",
-		SubscriptionPeriodDays: 30,
-	}
-	if err := s.productRepo.WithTx(tx).CreateProduct(placeholderProduct); err != nil {
-		return nil, apperrors.New(500, "failed to create placeholder product", err)
+	if placeholderProduct == nil {
+		// Find or create the category path
+		var parentID *uint
+		var categoryID uint
+		for _, categoryName := range product.Category {
+			category, err := s.categoryRepo.WithTx(tx).FindByNameAndParent(categoryName, parentID)
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					category = &models.Category{Name: categoryName, ParentID: parentID}
+					if err := s.categoryRepo.WithTx(tx).Create(category); err != nil {
+						return nil, apperrors.New(500, "failed to create category", err)
+					}
+				} else {
+					return nil, apperrors.New(500, "failed to find category", err)
+				}
+			}
+			parentID = &category.ID
+			categoryID = category.ID
+		}
+
+		// Create a local product placeholder for the external product
+		newPlaceholder := &models.Product{
+			Name:                   placeholderName,
+			Price:                  product.Price,
+			Type:                   "subscription",
+			CategoryID:             categoryID,
+			Details:                "{}",
+			SubscriptionPeriodDays: 30, // Or get from product if available
+			Visible:                false,
+		}
+		if err := s.productRepo.WithTx(tx).CreateProduct(newPlaceholder); err != nil {
+			return nil, apperrors.New(500, "failed to create placeholder product", err)
+		}
+		placeholderProduct = newPlaceholder
 	}
 
 	order := &models.Order{

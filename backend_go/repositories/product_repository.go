@@ -9,8 +9,9 @@ import (
 
 type ProductRepository interface {
 	WithTx(tx *gorm.DB) ProductRepository
-GetProducts(categoryIDs []uint) ([]models.Product, error)
+	GetProducts(categoryIDs []uint) ([]models.Product, error)
 	GetProductByID(id uint) (*models.Product, error)
+	FindByName(name string) (*models.Product, error)
 	CreateProduct(product *models.Product) error
 	UpdateProduct(product *models.Product, data models.Product) error
 	DeleteProduct(product *models.Product) error
@@ -33,7 +34,7 @@ func (r *gormProductRepository) WithTx(tx *gorm.DB) ProductRepository {
 
 func (r *gormProductRepository) GetProducts(categoryIDs []uint) ([]models.Product, error) {
 	var products []models.Product
-	query := r.db
+	query := r.db.Where("visible = ?", true)
 	if len(categoryIDs) > 0 {
 		query = query.Where("category_id IN ?", categoryIDs)
 	}
@@ -46,6 +47,17 @@ func (r *gormProductRepository) GetProducts(categoryIDs []uint) ([]models.Produc
 func (r *gormProductRepository) GetProductByID(id uint) (*models.Product, error) {
 	var product models.Product
 	if err := r.db.First(&product, id).Error; err != nil {
+		return nil, err
+	}
+	return &product, nil
+}
+
+func (r *gormProductRepository) FindByName(name string) (*models.Product, error) {
+	var product models.Product
+	if err := r.db.Where("name = ?", name).First(&product).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &product, nil

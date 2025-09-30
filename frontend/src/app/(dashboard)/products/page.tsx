@@ -70,12 +70,14 @@ export default function ProductsPage() {
   const [categoryId, setCategoryId] = useState<number | null>(null);
   const [price, setPrice] = useState("");
   const [initialStock, setInitialStock] = useState("");
-  const [productType, setProductType] = useState<"item" | "subscription">("item");
+  const [productType, setProductType] = useState<"item" | "subscription">(
+    "item"
+  );
   const [subscriptionDays, setSubscriptionDays] = useState("30");
 
   const { data: products, isLoading: isLoadingProducts } = useList<Product>({
     endpoint: ENDPOINTS.PRODUCTS,
-    filter: { category_ids: selectedCategories },
+    filter: { "category_ids[]": selectedCategories },
   });
 
   const { data: categories, isLoading: isLoadingCategories } =
@@ -143,7 +145,8 @@ export default function ProductsPage() {
       newProduct.subscription_period_days = 0;
     } else {
       newProduct.initial_stock = 0;
-      newProduct.subscription_period_days = parseInt(subscriptionDays, 10) || 30;
+      newProduct.subscription_period_days =
+        parseInt(subscriptionDays, 10) || 30;
     }
 
     addMutation.mutate(newProduct);
