@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
@@ -8,9 +8,8 @@ import {
   TableBody,
   TableCell,
   TableHead,
-  TableHeader,
   TableRow,
-} from "@/components/ui/table";
+} from "@mui/material";
 
 interface Order {
   id: number;
@@ -33,28 +32,30 @@ export default function OrdersPage() {
 
   return (
     <List title="Заказы">
-      <Table>
-        <TableHeader>
+      <Table size="small">
+        <TableHead>
           <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>Telegram ID</TableHead>
-            <TableHead>Товар</TableHead>
-            <TableHead>Количество</TableHead>
-            <TableHead>Сумма</TableHead>
-            <TableHead>Статус</TableHead>
-            <TableHead>Дата</TableHead>
+            <TableCell>ID</TableCell>
+            <TableCell>Telegram ID</TableCell>
+            <TableCell>Товар</TableCell>
+            <TableCell>Количество</TableCell>
+            <TableCell>Сумма</TableCell>
+            <TableCell>Статус</TableCell>
+            <TableCell>Дата</TableCell>
           </TableRow>
-        </TableHeader>
+        </TableHead>
         <TableBody>
           {orders?.data?.map((order) => (
-            <TableRow key={order.id}>
+            <TableRow hover key={order.id}>
               <TableCell>{order.id}</TableCell>
               <TableCell>{order.user_telegram_id}</TableCell>
               <TableCell>{order.product_name}</TableCell>
               <TableCell>{order.quantity}</TableCell>
               <TableCell>{order.amount} ₽</TableCell>
               <TableCell>{order.status}</TableCell>
-              <TableCell>{new Date(order.created_at).toLocaleString()}</TableCell>
+              <TableCell>
+                {new Date(order.created_at).toLocaleString()}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

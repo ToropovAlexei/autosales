@@ -1,5 +1,4 @@
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@mui/material";
 
 interface ListProps {
   title: string;
@@ -9,16 +8,9 @@ interface ListProps {
 
 export function List({ title, children, addButton }: ListProps) {
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle>{title}</CardTitle>
-          {addButton}
-        </div>
-      </CardHeader>
-      <CardContent>
-        {children}
-      </CardContent>
+    <Card>
+      <CardHeader title={title} action={addButton} />
+      <CardContent>{children}</CardContent>
     </Card>
   );
 }
