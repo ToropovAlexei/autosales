@@ -1,16 +1,15 @@
 "use client";
 
+import { List } from "@/components/List";
+import { useList } from "@/hooks";
+import { ENDPOINTS } from "@/constants";
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
-  TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { List } from "@/components/List";
-import { useList } from "@/hooks";
-import { ENDPOINTS } from "@/constants";
+} from "@mui/material";
 
 interface Transaction {
   id: number;
@@ -23,34 +22,29 @@ interface Transaction {
 }
 
 export default function TransactionsPage() {
-  const {
-    data: transactions,
-    isLoading,
-    error,
-  } = useList<Transaction>({
+  const { data: transactions, isLoading } = useList<Transaction>({
     endpoint: ENDPOINTS.TRANSACTIONS,
   });
 
   if (isLoading) return <div>Загрузка...</div>;
-  if (error) return <div>Не удалось загрузить транзакции</div>;
 
   return (
     <List title="Транзакции">
-      <Table>
-        <TableHeader>
+      <Table size="small">
+        <TableHead>
           <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>ID Пользователя</TableHead>
-            <TableHead>ID Заказа</TableHead>
-            <TableHead>Тип</TableHead>
-            <TableHead>Сумма</TableHead>
-            <TableHead>Дата</TableHead>
-            <TableHead>Описание</TableHead>
+            <TableCell>ID</TableCell>
+            <TableCell>ID Пользователя</TableCell>
+            <TableCell>ID Заказа</TableCell>
+            <TableCell>Тип</TableCell>
+            <TableCell>Сумма</TableCell>
+            <TableCell>Дата</TableCell>
+            <TableCell>Описание</TableCell>
           </TableRow>
-        </TableHeader>
+        </TableHead>
         <TableBody>
           {transactions?.data?.map((transaction) => (
-            <TableRow key={transaction.id}>
+            <TableRow hover key={transaction.id}>
               <TableCell>{transaction.id}</TableCell>
               <TableCell>{transaction.user_id}</TableCell>
               <TableCell>{transaction.order_id ?? "N/A"}</TableCell>
