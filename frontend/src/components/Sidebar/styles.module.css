@@ -1,0 +1,19 @@
+.drawer {
+  width: 240px;
+  display: block;
+
+  & > :global(.MuiPaper-root) {
+    width: 240px;
+    height: 100%;
+  }
+}
+
+.logout {
+  margin-top: auto;
+}
+
+.content {
+  display: grid;
+  flex: 1;
+  grid-template-rows: auto 1fr auto;
+}

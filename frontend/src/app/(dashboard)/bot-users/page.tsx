@@ -1,8 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -21,7 +20,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import api from "@/lib/api";
-import { useAuth } from "@/contexts/AuthContext";
 import { List } from "@/components/List";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
@@ -33,13 +31,11 @@ interface BotUser {
 }
 
 export default function BotUsersPage() {
-  const { user, loading: authLoading } = useAuth();
-  const router = useRouter();
   const queryClient = useQueryClient();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<BotUser | null>(null);
 
-  const { data: botUsers, isPending } = useList<BotUser>({
+  const { data: botUsers } = useList<BotUser>({
     endpoint: ENDPOINTS.BOT_USERS,
   });
 
@@ -52,12 +48,6 @@ export default function BotUsersPage() {
     },
   });
 
-  useEffect(() => {
-    if (!authLoading && (!user || user.role !== "admin")) {
-      router.push("/categories");
-    }
-  }, [user, authLoading, router]);
-
   const openConfirmDialog = (user: BotUser) => {
     setSelectedUser(user);
     setIsConfirmOpen(true);
@@ -68,12 +58,6 @@ export default function BotUsersPage() {
       deleteMutation.mutate(selectedUser.id);
     }
   };
-
-  if (authLoading || isPending) return <div>Loading...</div>;
-
-  if (!user || user.role !== "admin") {
-    return null;
-  }
 
   return (
     <>

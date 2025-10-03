@@ -64,6 +64,34 @@ export default function ProductsPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+
+  const handleConfirmAddProduct = () => {
+    setShowConfirmationDialog(false);
+    // Re-call handleAddProduct logic, but bypass the confirmation check
+    // This requires extracting the core logic of adding a product
+    const newProduct: Partial<ProductFormData> = {
+      name,
+      category_id: categoryId!,
+      price: parseFloat(price),
+      type: productType,
+    };
+
+    if (productType === "item") {
+      newProduct.initial_stock = parseInt(initialStock, 10) || 0;
+      newProduct.subscription_period_days = 0;
+    } else {
+      newProduct.initial_stock = 0;
+      newProduct.subscription_period_days =
+        parseInt(subscriptionDays, 10) || 30;
+    }
+
+    addMutation.mutate(newProduct);
+  };
+
+  const handleCancelAddProduct = () => {
+    setShowConfirmationDialog(false);
+  };
 
   // Form state
   const [name, setName] = useState("");
@@ -133,23 +161,31 @@ export default function ProductsPage() {
   const handleAddProduct = () => {
     if (name.trim() === "" || !categoryId || !price) return;
 
-    const newProduct: Partial<ProductFormData> = {
-      name,
-      category_id: categoryId,
-      price: parseFloat(price),
-      type: productType,
-    };
+    const selectedCategory = categories?.data?.find(
+      (cat) => cat.id === categoryId
+    );
 
-    if (productType === "item") {
-      newProduct.initial_stock = parseInt(initialStock, 10) || 0;
-      newProduct.subscription_period_days = 0;
+    if (!selectedCategory || selectedCategory.sub_categories.length > 0) {
+      const newProduct: Partial<ProductFormData> = {
+        name,
+        category_id: categoryId,
+        price: parseFloat(price),
+        type: productType,
+      };
+
+      if (productType === "item") {
+        newProduct.initial_stock = parseInt(initialStock, 10) || 0;
+        newProduct.subscription_period_days = 0;
+      } else {
+        newProduct.initial_stock = 0;
+        newProduct.subscription_period_days =
+          parseInt(subscriptionDays, 10) || 30;
+      }
+
+      addMutation.mutate(newProduct);
     } else {
-      newProduct.initial_stock = 0;
-      newProduct.subscription_period_days =
-        parseInt(subscriptionDays, 10) || 30;
+      setShowConfirmationDialog(true);
     }
-
-    addMutation.mutate(newProduct);
   };
 
   const handleEditProduct = () => {
@@ -348,6 +384,28 @@ export default function ProductsPage() {
           </TableBody>
         </Table>
       </List>
+
+      <Dialog
+        open={showConfirmationDialog}
+        onOpenChange={setShowConfirmationDialog}
+      >
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Подтверждение добавления товара</DialogTitle>
+            <DialogDescription>
+              Вы уверены, что хотите разместить товар в категории без
+              подкатегорий? Это может повлиять на видимость товара для
+              пользователей.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleCancelAddProduct}>
+              Отмена
+            </Button>
+            <Button onClick={handleConfirmAddProduct}>Продолжить</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Dialog */}
       {selectedProduct && (
