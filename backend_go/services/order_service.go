@@ -1,6 +1,7 @@
 package services
 
 import (
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -244,7 +245,7 @@ func (s *orderService) handleExternalProductPurchase(tx *gorm.DB, user *models.B
 			Price:                  product.Price,
 			Type:                   "subscription",
 			CategoryID:             categoryID,
-			Details:                "{}",
+			Details:                sql.NullString{String: "{}", Valid: true},
 			SubscriptionPeriodDays: 30, // Or get from product if available
 			Visible:                false,
 		}

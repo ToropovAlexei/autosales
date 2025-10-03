@@ -1,6 +1,7 @@
 package services
 
 import (
+	"database/sql"
 	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/external_providers"
 	"frbktg/backend_go/models"
@@ -149,6 +150,7 @@ func (s *productService) CreateProduct(name string, categoryID uint, price float
 		Price:                  price,
 		Type:                   productType,
 		SubscriptionPeriodDays: subscriptionPeriodDays,
+		Details:                sql.NullString{String: "{}", Valid: true}, // Initialize with empty JSON object
 	}
 	if err := s.productRepo.CreateProduct(product); err != nil {
 		return nil, err
