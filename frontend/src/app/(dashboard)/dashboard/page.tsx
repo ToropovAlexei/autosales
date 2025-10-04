@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { useOne } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
+import { InputDate } from "@/components";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
+import dayjs from "dayjs";
 
 interface DashboardStats {
   total_users: number;
@@ -17,31 +18,22 @@ interface SalesOverTime {
   total_revenue: number;
 }
 
-const getInitialStartDate = () => {
-  const lastWeek = new Date();
-  lastWeek.setDate(lastWeek.getDate() - 7);
-  return lastWeek.toISOString();
-};
-
-const getInitialEndDate = () => {
-  return new Date().toISOString();
-};
-
 export default function DashboardPage() {
-  const [startDate, setStartDate] = useState(getInitialStartDate());
-  const [endDate, setEndDate] = useState(getInitialEndDate());
-
   const { data: stats, isPending: isStatsPending } = useOne<DashboardStats>({
     endpoint: ENDPOINTS.DASHBOARD_STATS,
   });
 
+  const form = useForm<{ start_date: string; end_date: string }>({
+    defaultValues: {
+      start_date: dayjs().subtract(7, "day").startOf("day").toISOString(),
+      end_date: dayjs().endOf("day").toISOString(),
+    },
+  });
+  const { start_date, end_date } = useWatch({ control: form.control });
   const { data: sales, isPending: isSalesPending } = useOne<SalesOverTime>({
     endpoint: ENDPOINTS.SALES_OVER_TIME,
-    params: {
-      start_date: startDate,
-      end_date: endDate,
-    },
-    enabled: !!startDate && !!endDate,
+    params: { start_date, end_date },
+    enabled: !!start_date && !!end_date,
   });
 
   return (
@@ -92,18 +84,10 @@ export default function DashboardPage() {
       <div>
         <h2 className="text-xl font-bold mb-4">Продажи за период</h2>
         <div className="flex gap-4 mb-4 items-center">
-          <Input
-            type="date"
-            value={startDate.split("T")[0]}
-            onChange={(e) => setStartDate(`${e.target.value}T00:00:00.000Z`)}
-            className="max-w-sm"
-          />
-          <Input
-            type="date"
-            value={endDate.split("T")[0]}
-            onChange={(e) => setEndDate(`${e.target.value}T00:00:00.000Z`)}
-            className="max-w-sm"
-          />
+          <FormProvider {...form}>
+            <InputDate name="start_date" />
+            <InputDate name="end_date" />
+          </FormProvider>
         </div>
 
         {isSalesPending && <p>Загрузка...</p>}
