@@ -1,10 +1,4 @@
-import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { ICategory } from "@/types";
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 // Преобразует дерево категорий в плоский список для использования в <select>
 export const flattenCategoriesForSelect = (

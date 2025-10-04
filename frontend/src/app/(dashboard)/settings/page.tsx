@@ -10,12 +10,12 @@ import {
   Switch,
   FormControlLabel,
 } from "@mui/material";
-import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dataLayer } from "@/lib/dataLayer";
 import { useDebouncedCallback } from "@tanstack/react-pacer";
 import { queryKeys } from "@/utils/query";
 import { PageLayout } from "@/components/PageLayout";
+import { toast } from "react-toastify";
 
 interface User {
   id: number;
