@@ -1,41 +1,25 @@
 "use client";
 
-import { useOne, useList } from "@/hooks";
+import { useOne } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  TextField,
+  Switch,
+  FormControlLabel,
+  Stack,
+} from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dataLayer } from "@/lib/dataLayer";
 import { useDebouncedCallback } from "@tanstack/react-pacer";
 import { queryKeys } from "@/utils/query";
-
-interface User {
-  id: number;
-  email: string;
-  is_active: boolean;
-  role: string;
-  referral_program_enabled: boolean;
-  referral_percentage: number;
-}
-
-interface ReferralBot {
-  id: number;
-  owner_id: number;
-  seller_id: number;
-  bot_token: string; // Should be masked
-  is_active: boolean;
-  created_at: string;
-}
+import { toast } from "react-toastify";
+import { User } from "@/types/common";
 
 export default function SettingsPage() {
-  const {
-    data: user,
-    isPending: isUserPending,
-    refetch,
-  } = useOne<User>({
+  const { data: user, refetch } = useOne<User>({
     endpoint: ENDPOINTS.USERS_ME,
   });
   const client = useQueryClient();
@@ -73,75 +57,37 @@ export default function SettingsPage() {
     debouncedMutate({ referral_percentage: percentage });
   };
 
-  const { data: referralBots, isPending: isBotsPending } = useList<ReferralBot>(
-    { endpoint: ENDPOINTS.REFERRAL_BOTS_ADMIN }
-  );
-
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Настройки</h1>
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Реферальная программа</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {isUserPending ? (
-            <p>Загрузка...</p>
-          ) : (
-            <>
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="referral-enabled"
-                  checked={!!user?.referral_program_enabled}
-                  onCheckedChange={(checked) => {
-                    mutate({ referral_program_enabled: checked });
-                  }}
-                />
-                <Label htmlFor="referral-enabled">
-                  Включить реферальную программу
-                </Label>
-              </div>
-              <div className="space-y-1">
-                <Label htmlFor="referral-percentage">
-                  Процент отчислений рефоводам (%)
-                </Label>
-                <Input
-                  id="referral-percentage"
-                  type="number"
-                  value={user?.referral_percentage || 0}
-                  onChange={(e) => optimisticMutation(Number(e.target.value))}
-                  disabled={!user?.referral_program_enabled}
-                  className="max-w-xs"
-                />
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Реферальные боты</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isBotsPending ? (
-            <p>Загрузка...</p>
-          ) : (
-            <div className="space-y-2">
-              {referralBots?.data?.map((bot) => (
-                <div key={bot.id} className="p-2 border rounded-md">
-                  <p>ID: {bot.id}</p>
-                  <p>Владелец: {bot.owner_id}</p>
-                  <p>
-                    Дата создания:{" "}
-                    {new Date(bot.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+    <Card>
+      <CardHeader title="Настройки" />
+      <CardContent>
+        <Card sx={{ mb: 3 }}>
+          <CardHeader title="Реферальная программа" />
+          <CardContent>
+            <Stack gap={2} width="fit-content">
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={!!user?.referral_program_enabled}
+                    onChange={(e) =>
+                      mutate({ referral_program_enabled: e.target.checked })
+                    }
+                  />
+                }
+                label="Включить реферальную программу"
+              />
+              <TextField
+                label="Процент отчислений рефоводам (%)"
+                type="number"
+                value={user?.referral_percentage || 0}
+                onChange={(e) => optimisticMutation(Number(e.target.value))}
+                disabled={!user?.referral_program_enabled}
+                size="small"
+              />
+            </Stack>
+          </CardContent>
+        </Card>
+      </CardContent>
+    </Card>
   );
 }

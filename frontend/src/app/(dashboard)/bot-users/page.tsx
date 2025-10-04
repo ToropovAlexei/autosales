@@ -1,22 +1,14 @@
-"use client";
+'use client';
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-
-import { List } from "@/components/List";
-import { useList } from "@/hooks";
-import { ENDPOINTS } from "@/constants";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-} from "@mui/material";
-import { ConfirmModal } from "@/components";
-import { queryKeys } from "@/utils/query";
-import { dataLayer } from "@/lib/dataLayer";
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { List } from '@/components/List';
+import { useList } from '@/hooks';
+import { ENDPOINTS } from '@/constants';
+import { ConfirmModal } from '@/components';
+import { queryKeys } from '@/utils/query';
+import { dataLayer } from '@/lib/dataLayer';
+import { BotUsersTable } from './components/BotUsersTable';
 
 interface BotUser {
   id: number;
@@ -29,7 +21,7 @@ export default function BotUsersPage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<BotUser | null>(null);
 
-  const { data: botUsers } = useList<BotUser>({
+  const { data: botUsers, isPending } = useList<BotUser>({
     endpoint: ENDPOINTS.BOT_USERS,
   });
 
@@ -56,36 +48,12 @@ export default function BotUsersPage() {
     }
   };
 
+  if (isPending) return <div>Loading...</div>;
+
   return (
     <>
       <List title="Пользователи бота">
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>ID</TableCell>
-              <TableCell>Telegram ID</TableCell>
-              <TableCell>Баланс</TableCell>
-              <TableCell className="text-right">Действия</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {botUsers?.data?.map((botUser) => (
-              <TableRow hover key={botUser.id}>
-                <TableCell>{botUser.id}</TableCell>
-                <TableCell>{botUser.telegram_id}</TableCell>
-                <TableCell>{botUser.balance} ₽</TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="destructive"
-                    onClick={() => openConfirmDialog(botUser)}
-                  >
-                    Удалить
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <BotUsersTable users={botUsers?.data || []} onDelete={openConfirmDialog} />
       </List>
 
       <ConfirmModal
