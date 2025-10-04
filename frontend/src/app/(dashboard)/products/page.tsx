@@ -2,7 +2,6 @@
 
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { List } from "@/components/List";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { ICategory, IProduct } from "@/types";
@@ -19,6 +18,7 @@ import { ProductForm } from "./components/ProductForm";
 import { ProductsTable } from "./components/ProductsTable";
 import { dataLayer } from "@/lib/dataLayer";
 import { queryKeys } from "@/utils/query";
+import { PageLayout } from "@/components/PageLayout";
 
 export default function ProductsPage() {
   const queryClient = useQueryClient();
@@ -28,7 +28,6 @@ export default function ProductsPage() {
 
   const { data: products, isPending: isLoadingProducts } = useList<IProduct>({
     endpoint: ENDPOINTS.PRODUCTS,
-    filter: { "category_ids[]": selectedCategories },
   });
 
   const { data: categories, isPending: isLoadingCategories } =
@@ -85,38 +84,31 @@ export default function ProductsPage() {
   if (isLoadingProducts || isLoadingCategories) return <div>Loading...</div>;
 
   return (
-    <>
-      <List
-        title="Товары"
-        addButton={
-          <Button variant="contained" onClick={() => openForm()}>
-            Добавить товар
-          </Button>
-        }
-      >
-        <FormControl fullWidth margin="normal">
-          <InputLabel>Фильтр по категориям</InputLabel>
-          <Select
-            multiple
-            size="small"
-            value={selectedCategories}
-            onChange={(e) => setSelectedCategories(e.target.value as string[])}
-            input={<OutlinedInput label="Фильтр по категориям" />}
-          >
-            {flattenedCategories.map((cat) => (
-              <MenuItem key={cat.id} value={cat.id.toString()}>
-                {cat.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-        <ProductsTable
-          products={products?.data || []}
-          onEdit={openForm}
-          onDelete={deleteMutation.mutate}
-          getCategoryName={getCategoryName}
-        />
-      </List>
+    <PageLayout title="Товары">
+      <Button variant="contained" onClick={() => openForm()}>
+        Добавить товар
+      </Button>
+      <FormControl fullWidth margin="normal">
+        <InputLabel>Фильтр по категориям</InputLabel>
+        <Select
+          multiple
+          value={selectedCategories}
+          onChange={(e) => setSelectedCategories(e.target.value as string[])}
+          input={<OutlinedInput label="Фильтр по категориям" />}
+        >
+          {flattenedCategories.map((cat) => (
+            <MenuItem key={cat.id} value={cat.id.toString()}>
+              {cat.name}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
+      <ProductsTable
+        products={products?.data || []}
+        onEdit={openForm}
+        onDelete={deleteMutation.mutate}
+        getCategoryName={getCategoryName}
+      />
       {isFormOpen && (
         <ProductForm
           open={isFormOpen}
@@ -129,6 +121,6 @@ export default function ProductsPage() {
           }))}
         />
       )}
-    </>
+    </PageLayout>
   );
 }

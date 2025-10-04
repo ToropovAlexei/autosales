@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { List } from "@/components/List";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
-import { StockMovementsTable } from './components/StockMovementsTable';
+import { StockMovementsTable } from "./components/StockMovementsTable";
+import { PageLayout } from "@/components/PageLayout";
 
 interface StockMovement {
   id: number;
@@ -22,8 +22,8 @@ export default function StockPage() {
   if (isPending) return <div>Загрузка...</div>;
 
   return (
-    <List title="Движения по складу">
+    <PageLayout title="Движения по складу">
       <StockMovementsTable movements={movements?.data || []} />
-    </List>
+    </PageLayout>
   );
 }

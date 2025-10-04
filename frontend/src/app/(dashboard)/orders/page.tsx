@@ -2,8 +2,8 @@
 
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
-import { List } from "@/components/List";
 import { OrdersTable } from "./components/OrdersTable";
+import { PageLayout } from "@/components/PageLayout";
 
 interface Order {
   id: number;
@@ -23,8 +23,8 @@ export default function OrdersPage() {
   });
 
   return (
-    <List title="Заказы">
+    <PageLayout title="Заказы">
       <OrdersTable orders={orders?.data || []} loading={isFetching} />
-    </List>
+    </PageLayout>
   );
 }

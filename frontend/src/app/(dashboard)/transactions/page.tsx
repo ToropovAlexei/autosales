@@ -1,9 +1,9 @@
 'use client';
 
-import { List } from "@/components/List";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { TransactionsTable } from './components/TransactionsTable';
+import { PageLayout } from '@/components/PageLayout';
 
 interface Transaction {
   id: number;
@@ -23,8 +23,8 @@ export default function TransactionsPage() {
   if (isPending) return <div>Загрузка...</div>;
 
   return (
-    <List title="Транзакции">
+    <PageLayout title="Транзакции">
       <TransactionsTable transactions={transactions?.data || []} />
-    </List>
+    </PageLayout>
   );
 }

@@ -1,15 +1,13 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { List } from "@/components/List";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { dataLayer } from "@/lib/dataLayer";
 import { queryKeys } from "@/utils/query";
 import { ReferralBotCard } from "./components/ReferralBotCard";
 import classes from "./styles.module.css";
-import { range } from "@/utils/array";
-import { Skeleton } from "@mui/material";
+import { PageLayout } from "@/components/PageLayout";
 
 interface ReferralBot {
   id: number;
@@ -65,29 +63,23 @@ export default function ReferralBotsPage() {
     },
   });
 
+  if (isPending) return <div>Loading...</div>;
+
   return (
-    <List title="Управление реферальными ботами">
+    <PageLayout title="Управление реферальными ботами">
       <div className={classes.grid}>
-        {isPending ? (
-          <>
-            {range(3).map((key) => (
-              <Skeleton key={key} width={375} height={280} variant="rounded" />
-            ))}
-          </>
-        ) : (
-          referralBots?.data?.map((bot: ReferralBot) => (
-            <ReferralBotCard
-              key={bot.id}
-              bot={bot}
-              onUpdateStatus={updateStatusMutation.mutate}
-              onSetPrimary={setPrimaryMutation.mutate}
-              onDelete={deleteMutation.mutate}
-              isUpdatingStatus={updateStatusMutation.isPending}
-              isSettingPrimary={setPrimaryMutation.isPending}
-            />
-          ))
-        )}
+        {referralBots?.data?.map((bot: ReferralBot) => (
+          <ReferralBotCard
+            key={bot.id}
+            bot={bot}
+            onUpdateStatus={updateStatusMutation.mutate}
+            onSetPrimary={setPrimaryMutation.mutate}
+            onDelete={deleteMutation.mutate}
+            isUpdatingStatus={updateStatusMutation.isPending}
+            isSettingPrimary={setPrimaryMutation.isPending}
+          />
+        ))}
       </div>
-    </List>
+    </PageLayout>
   );
 }

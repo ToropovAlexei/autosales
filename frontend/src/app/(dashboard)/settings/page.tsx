@@ -1,6 +1,6 @@
 "use client";
 
-import { useOne } from "@/hooks";
+import { useOne, useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import {
   Card,
@@ -9,17 +9,41 @@ import {
   TextField,
   Switch,
   FormControlLabel,
-  Stack,
+  List,
+  ListItem,
+  ListItemText,
 } from "@mui/material";
+import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dataLayer } from "@/lib/dataLayer";
 import { useDebouncedCallback } from "@tanstack/react-pacer";
 import { queryKeys } from "@/utils/query";
-import { toast } from "react-toastify";
-import { User } from "@/types/common";
+import { PageLayout } from "@/components/PageLayout";
+
+interface User {
+  id: number;
+  email: string;
+  is_active: boolean;
+  role: string;
+  referral_program_enabled: boolean;
+  referral_percentage: number;
+}
+
+interface ReferralBot {
+  id: number;
+  owner_id: number;
+  seller_id: number;
+  bot_token: string; // Should be masked
+  is_active: boolean;
+  created_at: string;
+}
 
 export default function SettingsPage() {
-  const { data: user, refetch } = useOne<User>({
+  const {
+    data: user,
+    isPending: isUserPending,
+    refetch,
+  } = useOne<User>({
     endpoint: ENDPOINTS.USERS_ME,
   });
   const client = useQueryClient();
@@ -57,14 +81,19 @@ export default function SettingsPage() {
     debouncedMutate({ referral_percentage: percentage });
   };
 
+  const { data: referralBots, isPending: isBotsPending } = useList<ReferralBot>(
+    { endpoint: ENDPOINTS.REFERRAL_BOTS_ADMIN }
+  );
+
   return (
-    <Card>
-      <CardHeader title="Настройки" />
-      <CardContent>
-        <Card sx={{ mb: 3 }}>
-          <CardHeader title="Реферальная программа" />
-          <CardContent>
-            <Stack gap={2} width="fit-content">
+    <PageLayout title="Настройки">
+      <Card sx={{ mb: 3 }}>
+        <CardHeader title="Реферальная программа" />
+        <CardContent>
+          {isUserPending ? (
+            <p>Загрузка...</p>
+          ) : (
+            <>
               <FormControlLabel
                 control={
                   <Switch
@@ -82,12 +111,37 @@ export default function SettingsPage() {
                 value={user?.referral_percentage || 0}
                 onChange={(e) => optimisticMutation(Number(e.target.value))}
                 disabled={!user?.referral_program_enabled}
-                size="small"
+                fullWidth
+                margin="normal"
               />
-            </Stack>
-          </CardContent>
-        </Card>
-      </CardContent>
-    </Card>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader title="Реферальные боты" />
+        <CardContent>
+          {isBotsPending ? (
+            <p>Загрузка...</p>
+          ) : (
+            <List>
+              {referralBots?.data?.map((bot) => (
+                <ListItem key={bot.id} divider>
+                  <ListItemText
+                    primary={`ID: ${bot.id}`}
+                    secondary={`Владелец: ${
+                      bot.owner_id
+                    } | Дата создания: ${new Date(
+                      bot.created_at
+                    ).toLocaleDateString()}`}
+                  />
+                </ListItem>
+              ))}
+            </List>
+          )}
+        </CardContent>
+      </Card>
+    </PageLayout>
   );
 }

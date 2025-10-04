@@ -16,6 +16,7 @@ import { SalesByCategoryChart } from "./components/SalesByCategoryChart";
 import classes from "./styles.module.css";
 import clsx from "clsx";
 import { IProduct } from "@/types";
+import { PageLayout } from "@/components/PageLayout";
 
 interface DashboardStats {
   total_users: number;
@@ -100,11 +101,7 @@ export default function DashboardPage() {
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <div className={classes.page}>
-        <Typography variant="h4" gutterBottom>
-          Дашборд
-        </Typography>
-
+      <PageLayout title="Дашборд">
         <div className={classes.grid}>
           {isStatsWithTrendPending ? (
             <p>Загрузка...</p>
@@ -262,7 +259,7 @@ export default function DashboardPage() {
             <SalesByCategoryChart data={salesByCategory || []} />
           )}
         </div>
-      </div>
+      </PageLayout>
     </LocalizationProvider>
   );
 }

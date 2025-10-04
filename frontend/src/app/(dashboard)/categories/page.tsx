@@ -2,7 +2,6 @@
 
 import React, { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { List } from "@/components/List";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { ICategory } from "@/types";
@@ -17,6 +16,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
 import { dataLayer } from "@/lib/dataLayer";
 import { queryKeys } from "@/utils/query";
+import { PageLayout } from "@/components/PageLayout";
 
 export default function CategoriesPage() {
   const queryClient = useQueryClient();
@@ -167,22 +167,16 @@ export default function CategoriesPage() {
   if (isPending) return <div>Loading...</div>;
 
   return (
-    <>
-      <List
-        title="Категории"
-        addButton={
-          <Button variant="contained" onClick={() => openDialog()}>
-            Добавить категорию
-          </Button>
-        }
-      >
-        <RichTreeView
-          items={categoriesTree}
-          className={classes.tree}
-          itemChildrenIndentation={24}
-          slots={{ item: CustomTreeItem }}
-        />
-      </List>
+    <PageLayout title="Категории">
+      <Button variant="contained" onClick={() => openDialog()}>
+        Добавить категорию
+      </Button>
+      <RichTreeView
+        items={categoriesTree}
+        className={classes.tree}
+        itemChildrenIndentation={24}
+        slots={{ item: CustomTreeItem }}
+      />
       {isDialogOpen && (
         <CategoryForm
           open={isDialogOpen}
@@ -195,6 +189,6 @@ export default function CategoriesPage() {
           defaultValues={selectedCategory || undefined}
         />
       )}
-    </>
+    </PageLayout>
   );
 }

@@ -2,13 +2,13 @@
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { List } from "@/components/List";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { ConfirmModal } from "@/components";
 import { queryKeys } from "@/utils/query";
 import { dataLayer } from "@/lib/dataLayer";
 import { BotUsersTable } from "./components/BotUsersTable";
+import { PageLayout } from "@/components/PageLayout";
 
 interface BotUser {
   id: number;
@@ -49,14 +49,12 @@ export default function BotUsersPage() {
   };
 
   return (
-    <>
-      <List title="Пользователи бота">
-        <BotUsersTable
-          users={botUsers?.data || []}
-          onDelete={openConfirmDialog}
-          loading={isFetching}
-        />
-      </List>
+    <PageLayout title="Пользователи бота">
+      <BotUsersTable
+        users={botUsers?.data || []}
+        onDelete={openConfirmDialog}
+        loading={isFetching}
+      />
 
       <ConfirmModal
         open={isConfirmOpen}
@@ -69,6 +67,6 @@ export default function BotUsersPage() {
         loading={deleteMutation.isPending}
         confirmBtnColor="error"
       />
-    </>
+    </PageLayout>
   );
 }
