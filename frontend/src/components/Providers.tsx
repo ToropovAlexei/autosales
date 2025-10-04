@@ -8,21 +8,8 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { ToastContainer } from "react-toastify";
 import { ruRU } from "@mui/x-date-pickers/locales";
 import { createAppTheme } from "@/themes";
-import {
-  chartsCustomizations,
-  dataGridCustomizations,
-  datePickersCustomizations,
-  treeViewCustomizations,
-} from "@/../dashboard/theme/customizations";
 
-const xThemeComponents = {
-  ...chartsCustomizations,
-  ...dataGridCustomizations,
-  ...datePickersCustomizations,
-  ...treeViewCustomizations,
-};
-
-const theme = createAppTheme(xThemeComponents);
+const theme = createAppTheme();
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
