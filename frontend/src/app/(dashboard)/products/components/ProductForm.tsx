@@ -41,7 +41,7 @@ export const ProductForm = ({ open, onClose, onConfirm, defaultValues, categorie
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm" disableScrollLock>
       <DialogTitle>{defaultValues?.name ? 'Редактировать товар' : 'Добавить товар'}</DialogTitle>
       <form onSubmit={handleSubmit(onSubmit)}>
         <DialogContent>

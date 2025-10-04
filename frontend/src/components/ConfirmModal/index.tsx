@@ -47,7 +47,7 @@ export const ConfirmModal = ({
   );
 
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog open={open} onClose={onClose} disableScrollLock>
       <DialogTitle>{title}</DialogTitle>
       <DialogContent>
         <DialogContentText>{contentText}</DialogContentText>

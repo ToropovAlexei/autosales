@@ -1,6 +1,7 @@
 .drawer {
   width: 240px;
   display: block;
+  z-index: 1;
 
   & > :global(.MuiPaper-root) {
     width: 240px;
@@ -16,4 +17,16 @@
   display: grid;
   flex: 1;
   grid-template-rows: auto 1fr auto;
+}
+
+.logoIcon {
+  color: var(--mui-palette-primary-main);
+}
+
+.logoSection {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--navbar-height);
 }

@@ -4,7 +4,6 @@
   background-image: none;
   border-bottom: 1px solid;
   border-color: var(--mui-palette-divider);
-  z-index: var(--mui-zIndex-drawer) + 1;
 }
 
 .toolbar {
@@ -19,8 +18,4 @@
   display: flex;
   gap: 8px;
   align-items: center;
-}
-
-.logoIcon {
-  color: var(--mui-palette-primary-main);
 }
