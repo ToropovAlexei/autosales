@@ -1,0 +1,20 @@
+.page {
+  padding: 2rem;
+}
+
+.grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  margin-bottom: 24px;
+}
+
+.grid.two-columns {
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+}
+
+.datePickerContainer {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}

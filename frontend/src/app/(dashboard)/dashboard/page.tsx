@@ -1,11 +1,15 @@
-"use client";
+'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useOne } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { InputDate } from "@/components";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import dayjs from "dayjs";
+import { Card, CardContent, CardHeader, Typography } from "@mui/material";
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import classes from './styles.module.css';
+import clsx from 'clsx';
 
 interface DashboardStats {
   total_users: number;
@@ -37,84 +41,76 @@ export default function DashboardPage() {
   });
 
   return (
-    <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Дашборд</h1>
+    <LocalizationProvider dateAdapter={AdapterDayjs}>
+      <div className={classes.page}>
+        <Typography variant="h4" gutterBottom>
+          Дашборд
+        </Typography>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Всего пользователей</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isStatsPending ? (
-              <p>Загрузка...</p>
-            ) : (
-              <p className="text-2xl font-bold">{stats?.total_users}</p>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Пользователи с покупками</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isStatsPending ? (
-              <p>Загрузка...</p>
-            ) : (
-              <p className="text-2xl font-bold">
-                {stats?.users_with_purchases}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Доступно товаров</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isStatsPending ? (
-              <p>Загрузка...</p>
-            ) : (
-              <p className="text-2xl font-bold">{stats?.available_products}</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <div>
-        <h2 className="text-xl font-bold mb-4">Продажи за период</h2>
-        <div className="flex gap-4 mb-4 items-center">
-          <FormProvider {...form}>
-            <InputDate name="start_date" />
-            <InputDate name="end_date" />
-          </FormProvider>
+        <div className={classes.grid}>
+          <Card>
+            <CardHeader title="Всего пользователей" />
+            <CardContent>
+              {isStatsPending ? (
+                <p>Загрузка...</p>
+              ) : (
+                <Typography variant="h5">{stats?.total_users}</Typography>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader title="Пользователи с покупками" />
+            <CardContent>
+              {isStatsPending ? (
+                <p>Загрузка...</p>
+              ) : (
+                <Typography variant="h5">{stats?.users_with_purchases}</Typography>
+              )}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader title="Доступно товаров" />
+            <CardContent>
+              {isStatsPending ? (
+                <p>Загрузка...</p>
+              ) : (
+                <Typography variant="h5">{stats?.available_products}</Typography>
+              )}
+            </CardContent>
+          </Card>
         </div>
 
-        {isSalesPending && <p>Загрузка...</p>}
+        <div>
+          <Typography variant="h5" gutterBottom>
+            Продажи за период
+          </Typography>
+          <FormProvider {...form}>
+            <div className={classes.datePickerContainer}>
+              <InputDate name="start_date" />
+              <InputDate name="end_date" />
+            </div>
+          </FormProvider>
 
-        {sales && !isSalesPending && (
-          <div className="grid gap-4 md:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Продано товаров</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">{sales.products_sold}</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Общий доход</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-2xl font-bold">
-                  {sales.total_revenue.toFixed(2)} ₽
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-        )}
+          {isSalesPending && <p>Загрузка...</p>}
+
+          {sales && !isSalesPending && (
+            <div className={clsx(classes.grid, classes['two-columns'])}>
+              <Card>
+                <CardHeader title="Продано товаров" />
+                <CardContent>
+                  <Typography variant="h5">{sales.products_sold}</Typography>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader title="Общий доход" />
+                <CardContent>
+                  <Typography variant="h5">{sales.total_revenue.toFixed(2)} ₽</Typography>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </LocalizationProvider>
   );
 }

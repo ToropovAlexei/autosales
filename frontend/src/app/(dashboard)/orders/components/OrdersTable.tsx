@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { ruRU } from '@mui/x-data-grid/locales';
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import { ruRU } from "@mui/x-data-grid/locales";
 
 interface Order {
   id: number;
@@ -17,29 +17,36 @@ interface Order {
 
 interface OrdersTableProps {
   orders: Order[];
+  loading: boolean;
 }
 
-export const OrdersTable = ({ orders }: OrdersTableProps) => {
+export const OrdersTable = ({ orders, loading }: OrdersTableProps) => {
   const columns: GridColDef[] = [
-    { field: 'id', headerName: 'ID', width: 90 },
-    { field: 'user_telegram_id', headerName: 'Telegram ID', flex: 1 },
-    { field: 'product_name', headerName: 'Товар', flex: 1 },
-    { field: 'quantity', headerName: 'Количество', width: 120 },
-    { field: 'amount', headerName: 'Сумма', width: 120, renderCell: (params) => `${params.value} ₽` },
-    { field: 'status', headerName: 'Статус', flex: 1 },
+    { field: "id", headerName: "ID", width: 90 },
+    { field: "user_telegram_id", headerName: "Telegram ID", flex: 1 },
+    { field: "product_name", headerName: "Товар", flex: 1 },
+    { field: "quantity", headerName: "Количество", width: 120 },
     {
-      field: 'created_at',
-      headerName: 'Дата',
+      field: "amount",
+      headerName: "Сумма",
+      width: 120,
+      renderCell: (params) => `${params.value} ₽`,
+    },
+    { field: "status", headerName: "Статус", flex: 1 },
+    {
+      field: "created_at",
+      headerName: "Дата",
       width: 200,
       renderCell: (params) => new Date(params.value).toLocaleString(),
     },
   ];
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ width: "100%" }}>
       <DataGrid
         rows={orders}
         columns={columns}
+        loading={loading}
         density="compact"
         initialState={{
           pagination: {

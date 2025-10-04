@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { DataGrid, GridColDef, GridActionsCellItem } from '@mui/x-data-grid';
-import { ruRU } from '@mui/x-data-grid/locales';
-import DeleteIcon from '@mui/icons-material/Delete';
+import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
+import { ruRU } from "@mui/x-data-grid/locales";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 interface BotUser {
   id: number;
@@ -13,19 +13,29 @@ interface BotUser {
 interface BotUsersTableProps {
   users: BotUser[];
   onDelete: (user: BotUser) => void;
+  loading: boolean;
 }
 
-export const BotUsersTable = ({ users, onDelete }: BotUsersTableProps) => {
+export const BotUsersTable = ({
+  users,
+  onDelete,
+  loading,
+}: BotUsersTableProps) => {
   const columns: GridColDef[] = [
-    { field: 'id', headerName: 'ID', width: 90 },
-    { field: 'telegram_id', headerName: 'Telegram ID', flex: 1 },
-    { field: 'balance', headerName: 'Баланс', width: 150, renderCell: (params) => `${params.value} ₽` },
+    { field: "id", headerName: "ID", width: 90 },
+    { field: "telegram_id", headerName: "Telegram ID", flex: 1 },
     {
-      field: 'actions',
-      type: 'actions',
-      headerName: 'Действия',
+      field: "balance",
+      headerName: "Баланс",
+      width: 150,
+      renderCell: (params) => `${params.value} ₽`,
+    },
+    {
+      field: "actions",
+      type: "actions",
+      headerName: "Действия",
       width: 100,
-      cellClassName: 'actions',
+      cellClassName: "actions",
       getActions: ({ row }) => {
         return [
           <GridActionsCellItem
@@ -40,11 +50,12 @@ export const BotUsersTable = ({ users, onDelete }: BotUsersTableProps) => {
   ];
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ width: "100%" }}>
       <DataGrid
         rows={users}
         columns={columns}
         density="compact"
+        loading={loading}
         initialState={{
           pagination: {
             paginationModel: {

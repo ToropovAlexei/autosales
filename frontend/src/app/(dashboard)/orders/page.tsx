@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useList } from '@/hooks';
-import { ENDPOINTS } from '@/constants';
-import { List } from '@/components/List';
-import { OrdersTable } from './components/OrdersTable';
+import { useList } from "@/hooks";
+import { ENDPOINTS } from "@/constants";
+import { List } from "@/components/List";
+import { OrdersTable } from "./components/OrdersTable";
 
 interface Order {
   id: number;
@@ -18,15 +18,13 @@ interface Order {
 }
 
 export default function OrdersPage() {
-  const { data: orders, isPending } = useList<Order>({
+  const { data: orders, isFetching } = useList<Order>({
     endpoint: ENDPOINTS.ORDERS,
   });
 
-  if (isPending) return <div>Loading...</div>;
-
   return (
     <List title="Заказы">
-      <OrdersTable orders={orders?.data || []} />
+      <OrdersTable orders={orders?.data || []} loading={isFetching} />
     </List>
   );
 }

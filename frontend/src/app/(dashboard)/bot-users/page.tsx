@@ -1,14 +1,14 @@
-'use client';
+"use client";
 
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
-import { List } from '@/components/List';
-import { useList } from '@/hooks';
-import { ENDPOINTS } from '@/constants';
-import { ConfirmModal } from '@/components';
-import { queryKeys } from '@/utils/query';
-import { dataLayer } from '@/lib/dataLayer';
-import { BotUsersTable } from './components/BotUsersTable';
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { List } from "@/components/List";
+import { useList } from "@/hooks";
+import { ENDPOINTS } from "@/constants";
+import { ConfirmModal } from "@/components";
+import { queryKeys } from "@/utils/query";
+import { dataLayer } from "@/lib/dataLayer";
+import { BotUsersTable } from "./components/BotUsersTable";
 
 interface BotUser {
   id: number;
@@ -21,7 +21,7 @@ export default function BotUsersPage() {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<BotUser | null>(null);
 
-  const { data: botUsers, isPending } = useList<BotUser>({
+  const { data: botUsers, isFetching } = useList<BotUser>({
     endpoint: ENDPOINTS.BOT_USERS,
   });
 
@@ -48,12 +48,14 @@ export default function BotUsersPage() {
     }
   };
 
-  if (isPending) return <div>Loading...</div>;
-
   return (
     <>
       <List title="Пользователи бота">
-        <BotUsersTable users={botUsers?.data || []} onDelete={openConfirmDialog} />
+        <BotUsersTable
+          users={botUsers?.data || []}
+          onDelete={openConfirmDialog}
+          loading={isFetching}
+        />
       </List>
 
       <ConfirmModal
