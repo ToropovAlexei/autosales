@@ -4,6 +4,7 @@ from aiogram.utils.markdown import hbold
 import logging
 
 from api import api_client
+from keyboards.inline import back_to_main_menu_keyboard
 
 router = Router()
 
@@ -23,7 +24,8 @@ async def process_buy_result(callback_query: CallbackQuery, result: dict):
             await callback_query.message.edit_text(
                 f"✅ Поздравляем! Вы успешно купили товар {hbold(product_name)} за {hbold(f'{product_price} ₽')}.\n\n"
                 f"💳 Ваш новый баланс: {hbold(f'{new_balance} ₽')}",
-                parse_mode="HTML"
+                parse_mode="HTML",
+                reply_markup=back_to_main_menu_keyboard()
             )
         else:
             logging.error(f"Missing keys in successful buy response data: {data}")

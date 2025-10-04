@@ -114,3 +114,9 @@ def product_card(product: dict):
             callback_data=CategoryCallback(action="view", category_id=product['category_id']).pack()
         )])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def back_to_main_menu_keyboard():
+    buttons = [
+        [InlineKeyboardButton(text="⬅️ Главное меню", callback_data="main_menu")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)

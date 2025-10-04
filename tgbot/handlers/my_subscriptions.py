@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 
 from api import api_client
-from keyboards.inline import main_menu # Assuming main_menu is needed for a back button
+from keyboards.inline import main_menu, back_to_main_menu_keyboard # Assuming main_menu is needed for a back button
 
 router = Router()
 
@@ -19,7 +19,7 @@ async def my_subscriptions_handler(callback_query: CallbackQuery):
         if result.get("success"):
             subscriptions = result.get("data")
             if not subscriptions:
-                await callback_query.message.edit_text("У вас пока нет активных подписок.")
+                await callback_query.message.edit_text("У вас пока нет активных подписок.", reply_markup=back_to_main_menu_keyboard())
                 return
 
             response_text = f"{hbold('🧾 Ваши подписки:')}\n\n"
@@ -55,7 +55,7 @@ async def my_subscriptions_handler(callback_query: CallbackQuery):
                 response_text += "\n"
 
             # TODO: Add a back button to the main menu
-            await callback_query.message.edit_text(response_text, parse_mode="HTML")
+            await callback_query.message.edit_text(response_text, parse_mode="HTML", reply_markup=back_to_main_menu_keyboard())
 
         else:
             error = result.get("error", "Произошла неизвестная ошибка.")

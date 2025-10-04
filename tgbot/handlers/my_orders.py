@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 
 from api import api_client
-from keyboards.inline import main_menu
+from keyboards.inline import main_menu, back_to_main_menu_keyboard
 
 router = Router()
 
@@ -19,7 +19,7 @@ async def my_orders_handler(callback_query: CallbackQuery):
         if result.get("success"):
             orders = result.get("data")
             if not orders:
-                await callback_query.message.edit_text("У вас пока нет заказов.")
+                await callback_query.message.edit_text("У вас пока нет заказов.", reply_markup=back_to_main_menu_keyboard())
                 return
 
             response_text = f"{hbold('🧾 Ваши заказы:')}\n\n"
@@ -49,7 +49,7 @@ async def my_orders_handler(callback_query: CallbackQuery):
                 
                 response_text += "\n"
 
-            await callback_query.message.edit_text(response_text, parse_mode="HTML")
+            await callback_query.message.edit_text(response_text, parse_mode="HTML", reply_markup=back_to_main_menu_keyboard())
 
         else:
             error = result.get("error", "Произошла неизвестная ошибка.")

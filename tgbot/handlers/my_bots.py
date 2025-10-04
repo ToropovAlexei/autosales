@@ -9,6 +9,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from states import ReferralState
 from api import api_client
 from keyboards import inline
+from keyboards.inline import back_to_main_menu_keyboard
 from config import settings
 
 router = Router()
@@ -166,17 +167,9 @@ async def token_handler(message: Message, state: FSMContext):
         if result.get("success"):
             await message.answer(
                 f"🎉 Поздравляем! Ваш реферальный бот успешно создан.",
-                parse_mode="HTML"
+                parse_mode="HTML",
+                reply_markup=back_to_main_menu_keyboard()
             )
-            # After adding, show the list of bots again
-            # How to get the query object here? We can't. We'll just send a new message with the menu.
-            response = await api_client.get_my_referral_bots(message.from_user.id)
-            if response.get("success"):
-                bots = response.get("data", [])
-                await message.answer(
-                    "Управление вашими реферальными ботами:",
-                    reply_markup=my_bots_keyboard(bots)
-                )
 
         else:
             error = result.get("error", "")
