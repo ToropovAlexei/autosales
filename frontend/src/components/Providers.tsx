@@ -7,6 +7,7 @@ import { Toaster } from "sonner";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { ToastContainer } from "react-toastify";
+import { ruRU } from "@mui/x-date-pickers/locales";
 
 const theme = createTheme({
   cssVariables: true,
@@ -25,7 +26,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <LocalizationProvider dateAdapter={AdapterDayjs}>
+    <LocalizationProvider
+      dateAdapter={AdapterDayjs}
+      localeText={
+        ruRU.components.MuiLocalizationProvider.defaultProps.localeText
+      }
+    >
       <ThemeProvider theme={theme}>
         <CssBaseline enableColorScheme />
         <ToastContainer />

@@ -1,0 +1,10 @@
+.container {
+  width: 100%;
+  min-height: 100dvh;
+  display: flex;
+}
+
+.main {
+  flex: 1;
+  padding: calc(var(--mui-spacing) * 4);
+}

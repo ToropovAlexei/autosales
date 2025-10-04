@@ -1,6 +1,7 @@
 "use client";
 
 import { Authorized, Sidebar } from "@/components";
+import classes from "./styles.module.css";
 
 export default function DashboardLayout({
   children,
@@ -9,9 +10,9 @@ export default function DashboardLayout({
 }) {
   return (
     <Authorized>
-      <div className="flex min-h-screen w-full">
+      <div className={classes.container}>
         <Sidebar />
-        <main className="flex-1 p-8">{children}</main>
+        <main className={classes.main}>{children}</main>
       </div>
     </Authorized>
   );
