@@ -1,3 +1,4 @@
 html {
   scrollbar-gutter: stable;
+  --navbar-height: 64px;
 }

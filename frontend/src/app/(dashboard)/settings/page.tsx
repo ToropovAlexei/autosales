@@ -1,6 +1,6 @@
 "use client";
 
-import { useOne, useList } from "@/hooks";
+import { useOne } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import {
   Card,
@@ -9,9 +9,6 @@ import {
   TextField,
   Switch,
   FormControlLabel,
-  List,
-  ListItem,
-  ListItemText,
 } from "@mui/material";
 import { toast } from "sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -27,15 +24,6 @@ interface User {
   role: string;
   referral_program_enabled: boolean;
   referral_percentage: number;
-}
-
-interface ReferralBot {
-  id: number;
-  owner_id: number;
-  seller_id: number;
-  bot_token: string; // Should be masked
-  is_active: boolean;
-  created_at: string;
 }
 
 export default function SettingsPage() {
@@ -81,10 +69,6 @@ export default function SettingsPage() {
     debouncedMutate({ referral_percentage: percentage });
   };
 
-  const { data: referralBots, isPending: isBotsPending } = useList<ReferralBot>(
-    { endpoint: ENDPOINTS.REFERRAL_BOTS_ADMIN }
-  );
-
   return (
     <PageLayout title="Настройки">
       <Card sx={{ mb: 3 }}>
@@ -113,32 +97,9 @@ export default function SettingsPage() {
                 disabled={!user?.referral_program_enabled}
                 fullWidth
                 margin="normal"
+                size="small"
               />
             </>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader title="Реферальные боты" />
-        <CardContent>
-          {isBotsPending ? (
-            <p>Загрузка...</p>
-          ) : (
-            <List>
-              {referralBots?.data?.map((bot) => (
-                <ListItem key={bot.id} divider>
-                  <ListItemText
-                    primary={`ID: ${bot.id}`}
-                    secondary={`Владелец: ${
-                      bot.owner_id
-                    } | Дата создания: ${new Date(
-                      bot.created_at
-                    ).toLocaleDateString()}`}
-                  />
-                </ListItem>
-              ))}
-            </List>
           )}
         </CardContent>
       </Card>

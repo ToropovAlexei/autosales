@@ -170,7 +170,7 @@ export default function DashboardPage() {
             Продажи за период
           </Typography>
           <FormProvider {...form}>
-            <div className={classes.datePickerGrid}>
+            <div className={classes.datePickerContainer}>
               <InputDate name="start_date" />
               <InputDate name="end_date" />
             </div>

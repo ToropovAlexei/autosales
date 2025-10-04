@@ -1,0 +1,26 @@
+.appBar {
+  box-shadow: none;
+  background-color: var(--mui-palette-background-paper);
+  background-image: none;
+  border-bottom: 1px solid;
+  border-color: var(--mui-palette-divider);
+  z-index: var(--mui-zIndex-drawer) + 1;
+}
+
+.toolbar {
+  height: var(--navbar-height);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.logoSection {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.logoIcon {
+  color: var(--mui-palette-primary-main);
+}

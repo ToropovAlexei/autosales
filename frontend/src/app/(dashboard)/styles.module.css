@@ -5,5 +5,5 @@
 .mainContent {
   flex-grow: 1;
   overflow: auto;
-  padding-top: var(--template-navbar-height);
+  padding-top: var(--navbar-height);
 }

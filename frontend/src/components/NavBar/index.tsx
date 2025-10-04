@@ -5,31 +5,14 @@ import Stack from "@mui/material/Stack";
 import Typography from "@mui/material/Typography";
 import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import { ColorModeIconDropdown } from "@/components/ColorModeIconDropdown";
+import classes from "./styles.module.css";
 
 export const NavBar = () => {
   return (
-    <AppBar
-      position="fixed"
-      sx={{
-        boxShadow: 0,
-        bgcolor: "background.paper",
-        backgroundImage: "none",
-        borderBottom: "1px solid",
-        borderColor: "divider",
-        zIndex: (theme) => theme.zIndex.drawer + 1,
-      }}
-    >
-      <Toolbar
-        sx={{
-          height: "var(--template-navbar-height)",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 1,
-        }}
-      >
-        <Stack direction="row" spacing={1} alignItems="center">
-          <DashboardRoundedIcon color="primary" />
+    <AppBar position="fixed" className={classes.appBar}>
+      <Toolbar className={classes.toolbar}>
+        <Stack direction="row" className={classes.logoSection}>
+          <DashboardRoundedIcon className={classes.logoIcon} />
           <Typography variant="h6" component="div" color="text.primary">
             Админ панель
           </Typography>
