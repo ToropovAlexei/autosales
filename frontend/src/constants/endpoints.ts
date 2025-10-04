@@ -9,7 +9,6 @@ export const ENDPOINTS = {
   STOCK_MOVEMENTS: "stock/movements",
   DASHBOARD_STATS: "dashboard/stats",
   DASHBOARD_TIME_SERIES: "dashboard/time-series",
-  DASHBOARD_STATS_LAST_30_DAYS: "dashboard/stats-last-30-days",
   DASHBOARD_TOP_PRODUCTS: "dashboard/top-products",
   DASHBOARD_SALES_BY_CATEGORY: "dashboard/sales-by-category",
   BOT_USERS: "admin/bot-users",

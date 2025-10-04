@@ -14,17 +14,6 @@ type DashboardStats struct {
 	AvailableProducts  int64 `json:"available_products"`
 }
 
-type DashboardStatsWithTrend struct {
-	TotalUsers         StatWithTrend `json:"total_users"`
-	UsersWithPurchases StatWithTrend `json:"users_with_purchases"`
-	ProductsSold       StatWithTrend `json:"products_sold"`
-}
-
-type StatWithTrend struct {
-	Value    int64   `json:"value"`
-	Trend    float64 `json:"trend"`
-}
-
 type TimeSeriesDashboardData struct {
 	Sales                 *SalesOverTime           `json:"sales"`
 	SalesChart            []models.TimeSeriesData `json:"sales_chart"`
@@ -39,9 +28,8 @@ type SalesOverTime struct {
 }
 
 type DashboardService interface {
-	GetDashboardStats() (*DashboardStats, error)
+	GetDashboardStats() (*models.DashboardOverview, error)
 	GetTimeSeriesDashboardData(start, end time.Time) (*TimeSeriesDashboardData, error)
-	GetDashboardStatsWithTrend() (*DashboardStatsWithTrend, error)
 	GetTopProducts() ([]models.Product, error)
 	GetSalesByCategory() ([]models.CategorySales, error)
 }
@@ -72,34 +60,93 @@ func fillMissingDates(start, end time.Time, data []models.TimeSeriesData) []mode
 	return filledData
 }
 
-func (s *dashboardService) GetDashboardStats() (*DashboardStats, error) {
+func (s *dashboardService) GetDashboardStats() (*models.DashboardOverview, error) {
 	var g errgroup.Group
 
-	stats := &DashboardStats{}
+	overview := &models.DashboardOverview{}
 
 	g.Go(func() error {
 		var err error
-		stats.TotalUsers, err = s.dashboardRepo.CountTotalUsers()
+		overview.TotalUsers, err = s.dashboardRepo.CountTotalUsers()
 		return err
 	})
 
 	g.Go(func() error {
 		var err error
-		stats.UsersWithPurchases, err = s.dashboardRepo.CountUsersWithPurchases()
+		overview.UsersWithPurchases, err = s.dashboardRepo.CountUsersWithPurchases()
 		return err
 	})
 
 	g.Go(func() error {
 		var err error
-		stats.AvailableProducts, err = s.dashboardRepo.CountAvailableProducts()
+		overview.AvailableProducts, err = s.dashboardRepo.CountAvailableProducts()
 		return err
+	})
+
+	end := time.Now()
+	start := end.AddDate(0, 0, -30)
+	prevEnd := start
+	prevStart := prevEnd.AddDate(0, 0, -30)
+
+	g.Go(func() error {
+		current, err := s.dashboardRepo.CountTotalUsersForPeriod(start, end)
+		if err != nil {
+			return err
+		}
+		previous, err := s.dashboardRepo.CountTotalUsersForPeriod(prevStart, prevEnd)
+		if err != nil {
+			return err
+		}
+		overview.TotalUsers30Days.Value = current
+		if previous == 0 {
+			overview.TotalUsers30Days.Trend = 0
+		} else {
+			overview.TotalUsers30Days.Trend = (float64(current) - float64(previous)) / float64(previous) * 100
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		current, err := s.dashboardRepo.CountUsersWithPurchasesForPeriod(start, end)
+		if err != nil {
+			return err
+		}
+		previous, err := s.dashboardRepo.CountUsersWithPurchasesForPeriod(prevStart, prevEnd)
+		if err != nil {
+			return err
+		}
+		overview.UsersWithPurchases30Days.Value = current
+		if previous == 0 {
+			overview.UsersWithPurchases30Days.Trend = 0
+		} else {
+			overview.UsersWithPurchases30Days.Trend = (float64(current) - float64(previous)) / float64(previous) * 100
+		}
+		return nil
+	})
+
+	g.Go(func() error {
+		current, err := s.dashboardRepo.CountProductsSoldForPeriod(start, end)
+		if err != nil {
+			return err
+		}
+		previous, err := s.dashboardRepo.CountProductsSoldForPeriod(prevStart, prevEnd)
+		if err != nil {
+			return err
+		}
+		overview.ProductsSold30Days.Value = current
+		if previous == 0 {
+			overview.ProductsSold30Days.Trend = 0
+		} else {
+			overview.ProductsSold30Days.Trend = (float64(current) - float64(previous)) / float64(previous) * 100
+		}
+		return nil
 	})
 
 	if err := g.Wait(); err != nil {
 		return nil, err
 	}
 
-	return stats, nil
+	return overview, nil
 }
 
 func (s *dashboardService) GetTimeSeriesDashboardData(start, end time.Time) (*TimeSeriesDashboardData, error) {
@@ -160,77 +207,6 @@ func (s *dashboardService) GetTimeSeriesDashboardData(start, end time.Time) (*Ti
 	}
 
 	return data, nil
-}
-
-func (s *dashboardService) GetDashboardStatsWithTrend() (*DashboardStatsWithTrend, error) {
-	var g errgroup.Group
-
-	stats := &DashboardStatsWithTrend{}
-
-	end := time.Now()
-	start := end.AddDate(0, 0, -30)
-	prevEnd := start
-	prevStart := prevEnd.AddDate(0, 0, -30)
-
-	g.Go(func() error {
-		current, err := s.dashboardRepo.CountTotalUsersForPeriod(start, end)
-		if err != nil {
-			return err
-		}
-		previous, err := s.dashboardRepo.CountTotalUsersForPeriod(prevStart, prevEnd)
-		if err != nil {
-			return err
-		}
-		stats.TotalUsers.Value = current
-		if previous == 0 {
-			stats.TotalUsers.Trend = 0
-		} else {
-			stats.TotalUsers.Trend = (float64(current) - float64(previous)) / float64(previous) * 100
-		}
-		return nil
-	})
-
-	g.Go(func() error {
-		current, err := s.dashboardRepo.CountUsersWithPurchasesForPeriod(start, end)
-		if err != nil {
-			return err
-		}
-		previous, err := s.dashboardRepo.CountUsersWithPurchasesForPeriod(prevStart, prevEnd)
-		if err != nil {
-			return err
-		}
-		stats.UsersWithPurchases.Value = current
-		if previous == 0 {
-			stats.UsersWithPurchases.Trend = 0
-		} else {
-			stats.UsersWithPurchases.Trend = (float64(current) - float64(previous)) / float64(previous) * 100
-		}
-		return nil
-	})
-
-	g.Go(func() error {
-		current, err := s.dashboardRepo.CountProductsSoldForPeriod(start, end)
-		if err != nil {
-			return err
-		}
-		previous, err := s.dashboardRepo.CountProductsSoldForPeriod(prevStart, prevEnd)
-		if err != nil {
-			return err
-		}
-		stats.ProductsSold.Value = current
-		if previous == 0 {
-			stats.ProductsSold.Trend = 0
-		} else {
-			stats.ProductsSold.Trend = (float64(current) - float64(previous)) / float64(previous) * 100
-		}
-		return nil
-	})
-
-	if err := g.Wait(); err != nil {
-		return nil, err
-	}
-
-	return stats, nil
 }
 
 func (s *dashboardService) GetTopProducts() ([]models.Product, error) {

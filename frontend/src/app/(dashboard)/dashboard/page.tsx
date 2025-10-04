@@ -18,12 +18,6 @@ import clsx from "clsx";
 import { IProduct } from "@/types";
 import { PageLayout } from "@/components/PageLayout";
 
-interface DashboardStats {
-  total_users: number;
-  users_with_purchases: number;
-  available_products: number;
-}
-
 interface TimeSeriesDataPoint {
   date: string;
   value: number;
@@ -45,10 +39,13 @@ interface StatWithTrend {
   trend: number;
 }
 
-interface DashboardStatsWithTrend {
-  total_users: StatWithTrend;
-  users_with_purchases: StatWithTrend;
-  products_sold: StatWithTrend;
+interface DashboardOverview {
+  total_users: number;
+  users_with_purchases: number;
+  available_products: number;
+  total_users_30_days: StatWithTrend;
+  users_with_purchases_30_days: StatWithTrend;
+  products_sold_30_days: StatWithTrend;
 }
 
 interface CategorySales {
@@ -57,13 +54,9 @@ interface CategorySales {
 }
 
 export default function DashboardPage() {
-  const { data: stats, isPending: isStatsPending } = useOne<DashboardStats>({
-    endpoint: ENDPOINTS.DASHBOARD_STATS,
-  });
-
-  const { data: statsWithTrend, isPending: isStatsWithTrendPending } =
-    useOne<DashboardStatsWithTrend>({
-      endpoint: ENDPOINTS.DASHBOARD_STATS_LAST_30_DAYS,
+  const { data: overview, isPending: isOverviewPending } =
+    useOne<DashboardOverview>({
+      endpoint: ENDPOINTS.DASHBOARD_STATS,
     });
 
   const { data: topProducts, isPending: isTopProductsPending } = useOne<
@@ -103,16 +96,14 @@ export default function DashboardPage() {
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <PageLayout title="Дашборд">
         <div className={classes.grid}>
-          {isStatsWithTrendPending ? (
+          {isOverviewPending ? (
             <p>Загрузка...</p>
           ) : (
             <StatCard
               title="Всего пользователей"
-              value={statsWithTrend?.total_users.value.toString() || "0"}
-              interval={`с ${dayjs()
-                .subtract(30, "day")
-                .format("DD.MM.YYYY")} по ${dayjs().format("DD.MM.YYYY")}`}
-              trend={getTrend(statsWithTrend?.total_users.trend || 0)}
+              value={overview?.total_users.toString() || "0"}
+              interval="Все время"
+              trend="neutral"
               data={timeSeriesData?.users_chart?.map((d) => d.value) || []}
               xAxisData={
                 timeSeriesData?.users_chart?.map((d) =>
@@ -121,18 +112,14 @@ export default function DashboardPage() {
               }
             />
           )}
-          {isStatsWithTrendPending ? (
+          {isOverviewPending ? (
             <p>Загрузка...</p>
           ) : (
             <StatCard
               title="Пользователи с покупками"
-              value={
-                statsWithTrend?.users_with_purchases.value.toString() || "0"
-              }
-              interval={`с ${dayjs()
-                .subtract(30, "day")
-                .format("DD.MM.YYYY")} по ${dayjs().format("DD.MM.YYYY")}`}
-              trend={getTrend(statsWithTrend?.users_with_purchases.trend || 0)}
+              value={overview?.users_with_purchases.toString() || "0"}
+              interval="Все время"
+              trend="neutral"
               data={
                 timeSeriesData?.users_with_purchases_chart?.map(
                   (d) => d.value
@@ -145,16 +132,84 @@ export default function DashboardPage() {
               }
             />
           )}
-          {isStatsWithTrendPending ? (
+          {isOverviewPending ? (
             <p>Загрузка...</p>
           ) : (
             <StatCard
-              title="Продано товаров"
-              value={statsWithTrend?.products_sold.value.toString() || "0"}
+              title="Доступно товаров"
+              value={overview?.available_products.toString() || "0"}
+              interval="Все время"
+              trend="neutral"
+              data={[]}
+              xAxisData={[]}
+            />
+          )}
+        </div>
+
+        <div className={classes.grid} style={{ marginTop: "24px" }}>
+          {isOverviewPending ? (
+            <p>Загрузка...</p>
+          ) : (
+            <StatCard
+              title="Новые пользователи"
+              value={overview?.total_users_30_days.value.toString() || "0"}
               interval={`с ${dayjs()
                 .subtract(30, "day")
-                .format("DD.MM.YYYY")} по ${dayjs().format("DD.MM.YYYY")}`}
-              trend={getTrend(statsWithTrend?.products_sold.trend || 0)}
+                .startOf("day")
+                .format("DD.MM.YYYY")} по ${dayjs()
+                .endOf("day")
+                .format("DD.MM.YYYY")}`}
+              trend={getTrend(overview?.total_users_30_days.trend || 0)}
+              data={timeSeriesData?.users_chart?.map((d) => d.value) || []}
+              xAxisData={
+                timeSeriesData?.users_chart?.map((d) =>
+                  dayjs(d.date).format("DD.MM")
+                ) || []
+              }
+            />
+          )}
+          {isOverviewPending ? (
+            <p>Загрузка...</p>
+          ) : (
+            <StatCard
+              title="Пользователи с покупками (30 дней)"
+              value={
+                overview?.users_with_purchases_30_days.value.toString() || "0"
+              }
+              interval={`с ${dayjs()
+                .subtract(30, "day")
+                .startOf("day")
+                .format("DD.MM.YYYY")} по ${dayjs()
+                .endOf("day")
+                .format("DD.MM.YYYY")}`}
+              trend={getTrend(
+                overview?.users_with_purchases_30_days.trend || 0
+              )}
+              data={
+                timeSeriesData?.users_with_purchases_chart?.map(
+                  (d) => d.value
+                ) || []
+              }
+              xAxisData={
+                timeSeriesData?.users_with_purchases_chart?.map((d) =>
+                  dayjs(d.date).format("DD.MM")
+                ) || []
+              }
+            />
+          )}
+          {isOverviewPending ? (
+            <p>Загрузка...</p>
+          ) : (
+            <StatCard
+              title="Продано товаров (30 дней)"
+              value={overview?.products_sold_30_days.value.toString() || "0"}
+              interval={`с ${dayjs()
+                .subtract(30, "day")
+                .startOf("day")
+                .format("DD.MM.YYYY")} по ${dayjs()
+                .endOf("day")
+                .format("DD.MM.YYYY")}`}
+              trend={getTrend(overview?.products_sold_30_days.trend || 0)}
               data={timeSeriesData?.sales_chart?.map((d) => d.value) || []}
               xAxisData={
                 timeSeriesData?.sales_chart?.map((d) =>

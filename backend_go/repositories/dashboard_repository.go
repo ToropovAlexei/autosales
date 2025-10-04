@@ -93,7 +93,7 @@ func (r *gormDashboardRepository) GetUsersOverTime(start, end time.Time) ([]mode
 	var results []models.TimeSeriesData
 	err := r.db.Model(&models.BotUser{}).
 		Select("DATE(created_at) as date, COUNT(*) as value").
-		Where("created_at >= ? AND created_at < ?", start, end.AddDate(0, 0, 1)).
+		Where("created_at >= ? AND created_at < ? AND is_deleted = ?", start, end.AddDate(0, 0, 1), false).
 		Group("DATE(created_at)").
 		Order("date").
 		Scan(&results).Error
@@ -102,7 +102,7 @@ func (r *gormDashboardRepository) GetUsersOverTime(start, end time.Time) ([]mode
 
 func (r *gormDashboardRepository) CountTotalUsersForPeriod(start, end time.Time) (int64, error) {
 	var totalUsers int64
-	err := r.db.Model(&models.BotUser{}).Where("created_at >= ? AND created_at < ?", start, end).Count(&totalUsers).Error
+	err := r.db.Model(&models.BotUser{}).Where("created_at >= ? AND created_at < ? AND is_deleted = ?", start, end, false).Count(&totalUsers).Error
 	return totalUsers, errors.WithStack(err)
 }
 

@@ -52,15 +52,6 @@ func (h *DashboardHandler) GetTimeSeriesDashboardDataHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusOK, data)
 }
 
-func (h *DashboardHandler) GetDashboardStatsWithTrendHandler(c *gin.Context) {
-	stats, err := h.dashboardService.GetDashboardStatsWithTrend()
-	if err != nil {
-		c.Error(err)
-		return
-	}
-	responses.SuccessResponse(c, http.StatusOK, stats)
-}
-
 func (h *DashboardHandler) GetTopProductsHandler(c *gin.Context) {
 	products, err := h.dashboardService.GetTopProducts()
 	if err != nil {

@@ -13,7 +13,6 @@ func (r *Router) DashboardRouter(router *gin.Engine, dashboardHandler *handlers.
 	{
 		auth.GET("/stats", dashboardHandler.GetDashboardStatsHandler)
 		auth.GET("/time-series", dashboardHandler.GetTimeSeriesDashboardDataHandler)
-		auth.GET("/stats-last-30-days", dashboardHandler.GetDashboardStatsWithTrendHandler)
 		auth.GET("/top-products", dashboardHandler.GetTopProductsHandler)
 		auth.GET("/sales-by-category", dashboardHandler.GetSalesByCategoryHandler)
 	}
