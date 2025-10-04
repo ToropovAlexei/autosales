@@ -36,6 +36,7 @@ import { ENDPOINTS } from "@/constants";
 import { MultiSelect } from "@/components/ui/multi-select";
 import { CategoryResponse } from "@/types";
 import { flattenCategoriesForSelect, findCategoryNameById } from "@/lib/utils";
+import { ConfirmModal } from "@/components";
 
 interface Product {
   id: number;
@@ -385,27 +386,15 @@ export default function ProductsPage() {
         </Table>
       </List>
 
-      <Dialog
+      <ConfirmModal
         open={showConfirmationDialog}
-        onOpenChange={setShowConfirmationDialog}
-      >
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Подтверждение добавления товара</DialogTitle>
-            <DialogDescription>
-              Вы уверены, что хотите разместить товар в категории без
-              подкатегорий? Это может повлиять на видимость товара для
-              пользователей.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={handleCancelAddProduct}>
-              Отмена
-            </Button>
-            <Button onClick={handleConfirmAddProduct}>Продолжить</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        onClose={handleCancelAddProduct}
+        onConfirm={handleConfirmAddProduct}
+        title="Подтверждение добавления товара"
+        contentText="Вы уверены, что хотите разместить товар в этой категории?"
+        confirmBtnText="Продолжить"
+        closeBtnText="Отмена"
+      />
 
       {/* Edit Dialog */}
       {selectedProduct && (

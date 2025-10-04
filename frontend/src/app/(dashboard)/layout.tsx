@@ -1,8 +1,6 @@
 "use client";
 
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { Authorized } from "@/components";
-import { Sidebar } from "@/components/Sidebar";
+import { Authorized, Sidebar } from "@/components";
 
 export default function DashboardLayout({
   children,
@@ -11,12 +9,10 @@ export default function DashboardLayout({
 }) {
   return (
     <Authorized>
-      <SidebarProvider>
-        <div className="flex min-h-screen w-full">
-          <Sidebar />
-          <main className="flex-1 p-8">{children}</main>
-        </div>
-      </SidebarProvider>
+      <div className="flex min-h-screen w-full">
+        <Sidebar />
+        <main className="flex-1 p-8">{children}</main>
+      </div>
     </Authorized>
   );
 }

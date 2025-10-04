@@ -1,16 +1,15 @@
 "use client";
 
+import { List } from "@/components/List";
+import { useList } from "@/hooks";
+import { ENDPOINTS } from "@/constants";
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
-  TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import { List } from "@/components/List";
-import { useList } from "@/hooks";
-import { ENDPOINTS } from "@/constants";
+} from "@mui/material";
 
 interface StockMovement {
   id: number;
@@ -22,33 +21,28 @@ interface StockMovement {
 }
 
 export default function StockPage() {
-  const {
-    data: movements,
-    isLoading,
-    error,
-  } = useList<StockMovement>({
+  const { data: movements, isLoading } = useList<StockMovement>({
     endpoint: ENDPOINTS.STOCK_MOVEMENTS,
   });
 
   if (isLoading) return <div>Загрузка...</div>;
-  if (error) return <div>Не удалось загрузить движения по складу</div>;
 
   return (
     <List title="Движения по складу">
-      <Table>
-        <TableHeader>
+      <Table size="small">
+        <TableHead>
           <TableRow>
-            <TableHead>ID</TableHead>
-            <TableHead>ID Товара</TableHead>
-            <TableHead>Тип</TableHead>
-            <TableHead>Количество</TableHead>
-            <TableHead>Дата</TableHead>
-            <TableHead>Описание</TableHead>
+            <TableCell>ID</TableCell>
+            <TableCell>ID Товара</TableCell>
+            <TableCell>Тип</TableCell>
+            <TableCell>Количество</TableCell>
+            <TableCell>Дата</TableCell>
+            <TableCell>Описание</TableCell>
           </TableRow>
-        </TableHeader>
+        </TableHead>
         <TableBody>
           {movements?.data?.map((movement) => (
-            <TableRow key={movement.id}>
+            <TableRow hover key={movement.id}>
               <TableCell>{movement.id}</TableCell>
               <TableCell>{movement.product_id}</TableCell>
               <TableCell>{movement.type}</TableCell>
