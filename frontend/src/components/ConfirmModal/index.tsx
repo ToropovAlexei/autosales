@@ -1,5 +1,6 @@
 import {
   Button,
+  ButtonOwnProps,
   Dialog,
   DialogActions,
   DialogContent,
@@ -17,6 +18,8 @@ interface IProps {
   loading?: boolean;
   confirmBtnText?: string;
   closeBtnText?: string;
+  confirmBtnColor?: ButtonOwnProps["color"];
+  closeBtnColor?: ButtonOwnProps["color"];
   preventCloseOnConfirm?: boolean;
 }
 
@@ -30,6 +33,8 @@ export const ConfirmModal = ({
   closeBtnText = "Закрыть",
   loading,
   preventCloseOnConfirm,
+  closeBtnColor,
+  confirmBtnColor,
 }: IProps) => {
   const handleConfirm = useCallback(
     (event: MouseEvent<HTMLButtonElement>) => {
@@ -48,10 +53,20 @@ export const ConfirmModal = ({
         <DialogContentText>{contentText}</DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button variant="contained" onClick={handleConfirm} loading={loading}>
+        <Button
+          variant="contained"
+          color={confirmBtnColor}
+          onClick={handleConfirm}
+          loading={loading}
+        >
           {confirmBtnText}
         </Button>
-        <Button variant="outlined" onClick={onClose} loading={loading}>
+        <Button
+          variant="outlined"
+          color={closeBtnColor}
+          onClick={onClose}
+          loading={loading}
+        >
           {closeBtnText}
         </Button>
       </DialogActions>

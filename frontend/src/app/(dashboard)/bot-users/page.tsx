@@ -3,26 +3,20 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
+import { List } from "@/components/List";
+import { useList } from "@/hooks";
+import { ENDPOINTS } from "@/constants";
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
-  TableHeader,
   TableRow,
-} from "@/components/ui/table";
-import api from "@/lib/api";
-import { List } from "@/components/List";
-import { useList } from "@/hooks";
-import { ENDPOINTS } from "@/constants";
+} from "@mui/material";
+import { ConfirmModal } from "@/components";
+import { queryKeys } from "@/utils/query";
+import { dataLayer } from "@/lib/dataLayer";
 
 interface BotUser {
   id: number;
@@ -40,9 +34,12 @@ export default function BotUsersPage() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (userId: number) => api.delete(`/admin/bot-users/${userId}`),
+    mutationFn: (userId: number) =>
+      dataLayer.delete({ url: ENDPOINTS.BOT_USERS, id: userId }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["bot-users"] });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.BOT_USERS),
+      });
       setIsConfirmOpen(false);
       setSelectedUser(null);
     },
@@ -62,18 +59,18 @@ export default function BotUsersPage() {
   return (
     <>
       <List title="Пользователи бота">
-        <Table>
-          <TableHeader>
+        <Table size="small">
+          <TableHead>
             <TableRow>
-              <TableHead>ID</TableHead>
-              <TableHead>Telegram ID</TableHead>
-              <TableHead>Баланс</TableHead>
-              <TableHead className="text-right">Действия</TableHead>
+              <TableCell>ID</TableCell>
+              <TableCell>Telegram ID</TableCell>
+              <TableCell>Баланс</TableCell>
+              <TableCell className="text-right">Действия</TableCell>
             </TableRow>
-          </TableHeader>
+          </TableHead>
           <TableBody>
             {botUsers?.data?.map((botUser) => (
-              <TableRow key={botUser.id}>
+              <TableRow hover key={botUser.id}>
                 <TableCell>{botUser.id}</TableCell>
                 <TableCell>{botUser.telegram_id}</TableCell>
                 <TableCell>{botUser.balance} ₽</TableCell>
@@ -91,30 +88,17 @@ export default function BotUsersPage() {
         </Table>
       </List>
 
-      {/* Confirmation Dialog */}
-      <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Вы уверены?</DialogTitle>
-            <DialogDescription>
-              Вы действительно хотите удалить пользователя{" "}
-              {selectedUser?.telegram_id}? Это действие необратимо.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="ghost" onClick={() => setIsConfirmOpen(false)}>
-              Отмена
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDeleteUser}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? "Удаление..." : "Удалить"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ConfirmModal
+        open={isConfirmOpen}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleDeleteUser}
+        title="Вы уверены?"
+        contentText={`Вы действительно хотите удалить пользователя ${selectedUser?.telegram_id}? Это действие необратимо.`}
+        closeBtnText="Отмена"
+        confirmBtnText="Удалить"
+        loading={deleteMutation.isPending}
+        confirmBtnColor="error"
+      />
     </>
   );
 }

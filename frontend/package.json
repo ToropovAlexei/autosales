@@ -18,6 +18,7 @@
     "@mui/x-charts": "^8.13.1",
     "@mui/x-data-grid": "^8.13.1",
     "@mui/x-date-pickers": "^8.12.0",
+    "@mui/x-tree-view": "^8.13.1",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-label": "^2.1.7",
