@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import { Authorized, Sidebar } from "@/components";
 import classes from "./styles.module.css";

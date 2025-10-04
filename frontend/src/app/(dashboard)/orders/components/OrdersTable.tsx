@@ -46,8 +46,10 @@ export const OrdersTable = ({ orders, loading }: OrdersTableProps) => {
       <DataGrid
         rows={orders}
         columns={columns}
-        loading={loading}
         density="compact"
+        getRowClassName={(params) =>
+          params.indexRelativeToCurrentPage % 2 === 0 ? 'even' : 'odd'
+        }
         initialState={{
           pagination: {
             paginationModel: {
@@ -56,6 +58,32 @@ export const OrdersTable = ({ orders, loading }: OrdersTableProps) => {
           },
         }}
         localeText={ruRU.components.MuiDataGrid.defaultProps.localeText}
+        slotProps={{
+          filterPanel: {
+            filterFormProps: {
+              logicOperatorInputProps: {
+                variant: 'outlined',
+                size: 'small',
+              },
+              columnInputProps: {
+                variant: 'outlined',
+                size: 'small',
+                sx: { mt: 'auto' },
+              },
+              operatorInputProps: {
+                variant: 'outlined',
+                size: 'small',
+                sx: { mt: 'auto' },
+              },
+              valueInputProps: {
+                InputComponentProps: {
+                  variant: 'outlined',
+                  size: 'small',
+                },
+              },
+            },
+          },
+        }}
       />
     </div>
   );

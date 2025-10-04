@@ -39,6 +39,9 @@ export const TransactionsTable = ({ transactions }: TransactionsTableProps) => {
         rows={transactions}
         columns={columns}
         density="compact"
+        getRowClassName={(params) =>
+          params.indexRelativeToCurrentPage % 2 === 0 ? 'even' : 'odd'
+        }
         initialState={{
           pagination: {
             paginationModel: {
@@ -47,6 +50,32 @@ export const TransactionsTable = ({ transactions }: TransactionsTableProps) => {
           },
         }}
         localeText={ruRU.components.MuiDataGrid.defaultProps.localeText}
+        slotProps={{
+          filterPanel: {
+            filterFormProps: {
+              logicOperatorInputProps: {
+                variant: 'outlined',
+                size: 'small',
+              },
+              columnInputProps: {
+                variant: 'outlined',
+                size: 'small',
+                sx: { mt: 'auto' },
+              },
+              operatorInputProps: {
+                variant: 'outlined',
+                size: 'small',
+                sx: { mt: 'auto' },
+              },
+              valueInputProps: {
+                InputComponentProps: {
+                  variant: 'outlined',
+                  size: 'small',
+                },
+              },
+            },
+          },
+        }}
       />
     </div>
   );

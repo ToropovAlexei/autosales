@@ -1,17 +1,24 @@
-"use client";
+'use client';
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createTheme, CssBaseline, ThemeProvider } from "@mui/material";
+import { CssBaseline, ThemeProvider } from "@mui/material";
 import { Toaster } from "sonner";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { ToastContainer } from "react-toastify";
 import { ruRU } from "@mui/x-date-pickers/locales";
+import { createAppTheme } from "@/themes";
+import { chartsCustomizations, dataGridCustomizations, datePickersCustomizations, treeViewCustomizations } from '@/../dashboard/theme/customizations';
 
-const theme = createTheme({
-  cssVariables: true,
-});
+const xThemeComponents = {
+  ...chartsCustomizations,
+  ...dataGridCustomizations,
+  ...datePickersCustomizations,
+  ...treeViewCustomizations,
+};
+
+const theme = createAppTheme(xThemeComponents);
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(

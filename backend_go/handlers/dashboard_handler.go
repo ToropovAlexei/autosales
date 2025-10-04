@@ -27,7 +27,7 @@ func (h *DashboardHandler) GetDashboardStatsHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusOK, stats)
 }
 
-func (h *DashboardHandler) GetSalesOverTimeHandler(c *gin.Context) {
+func (h *DashboardHandler) GetTimeSeriesDashboardDataHandler(c *gin.Context) {
 	startDateStr := c.Query("start_date")
 	endDateStr := c.Query("end_date")
 
@@ -43,11 +43,38 @@ func (h *DashboardHandler) GetSalesOverTimeHandler(c *gin.Context) {
 		return
 	}
 
-	salesData, err := h.dashboardService.GetSalesOverTime(startDate, endDate)
+	data, err := h.dashboardService.GetTimeSeriesDashboardData(startDate, endDate)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	responses.SuccessResponse(c, http.StatusOK, salesData)
+	responses.SuccessResponse(c, http.StatusOK, data)
+}
+
+func (h *DashboardHandler) GetDashboardStatsWithTrendHandler(c *gin.Context) {
+	stats, err := h.dashboardService.GetDashboardStatsWithTrend()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	responses.SuccessResponse(c, http.StatusOK, stats)
+}
+
+func (h *DashboardHandler) GetTopProductsHandler(c *gin.Context) {
+	products, err := h.dashboardService.GetTopProducts()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	responses.SuccessResponse(c, http.StatusOK, products)
+}
+
+func (h *DashboardHandler) GetSalesByCategoryHandler(c *gin.Context) {
+	categories, err := h.dashboardService.GetSalesByCategory()
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	responses.SuccessResponse(c, http.StatusOK, categories)
 }

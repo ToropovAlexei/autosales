@@ -83,6 +83,9 @@ export const ProductsTable = ({
         rows={products}
         columns={columns}
         density="compact"
+        getRowClassName={(params) =>
+          params.indexRelativeToCurrentPage % 2 === 0 ? 'even' : 'odd'
+        }
         initialState={{
           pagination: {
             paginationModel: {
@@ -94,6 +97,32 @@ export const ProductsTable = ({
           row.provider ? `${row.provider}-${row.external_id}` : row.id
         }
         localeText={ruRU.components.MuiDataGrid.defaultProps.localeText}
+        slotProps={{
+          filterPanel: {
+            filterFormProps: {
+              logicOperatorInputProps: {
+                variant: 'outlined',
+                size: 'small',
+              },
+              columnInputProps: {
+                variant: 'outlined',
+                size: 'small',
+                sx: { mt: 'auto' },
+              },
+              operatorInputProps: {
+                variant: 'outlined',
+                size: 'small',
+                sx: { mt: 'auto' },
+              },
+              valueInputProps: {
+                InputComponentProps: {
+                  variant: 'outlined',
+                  size: 'small',
+                },
+              },
+            },
+          },
+        }}
       />
     </div>
   );

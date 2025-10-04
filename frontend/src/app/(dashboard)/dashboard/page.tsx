@@ -8,8 +8,14 @@ import dayjs from "dayjs";
 import { Card, CardContent, CardHeader, Typography } from "@mui/material";
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import StatCard from '@/components/StatCard';
+import SessionsChart from '@/components/SessionsChart';
+import PageViewsBarChart from '@/components/PageViewsBarChart';
+import { TopProductsTable } from './components/TopProductsTable';
+import SalesByCategoryChart from './components/SalesByCategoryChart';
 import classes from './styles.module.css';
 import clsx from 'clsx';
+import { IProduct } from '@/types';
 
 interface DashboardStats {
   total_users: number;
@@ -17,9 +23,36 @@ interface DashboardStats {
   available_products: number;
 }
 
-interface SalesOverTime {
-  products_sold: number;
-  total_revenue: number;
+interface TimeSeriesDataPoint {
+  date: string;
+  value: number;
+}
+
+interface TimeSeriesDashboardData {
+  sales: {
+    products_sold: number;
+    total_revenue: number;
+  };
+  sales_chart: TimeSeriesDataPoint[];
+  users_chart: TimeSeriesDataPoint[];
+  revenue_chart: TimeSeriesDataPoint[];
+  users_with_purchases_chart: TimeSeriesDataPoint[];
+}
+
+interface StatWithTrend {
+  value: number;
+  trend: number;
+}
+
+interface DashboardStatsWithTrend {
+  total_users: StatWithTrend;
+  users_with_purchases: StatWithTrend;
+  products_sold: StatWithTrend;
+}
+
+interface CategorySales {
+  category_name: string;
+  total_sales: number;
 }
 
 export default function DashboardPage() {
@@ -27,18 +60,37 @@ export default function DashboardPage() {
     endpoint: ENDPOINTS.DASHBOARD_STATS,
   });
 
+  const { data: statsWithTrend, isPending: isStatsWithTrendPending } = useOne<DashboardStatsWithTrend>({
+    endpoint: ENDPOINTS.DASHBOARD_STATS_LAST_30_DAYS,
+  });
+
+  const { data: topProducts, isPending: isTopProductsPending } = useOne<IProduct[]>({
+    endpoint: ENDPOINTS.DASHBOARD_TOP_PRODUCTS,
+  });
+
+  const { data: salesByCategory, isPending: isSalesByCategoryPending } = useOne<CategorySales[]>({
+    endpoint: ENDPOINTS.DASHBOARD_SALES_BY_CATEGORY,
+  });
+
   const form = useForm<{ start_date: string; end_date: string }>({
     defaultValues: {
-      start_date: dayjs().subtract(7, "day").startOf("day").toISOString(),
+      start_date: dayjs().subtract(30, "day").startOf("day").toISOString(),
       end_date: dayjs().endOf("day").toISOString(),
     },
   });
   const { start_date, end_date } = useWatch({ control: form.control });
-  const { data: sales, isPending: isSalesPending } = useOne<SalesOverTime>({
-    endpoint: ENDPOINTS.SALES_OVER_TIME,
+
+  const { data: timeSeriesData, isPending: isTimeSeriesPending } = useOne<TimeSeriesDashboardData>({
+    endpoint: ENDPOINTS.DASHBOARD_TIME_SERIES,
     params: { start_date, end_date },
     enabled: !!start_date && !!end_date,
   });
+
+  const getTrend = (trend: number) => {
+    if (trend > 0) return 'up';
+    if (trend < 0) return 'down';
+    return 'neutral';
+  }
 
   return (
     <LocalizationProvider dateAdapter={AdapterDayjs}>
@@ -48,36 +100,9 @@ export default function DashboardPage() {
         </Typography>
 
         <div className={classes.grid}>
-          <Card>
-            <CardHeader title="Всего пользователей" />
-            <CardContent>
-              {isStatsPending ? (
-                <p>Загрузка...</p>
-              ) : (
-                <Typography variant="h5">{stats?.total_users}</Typography>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader title="Пользователи с покупками" />
-            <CardContent>
-              {isStatsPending ? (
-                <p>Загрузка...</p>
-              ) : (
-                <Typography variant="h5">{stats?.users_with_purchases}</Typography>
-              )}
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader title="Доступно товаров" />
-            <CardContent>
-              {isStatsPending ? (
-                <p>Загрузка...</p>
-              ) : (
-                <Typography variant="h5">{stats?.available_products}</Typography>
-              )}
-            </CardContent>
-          </Card>
+          {isStatsWithTrendPending ? <p>Загрузка...</p> : <StatCard title="Всего пользователей" value={statsWithTrend?.total_users.value.toString() || '0'} interval={`с ${dayjs().subtract(30, "day").format('DD.MM.YYYY')} по ${dayjs().format('DD.MM.YYYY')}`} trend={getTrend(statsWithTrend?.total_users.trend || 0)} data={timeSeriesData?.users_chart?.map(d => d.value) || []} xAxisData={timeSeriesData?.users_chart?.map(d => dayjs(d.date).format('DD.MM')) || []} />}
+          {isStatsWithTrendPending ? <p>Загрузка...</p> : <StatCard title="Пользователи с покупками" value={statsWithTrend?.users_with_purchases.value.toString() || '0'} interval={`с ${dayjs().subtract(30, "day").format('DD.MM.YYYY')} по ${dayjs().format('DD.MM.YYYY')}`} trend={getTrend(statsWithTrend?.users_with_purchases.trend || 0)} data={timeSeriesData?.users_with_purchases_chart?.map(d => d.value) || []} xAxisData={timeSeriesData?.users_with_purchases_chart?.map(d => dayjs(d.date).format('DD.MM')) || []} />}
+          {isStatsWithTrendPending ? <p>Загрузка...</p> : <StatCard title="Продано товаров" value={statsWithTrend?.products_sold.value.toString() || '0'} interval={`с ${dayjs().subtract(30, "day").format('DD.MM.YYYY')} по ${dayjs().format('DD.MM.YYYY')}`} trend={getTrend(statsWithTrend?.products_sold.trend || 0)} data={timeSeriesData?.sales_chart?.map(d => d.value) || []} xAxisData={timeSeriesData?.sales_chart?.map(d => dayjs(d.date).format('DD.MM')) || []} />}
         </div>
 
         <div>
@@ -85,30 +110,40 @@ export default function DashboardPage() {
             Продажи за период
           </Typography>
           <FormProvider {...form}>
-            <div className={classes.datePickerContainer}>
+            <div className={classes.datePickerGrid}>
               <InputDate name="start_date" />
               <InputDate name="end_date" />
             </div>
           </FormProvider>
 
-          {isSalesPending && <p>Загрузка...</p>}
+          {isTimeSeriesPending && <p>Загрузка...</p>}
 
-          {sales && !isSalesPending && (
+          {timeSeriesData && !isTimeSeriesPending && (
             <div className={clsx(classes.grid, classes['two-columns'])}>
-              <Card>
-                <CardHeader title="Продано товаров" />
-                <CardContent>
-                  <Typography variant="h5">{sales.products_sold}</Typography>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader title="Общий доход" />
-                <CardContent>
-                  <Typography variant="h5">{sales.total_revenue.toFixed(2)} ₽</Typography>
-                </CardContent>
-              </Card>
+              <StatCard title="Продано товаров" value={timeSeriesData.sales.products_sold.toString()} interval={`с ${dayjs(start_date).format('DD.MM.YYYY')} по ${dayjs(end_date).format('DD.MM.YYYY')}`} trend="neutral" data={timeSeriesData?.sales_chart?.map(d => d.value) || []} xAxisData={timeSeriesData?.sales_chart?.map(d => dayjs(d.date).format('DD.MM')) || []} />
+              <StatCard title="Общий доход" value={`${timeSeriesData.sales.total_revenue.toFixed(2)} ₽`} interval={`с ${dayjs(start_date).format('DD.MM.YYYY')} по ${dayjs(end_date).format('DD.MM.YYYY')}`} trend="neutral" data={timeSeriesData?.revenue_chart?.map(d => d.value) || []} xAxisData={timeSeriesData?.revenue_chart?.map(d => dayjs(d.date).format('DD.MM')) || []} />
             </div>
           )}
+        </div>
+
+        <div className={classes.grid} style={{ marginTop: '24px' }}>
+            {isTimeSeriesPending ? <p>Загрузка...</p> : <SessionsChart 
+              title="Продажи"
+              subtitle={`за период с ${dayjs(start_date).format('DD.MM.YYYY')} по ${dayjs(end_date).format('DD.MM.YYYY')}`}
+              data={timeSeriesData?.sales_chart?.map(d => d.value) || []} 
+              labels={timeSeriesData?.sales_chart?.map(d => dayjs(d.date).format('DD.MM')) || []} 
+            />}
+            {isTimeSeriesPending ? <p>Загрузка...</p> : <PageViewsBarChart 
+              title="Новые пользователи"
+              subtitle={`за период с ${dayjs(start_date).format('DD.MM.YYYY')} по ${dayjs(end_date).format('DD.MM.YYYY')}`}
+              data={timeSeriesData?.users_chart?.map(d => d.value) || []} 
+              labels={timeSeriesData?.users_chart?.map(d => dayjs(d.date).format('DD.MM')) || []} 
+            />}
+        </div>
+
+        <div className={classes.grid} style={{ marginTop: '24px' }}>
+          {isTopProductsPending ? <p>Загрузка...</p> : <TopProductsTable products={topProducts || []} />}
+          {isSalesByCategoryPending ? <p>Загрузка...</p> : <SalesByCategoryChart data={salesByCategory || []} />}
         </div>
       </div>
     </LocalizationProvider>
