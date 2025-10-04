@@ -1,0 +1,28 @@
+.avatar {
+  width: 28px;
+  height: 28px;
+  background-color: var(--mui-palette-background-paper);
+  color: var(--mui-palette-text-secondary);
+  border: 1px solid var(--mui-palette-divider);
+}
+
+.listItemAvatar {
+  min-width: 0;
+  margin-right: 12px;
+}
+
+.selectRoot {
+  max-height: 56px;
+  width: 215px;
+}
+
+.selectRoot :global(.MuiList-root) {
+  padding: 8px;
+}
+
+.selectRoot :global(.MuiSelect-select) {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding-left: 4px;
+}

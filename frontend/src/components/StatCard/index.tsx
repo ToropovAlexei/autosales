@@ -8,6 +8,7 @@ import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import { SparkLineChart } from '@mui/x-charts/SparkLineChart';
 import { areaElementClasses } from '@mui/x-charts/LineChart';
+import classes from './styles.module.css';
 
 export type StatCardProps = {
   title: string;
@@ -29,14 +30,14 @@ function AreaGradient({ color, id }: { color: string; id: string }) {
   );
 }
 
-export default function StatCard({
+export const StatCard = ({
   title,
   value,
   interval,
   trend,
   data,
   xAxisData,
-}: StatCardProps) {
+}: StatCardProps) => {
   const theme = useTheme();
 
   const trendColors = {
@@ -64,7 +65,7 @@ export default function StatCard({
   const chartColor = trendColors[trend];
 
   return (
-    <Card variant="outlined" sx={{ height: '100%', flexGrow: 1 }}>
+    <Card variant="outlined" className={classes.cardRoot}>
       <CardContent>
         <Typography component="h2" variant="subtitle2" gutterBottom>
           {title}

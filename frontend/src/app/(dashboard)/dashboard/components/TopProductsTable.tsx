@@ -1,7 +1,6 @@
-'use client';
-
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { IProduct } from '@/types';
+import classes from './TopProductsTable.module.css';
 
 interface TopProductsTableProps {
   products: IProduct[];
@@ -15,7 +14,7 @@ export const TopProductsTable = ({ products }: TopProductsTableProps) => {
   ];
 
   return (
-    <div style={{ height: 300, width: '100%' }}>
+    <div className={classes.tableContainer}>
       <DataGrid
         rows={products}
         columns={columns}

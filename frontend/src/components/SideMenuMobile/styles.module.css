@@ -1,0 +1,9 @@
+.drawerPaper {
+  background-image: none;
+  background-color: var(--mui-palette-background-paper);
+}
+
+.stackRoot {
+  max-width: 70dvw;
+  height: 100%;
+}

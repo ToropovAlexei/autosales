@@ -1,13 +1,13 @@
 import * as React from 'react';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import { BarChart } from '@mui/x-charts/BarChart';
 import { useTheme } from '@mui/material/styles';
+import classes from './styles.module.css';
 
-export default function PageViewsBarChart({ data, labels, title, subtitle }: { data: number[], labels: string[], title: string, subtitle: string }) {
+export const PageViewsBarChart = ({ data, labels, title, subtitle }: { data: number[], labels: string[], title: string, subtitle: string }) => {
   const theme = useTheme();
   const colorPalette = [
     (theme.vars || theme).palette.primary.dark,
@@ -15,7 +15,7 @@ export default function PageViewsBarChart({ data, labels, title, subtitle }: { d
     (theme.vars || theme).palette.primary.light,
   ];
   return (
-    <Card variant="outlined" sx={{ width: '100%' }}>
+    <Card variant="outlined" className={classes.cardRoot}>
       <CardContent>
         <Typography component="h2" variant="subtitle2" gutterBottom>
           {title}

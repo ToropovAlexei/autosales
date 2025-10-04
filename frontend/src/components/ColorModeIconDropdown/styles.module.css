@@ -1,0 +1,9 @@
+.colorModeIconDropdown {
+  vertical-align: bottom;
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--mui-shape-borderRadius);
+  border: 1px solid;
+  border-color: var(--mui-palette-divider);
+}

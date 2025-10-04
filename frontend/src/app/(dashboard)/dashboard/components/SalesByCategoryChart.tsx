@@ -1,5 +1,3 @@
-'use client';
-
 import * as React from 'react';
 import { PieChart } from '@mui/x-charts/PieChart';
 import { useDrawingArea } from '@mui/x-charts/hooks';
@@ -7,6 +5,7 @@ import { styled } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
+import classes from './SalesByCategoryChart.module.css';
 
 interface CategorySales {
   category_name: string;
@@ -32,11 +31,11 @@ function PieCenterLabel({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function SalesByCategoryChart({ data }: SalesByCategoryChartProps) {
+export const SalesByCategoryChart = ({ data }: SalesByCategoryChartProps) => {
   const chartData = data.map((item) => ({ label: item.category_name, value: item.total_sales }));
 
   return (
-    <Card variant="outlined" sx={{ display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1 }}>
+    <Card variant="outlined" className={classes.cardRoot}>
       <CardContent>
         <Typography component="h2" variant="subtitle2">
           Продажи по категориям

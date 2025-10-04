@@ -2,10 +2,10 @@ import * as React from 'react';
 import { useTheme } from '@mui/material/styles';
 import Card from '@mui/material/Card';
 import CardContent from '@mui/material/CardContent';
-import Chip from '@mui/material/Chip';
 import Typography from '@mui/material/Typography';
 import Stack from '@mui/material/Stack';
 import { LineChart } from '@mui/x-charts/LineChart';
+import classes from './styles.module.css';
 
 function AreaGradient({ color, id }: { color: string; id: string }) {
   return (
@@ -18,7 +18,7 @@ function AreaGradient({ color, id }: { color: string; id: string }) {
   );
 }
 
-export default function SessionsChart({ data, labels, title, subtitle }: { data: number[], labels: string[], title: string, subtitle: string }) {
+export const SessionsChart = ({ data, labels, title, subtitle }: { data: number[], labels: string[], title: string, subtitle: string }) => {
   const theme = useTheme();
 
   const colorPalette = [
@@ -28,7 +28,7 @@ export default function SessionsChart({ data, labels, title, subtitle }: { data:
   ];
 
   return (
-    <Card variant="outlined" sx={{ width: '100%' }}>
+    <Card variant="outlined" className={classes.cardRoot}>
       <CardContent>
         <Typography component="h2" variant="subtitle2" gutterBottom>
           {title}

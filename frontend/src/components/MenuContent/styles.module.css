@@ -1,0 +1,5 @@
+.menuContentStack {
+  flex-grow: 1;
+  padding: 8px;
+  justify-content: space-between;
+}

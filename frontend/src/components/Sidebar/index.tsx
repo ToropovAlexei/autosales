@@ -1,48 +1,26 @@
-import {
-  Button,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemIcon,
-  ListItemText,
-  Typography,
-} from "@mui/material";
-import { usePathname, useRouter } from "next/navigation";
-import { MENU_ITEMS } from "./constants";
-import { useLogout } from "@/hooks";
+import { Drawer, Box, Divider, Typography } from "@mui/material";
 import classes from "./styles.module.css";
+import { MenuContent } from "@/components/MenuContent";
 
 export const Sidebar = () => {
-  const router = useRouter();
-  const logout = useLogout();
-  const pathname = usePathname();
-
   return (
     <Drawer variant="permanent" className={classes.drawer}>
-      <div className={classes.content}>
+      <Box sx={{ p: 2 }}>
         <Typography variant="h6" align="center">
-          Меню
+          Админ панель
         </Typography>
-        <List dense disablePadding>
-          {MENU_ITEMS.map(({ label, Icon, path }) => (
-            <ListItem key={label} disablePadding>
-              <ListItemButton
-                selected={pathname === path}
-                onClick={() => router.push(path)}
-              >
-                <ListItemIcon>
-                  <Icon />
-                </ListItemIcon>
-                <ListItemText primary={label} />
-              </ListItemButton>
-            </ListItem>
-          ))}
-        </List>
-        <Button onClick={logout} className={classes.logout}>
-          Выйти
-        </Button>
-      </div>
+      </Box>
+      <Divider />
+      <Box
+        sx={{
+          overflow: "auto",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <MenuContent />
+      </Box>
     </Drawer>
   );
 };

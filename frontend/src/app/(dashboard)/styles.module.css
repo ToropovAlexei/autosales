@@ -1,10 +1,9 @@
 .container {
-  width: 100%;
-  min-height: 100dvh;
   display: flex;
 }
 
-.main {
-  flex: 1;
-  padding: calc(var(--mui-spacing) * 4);
+.mainContent {
+  flex-grow: 1;
+  overflow: auto;
+  padding-top: var(--template-navbar-height);
 }

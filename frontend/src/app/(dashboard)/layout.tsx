@@ -1,7 +1,10 @@
 'use client';
 
 import { Authorized, Sidebar } from "@/components";
-import classes from "./styles.module.css";
+import { Box } from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import { NavBar } from '@/components/NavBar';
+import classes from './styles.module.css';
 
 export default function DashboardLayout({
   children,
@@ -10,10 +13,21 @@ export default function DashboardLayout({
 }) {
   return (
     <Authorized>
-      <div className={classes.container}>
+      <Box sx={{ display: "flex" }}>
+        <NavBar />
         <Sidebar />
-        <main className={classes.main}>{children}</main>
-      </div>
+        <Box
+          component="main"
+          className={classes.mainContent}
+          sx={(theme) => ({
+            backgroundColor: theme.vars
+              ? `rgba(${theme.vars.palette.background.defaultChannel} / 1)`
+              : alpha(theme.palette.background.default, 1),
+          })}
+        >
+          {children}
+        </Box>
+      </Box>
     </Authorized>
   );
 }
