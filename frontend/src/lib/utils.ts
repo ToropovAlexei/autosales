@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { CategoryResponse } from "@/types";
+import { ICategory } from "@/types";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -8,12 +8,15 @@ export function cn(...inputs: ClassValue[]) {
 
 // Преобразует дерево категорий в плоский список для использования в <select>
 export const flattenCategoriesForSelect = (
-  categories: CategoryResponse[],
+  categories: ICategory[],
   depth = 0
 ) => {
   let flatList: { id: number; name: string }[] = [];
   for (const category of categories) {
-    flatList.push({ id: category.id, name: "—".repeat(depth) + " " + category.name });
+    flatList.push({
+      id: category.id,
+      name: "—".repeat(depth) + " " + category.name,
+    });
     if (category.sub_categories && category.sub_categories.length > 0) {
       flatList = flatList.concat(
         flattenCategoriesForSelect(category.sub_categories, depth + 1)
@@ -25,7 +28,7 @@ export const flattenCategoriesForSelect = (
 
 // Рекурсивно ищет имя категории по ID в дереве
 export const findCategoryNameById = (
-  categories: CategoryResponse[],
+  categories: ICategory[],
   id: number
 ): string | null => {
   for (const category of categories) {

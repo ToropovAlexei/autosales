@@ -1,61 +1,30 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import api from "@/lib/api";
 import { List } from "@/components/List";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
-import { CategoryResponse } from "@/types";
-import { CategoryTreeItem } from "@/components/categories/CategoryTreeItem";
-
-// Helper function to flatten the category tree for the select dropdown
-const flattenCategoriesForSelect = (
-  categories: CategoryResponse[],
-  depth = 0
-) => {
-  let flatList: { id: number; name: string }[] = [];
-  for (const category of categories) {
-    flatList.push({
-      id: category.id,
-      name: "—".repeat(depth) + " " + category.name,
-    });
-    if (category.sub_categories && category.sub_categories.length > 0) {
-      flatList = flatList.concat(
-        flattenCategoriesForSelect(category.sub_categories, depth + 1)
-      );
-    }
-  }
-  return flatList;
-};
+import { ICategory } from "@/types";
+import { RichTreeView } from "@mui/x-tree-view/RichTreeView";
+import { TreeItem, TreeItemProps } from "@mui/x-tree-view/TreeItem";
+import { categoriesToList, flattenCategoriesForSelect } from "./utils";
+import classes from "./styles.module.css";
+import { CategoryForm } from "./CategoryForm";
+import { Button, IconButton } from "@mui/material";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import AddIcon from "@mui/icons-material/Add";
+import { dataLayer } from "@/lib/dataLayer";
+import { queryKeys } from "@/utils/query";
 
 export default function CategoriesPage() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [dialogMode, setDialogMode] = useState<"add" | "edit">("add");
   const [selectedCategory, setSelectedCategory] =
-    useState<Partial<CategoryResponse> | null>(null);
+    useState<Partial<ICategory> | null>(null);
 
-  const { data: categories, isPending } = useList<CategoryResponse>({
+  const { data: categories, isPending } = useList<ICategory>({
     endpoint: ENDPOINTS.CATEGORIES,
   });
 
@@ -65,66 +34,135 @@ export default function CategoriesPage() {
       name: string;
       parent_id?: number;
     }) => {
-      if (dialogMode === "edit" && payload.id) {
-        return api.put(`/categories/${payload.id}`, {
-          name: payload.name,
-          parent_id: payload.parent_id,
-        });
-      } else {
-        return api.post("/categories", {
-          name: payload.name,
-          parent_id: payload.parent_id,
+      const params = {
+        url: ENDPOINTS.CATEGORIES,
+        params: { name: payload.name, parent_id: payload.parent_id },
+      };
+      if (payload.id) {
+        return dataLayer.update({
+          ...params,
+          id: payload.id,
         });
       }
+      return dataLayer.create(params);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.CATEGORIES),
+      });
       setIsDialogOpen(false);
       setSelectedCategory(null);
     },
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: number) => api.delete(`/categories/${id}`),
+    mutationFn: (id: number) =>
+      dataLayer.delete({ url: ENDPOINTS.CATEGORIES, id }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["categories"] });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.CATEGORIES),
+      });
     },
   });
 
-  const openDialog = (
-    mode: "add" | "edit",
-    category?: CategoryResponse,
-    parentId?: number
-  ) => {
-    setDialogMode(mode);
-    if (mode === "edit" && category) {
+  const openDialog = (category?: Partial<ICategory>) => {
+    if (category) {
       setSelectedCategory(category);
-    } else if (mode === "add") {
-      setSelectedCategory({ name: "", parent_id: parentId });
-    } else {
-      setSelectedCategory({ name: "" });
     }
     setIsDialogOpen(true);
   };
 
-  const handleSubmit = () => {
-    if (
-      selectedCategory &&
-      selectedCategory.name &&
-      selectedCategory.name?.trim() !== ""
-    ) {
-      mutation.mutate({
-        id: selectedCategory.id,
-        name: selectedCategory.name,
-        parent_id: selectedCategory.parent_id,
-      });
-    }
-  };
-
   const flattenedCategories = useMemo(
-    () => (categories?.data ? flattenCategoriesForSelect(categories.data) : []),
+    () =>
+      categories?.data
+        ? [
+            { value: 0, label: "Нет (корневая категория)" },
+            ...flattenCategoriesForSelect(categories.data),
+          ]
+        : [],
     [categories]
   );
+
+  const categoriesTree = useMemo(
+    () => categoriesToList(categories?.data || []),
+    [categories]
+  );
+
+  const findCategoryById = (
+    categories: ICategory[],
+    id: number
+  ): ICategory | null => {
+    for (const category of categories) {
+      if (category.id === id) {
+        return category;
+      }
+      if (category.sub_categories) {
+        const found = findCategoryById(category.sub_categories, id);
+        if (found) {
+          return found;
+        }
+      }
+    }
+    return null;
+  };
+
+  const CustomTreeItem = React.forwardRef(function CustomTreeItem(
+    props: TreeItemProps,
+    ref: React.Ref<HTMLLIElement>
+  ) {
+    const { itemId, label, ...other } = props;
+    const categoryId = parseInt(itemId, 10);
+
+    const handleEdit = (event: React.MouseEvent) => {
+      event.stopPropagation();
+      const category = findCategoryById(categories?.data || [], categoryId);
+      if (category) {
+        openDialog(category);
+      }
+    };
+
+    const handleAddSubCategory = (event: React.MouseEvent) => {
+      event.stopPropagation();
+      openDialog({ parent_id: categoryId });
+    };
+
+    const handleDelete = (event: React.MouseEvent) => {
+      event.stopPropagation();
+      deleteMutation.mutate(categoryId);
+    };
+
+    return (
+      <TreeItem
+        {...other}
+        ref={ref}
+        itemId={itemId}
+        label={
+          <div className={classes.treeItemLabel}>
+            <span className={classes.treeItemLabelText}>{label}</span>
+            <div className={classes.actions}>
+              <IconButton
+                aria-label="add"
+                onClick={handleAddSubCategory}
+                size="small"
+              >
+                <AddIcon />
+              </IconButton>
+              <IconButton aria-label="edit" onClick={handleEdit} size="small">
+                <EditIcon />
+              </IconButton>
+              <IconButton
+                aria-label="delete"
+                onClick={handleDelete}
+                size="small"
+              >
+                <DeleteIcon />
+              </IconButton>
+            </div>
+          </div>
+        }
+      />
+    );
+  });
 
   if (isPending) return <div>Loading...</div>;
 
@@ -133,88 +171,30 @@ export default function CategoriesPage() {
       <List
         title="Категории"
         addButton={
-          <Button onClick={() => openDialog("add")}>Добавить категорию</Button>
+          <Button variant="contained" onClick={() => openDialog()}>
+            Добавить категорию
+          </Button>
         }
       >
-        <div className="p-4">
-          <ul>
-            {categories?.data?.map((category) => (
-              <CategoryTreeItem
-                key={category.id}
-                category={category}
-                onEdit={(cat) => openDialog("edit", cat)}
-                onDelete={deleteMutation.mutate}
-                onAddSubCategory={(parentId) =>
-                  openDialog("add", undefined, parentId)
-                }
-              />
-            ))}
-          </ul>
-        </div>
+        <RichTreeView
+          items={categoriesTree}
+          className={classes.tree}
+          itemChildrenIndentation={24}
+          slots={{ item: CustomTreeItem }}
+        />
       </List>
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {dialogMode === "add" ? "Добавить" : "Редактировать"} категорию
-            </DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid items-center grid-cols-4 gap-4">
-              <Label htmlFor="name" className="text-right">
-                Название
-              </Label>
-              <Input
-                id="name"
-                value={selectedCategory?.name || ""}
-                onChange={(e) =>
-                  setSelectedCategory((cat) => ({
-                    ...cat,
-                    name: e.target.value,
-                  }))
-                }
-                className="col-span-3"
-              />
-            </div>
-            <div className="grid items-center grid-cols-4 gap-4">
-              <Label htmlFor="parent" className="text-right">
-                Родительская категория
-              </Label>
-              <Select
-                value={selectedCategory?.parent_id?.toString() || "0"}
-                onValueChange={(value) =>
-                  setSelectedCategory((cat) => ({
-                    ...cat,
-                    parent_id: value === "0" ? undefined : Number(value),
-                  }))
-                }
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Выберите родительскую категорию" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">Нет (корневая категория)</SelectItem>
-                  {flattenedCategories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id.toString()}>
-                      {cat.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              type="submit"
-              onClick={handleSubmit}
-              disabled={mutation.isPending}
-            >
-              {mutation.isPending ? "Сохранение..." : "Сохранить"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {isDialogOpen && (
+        <CategoryForm
+          open={isDialogOpen}
+          onClose={() => {
+            setIsDialogOpen(false);
+            setSelectedCategory(null);
+          }}
+          onConfirm={mutation.mutate}
+          categories={flattenedCategories}
+          defaultValues={selectedCategory || undefined}
+        />
+      )}
     </>
   );
 }

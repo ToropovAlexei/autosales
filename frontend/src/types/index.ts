@@ -1,6 +1,6 @@
-export interface CategoryResponse {
+export interface ICategory {
   id: number;
   name: string;
   parent_id?: number;
-  sub_categories: CategoryResponse[];
+  sub_categories: ICategory[];
 }

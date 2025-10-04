@@ -34,7 +34,7 @@ import { List } from "@/components/List";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { MultiSelect } from "@/components/ui/multi-select";
-import { CategoryResponse } from "@/types";
+import { ICategory } from "@/types";
 import { flattenCategoriesForSelect, findCategoryNameById } from "@/lib/utils";
 import { ConfirmModal } from "@/components";
 
@@ -110,7 +110,7 @@ export default function ProductsPage() {
   });
 
   const { data: categories, isLoading: isLoadingCategories } =
-    useList<CategoryResponse>({ endpoint: ENDPOINTS.CATEGORIES });
+    useList<ICategory>({ endpoint: ENDPOINTS.CATEGORIES });
 
   const flattenedCategories = useMemo(
     () => (categories?.data ? flattenCategoriesForSelect(categories.data) : []),

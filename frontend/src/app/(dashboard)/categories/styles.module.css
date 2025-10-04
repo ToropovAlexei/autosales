@@ -1,0 +1,36 @@
+.tree :global(.MuiTreeItem-groupTransition) {
+  position: relative;
+
+  &::before {
+    content: "";
+    display: block;
+    position: absolute;
+    top: 0;
+    left: calc(
+      var(--mui-spacing) + 7px + var(--TreeView-itemChildrenIndentation) *
+        var(--TreeView-itemDepth)
+    );
+    width: 1px;
+    height: 100%;
+    background: var(--mui-palette-divider);
+  }
+}
+
+.treeItemLabel {
+  display: flex;
+  align-items: center;
+  padding: 4px;
+  padding-right: 0;
+}
+
+.treeItemLabelText {
+  flex-grow: 1;
+}
+
+.actions {
+  visibility: hidden;
+}
+
+.treeItemLabel:hover .actions {
+  visibility: visible;
+}

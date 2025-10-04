@@ -6,8 +6,11 @@ import { createTheme, CssBaseline, ThemeProvider } from "@mui/material";
 import { Toaster } from "sonner";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { ToastContainer } from "react-toastify";
 
-const theme = createTheme({});
+const theme = createTheme({
+  cssVariables: true,
+});
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(
@@ -25,6 +28,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <ThemeProvider theme={theme}>
         <CssBaseline enableColorScheme />
+        <ToastContainer />
         <Toaster />
         <QueryClientProvider client={queryClient}>
           {children}

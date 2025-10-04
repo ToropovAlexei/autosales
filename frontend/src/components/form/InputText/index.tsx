@@ -7,11 +7,17 @@ interface IProps
   label?: string;
 }
 
-export const InputText = ({ name, label, ...props }: IProps) => {
+export const InputText = ({ name, label, required, ...props }: IProps) => {
   const {
     field: { value, onChange },
     fieldState: { error },
-  } = useController({ name, defaultValue: "" });
+  } = useController({
+    name,
+    defaultValue: "",
+    rules: {
+      required: required && "Поле обязательно к заполнению",
+    },
+  });
 
   return (
     <TextField
@@ -22,6 +28,7 @@ export const InputText = ({ name, label, ...props }: IProps) => {
       value={value}
       onChange={onChange}
       size="small"
+      required={required}
       {...props}
     />
   );
