@@ -17,7 +17,6 @@ func NewPaymentHandler(paymentService services.PaymentService) *PaymentHandler {
 	return &PaymentHandler{paymentService: paymentService}
 }
 
-// DTO for the response of the /gateways endpoint
 type gatewayDTO struct {
 	Name        string `json:"name"`
 	DisplayName string `json:"display_name"`
@@ -43,7 +42,6 @@ func (h *PaymentHandler) GetGatewaysHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusOK, response)
 }
 
-// DTO for the /deposit/invoice endpoint
 type createInvoicePayload struct {
 	GatewayName string  `json:"gateway_name" binding:"required"`
 	Amount      float64 `json:"amount" binding:"required,gt=0"`
@@ -56,7 +54,7 @@ type createInvoicePayload struct {
 // @Accept       json
 // @Produce      json
 // @Param        invoice body createInvoicePayload true "Invoice creation data"
-// @Success      201  {object}  responses.ResponseSchema[gateways.Invoice]
+// @Success      201  {object}  responses.ResponseSchema[services.CreateInvoiceResponse]
 // @Failure      400  {object}  responses.ErrorResponseSchema
 // @Failure      500  {object}  responses.ErrorResponseSchema
 // @Router       /deposit/invoice [post]
@@ -75,6 +73,37 @@ func (h *PaymentHandler) CreateInvoiceHandler(c *gin.Context) {
 	}
 
 	responses.SuccessResponse(c, http.StatusCreated, invoice)
+}
+
+type setMessageIDPayload struct {
+	MessageID int64 `json:"message_id" binding:"required"`
+}
+
+// @Summary      Set Invoice Message ID
+// @Description  Sets the Telegram message ID for a given payment invoice.
+// @Tags         Payments
+// @Accept       json
+// @Param        order_id path string true "Internal Order ID of the invoice"
+// @Param        payload body setMessageIDPayload true "Message ID payload"
+// @Success      200
+// @Failure      400 {object} responses.ErrorResponseSchema
+// @Failure      404 {object} responses.ErrorResponseSchema
+// @Router       /invoices/{order_id}/message-id [patch]
+// @Security     ServiceApiKeyAuth
+func (h *PaymentHandler) SetInvoiceMessageIDHandler(c *gin.Context) {
+	orderID := c.Param("order_id")
+	var json setMessageIDPayload
+	if err := c.ShouldBindJSON(&json); err != nil {
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
+		return
+	}
+
+	if err := h.paymentService.SetInvoiceMessageID(orderID, json.MessageID); err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, responses.MessageResponse{Message: "Message ID updated successfully"})
 }
 
 // @Summary      Handle Gateway Webhook

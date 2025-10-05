@@ -13,9 +13,17 @@ import (
 	"gorm.io/gorm"
 )
 
+// CreateInvoiceResponse is a custom response that includes both external gateway data and our internal OrderID
+type CreateInvoiceResponse struct {
+	PayURL           string `json:"pay_url"`
+	GatewayInvoiceID string `json:"gateway_invoice_id"`
+	OrderID          string `json:"order_id"` // Our internal ID
+}
+
 type PaymentService interface {
 	GetAvailableGateways() []gateways.PaymentGateway
-	CreateInvoice(userID uint, gatewayName string, amount float64) (*gateways.Invoice, error)
+	CreateInvoice(userID uint, gatewayName string, amount float64) (*CreateInvoiceResponse, error)
+	SetInvoiceMessageID(orderID string, messageID int64) error
 	HandleWebhook(gatewayName string, r *http.Request) error
 }
 
@@ -39,13 +47,11 @@ func NewPaymentService(db *gorm.DB, registry *gateways.ProviderRegistry, invoice
 	}
 }
 
-// ... (GetAvailableGateways and CreateInvoice remain the same)
-
 func (s *paymentService) GetAvailableGateways() []gateways.PaymentGateway {
 	return s.registry.GetAllProviders()
 }
 
-func (s *paymentService) CreateInvoice(botUserID uint, gatewayName string, amount float64) (*gateways.Invoice, error) {
+func (s *paymentService) CreateInvoice(botUserID uint, gatewayName string, amount float64) (*CreateInvoiceResponse, error) {
 	gateway, err := s.registry.GetProvider(gatewayName)
 	if err != nil {
 		return nil, apperrors.New(http.StatusBadRequest, "Invalid payment gateway", err)
@@ -77,7 +83,21 @@ func (s *paymentService) CreateInvoice(botUserID uint, gatewayName string, amoun
 		return nil, apperrors.New(http.StatusInternalServerError, "Failed to save invoice", err)
 	}
 
-	return externalInvoice, nil
+	return &CreateInvoiceResponse{
+		PayURL:           externalInvoice.PayURL,
+		GatewayInvoiceID: externalInvoice.GatewayInvoiceID,
+		OrderID:          orderID,
+	}, nil
+}
+
+func (s *paymentService) SetInvoiceMessageID(orderID string, messageID int64) error {
+	invoice, err := s.invoiceRepo.FindByOrderID(orderID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Resource: "PaymentInvoice", IDString: orderID}
+	}
+
+	invoice.BotMessageID = &messageID
+	return s.invoiceRepo.Update(invoice)
 }
 
 func (s *paymentService) HandleWebhook(gatewayName string, r *http.Request) error {
@@ -97,6 +117,7 @@ func (s *paymentService) HandleWebhook(gatewayName string, r *http.Request) erro
 
 	var userToNotify *models.BotUser
 	var processedAmount float64
+	var messageToEdit *int64
 
 	txErr := s.db.Transaction(func(tx *gorm.DB) error {
 		invoiceRepo := s.invoiceRepo.WithTx(tx)
@@ -115,13 +136,11 @@ func (s *paymentService) HandleWebhook(gatewayName string, r *http.Request) erro
 			return fmt.Errorf("invoice %s was already marked as failed", invoice.OrderID)
 		}
 
-		// Update invoice status
 		invoice.Status = models.InvoiceStatusCompleted
 		if err := invoiceRepo.Update(invoice); err != nil {
 			return fmt.Errorf("failed to update invoice status: %w", err)
 		}
 
-		// Create a transaction record to credit the user's balance
 		depositTx := &models.Transaction{
 			UserID:      invoice.BotUserID,
 			Type:        models.Deposit,
@@ -133,13 +152,13 @@ func (s *paymentService) HandleWebhook(gatewayName string, r *http.Request) erro
 			return fmt.Errorf("failed to create deposit transaction: %w", err)
 		}
 
-		// Find user for notification and store data needed outside the transaction
 		user, err := s.botUserRepo.FindByID(invoice.BotUserID)
 		if err != nil {
 			slog.Error("could not find user to notify about payment", "userID", invoice.BotUserID, "error", err)
 		} else {
 			userToNotify = user
 			processedAmount = invoice.Amount
+			messageToEdit = invoice.BotMessageID
 		}
 
 		return nil
@@ -149,11 +168,10 @@ func (s *paymentService) HandleWebhook(gatewayName string, r *http.Request) erro
 		return apperrors.New(http.StatusInternalServerError, "Failed to process webhook transaction", txErr)
 	}
 
-	// Send notification outside of the database transaction
 	if userToNotify != nil {
 		message := fmt.Sprintf("✅ Ваш баланс успешно пополнен на %.2f ₽.", processedAmount)
 		go func() {
-			if err := s.webhookService.SendNotification(userToNotify.LastSeenWithBot, userToNotify.TelegramID, message); err != nil {
+			if err := s.webhookService.SendNotification(userToNotify.LastSeenWithBot, userToNotify.TelegramID, message, messageToEdit); err != nil {
 				slog.Error("failed to send payment notification webhook", "userID", userToNotify.ID, "error", err)
 			}
 		}()

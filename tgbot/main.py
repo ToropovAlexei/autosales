@@ -29,10 +29,24 @@ async def redis_listener(bot: Bot, redis_client: redis.Redis, bot_username: str)
             message_data = json.loads(message['data'])
             telegram_id = message_data.get('telegram_id')
             text = message_data.get('message')
+            message_to_edit = message_data.get('message_to_edit')
 
             if telegram_id and text:
-                await bot.send_message(chat_id=telegram_id, text=text)
-                logging.info(f"Sent notification to user {telegram_id}")
+                if message_to_edit:
+                    try:
+                        await bot.edit_message_text(
+                            chat_id=telegram_id, 
+                            message_id=message_to_edit, 
+                            text=text, 
+                            reply_markup=None
+                        )
+                        logging.info(f"Edited message {message_to_edit} for user {telegram_id}")
+                    except Exception as e:
+                        logging.warning(f"Could not edit message {message_to_edit}, sending new one. Error: {e}")
+                        await bot.send_message(chat_id=telegram_id, text=text)
+                else:
+                    await bot.send_message(chat_id=telegram_id, text=text)
+                    logging.info(f"Sent notification to user {telegram_id}")
 
         except asyncio.CancelledError:
             logging.info("Redis listener task cancelled.")

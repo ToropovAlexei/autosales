@@ -27,9 +27,13 @@ type ErrNotFound struct {
 	Base     *Error
 	Resource string
 	ID       uint
+	IDString string
 }
 
 func (e *ErrNotFound) Error() string {
+	if e.IDString != "" {
+		return fmt.Sprintf("%s with ID %s not found", e.Resource, e.IDString)
+	}
 	return fmt.Sprintf("%s with ID %d not found", e.Resource, e.ID)
 }
 

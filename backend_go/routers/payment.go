@@ -18,4 +18,5 @@ func (r *Router) PaymentRouter(router *gin.Engine, handler *handlers.PaymentHand
 	serviceAuth.Use(middleware.ServiceTokenMiddleware(r.appSettings))
 	serviceAuth.GET("/gateways", handler.GetGatewaysHandler)
 	serviceAuth.POST("/deposit/invoice", handler.CreateInvoiceHandler)
+	serviceAuth.PATCH("/invoices/:order_id/message-id", handler.SetInvoiceMessageIDHandler)
 }

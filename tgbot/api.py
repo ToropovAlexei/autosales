@@ -82,4 +82,5 @@ class APIClient:
     async def get_user_orders(self, telegram_id: int):
         return await self._request("GET", f"/users/{telegram_id}/orders")
 
-
+    async def set_invoice_message_id(self, order_id: str, message_id: int):
+        return await self._request("PATCH", f"/invoices/{order_id}/message-id", json={"message_id": message_id})

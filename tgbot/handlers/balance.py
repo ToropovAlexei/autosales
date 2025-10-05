@@ -77,8 +77,11 @@ async def select_amount_handler(callback_query: CallbackQuery, callback_data: Pa
         response = await api_client.create_deposit_invoice(bot_user_id, gateway, amount)
 
         if response.get("success"):
-            pay_url = response["data"]["pay_url"]
-            await callback_query.message.edit_text(
+            invoice_data = response["data"]
+            pay_url = invoice_data["pay_url"]
+            order_id = invoice_data["order_id"]
+
+            sent_message = await callback_query.message.edit_text(
                 f"✅ Ваш счет на {hbold(f'{amount} ₽')} создан.\n\nНажмите на кнопку ниже, чтобы перейти к оплате.",
                 reply_markup=inline.InlineKeyboardMarkup(inline_keyboard=[
                     [inline.InlineKeyboardButton(text="Оплатить", url=pay_url)],
@@ -86,6 +89,8 @@ async def select_amount_handler(callback_query: CallbackQuery, callback_data: Pa
                 ]),
                 parse_mode="HTML"
             )
+            # Associate message_id with the invoice
+            await api_client.set_invoice_message_id(order_id, sent_message.message_id)
         else:
             await callback_query.message.edit_text(
                 f"Не удалось создать счет: {response.get('error')}",

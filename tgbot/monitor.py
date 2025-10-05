@@ -58,13 +58,20 @@ async def handle_dispatch_message(request: web.Request):
         bot_name = data.get("bot_name")
         telegram_id = data.get("telegram_id")
         message = data.get("message")
+        message_to_edit = data.get("message_to_edit") # Can be None
 
         if not all([bot_name, telegram_id, message]):
             return web.Response(status=400, text="Bad Request: missing fields")
 
         redis_client = request.app['redis']
         channel = f"bot-notifications:{bot_name}"
-        payload = json.dumps({"telegram_id": telegram_id, "message": message})
+        
+        payload_to_redis = {
+            "telegram_id": telegram_id, 
+            "message": message,
+            "message_to_edit": message_to_edit
+        }
+        payload = json.dumps(payload_to_redis)
 
         await redis_client.publish(channel, payload)
         logging.info(f"Dispatched message to bot '{bot_name}' on channel '{channel}'")

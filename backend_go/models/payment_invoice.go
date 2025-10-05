@@ -21,12 +21,13 @@ type PaymentInvoice struct {
 	UpdatedAt time.Time
 	DeletedAt gorm.DeletedAt `gorm:"index"`
 
-	BotUserID        uint           `gorm:"index"`
-	BotUser          BotUser        `gorm:"foreignKey:BotUserID"`
+	BotUserID uint    `gorm:"index"`
+	BotUser   BotUser `gorm:"foreignKey:BotUserID"`
 
 	Amount           float64
 	Status           InvoiceStatus `gorm:"index"`
 	Gateway          string        `gorm:"index"`
 	GatewayInvoiceID string        `gorm:"index"`
 	OrderID          string        `gorm:"uniqueIndex"` // Our internal unique ID for the transaction
+	BotMessageID     *int64
 }
