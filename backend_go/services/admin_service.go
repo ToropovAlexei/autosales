@@ -43,6 +43,7 @@ func (s *adminService) GetBotUsersWithBalance() ([]models.BotUserResponse, error
 			RegisteredWithBot: u.RegisteredWithBot,
 			LastSeenWithBot:   u.LastSeenWithBot,
 			CreatedAt:         u.CreatedAt,
+			LastSeenAt:        u.LastSeenAt,
 		})
 	}
 

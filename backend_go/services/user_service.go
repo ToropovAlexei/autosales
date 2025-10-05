@@ -5,6 +5,7 @@ import (
 	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -79,8 +80,8 @@ func (s *userService) RegisterBotUser(telegramID int64, botName string) (*models
 	}
 
 	if existingUser != nil {
-		
 		existingUser.LastSeenWithBot = botName
+		existingUser.LastSeenAt = time.Now()
 
 		if !existingUser.IsDeleted {
 			balance, err := s.botUserRepo.GetUserBalance(existingUser.ID)
@@ -102,10 +103,11 @@ func (s *userService) RegisterBotUser(telegramID int64, botName string) (*models
 	}
 
 	newUser := &models.BotUser{
-		TelegramID:       telegramID,
-		HasPassedCaptcha: false,
+		TelegramID:        telegramID,
+		HasPassedCaptcha:  false,
 		RegisteredWithBot: botName,
 		LastSeenWithBot:   botName,
+		LastSeenAt:        time.Now(),
 	}
 	if err := s.botUserRepo.Create(newUser); err != nil {
 		return nil, 0, false, false, apperrors.New(500, "Failed to create bot user", err)
@@ -135,6 +137,7 @@ func (s *userService) GetBotUserByTelegramID(telegramID int64, botName string) (
 	}
 
 	user.LastSeenWithBot = botName
+	user.LastSeenAt = time.Now()
 	if err := s.botUserRepo.Update(user); err != nil {
 		return nil, 0, apperrors.New(500, "Failed to update bot user", err)
 	}

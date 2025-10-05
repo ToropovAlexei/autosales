@@ -9,14 +9,7 @@ import { queryKeys } from "@/utils/query";
 import { dataLayer } from "@/lib/dataLayer";
 import { BotUsersTable } from "./components/BotUsersTable";
 import { PageLayout } from "@/components/PageLayout";
-
-interface BotUser {
-  id: number;
-  telegram_id: number;
-  balance: number;
-  registered_with_bot: string;
-  last_seen_with_bot: string;
-}
+import { BotUser } from "@/types/common";
 
 export default function BotUsersPage() {
   const queryClient = useQueryClient();

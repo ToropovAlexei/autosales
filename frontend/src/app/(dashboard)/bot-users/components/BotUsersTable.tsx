@@ -17,8 +17,8 @@ export const BotUsersTable = ({
   loading,
 }: BotUsersTableProps) => {
   const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 90 },
-    { field: "telegram_id", headerName: "Telegram ID", flex: 1 },
+    { field: "id", headerName: "ID", width: 60 },
+    { field: "telegram_id", headerName: "Telegram ID", width: 150 },
     {
       field: "balance",
       headerName: "Баланс",
@@ -36,8 +36,21 @@ export const BotUsersTable = ({
       flex: 1,
     },
     {
+      field: "has_passed_captcha",
+      headerName: "Прошел капчу",
+      type: "boolean",
+      width: 150,
+    },
+    {
       field: "created_at",
       headerName: "Дата регистрации",
+      width: 200,
+      type: "dateTime",
+      valueGetter: (value) => new Date(value),
+    },
+    {
+      field: "last_seen_at",
+      headerName: "Последний раз был",
       width: 200,
       type: "dateTime",
       valueGetter: (value) => new Date(value),

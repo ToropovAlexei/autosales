@@ -27,4 +27,5 @@ export interface BotUser {
   registered_with_bot: string;
   last_seen_with_bot: string;
   created_at: string;
+  last_seen_at: string;
 }

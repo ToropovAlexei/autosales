@@ -76,11 +76,13 @@ func createBotUsers(db *gorm.DB, count int) []models.BotUser {
 	var users []models.BotUser
 	for i := 0; i < count; i++ {
 		botName := botNames[rand.Intn(len(botNames))]
+		lastSeen := time.Now().AddDate(0, 0, -rand.Intn(30)) // Random time in the last 30 days
 		users = append(users, models.BotUser{
 			TelegramID:       rand.Int63n(900000000) + 100000000, // Генерируем 9-значный ID
 			HasPassedCaptcha: true,
 			RegisteredWithBot: botName,
 			LastSeenWithBot:   botName,
+			LastSeenAt:        lastSeen,
 		})
 	}
 	db.Create(&users)
