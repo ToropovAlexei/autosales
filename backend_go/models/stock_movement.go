@@ -7,10 +7,11 @@ import (
 type StockMovementType string
 
 const (
-	Initial StockMovementType = "initial"
-	Sale    StockMovementType = "sale"
-	Restock StockMovementType = "restock"
-	Return  StockMovementType = "return"
+	Initial    StockMovementType = "initial"
+	Sale       StockMovementType = "sale"
+	Restock    StockMovementType = "restock"
+	Return     StockMovementType = "return"
+	Adjustment StockMovementType = "adjustment"
 )
 
 type StockMovement struct {

@@ -18,6 +18,7 @@ interface ProductFormData {
   category_id: number;
   price: number;
   initial_stock?: number;
+  stock?: number;
   type: "item" | "subscription";
   subscription_period_days?: number;
 }
@@ -65,6 +66,7 @@ export const ProductForm = ({
       category_id: defaultValues?.category_id || 0,
       price: defaultValues?.price || 0,
       type: defaultValues?.type || "item",
+      stock: defaultValues?.stock || 0,
       initial_stock: !isEditMode ? 0 : undefined,
       subscription_period_days: defaultValues?.subscription_period_days || 30,
     },
@@ -83,7 +85,9 @@ export const ProductForm = ({
     };
 
     if (data.type === "item") {
-      if (!isEditMode) {
+      if (isEditMode) {
+        payload.stock = data.stock;
+      } else {
         payload.initial_stock = data.initial_stock;
       }
     } else {
@@ -153,7 +157,9 @@ export const ProductForm = ({
                   required
                 />
               )}
-
+              {productType === "item" && isEditMode && (
+                <InputNumber name="stock" label="Текущий остаток" required />
+              )}
               {productType === "subscription" && (
                 <InputNumber
                   name="subscription_period_days"

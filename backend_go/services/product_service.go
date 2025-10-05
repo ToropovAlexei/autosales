@@ -2,6 +2,7 @@ package services
 
 import (
 	"database/sql"
+	"fmt"
 	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/external_providers"
 	"frbktg/backend_go/models"
@@ -10,13 +11,14 @@ import (
 	"time"
 )
 
-// DTO for partial product updates
+// ProductUpdatePayload is the DTO for partial product updates.
 type ProductUpdatePayload struct {
 	Name                   *string  `json:"name"`
 	CategoryID             *uint    `json:"category_id"`
 	Price                  *float64 `json:"price" binding:"omitempty,gte=0"`
 	Type                   *string  `json:"type" binding:"omitempty,oneof=item subscription"`
 	SubscriptionPeriodDays *int     `json:"subscription_period_days" binding:"omitempty,gte=0"`
+	Stock                  *int     `json:"stock" binding:"omitempty,gte=0"`
 }
 
 type ProductService interface {
@@ -38,6 +40,66 @@ type productService struct {
 func NewProductService(productRepo repositories.ProductRepository, categoryRepo repositories.CategoryRepository, providerRegistry *external_providers.ProviderRegistry) ProductService {
 	return &productService{productRepo: productRepo, categoryRepo: categoryRepo, providerRegistry: providerRegistry}
 }
+
+func (s *productService) UpdateProduct(id uint, payload ProductUpdatePayload) (*models.ProductResponse, error) {
+	product, err := s.productRepo.GetProductByID(id)
+	if err != nil {
+		return nil, &apperrors.ErrNotFound{Resource: "Product", ID: id}
+	}
+
+	// Handle stock adjustment first
+	if payload.Stock != nil && product.Type == "item" {
+		currentStock, err := s.productRepo.GetStockForProduct(id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get current stock for product %d: %w", id, err)
+		}
+
+		difference := *payload.Stock - currentStock
+		if difference != 0 {
+			movement := &models.StockMovement{
+				ProductID:   id,
+				Type:        models.Adjustment,
+				Quantity:    difference,
+				Description: "Manual stock adjustment",
+				CreatedAt:   time.Now().UTC(),
+			}
+			if err := s.productRepo.CreateStockMovement(movement); err != nil {
+				return nil, fmt.Errorf("failed to create stock adjustment movement: %w", err)
+			}
+		}
+	}
+
+	// Handle other field updates
+	updateMap := make(map[string]interface{})
+	if payload.Name != nil {
+		updateMap["name"] = *payload.Name
+	}
+	if payload.CategoryID != nil {
+		if _, err := s.productRepo.FindCategoryByID(*payload.CategoryID); err != nil {
+			return nil, &apperrors.ErrNotFound{Resource: "Category", ID: *payload.CategoryID}
+		}
+		updateMap["category_id"] = *payload.CategoryID
+	}
+	if payload.Price != nil {
+		updateMap["price"] = *payload.Price
+	}
+	if payload.Type != nil {
+		updateMap["type"] = *payload.Type
+	}
+	if payload.SubscriptionPeriodDays != nil {
+		updateMap["subscription_period_days"] = *payload.SubscriptionPeriodDays
+	}
+
+	if len(updateMap) > 0 {
+		if err := s.productRepo.UpdateProduct(product, updateMap); err != nil {
+			return nil, err
+		}
+	}
+
+	return s.GetProduct(id)
+}
+
+// ... (The rest of the service file)
 
 func (s *productService) SyncExternalProductsAndCategories() error {
 	providers := s.providerRegistry.GetAllProviders()
@@ -209,40 +271,6 @@ func (s *productService) CreateProduct(name string, categoryID uint, price float
 		Type:                   product.Type,
 		SubscriptionPeriodDays: product.SubscriptionPeriodDays,
 	}, nil
-}
-
-func (s *productService) UpdateProduct(id uint, payload ProductUpdatePayload) (*models.ProductResponse, error) {
-	product, err := s.productRepo.GetProductByID(id)
-	if err != nil {
-		return nil, &apperrors.ErrNotFound{Resource: "Product", ID: id}
-	}
-
-	updateMap := make(map[string]interface{})
-
-	if payload.Name != nil {
-		updateMap["name"] = *payload.Name
-	}
-	if payload.CategoryID != nil {
-		if _, err := s.productRepo.FindCategoryByID(*payload.CategoryID); err != nil {
-			return nil, &apperrors.ErrNotFound{Resource: "Category", ID: *payload.CategoryID}
-		}
-		updateMap["category_id"] = *payload.CategoryID
-	}
-	if payload.Price != nil {
-		updateMap["price"] = *payload.Price
-	}
-	if payload.Type != nil {
-		updateMap["type"] = *payload.Type
-	}
-	if payload.SubscriptionPeriodDays != nil {
-		updateMap["subscription_period_days"] = *payload.SubscriptionPeriodDays
-	}
-
-	if err := s.productRepo.UpdateProduct(product, updateMap); err != nil {
-		return nil, err
-	}
-
-	return s.GetProduct(id)
 }
 
 func (s *productService) DeleteProduct(id uint) error {
