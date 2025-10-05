@@ -112,13 +112,17 @@ export default function ProductsPage() {
       {isFormOpen && (
         <ProductForm
           open={isFormOpen}
-          onClose={() => setIsFormOpen(false)}
+          onClose={() => {
+            setIsFormOpen(false);
+            setSelectedProduct(null);
+          }}
           onConfirm={handleConfirmForm}
           defaultValues={selectedProduct || undefined}
           categories={flattenedCategories.map((c) => ({
             value: c.id,
             label: c.name,
           }))}
+          allCategories={categories?.data || []}
         />
       )}
     </PageLayout>

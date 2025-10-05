@@ -109,26 +109,18 @@ func (h *ProductHandler) GetProductHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusOK, product)
 }
 
-type productUpdatePayload struct {
-	Name                   string  `json:"name" binding:"required"`
-	CategoryID             uint    `json:"category_id" binding:"required"`
-	Price                  float64 `json:"price" binding:"gte=0"`
-	Type                   string  `json:"type" binding:"oneof=item subscription"`
-	SubscriptionPeriodDays int     `json:"subscription_period_days" binding:"gte=0"`
-}
-
-// @Summary      Update a product
-// @Description  Updates an existing product.
+// @Summary      Update a product (partial)
+// @Description  Updates parts of an existing product.
 // @Tags         Products
 // @Accept       json
 // @Produce      json
 // @Param        id path int true "Product ID"
-// @Param        product body productUpdatePayload true "Product data"
+// @Param        product body services.ProductUpdatePayload true "Product data (only include fields to be updated)"
 // @Success      200 {object} responses.ResponseSchema[models.ProductResponse]
 // @Failure      400 {object} responses.ErrorResponseSchema
 // @Failure      404 {object} responses.ErrorResponseSchema
 // @Failure      500 {object} responses.ErrorResponseSchema
-// @Router       /products/{id} [put]
+// @Router       /products/{id} [patch]
 // @Security     ApiKeyAuth
 func (h *ProductHandler) UpdateProductHandler(c *gin.Context) {
 	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
@@ -137,21 +129,13 @@ func (h *ProductHandler) UpdateProductHandler(c *gin.Context) {
 		return
 	}
 
-	var json productUpdatePayload
+	var json services.ProductUpdatePayload
 	if err := c.ShouldBindJSON(&json); err != nil {
 		c.Error(&apperrors.ErrValidation{Message: err.Error()})
 		return
 	}
 
-	productData := models.Product{
-		Name:                   json.Name,
-		CategoryID:             json.CategoryID,
-		Price:                  json.Price,
-		Type:                   json.Type,
-		SubscriptionPeriodDays: json.SubscriptionPeriodDays,
-	}
-
-	updatedProduct, err := h.productService.UpdateProduct(uint(id), productData)
+	updatedProduct, err := h.productService.UpdateProduct(uint(id), json)
 	if err != nil {
 		c.Error(err)
 		return

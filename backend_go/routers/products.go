@@ -20,7 +20,7 @@ func (r *Router) ProductsRouter(router *gin.Engine, productHandler *handlers.Pro
 	{
 		authAPI.POST("", productHandler.CreateProductHandler)
 		authAPI.GET("/:id", productHandler.GetProductHandler)
-		authAPI.PUT("/:id", productHandler.UpdateProductHandler)
+		authAPI.PATCH("/:id", productHandler.UpdateProductHandler)
 		authAPI.DELETE("/:id", productHandler.DeleteProductHandler)
 		authAPI.POST("/:id/stock/movements", productHandler.CreateStockMovementHandler)
 	}

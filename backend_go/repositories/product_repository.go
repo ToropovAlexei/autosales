@@ -13,7 +13,7 @@ type ProductRepository interface {
 	GetProductByID(id uint) (*models.Product, error)
 	FindByName(name string) (*models.Product, error)
 	CreateProduct(product *models.Product) error
-	UpdateProduct(product *models.Product, data models.Product) error
+	UpdateProduct(product *models.Product, data map[string]interface{}) error
 	DeleteProduct(product *models.Product) error
 	GetStockForProduct(productID uint) (int, error)
 	CreateStockMovement(movement *models.StockMovement) error
@@ -67,7 +67,7 @@ func (r *gormProductRepository) CreateProduct(product *models.Product) error {
 	return r.db.Create(product).Error
 }
 
-func (r *gormProductRepository) UpdateProduct(product *models.Product, data models.Product) error {
+func (r *gormProductRepository) UpdateProduct(product *models.Product, data map[string]interface{}) error {
 	return r.db.Model(product).Updates(data).Error
 }
 

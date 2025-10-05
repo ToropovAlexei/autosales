@@ -10,11 +10,20 @@ import (
 	"time"
 )
 
+// DTO for partial product updates
+type ProductUpdatePayload struct {
+	Name                   *string  `json:"name"`
+	CategoryID             *uint    `json:"category_id"`
+	Price                  *float64 `json:"price" binding:"omitempty,gte=0"`
+	Type                   *string  `json:"type" binding:"omitempty,oneof=item subscription"`
+	SubscriptionPeriodDays *int     `json:"subscription_period_days" binding:"omitempty,gte=0"`
+}
+
 type ProductService interface {
 	GetProducts(categoryIDs []uint) ([]models.ProductResponse, error)
 	GetProduct(id uint) (*models.ProductResponse, error)
 	CreateProduct(name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int) (*models.ProductResponse, error)
-	UpdateProduct(id uint, data models.Product) (*models.ProductResponse, error)
+	UpdateProduct(id uint, payload ProductUpdatePayload) (*models.ProductResponse, error)
 	DeleteProduct(id uint) error
 	CreateStockMovement(productID uint, movementType models.StockMovementType, quantity int, description string, orderID *uint) (*models.StockMovement, error)
 	SyncExternalProductsAndCategories() error
@@ -52,13 +61,10 @@ func (s *productService) SyncExternalProductsAndCategories() error {
 }
 
 func (s *productService) GetProducts(categoryIDs []uint) ([]models.ProductResponse, error) {
-	// 1. Sync external products and categories first
 	if err := s.SyncExternalProductsAndCategories(); err != nil {
-		// Log the error but don't fail the whole request, as internal products can still be shown
 		slog.Error("failed to sync external products and categories", "error", err)
 	}
 
-	// 2. Get internal products
 	internalProducts, err := s.productRepo.GetProducts(categoryIDs)
 	if err != nil {
 		return nil, err
@@ -73,7 +79,7 @@ func (s *productService) GetProducts(categoryIDs []uint) ([]models.ProductRespon
 				return nil, err
 			}
 		} else {
-			stock = -1 // Infinite stock for subscriptions
+			stock = -1
 		}
 
 		response = append(response, models.ProductResponse{
@@ -87,28 +93,22 @@ func (s *productService) GetProducts(categoryIDs []uint) ([]models.ProductRespon
 		})
 	}
 
-	// 3. Re-fetch external products (they are not stored in DB, so we reconstruct them)
 	providers := s.providerRegistry.GetAllProviders()
 	for _, provider := range providers {
 		externalProducts, err := provider.GetProducts()
 		if err != nil {
-			// Error already logged by sync function, so we can just continue
 			continue
 		}
 
 		for _, p := range externalProducts {
 			var categoryID uint
 			if len(p.Category) > 0 {
-				// This time, we expect the category to exist, but we search by path again to get the ID
 				category, err := s.categoryRepo.FindOrCreateByPath(p.Category)
-				if err != nil {
-					slog.Error("failed to find category path for external product after sync", "provider", provider.GetName(), "path", p.Category, "error", err)
-				} else if category != nil {
+				if err == nil && category != nil {
 					categoryID = category.ID
 				}
 			}
 
-			// Filter by category if categoryIDs are provided
 			if len(categoryIDs) > 0 {
 				match := false
 				for _, catID := range categoryIDs {
@@ -138,11 +138,7 @@ func (s *productService) GetProducts(categoryIDs []uint) ([]models.ProductRespon
 	return response, nil
 }
 
-// ... (rest of the file remains the same)
-
 func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
-	// This now only works for internal products.
-	// To support external products, we would need to change the ID system or the method signature.
 	product, err := s.productRepo.GetProductByID(id)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Resource: "Product", ID: id}
@@ -155,7 +151,7 @@ func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
 			return nil, err
 		}
 	} else {
-		stock = -1 // Infinite stock for subscriptions
+		stock = -1
 	}
 
 	return &models.ProductResponse{
@@ -181,7 +177,7 @@ func (s *productService) CreateProduct(name string, categoryID uint, price float
 		Price:                  price,
 		Type:                   productType,
 		SubscriptionPeriodDays: subscriptionPeriodDays,
-		Details:                sql.NullString{String: "{}", Valid: true}, // Initialize with empty JSON object
+		Details:                sql.NullString{String: "{}", Valid: true},
 	}
 	if err := s.productRepo.CreateProduct(product); err != nil {
 		return nil, err
@@ -197,12 +193,11 @@ func (s *productService) CreateProduct(name string, categoryID uint, price float
 			CreatedAt:   time.Now().UTC(),
 		}
 		if err := s.productRepo.CreateStockMovement(stockMovement); err != nil {
-			// Here you might want to consider rolling back the product creation
 			return nil, err
 		}
 		stock = initialStock
 	} else {
-		stock = -1 // Infinite stock for subscriptions
+		stock = -1
 	}
 
 	return &models.ProductResponse{
@@ -216,17 +211,34 @@ func (s *productService) CreateProduct(name string, categoryID uint, price float
 	}, nil
 }
 
-func (s *productService) UpdateProduct(id uint, data models.Product) (*models.ProductResponse, error) {
+func (s *productService) UpdateProduct(id uint, payload ProductUpdatePayload) (*models.ProductResponse, error) {
 	product, err := s.productRepo.GetProductByID(id)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Resource: "Product", ID: id}
 	}
 
-	if _, err := s.productRepo.FindCategoryByID(data.CategoryID); err != nil {
-		return nil, &apperrors.ErrNotFound{Resource: "Category", ID: data.CategoryID}
+	updateMap := make(map[string]interface{})
+
+	if payload.Name != nil {
+		updateMap["name"] = *payload.Name
+	}
+	if payload.CategoryID != nil {
+		if _, err := s.productRepo.FindCategoryByID(*payload.CategoryID); err != nil {
+			return nil, &apperrors.ErrNotFound{Resource: "Category", ID: *payload.CategoryID}
+		}
+		updateMap["category_id"] = *payload.CategoryID
+	}
+	if payload.Price != nil {
+		updateMap["price"] = *payload.Price
+	}
+	if payload.Type != nil {
+		updateMap["type"] = *payload.Type
+	}
+	if payload.SubscriptionPeriodDays != nil {
+		updateMap["subscription_period_days"] = *payload.SubscriptionPeriodDays
 	}
 
-	if err := s.productRepo.UpdateProduct(product, data); err != nil {
+	if err := s.productRepo.UpdateProduct(product, updateMap); err != nil {
 		return nil, err
 	}
 
