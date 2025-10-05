@@ -6,6 +6,7 @@ import (
 	"frbktg/backend_go/gateways"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
+	"log/slog"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -23,16 +24,22 @@ type paymentService struct {
 	registry        *gateways.ProviderRegistry
 	invoiceRepo     repositories.PaymentInvoiceRepository
 	transactionRepo repositories.TransactionRepository
+	botUserRepo     repositories.BotUserRepository
+	webhookService  WebhookService
 }
 
-func NewPaymentService(db *gorm.DB, registry *gateways.ProviderRegistry, invoiceRepo repositories.PaymentInvoiceRepository, transactionRepo repositories.TransactionRepository) PaymentService {
+func NewPaymentService(db *gorm.DB, registry *gateways.ProviderRegistry, invoiceRepo repositories.PaymentInvoiceRepository, transactionRepo repositories.TransactionRepository, botUserRepo repositories.BotUserRepository, webhookService WebhookService) PaymentService {
 	return &paymentService{
 		db:              db,
 		registry:        registry,
 		invoiceRepo:     invoiceRepo,
 		transactionRepo: transactionRepo,
+		botUserRepo:     botUserRepo,
+		webhookService:  webhookService,
 	}
 }
+
+// ... (GetAvailableGateways and CreateInvoice remain the same)
 
 func (s *paymentService) GetAvailableGateways() []gateways.PaymentGateway {
 	return s.registry.GetAllProviders()
@@ -48,7 +55,7 @@ func (s *paymentService) CreateInvoice(botUserID uint, gatewayName string, amoun
 
 	invoiceReq := &gateways.InvoiceCreationRequest{
 		Amount:  amount,
-		UserID:  botUserID, // Technically this is the bot user ID
+		UserID:  botUserID,
 		OrderID: orderID,
 	}
 
@@ -85,9 +92,11 @@ func (s *paymentService) HandleWebhook(gatewayName string, r *http.Request) erro
 	}
 
 	if webhookResult.Status != "completed" {
-		// We could handle other statuses like 'failed' here if needed
 		return nil
 	}
+
+	var userToNotify *models.BotUser
+	var processedAmount float64
 
 	txErr := s.db.Transaction(func(tx *gorm.DB) error {
 		invoiceRepo := s.invoiceRepo.WithTx(tx)
@@ -99,7 +108,6 @@ func (s *paymentService) HandleWebhook(gatewayName string, r *http.Request) erro
 		}
 
 		if invoice.Status == models.InvoiceStatusCompleted {
-			// Payment already processed, do nothing.
 			return nil
 		}
 
@@ -125,11 +133,30 @@ func (s *paymentService) HandleWebhook(gatewayName string, r *http.Request) erro
 			return fmt.Errorf("failed to create deposit transaction: %w", err)
 		}
 
+		// Find user for notification and store data needed outside the transaction
+		user, err := s.botUserRepo.FindByID(invoice.BotUserID)
+		if err != nil {
+			slog.Error("could not find user to notify about payment", "userID", invoice.BotUserID, "error", err)
+		} else {
+			userToNotify = user
+			processedAmount = invoice.Amount
+		}
+
 		return nil
 	})
 
 	if txErr != nil {
 		return apperrors.New(http.StatusInternalServerError, "Failed to process webhook transaction", txErr)
+	}
+
+	// Send notification outside of the database transaction
+	if userToNotify != nil {
+		message := fmt.Sprintf("✅ Ваш баланс успешно пополнен на %.2f ₽.", processedAmount)
+		go func() {
+			if err := s.webhookService.SendNotification(userToNotify.LastSeenWithBot, userToNotify.TelegramID, message); err != nil {
+				slog.Error("failed to send payment notification webhook", "userID", userToNotify.ID, "error", err)
+			}
+		}()
 	}
 
 	return nil

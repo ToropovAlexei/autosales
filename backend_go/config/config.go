@@ -21,6 +21,7 @@ type Settings struct {
 	ServiceAPIKey            string   `mapstructure:"SERVICE_API_KEY"`
 	Port                     string   `mapstructure:"PORT"`
 	MockGatewayURL           string   `mapstructure:"MOCK_GATEWAY_URL"`
+	BotDispatcherWebhookURL  string   `mapstructure:"BOT_DISPATCHER_WEBHOOK_URL"`
 }
 
 func (s *Settings) GetDBConnStr() string {

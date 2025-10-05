@@ -36,6 +36,7 @@ type Container struct {
 	StockService           services.StockService
 	AdminService           services.AdminService
 	PaymentService         services.PaymentService
+	WebhookService         services.WebhookService
 	UserRepo               repositories.UserRepository
 	AuthHandler            *handlers.AuthHandler
 	UserHandler            *handlers.UserHandler
@@ -99,7 +100,8 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	balanceService := services.NewBalanceService(balanceRepo, botUserRepo)
 	stockService := services.NewStockService(stockRepo)
 	adminService := services.NewAdminService(adminRepo, botUserRepo)
-	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo)
+	webhookService := services.NewWebhookService(appSettings)
+	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo, botUserRepo, webhookService)
 
 	// Init workers
 	subscriptionWorker := workers.NewSubscriptionWorker(orderService, userSubscriptionRepo, logger)
@@ -137,6 +139,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 		StockService:         stockService,
 		AdminService:         adminService,
 		PaymentService:       paymentService,
+		WebhookService:       webhookService,
 		UserRepo:             userRepo,
 		AuthHandler:          authHandler,
 		UserHandler:          userHandler,
