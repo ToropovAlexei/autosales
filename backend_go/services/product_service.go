@@ -17,6 +17,7 @@ type ProductService interface {
 	UpdateProduct(id uint, data models.Product) (*models.ProductResponse, error)
 	DeleteProduct(id uint) error
 	CreateStockMovement(productID uint, movementType models.StockMovementType, quantity int, description string, orderID *uint) (*models.StockMovement, error)
+	SyncExternalProductsAndCategories() error
 }
 
 type productService struct {
@@ -29,8 +30,35 @@ func NewProductService(productRepo repositories.ProductRepository, categoryRepo 
 	return &productService{productRepo: productRepo, categoryRepo: categoryRepo, providerRegistry: providerRegistry}
 }
 
+func (s *productService) SyncExternalProductsAndCategories() error {
+	providers := s.providerRegistry.GetAllProviders()
+	for _, provider := range providers {
+		externalProducts, err := provider.GetProducts()
+		if err != nil {
+			slog.Error("failed to get products from provider", "provider", provider.GetName(), "error", err)
+			continue // Skip this provider if it fails
+		}
+
+		for _, p := range externalProducts {
+			if len(p.Category) > 0 {
+				_, err := s.categoryRepo.FindOrCreateByPath(p.Category)
+				if err != nil {
+					slog.Error("failed to find or create category path for external product", "provider", provider.GetName(), "path", p.Category, "error", err)
+				}
+			}
+		}
+	}
+	return nil
+}
+
 func (s *productService) GetProducts(categoryIDs []uint) ([]models.ProductResponse, error) {
-	// 1. Get internal products
+	// 1. Sync external products and categories first
+	if err := s.SyncExternalProductsAndCategories(); err != nil {
+		// Log the error but don't fail the whole request, as internal products can still be shown
+		slog.Error("failed to sync external products and categories", "error", err)
+	}
+
+	// 2. Get internal products
 	internalProducts, err := s.productRepo.GetProducts(categoryIDs)
 	if err != nil {
 		return nil, err
@@ -59,21 +87,22 @@ func (s *productService) GetProducts(categoryIDs []uint) ([]models.ProductRespon
 		})
 	}
 
-	// 2. Get external products
+	// 3. Re-fetch external products (they are not stored in DB, so we reconstruct them)
 	providers := s.providerRegistry.GetAllProviders()
 	for _, provider := range providers {
 		externalProducts, err := provider.GetProducts()
 		if err != nil {
-			slog.Error("failed to get products from provider", "provider", provider.GetName(), "error", err)
-			continue // Skip this provider if it fails
+			// Error already logged by sync function, so we can just continue
+			continue
 		}
 
 		for _, p := range externalProducts {
 			var categoryID uint
 			if len(p.Category) > 0 {
+				// This time, we expect the category to exist, but we search by path again to get the ID
 				category, err := s.categoryRepo.FindOrCreateByPath(p.Category)
 				if err != nil {
-					slog.Error("failed to find or create category path for external product", "provider", provider.GetName(), "path", p.Category, "error", err)
+					slog.Error("failed to find category path for external product after sync", "provider", provider.GetName(), "path", p.Category, "error", err)
 				} else if category != nil {
 					categoryID = category.ID
 				}
@@ -89,7 +118,7 @@ func (s *productService) GetProducts(categoryIDs []uint) ([]models.ProductRespon
 					}
 				}
 				if !match {
-					continue // Skip product if it doesn't match the category filter
+					continue
 				}
 			}
 
@@ -108,6 +137,8 @@ func (s *productService) GetProducts(categoryIDs []uint) ([]models.ProductRespon
 
 	return response, nil
 }
+
+// ... (rest of the file remains the same)
 
 func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
 	// This now only works for internal products.

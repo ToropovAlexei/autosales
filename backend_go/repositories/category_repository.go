@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"errors"
 	"frbktg/backend_go/models"
 
 	"gorm.io/gorm"
@@ -86,24 +85,14 @@ func (r *gormCategoryRepository) FindOrCreateByPath(path []string) (*models.Cate
 	var currentCategory *models.Category
 
 	for _, name := range path {
-		category, err := r.FindByNameAndParent(name, parentID)
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				// Create new category
-				newCategory := &models.Category{
-					Name:     name,
-					ParentID: parentID,
-				}
-				if err := r.Create(newCategory); err != nil {
-					return nil, err
-				}
-				category = newCategory
-			} else {
-				// Another error occurred
-				return nil, err
-			}
+		var category models.Category
+		query := models.Category{Name: name, ParentID: parentID}
+
+		if err := r.db.Where(query).FirstOrCreate(&category).Error; err != nil {
+			return nil, err
 		}
-		currentCategory = category
+
+		currentCategory = &category
 		parentID = &currentCategory.ID
 	}
 

@@ -91,7 +91,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	authService := services.NewAuthService(userRepo, tokenService, appSettings)
 	userService := services.NewUserService(userRepo, botUserRepo, userSubscriptionRepo, orderRepo)
 	productService := services.NewProductService(productRepo, categoryRepo, providerRegistry)
-	categoryService := services.NewCategoryService(categoryRepo)
+	categoryService := services.NewCategoryService(categoryRepo, productService)
 	referralService := services.NewReferralService(userRepo, botUserRepo, referralRepo, transactionRepo)
 	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, userSubscriptionRepo, categoryRepo, referralService, providerRegistry)
 	transactionService := services.NewTransactionService(transactionRepo)
