@@ -132,6 +132,7 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 		Balance:           balance,
 		RegisteredWithBot: user.RegisteredWithBot,
 		LastSeenWithBot:   user.LastSeenWithBot,
+		LastSeenAt:        user.LastSeenAt,
 	}
 
 	status := http.StatusOK
@@ -189,6 +190,7 @@ func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
 		Balance:           balance,
 		RegisteredWithBot: user.RegisteredWithBot,
 		LastSeenWithBot:   user.LastSeenWithBot,
+		LastSeenAt:        user.LastSeenAt,
 	}
 
 	responses.SuccessResponse(c, http.StatusOK, response)
