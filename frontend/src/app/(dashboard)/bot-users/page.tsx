@@ -14,6 +14,8 @@ interface BotUser {
   id: number;
   telegram_id: number;
   balance: number;
+  registered_with_bot: string;
+  last_seen_with_bot: string;
 }
 
 export default function BotUsersPage() {

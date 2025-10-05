@@ -13,6 +13,7 @@ import { InputPassword, InputText } from "@/components";
 import { useMutation } from "@tanstack/react-query";
 import { newApi } from "@/lib/api";
 import { useRouter } from "next/navigation";
+import classes from "./styles.module.css";
 
 type FormData = { email: string; password: string };
 
@@ -34,7 +35,7 @@ export default function LoginPage() {
   });
 
   return (
-    <main className="flex items-center justify-center min-h-screen">
+    <main className={classes.main}>
       <FormProvider {...form}>
         <Card component="form" onSubmit={handleSubmit((form) => mutate(form))}>
           <CardHeader

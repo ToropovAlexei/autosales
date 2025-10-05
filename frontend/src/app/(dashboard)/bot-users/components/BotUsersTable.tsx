@@ -8,6 +8,8 @@ interface BotUser {
   id: number;
   telegram_id: number;
   balance: number;
+  registered_with_bot: string;
+  last_seen_with_bot: string;
 }
 
 interface BotUsersTableProps {
@@ -29,6 +31,16 @@ export const BotUsersTable = ({
       headerName: "Баланс",
       width: 150,
       renderCell: (params) => `${params.value} ₽`,
+    },
+    {
+      field: "registered_with_bot",
+      headerName: "Бот регистрации",
+      flex: 1,
+    },
+    {
+      field: "last_seen_with_bot",
+      headerName: "Последний бот",
+      flex: 1,
     },
     {
       field: "actions",
@@ -55,8 +67,9 @@ export const BotUsersTable = ({
         rows={users}
         columns={columns}
         density="compact"
+        loading={loading}
         getRowClassName={(params) =>
-          params.indexRelativeToCurrentPage % 2 === 0 ? 'even' : 'odd'
+          params.indexRelativeToCurrentPage % 2 === 0 ? "even" : "odd"
         }
         initialState={{
           pagination: {
@@ -70,23 +83,23 @@ export const BotUsersTable = ({
           filterPanel: {
             filterFormProps: {
               logicOperatorInputProps: {
-                variant: 'outlined',
-                size: 'small',
+                variant: "outlined",
+                size: "small",
               },
               columnInputProps: {
-                variant: 'outlined',
-                size: 'small',
-                sx: { mt: 'auto' },
+                variant: "outlined",
+                size: "small",
+                sx: { mt: "auto" },
               },
               operatorInputProps: {
-                variant: 'outlined',
-                size: 'small',
-                sx: { mt: 'auto' },
+                variant: "outlined",
+                size: "small",
+                sx: { mt: "auto" },
               },
               valueInputProps: {
                 InputComponentProps: {
-                  variant: 'outlined',
-                  size: 'small',
+                  variant: "outlined",
+                  size: "small",
                 },
               },
             },
