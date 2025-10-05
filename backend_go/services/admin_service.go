@@ -1,14 +1,12 @@
 package services
 
 import (
-	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
 )
 
 type AdminService interface {
 	GetBotUsersWithBalance() ([]models.BotUserResponse, error)
-	SoftDeleteBotUser(id uint) error
 }
 
 type adminService struct {
@@ -37,7 +35,7 @@ func (s *adminService) GetBotUsersWithBalance() ([]models.BotUserResponse, error
 		response = append(response, models.BotUserResponse{
 			ID:                u.ID,
 			TelegramID:        u.TelegramID,
-			IsDeleted:         u.IsDeleted,
+			IsBlocked:         u.IsBlocked,
 			HasPassedCaptcha:  u.HasPassedCaptcha,
 			Balance:           balance,
 			RegisteredWithBot: u.RegisteredWithBot,
@@ -48,12 +46,4 @@ func (s *adminService) GetBotUsersWithBalance() ([]models.BotUserResponse, error
 	}
 
 	return response, nil
-}
-
-func (s *adminService) SoftDeleteBotUser(id uint) error {
-	user, err := s.adminRepo.GetBotUserByID(id)
-	if err != nil {
-		return &apperrors.ErrNotFound{Resource: "BotUser", ID: id}
-	}
-	return s.adminRepo.SoftDeleteBotUser(user)
 }

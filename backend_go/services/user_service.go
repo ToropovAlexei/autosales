@@ -16,6 +16,7 @@ type UserService interface {
 	RegisterBotUser(telegramID int64, botName string) (*models.BotUser, float64, bool, bool, error)
 	GetBotUser(id uint) (*models.BotUser, float64, error)
 	GetBotUserByTelegramID(telegramID int64, botName string) (*models.BotUser, float64, error)
+	ToggleBlockUser(telegramID int64) error
 	GetUserBalance(telegramID int64) (float64, error)
 	GetUserTransactions(telegramID int64) ([]models.Transaction, error)
 	GetUserSubscriptionsByTelegramID(telegramID int64) ([]models.UserSubscription, error)
@@ -83,7 +84,7 @@ func (s *userService) RegisterBotUser(telegramID int64, botName string) (*models
 		existingUser.LastSeenWithBot = botName
 		existingUser.LastSeenAt = time.Now()
 
-		if !existingUser.IsDeleted {
+		if !existingUser.IsBlocked {
 			balance, err := s.botUserRepo.GetUserBalance(existingUser.ID)
 			if err != nil {
 				return nil, 0, false, false, apperrors.New(500, "Failed to get user balance", err)
@@ -94,7 +95,8 @@ func (s *userService) RegisterBotUser(telegramID int64, botName string) (*models
 			return existingUser, balance, false, existingUser.HasPassedCaptcha, nil
 		}
 
-		existingUser.IsDeleted = false
+		// If user was blocked, we reactivate them on a new registration attempt
+		existingUser.IsBlocked = false
 		existingUser.HasPassedCaptcha = false
 		if err := s.botUserRepo.Update(existingUser); err != nil {
 			return nil, 0, false, false, apperrors.New(500, "Failed to update bot user", err)
@@ -114,6 +116,17 @@ func (s *userService) RegisterBotUser(telegramID int64, botName string) (*models
 	}
 
 	return newUser, 0, true, false, nil
+}
+
+func (s *userService) ToggleBlockUser(telegramID int64) error {
+	user, err := s.botUserRepo.FindByTelegramID(telegramID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "BotUser", ID: uint(telegramID)}
+	}
+
+	user.IsBlocked = !user.IsBlocked
+
+	return s.botUserRepo.Update(user)
 }
 
 func (s *userService) GetBotUser(id uint) (*models.BotUser, float64, error) {

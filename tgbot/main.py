@@ -9,6 +9,7 @@ from config import settings
 from handlers import start, balance, catalog, buy, referral, my_bots, my_subscriptions, my_orders
 from api import APIClient
 from logging_config import setup_logging
+from middleware.block_check import BlockCheckMiddleware
 
 async def main():
     setup_logging()
@@ -25,6 +26,8 @@ async def main():
     me = await bot.get_me()
     api_client = APIClient(me.username)
     dp = Dispatcher(storage=storage, api_client=api_client)
+
+    dp.update.middleware(BlockCheckMiddleware())
 
     dp.include_router(start.router)
     dp.include_router(balance.router)

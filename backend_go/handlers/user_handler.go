@@ -127,7 +127,7 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 	userResponse := models.BotUserResponse{
 		ID:                user.ID,
 		TelegramID:        user.TelegramID,
-		IsDeleted:         user.IsDeleted,
+		IsBlocked:         user.IsBlocked,
 		HasPassedCaptcha:  user.HasPassedCaptcha,
 		Balance:           balance,
 		RegisteredWithBot: user.RegisteredWithBot,
@@ -141,9 +141,9 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 	}
 
 	responses.SuccessResponse(c, status, responses.RegisterBotUserResponse{
-		User:               userResponse,
-		IsNew:              isNew,
-		HasPassedCaptcha:   hasPassedCaptcha,
+		User:             userResponse,
+		IsNew:            isNew,
+		HasPassedCaptcha: hasPassedCaptcha,
 	})
 }
 
@@ -185,7 +185,7 @@ func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
 	response := models.BotUserResponse{
 		ID:                user.ID,
 		TelegramID:        user.TelegramID,
-		IsDeleted:         user.IsDeleted,
+		IsBlocked:         user.IsBlocked,
 		HasPassedCaptcha:  user.HasPassedCaptcha,
 		Balance:           balance,
 		RegisteredWithBot: user.RegisteredWithBot,
@@ -311,7 +311,7 @@ func (h *UserHandler) GetSellerSettingsHandler(c *gin.Context) {
 	}
 
 	responses.SuccessResponse(c, http.StatusOK, responses.SellerSettingsResponse{
-		ID:                       seller.ID,
+		ID:                     seller.ID,
 		ReferralProgramEnabled: seller.ReferralProgramEnabled,
 		ReferralPercentage:     seller.ReferralPercentage,
 	})
@@ -365,4 +365,29 @@ func (h *UserHandler) GetUserOrdersHandler(c *gin.Context) {
 	}
 
 	responses.SuccessResponse(c, http.StatusOK, orders)
+}
+
+// @Summary      Toggle Block Status of a Bot User
+// @Description  Blocks or unblocks a bot user.
+// @Tags         Users
+// @Produce      json
+// @Param        telegram_id path int true "User Telegram ID"
+// @Success      200 {object} responses.ResponseSchema[responses.MessageResponse]
+// @Failure      400 {object} responses.ErrorResponseSchema
+// @Failure      404 {object} responses.ErrorResponseSchema
+// @Router       /users/{telegram_id}/toggle-block [patch]
+// @Security     ApiKeyAuth
+func (h *UserHandler) ToggleBlockUserHandler(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
+	if err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid user ID"})
+		return
+	}
+
+	if err := h.userService.ToggleBlockUser(id); err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, responses.MessageResponse{Message: "User block status updated successfully"})
 }

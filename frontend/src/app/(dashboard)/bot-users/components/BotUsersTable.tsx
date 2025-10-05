@@ -2,23 +2,36 @@
 
 import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
-import DeleteIcon from "@mui/icons-material/Delete";
+import BlockIcon from "@mui/icons-material/Block";
+import LockOpenIcon from "@mui/icons-material/LockOpen";
+import { Chip } from "@mui/material";
 import { BotUser } from "@/types/common";
 
 interface BotUsersTableProps {
   users: BotUser[];
-  onDelete: (user: BotUser) => void;
+  onToggleBlock: (user: BotUser) => void;
   loading: boolean;
 }
 
 export const BotUsersTable = ({
   users,
-  onDelete,
+  onToggleBlock,
   loading,
 }: BotUsersTableProps) => {
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", width: 60 },
     { field: "telegram_id", headerName: "Telegram ID", width: 150 },
+    {
+      field: "is_blocked",
+      headerName: "Статус",
+      width: 120,
+      renderCell: (params) =>
+        params.value ? (
+          <Chip label="Заблокирован" color="error" size="small" />
+        ) : (
+          <Chip label="Активен" color="success" size="small" />
+        ),
+    },
     {
       field: "balance",
       headerName: "Баланс",
@@ -34,12 +47,6 @@ export const BotUsersTable = ({
       field: "last_seen_with_bot",
       headerName: "Последний бот",
       flex: 1,
-    },
-    {
-      field: "has_passed_captcha",
-      headerName: "Прошел капчу",
-      type: "boolean",
-      width: 150,
     },
     {
       field: "created_at",
@@ -64,10 +71,10 @@ export const BotUsersTable = ({
       getActions: ({ row }) => {
         return [
           <GridActionsCellItem
-            key="delete"
-            icon={<DeleteIcon />}
-            label="Delete"
-            onClick={() => onDelete(row)}
+            key="toggle-block"
+            icon={row.is_blocked ? <LockOpenIcon /> : <BlockIcon />}
+            label={row.is_blocked ? "Unblock" : "Block"}
+            onClick={() => onToggleBlock(row)}
           />,
         ];
       },

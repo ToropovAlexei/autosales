@@ -41,7 +41,7 @@ func (r *gormBotUserRepository) FindByTelegramID(telegramID int64) (*models.BotU
 
 func (r *gormBotUserRepository) FindByID(id uint) (*models.BotUser, error) {
 	var user models.BotUser
-	if err := r.db.Where("id = ? AND is_deleted = ?", id, false).First(&user).Error; err != nil {
+	if err := r.db.Where("id = ?", id).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil

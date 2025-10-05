@@ -20,9 +20,12 @@ export default function BotUsersPage() {
     endpoint: ENDPOINTS.BOT_USERS,
   });
 
-  const deleteMutation = useMutation({
-    mutationFn: (userId: number) =>
-      dataLayer.delete({ url: ENDPOINTS.BOT_USERS, id: userId }),
+  const toggleBlockMutation = useMutation({
+    mutationFn: (user: BotUser) =>
+      dataLayer.update({
+        url: ENDPOINTS.TOGGLE_BLOCK,
+        meta: { ":id": user.telegram_id },
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.BOT_USERS),
@@ -37,30 +40,38 @@ export default function BotUsersPage() {
     setIsConfirmOpen(true);
   };
 
-  const handleDeleteUser = () => {
+  const handleToggleBlock = () => {
     if (selectedUser) {
-      deleteMutation.mutate(selectedUser.id);
+      toggleBlockMutation.mutate(selectedUser);
     }
   };
+
+  const confirmText = selectedUser?.is_blocked
+    ? `Вы действительно хотите разблокировать пользователя ${selectedUser?.telegram_id}?`
+    : `Вы действительно хотите заблокировать пользователя ${selectedUser?.telegram_id}?`;
+
+  const confirmBtnText = selectedUser?.is_blocked
+    ? "Разблокировать"
+    : "Заблокировать";
 
   return (
     <PageLayout title="Пользователи бота">
       <BotUsersTable
         users={botUsers?.data || []}
-        onDelete={openConfirmDialog}
+        onToggleBlock={openConfirmDialog}
         loading={isFetching}
       />
 
       <ConfirmModal
         open={isConfirmOpen}
         onClose={() => setIsConfirmOpen(false)}
-        onConfirm={handleDeleteUser}
+        onConfirm={handleToggleBlock}
         title="Вы уверены?"
-        contentText={`Вы действительно хотите удалить пользователя ${selectedUser?.telegram_id}? Это действие необратимо.`}
+        contentText={confirmText}
         closeBtnText="Отмена"
-        confirmBtnText="Удалить"
-        loading={deleteMutation.isPending}
-        confirmBtnColor="error"
+        confirmBtnText={confirmBtnText}
+        loading={toggleBlockMutation.isPending}
+        confirmBtnColor={selectedUser?.is_blocked ? "success" : "error"}
       />
     </PageLayout>
   );

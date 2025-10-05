@@ -10,7 +10,6 @@ type AdminRepository interface {
 	WithTx(tx *gorm.DB) AdminRepository
 	GetActiveBotUsers() ([]models.BotUser, error)
 	GetBotUserByID(id uint) (*models.BotUser, error)
-	SoftDeleteBotUser(user *models.BotUser) error
 }
 
 type gormAdminRepository struct {
@@ -27,7 +26,7 @@ func (r *gormAdminRepository) WithTx(tx *gorm.DB) AdminRepository {
 
 func (r *gormAdminRepository) GetActiveBotUsers() ([]models.BotUser, error) {
 	var botUsers []models.BotUser
-	if err := r.db.Where("is_deleted = ?", false).Find(&botUsers).Error; err != nil {
+	if err := r.db.Find(&botUsers).Error; err != nil {
 		return nil, err
 	}
 	return botUsers, nil
@@ -39,9 +38,4 @@ func (r *gormAdminRepository) GetBotUserByID(id uint) (*models.BotUser, error) {
 		return nil, err
 	}
 	return &botUser, nil
-}
-
-func (r *gormAdminRepository) SoftDeleteBotUser(user *models.BotUser) error {
-	user.IsDeleted = true
-	return r.db.Save(user).Error
 }

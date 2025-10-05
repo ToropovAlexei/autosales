@@ -1,11 +1,9 @@
 package handlers
 
 import (
-	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/responses"
 	"frbktg/backend_go/services"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -25,19 +23,4 @@ func (h *AdminHandler) GetBotUsersHandler(c *gin.Context) {
 		return
 	}
 	responses.SuccessResponse(c, http.StatusOK, users)
-}
-
-func (h *AdminHandler) DeleteBotUserHandler(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
-	if err != nil {
-		c.Error(&apperrors.ErrValidation{Message: "Invalid user ID"})
-		return
-	}
-
-	if err := h.adminService.SoftDeleteBotUser(uint(id)); err != nil {
-		c.Error(err)
-		return
-	}
-
-	c.Status(http.StatusNoContent)
 }

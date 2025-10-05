@@ -11,5 +11,4 @@ func (r *Router) AdminRouter(router *gin.Engine, adminHandler *handlers.AdminHan
 	admin := router.Group("/api/admin")
 	admin.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo), middleware.AdminMiddleware())
 	admin.GET("/bot-users", adminHandler.GetBotUsersHandler)
-	admin.DELETE("/bot-users/:id", adminHandler.DeleteBotUserHandler)
 }
