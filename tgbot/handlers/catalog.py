@@ -3,7 +3,7 @@ import logging
 from aiogram.types import CallbackQuery
 from aiogram.utils.markdown import hbold, hitalic
 
-from api import api_client
+from api import APIClient
 from keyboards.inline import CategoryCallback, categories_menu, products_menu, product_card
 
 router = Router()
@@ -35,7 +35,7 @@ def find_parent_id(categories: list, child_id: int):
 # --- Handlers ---
 
 @router.callback_query(CategoryCallback.filter(F.action == 'view'))
-async def navigate_categories(callback_query: CallbackQuery, callback_data: CategoryCallback):
+async def navigate_categories(callback_query: CallbackQuery, callback_data: CategoryCallback, api_client: APIClient):
     category_id = callback_data.category_id
 
     try:
@@ -91,7 +91,7 @@ async def navigate_categories(callback_query: CallbackQuery, callback_data: Cate
 
 
 @router.callback_query(CategoryCallback.filter(F.action == 'back'))
-async def go_back_category(callback_query: CallbackQuery, callback_data: CategoryCallback):
+async def go_back_category(callback_query: CallbackQuery, callback_data: CategoryCallback, api_client: APIClient):
     target_category_id = callback_data.category_id
 
     try:
@@ -131,7 +131,7 @@ async def go_back_category(callback_query: CallbackQuery, callback_data: Categor
 
 
 @router.callback_query(F.data.startswith('product_'))
-async def product_handler(callback_query: CallbackQuery):
+async def product_handler(callback_query: CallbackQuery, api_client: APIClient):
     try:
         _, product_id_str, category_id_str = callback_query.data.split('_')
         product_id = int(product_id_str)
@@ -159,7 +159,7 @@ async def product_handler(callback_query: CallbackQuery):
     await callback_query.answer()
 
 @router.callback_query(F.data.startswith('extproduct_'))
-async def external_product_handler(callback_query: CallbackQuery):
+async def external_product_handler(callback_query: CallbackQuery, api_client: APIClient):
     try:
         parts = callback_query.data.split('_')
         if len(parts) < 3:

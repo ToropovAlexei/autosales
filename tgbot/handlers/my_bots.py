@@ -7,7 +7,7 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from states import ReferralState
-from api import api_client
+from api import APIClient
 from keyboards import inline
 from keyboards.inline import back_to_main_menu_keyboard
 from config import settings
@@ -51,7 +51,7 @@ def my_bots_keyboard(bots: list):
     buttons.append([InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-async def show_my_bots(query: CallbackQuery):
+async def show_my_bots(query: CallbackQuery, api_client: APIClient):
     response = await api_client.get_my_referral_bots(query.from_user.id)
     if response.get("success"):
         bots = response.get("data", [])
@@ -78,11 +78,11 @@ async def bot_info_handler(callback_query: CallbackQuery, callback_data: BotInfo
     await callback_query.answer(text, show_alert=True)
 
 @router.callback_query(F.data == "referral_program")
-async def my_bots_handler(callback_query: CallbackQuery):
-    await show_my_bots(callback_query)
+async def my_bots_handler(callback_query: CallbackQuery, api_client: APIClient):
+    await show_my_bots(callback_query, api_client)
 
 @router.callback_query(BotCallback.filter(F.action == "set_primary"))
-async def set_primary_handler(callback_query: CallbackQuery, callback_data: BotCallback):
+async def set_primary_handler(callback_query: CallbackQuery, callback_data: BotCallback, api_client: APIClient):
     response = await api_client.set_primary_bot(callback_data.bot_id, callback_query.from_user.id)
     if response.get("success"):
         bots = response.get("data", [])
@@ -95,13 +95,13 @@ async def set_primary_handler(callback_query: CallbackQuery, callback_data: BotC
     await callback_query.answer()
 
 @router.callback_query(BotCallback.filter(F.action == "delete"))
-async def delete_bot_handler(callback_query: CallbackQuery, callback_data: BotCallback):
+async def delete_bot_handler(callback_query: CallbackQuery, callback_data: BotCallback, api_client: APIClient):
     await api_client.delete_referral_bot(callback_data.bot_id, callback_query.from_user.id)
     await callback_query.answer("Бот удален.", show_alert=True)
-    await show_my_bots(callback_query)
+    await show_my_bots(callback_query, api_client)
 
 @router.callback_query(BotCallback.filter(F.action == "add"))
-async def add_bot_handler(callback_query: CallbackQuery, state: FSMContext):
+async def add_bot_handler(callback_query: CallbackQuery, state: FSMContext, api_client: APIClient):
     await state.set_state(ReferralState.waiting_for_token)
     seller_info_response = await api_client.get_seller_info()
     if not seller_info_response.get("success"):
@@ -125,7 +125,7 @@ async def add_bot_handler(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()
 
 @router.message(ReferralState.waiting_for_token)
-async def token_handler(message: Message, state: FSMContext):
+async def token_handler(message: Message, state: FSMContext, api_client: APIClient):
     token = message.text
     telegram_id = message.from_user.id
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"math/rand"
@@ -71,11 +72,15 @@ func createAdmin(db *gorm.DB) {
 
 func createBotUsers(db *gorm.DB, count int) []models.BotUser {
 	fmt.Printf("Creating %d bot users...\n", count)
+	botNames := []string{"main_bot", "referral_bot_1", "promo_bot", "support_bot"}
 	var users []models.BotUser
 	for i := 0; i < count; i++ {
+		botName := botNames[rand.Intn(len(botNames))]
 		users = append(users, models.BotUser{
 			TelegramID:       rand.Int63n(900000000) + 100000000, // Генерируем 9-значный ID
 			HasPassedCaptcha: true,
+			RegisteredWithBot: botName,
+			LastSeenWithBot:   botName,
 		})
 	}
 	db.Create(&users)
@@ -148,7 +153,7 @@ func createProducts(db *gorm.DB, categories []models.Category, count int) []mode
 			Name:       fmt.Sprintf("Product %d", i+1),
 			Price:      float64(rand.Intn(50000-100) + 100),
 			CategoryID: leafCategoryIDs[rand.Intn(len(leafCategoryIDs))],
-			Details:    "{}",
+			Details:    sql.NullString{String: "{}", Valid: true},
 		})
 	}
 	db.Create(&products)

@@ -7,7 +7,7 @@ from redis.asyncio import Redis
 
 from config import settings
 from handlers import start, balance, catalog, buy, referral, my_bots, my_subscriptions, my_orders
-from api import api_client
+from api import APIClient
 from logging_config import setup_logging
 
 async def main():
@@ -22,7 +22,9 @@ async def main():
     storage = RedisStorage(redis)
 
     bot = Bot(token=settings.bot_token)
-    dp = Dispatcher(storage=storage)
+    me = await bot.get_me()
+    api_client = APIClient(me.username)
+    dp = Dispatcher(storage=storage, api_client=api_client)
 
     dp.include_router(start.router)
     dp.include_router(balance.router)

@@ -5,13 +5,13 @@ import logging
 import json
 from datetime import datetime
 
-from api import api_client
+from api import APIClient
 from keyboards.inline import main_menu, back_to_main_menu_keyboard # Assuming main_menu is needed for a back button
 
 router = Router()
 
 @router.callback_query(F.data == "my_subscriptions")
-async def my_subscriptions_handler(callback_query: CallbackQuery):
+async def my_subscriptions_handler(callback_query: CallbackQuery, api_client: APIClient):
     user_id = callback_query.from_user.id
     try:
         result = await api_client.get_user_subscriptions(user_id)

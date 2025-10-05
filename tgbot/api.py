@@ -2,8 +2,9 @@ import aiohttp
 from config import settings
 
 class APIClient:
-    def __init__(self):
+    def __init__(self, bot_username: str):
         self.base_url = settings.api_url
+        self.bot_username = bot_username
         self.headers = {
             "X-API-KEY": f"{settings.service_token}"
         }
@@ -15,10 +16,10 @@ class APIClient:
                 return await response.json()
 
     async def register_user(self, telegram_id: int):
-        return await self._request("POST", "/users/register", json={"telegram_id": telegram_id})
+        return await self._request("POST", "/users/register", json={"telegram_id": telegram_id, "bot_name": self.bot_username})
 
     async def get_user(self, telegram_id: int):
-        return await self._request("GET", f"/users/{telegram_id}")
+        return await self._request("GET", f"/users/{telegram_id}", json={"bot_name": self.bot_username})
 
     async def get_user_balance(self, telegram_id: int):
         return await self._request("GET", f"/users/{telegram_id}/balance")
@@ -81,4 +82,4 @@ class APIClient:
     async def get_user_orders(self, telegram_id: int):
         return await self._request("GET", f"/users/{telegram_id}/orders")
 
-api_client = APIClient()
+

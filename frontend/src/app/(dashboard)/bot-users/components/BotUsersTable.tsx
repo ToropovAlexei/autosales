@@ -3,14 +3,7 @@
 import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
 import DeleteIcon from "@mui/icons-material/Delete";
-
-interface BotUser {
-  id: number;
-  telegram_id: number;
-  balance: number;
-  registered_with_bot: string;
-  last_seen_with_bot: string;
-}
+import { BotUser } from "@/types/common";
 
 interface BotUsersTableProps {
   users: BotUser[];
@@ -41,6 +34,13 @@ export const BotUsersTable = ({
       field: "last_seen_with_bot",
       headerName: "Последний бот",
       flex: 1,
+    },
+    {
+      field: "created_at",
+      headerName: "Дата регистрации",
+      width: 200,
+      type: "dateTime",
+      valueGetter: (value) => new Date(value),
     },
     {
       field: "actions",

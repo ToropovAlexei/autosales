@@ -7,7 +7,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup
 import contextlib
 
-from api import api_client
+from api import APIClient
 from keyboards import inline
 from config import settings
 from states import CaptchaState
@@ -43,7 +43,7 @@ async def update_pinned_message(message: Message):
         print(f"Error updating pinned message: {e}")
 
 @router.message(Command("start"))
-async def start_handler(message: Message, state: FSMContext):
+async def start_handler(message: Message, state: FSMContext, api_client: APIClient):
     try:
         response = await api_client.register_user(message.from_user.id)
         if response.get("success"):
@@ -80,7 +80,7 @@ async def start_handler(message: Message, state: FSMContext):
         await message.answer("Произошла непредвиденная ошибка. Попробуйте позже.")
 
 @router.callback_query(CaptchaState.waiting_for_answer, F.data.startswith("captcha_"))
-async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContext):
+async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContext, api_client: APIClient):
     answer = callback_query.data.split("_")[1]
     data = await state.get_data()
     correct_answer = data.get("correct_answer")
@@ -131,7 +131,7 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
         )
 
 @router.callback_query(F.data == "main_menu")
-async def main_menu_handler(callback_query: CallbackQuery):
+async def main_menu_handler(callback_query: CallbackQuery, api_client: APIClient):
     seller_info_response = await api_client.get_seller_info()
     referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
     await callback_query.message.edit_text(
@@ -143,7 +143,7 @@ async def main_menu_handler(callback_query: CallbackQuery):
     )
 
 @router.callback_query(F.data == "support")
-async def support_handler(callback_query: CallbackQuery):
+async def support_handler(callback_query: CallbackQuery, api_client: APIClient):
     seller_info_response = await api_client.get_seller_info()
     referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
     await callback_query.message.edit_text(

@@ -35,11 +35,14 @@ func (s *adminService) GetBotUsersWithBalance() ([]models.BotUserResponse, error
 		}
 
 		response = append(response, models.BotUserResponse{
-			ID:               u.ID,
-			TelegramID:       u.TelegramID,
-			IsDeleted:        u.IsDeleted,
-			HasPassedCaptcha: u.HasPassedCaptcha,
-			Balance:          balance,
+			ID:                u.ID,
+			TelegramID:        u.TelegramID,
+			IsDeleted:         u.IsDeleted,
+			HasPassedCaptcha:  u.HasPassedCaptcha,
+			Balance:           balance,
+			RegisteredWithBot: u.RegisteredWithBot,
+			LastSeenWithBot:   u.LastSeenWithBot,
+			CreatedAt:         u.CreatedAt,
 		})
 	}
 

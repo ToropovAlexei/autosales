@@ -3,7 +3,7 @@ import logging
 from aiogram.types import CallbackQuery
 from aiogram.utils.markdown import hbold
 
-from api import api_client
+from api import APIClient
 from keyboards import inline
 from keyboards.inline import PaymentCallback
 from config import settings
@@ -11,7 +11,7 @@ from config import settings
 router = Router()
 
 @router.callback_query(F.data == 'balance')
-async def balance_handler(callback_query: CallbackQuery):
+async def balance_handler(callback_query: CallbackQuery, api_client: APIClient):
     try:
         user_id = callback_query.from_user.id
         response = await api_client.get_user_balance(user_id)
@@ -33,7 +33,7 @@ async def balance_handler(callback_query: CallbackQuery):
     await callback_query.answer()
 
 @router.callback_query(F.data == 'deposit')
-async def deposit_handler(callback_query: CallbackQuery):
+async def deposit_handler(callback_query: CallbackQuery, api_client: APIClient):
     try:
         response = await api_client.get_payment_gateways()
         if response.get("success"):
@@ -61,7 +61,7 @@ async def select_gateway_handler(callback_query: CallbackQuery, callback_data: P
     await callback_query.answer()
 
 @router.callback_query(PaymentCallback.filter(F.action == 'select_amount'))
-async def select_amount_handler(callback_query: CallbackQuery, callback_data: PaymentCallback):
+async def select_amount_handler(callback_query: CallbackQuery, callback_data: PaymentCallback, api_client: APIClient):
     try:
         # We need the internal bot_user_id, not the telegram_id
         user_response = await api_client.get_user(callback_query.from_user.id)

@@ -3,7 +3,7 @@ from aiogram.types import CallbackQuery
 from aiogram.utils.markdown import hbold
 import logging
 
-from api import api_client
+from api import APIClient
 from keyboards.inline import back_to_main_menu_keyboard
 
 router = Router()
@@ -41,7 +41,7 @@ async def process_buy_result(callback_query: CallbackQuery, result: dict):
         await callback_query.message.edit_text(error_message)
 
 @router.callback_query(F.data.startswith("buy_"))
-async def buy_handler(callback_query: CallbackQuery):
+async def buy_handler(callback_query: CallbackQuery, api_client: APIClient):
     try:
         parts = callback_query.data.split('_')
         telegram_id = callback_query.from_user.id

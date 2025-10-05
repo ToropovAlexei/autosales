@@ -96,7 +96,8 @@ func (h *UserHandler) UpdateReferralSettingsHandler(c *gin.Context) {
 }
 
 type registerBotUserPayload struct {
-	TelegramID int64 `json:"telegram_id"`
+	TelegramID int64  `json:"telegram_id"`
+	BotName    string `json:"bot_name"`
 }
 
 // @Summary      Register a Bot User
@@ -104,7 +105,7 @@ type registerBotUserPayload struct {
 // @Tags         Users
 // @Accept       json
 // @Produce      json
-// @Param        user body registerBotUserPayload true "User Telegram ID"
+// @Param        user body registerBotUserPayload true "User Telegram ID and Bot Name"
 // @Success      201 {object} responses.ResponseSchema[responses.RegisterBotUserResponse]
 // @Failure      400 {object} responses.ErrorResponseSchema
 // @Failure      500 {object} responses.ErrorResponseSchema
@@ -117,18 +118,20 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 		return
 	}
 
-	user, balance, isNew, hasPassedCaptcha, err := h.userService.RegisterBotUser(json.TelegramID)
+	user, balance, isNew, hasPassedCaptcha, err := h.userService.RegisterBotUser(json.TelegramID, json.BotName)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
 	userResponse := models.BotUserResponse{
-		ID:               user.ID,
-		TelegramID:       user.TelegramID,
-		IsDeleted:        user.IsDeleted,
-		HasPassedCaptcha: user.HasPassedCaptcha,
-		Balance:          balance,
+		ID:                user.ID,
+		TelegramID:        user.TelegramID,
+		IsDeleted:         user.IsDeleted,
+		HasPassedCaptcha:  user.HasPassedCaptcha,
+		Balance:           balance,
+		RegisteredWithBot: user.RegisteredWithBot,
+		LastSeenWithBot:   user.LastSeenWithBot,
 	}
 
 	status := http.StatusOK
@@ -138,16 +141,22 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 
 	responses.SuccessResponse(c, status, responses.RegisterBotUserResponse{
 		User:               userResponse,
-		IsNew:             isNew,
-		HasPassedCaptcha: hasPassedCaptcha,
+		IsNew:              isNew,
+		HasPassedCaptcha:   hasPassedCaptcha,
 	})
+}
+
+type getBotUserPayload struct {
+	BotName string `json:"bot_name"`
 }
 
 // @Summary      Get Bot User by Telegram ID
 // @Description  Retrieves bot user details by their Telegram ID.
 // @Tags         Users
+// @Accept       json
 // @Produce      json
 // @Param        telegram_id path int true "User Telegram ID"
+// @Param        bot_name body getBotUserPayload true "Bot Name"
 // @Success      200 {object} responses.ResponseSchema[models.BotUserResponse]
 // @Failure      400 {object} responses.ErrorResponseSchema
 // @Failure      404 {object} responses.ErrorResponseSchema
@@ -160,18 +169,26 @@ func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
 		return
 	}
 
-	user, balance, err := h.userService.GetBotUserByTelegramID(id)
+	var json getBotUserPayload
+	if err := c.ShouldBindJSON(&json); err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: err.Error()})
+		return
+	}
+
+	user, balance, err := h.userService.GetBotUserByTelegramID(id, json.BotName)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
 	response := models.BotUserResponse{
-		ID:               user.ID,
-		TelegramID:       user.TelegramID,
-		IsDeleted:        user.IsDeleted,
-		HasPassedCaptcha: user.HasPassedCaptcha,
-		Balance:          balance,
+		ID:                user.ID,
+		TelegramID:        user.TelegramID,
+		IsDeleted:         user.IsDeleted,
+		HasPassedCaptcha:  user.HasPassedCaptcha,
+		Balance:           balance,
+		RegisteredWithBot: user.RegisteredWithBot,
+		LastSeenWithBot:   user.LastSeenWithBot,
 	}
 
 	responses.SuccessResponse(c, http.StatusOK, response)
