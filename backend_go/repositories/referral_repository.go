@@ -61,7 +61,7 @@ func (r *gormReferralRepository) FindReferralBotByToken(botToken string) (*model
 
 func (r *gormReferralRepository) GetAllReferralBots() ([]models.ReferralBot, error) {
 	var bots []models.ReferralBot
-	if err := r.db.Find(&bots).Error; err != nil {
+	if err := r.db.Order("id asc").Find(&bots).Error; err != nil {
 		return nil, err
 	}
 	return bots, nil
@@ -82,6 +82,7 @@ func (r *gormReferralRepository) GetAdminInfoForSeller(sellerID uint) ([]models.
 		Joins("left join ref_transactions on referral_bots.owner_id = ref_transactions.ref_owner_id").
 		Where("referral_bots.seller_id = ?", sellerID).
 		Group("referral_bots.id, bot_users.telegram_id").
+		Order("referral_bots.id asc").
 		Scan(&bots).Error
 
 	if err != nil {
@@ -109,6 +110,7 @@ func (r *gormReferralRepository) GetAdminInfoForOwner(ownerID uint) ([]models.Re
 		Joins("left join ref_transactions on referral_bots.owner_id = ref_transactions.ref_owner_id").
 		Where("referral_bots.owner_id = ?", ownerID).
 		Group("referral_bots.id, bot_users.telegram_id").
+		Order("referral_bots.id asc").
 		Scan(&bots).Error
 
 	if err != nil {

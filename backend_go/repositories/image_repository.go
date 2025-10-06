@@ -49,7 +49,7 @@ func (r *gormImageRepository) FindByID(id uuid.UUID) (*models.Image, error) {
 
 func (r *gormImageRepository) ListByFolder(folder string) ([]models.Image, error) {
 	var images []models.Image
-	query := r.db.Order("created_at DESC")
+	query := r.db.Order("id asc")
 	if folder != "" {
 		query = query.Where("folder = ?", folder)
 	} else {

@@ -34,7 +34,7 @@ func (r *gormProductRepository) WithTx(tx *gorm.DB) ProductRepository {
 
 func (r *gormProductRepository) GetProducts(categoryIDs []uint) ([]models.Product, error) {
 	var products []models.Product
-	query := r.db.Where("visible = ?", true)
+	query := r.db.Order("id asc").Where("visible = ?", true)
 	if len(categoryIDs) > 0 {
 		query = query.Where("category_id IN ?", categoryIDs)
 	}

@@ -32,7 +32,7 @@ func (r *gormCategoryRepository) WithTx(tx *gorm.DB) CategoryRepository {
 
 func (r *gormCategoryRepository) GetAll() ([]models.Category, error) {
 	var categories []models.Category
-	if err := r.db.Find(&categories).Error; err != nil {
+	if err := r.db.Order("id asc").Find(&categories).Error; err != nil {
 		return nil, err
 	}
 	return categories, nil
