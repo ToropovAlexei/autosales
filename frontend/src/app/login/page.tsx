@@ -15,15 +15,15 @@ import { newApi } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import classes from "./styles.module.css";
 
-type FormData = { email: string; password: string };
+type LoginForm = { email: string; password: string };
 
 export default function LoginPage() {
-  const form = useForm<FormData>();
+  const form = useForm<LoginForm>();
   const { handleSubmit } = form;
   const router = useRouter();
 
   const { mutate, error: loginError } = useMutation({
-    mutationFn: (form: FormData) =>
+    mutationFn: (form: LoginForm) =>
       newApi
         .post<{ data: { access_token: string } }>("auth/login", { json: form })
         .json()

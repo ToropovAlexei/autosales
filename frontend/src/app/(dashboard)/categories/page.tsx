@@ -33,10 +33,15 @@ export default function CategoriesPage() {
       id?: number;
       name: string;
       parent_id?: number;
+      image_id?: string;
     }) => {
       const params = {
         url: ENDPOINTS.CATEGORIES,
-        params: { name: payload.name, parent_id: payload.parent_id },
+        params: {
+          name: payload.name,
+          parent_id: payload.parent_id,
+          image_id: payload.image_id,
+        },
       };
       if (payload.id) {
         return dataLayer.update({
