@@ -49,6 +49,11 @@ async def start_handler(message: Message, state: FSMContext, api_client: APIClie
         if response.get("success"):
             data = response["data"]
             user_data = data["user"]
+
+            if user_data.get("is_blocked"):
+                await message.answer("Ваш аккаунт заблокирован.")
+                return
+
             is_new = data["is_new"]
             has_passed_captcha = user_data["has_passed_captcha"]
 

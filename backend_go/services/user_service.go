@@ -80,30 +80,28 @@ func (s *userService) RegisterBotUser(telegramID int64, botName string) (*models
 		return nil, 0, false, false, apperrors.New(500, "Failed to find bot user", err)
 	}
 
+	// If user exists
 	if existingUser != nil {
+		// If user is blocked, do nothing and return their status
+		if existingUser.IsBlocked {
+			return existingUser, 0, false, existingUser.HasPassedCaptcha, nil
+		}
+
+		// Otherwise, update their last seen info
 		existingUser.LastSeenWithBot = botName
 		existingUser.LastSeenAt = time.Now()
 
-		if !existingUser.IsBlocked {
-			balance, err := s.botUserRepo.GetUserBalance(existingUser.ID)
-			if err != nil {
-				return nil, 0, false, false, apperrors.New(500, "Failed to get user balance", err)
-			}
-			if err := s.botUserRepo.Update(existingUser); err != nil {
-				return nil, 0, false, false, apperrors.New(500, "Failed to update bot user", err)
-			}
-			return existingUser, balance, false, existingUser.HasPassedCaptcha, nil
+		balance, err := s.botUserRepo.GetUserBalance(existingUser.ID)
+		if err != nil {
+			return nil, 0, false, false, apperrors.New(500, "Failed to get user balance", err)
 		}
-
-		// If user was blocked, we reactivate them on a new registration attempt
-		existingUser.IsBlocked = false
-		existingUser.HasPassedCaptcha = false
 		if err := s.botUserRepo.Update(existingUser); err != nil {
 			return nil, 0, false, false, apperrors.New(500, "Failed to update bot user", err)
 		}
-		return existingUser, 0, true, false, nil
+		return existingUser, balance, false, existingUser.HasPassedCaptcha, nil
 	}
 
+	// If user does not exist, create a new one
 	newUser := &models.BotUser{
 		TelegramID:        telegramID,
 		HasPassedCaptcha:  false,
