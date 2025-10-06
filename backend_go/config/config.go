@@ -23,6 +23,7 @@ type Settings struct {
 	MockGatewayURL             string   `mapstructure:"MOCK_GATEWAY_URL"`
 	BotDispatcherWebhookURL    string   `mapstructure:"BOT_DISPATCHER_WEBHOOK_URL"`
 	PaymentNotificationMinutes int      `mapstructure:"PAYMENT_NOTIFICATION_MINUTES"`
+	ImageUploadPath            string   `mapstructure:"IMAGE_UPLOAD_PATH"`
 }
 
 func (s *Settings) GetDBConnStr() string {

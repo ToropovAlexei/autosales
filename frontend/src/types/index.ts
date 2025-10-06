@@ -3,6 +3,7 @@ export interface ICategory {
   name: string;
   parent_id?: number;
   sub_categories: ICategory[];
+  image_id?: string;
 }
 
 export interface IProduct {

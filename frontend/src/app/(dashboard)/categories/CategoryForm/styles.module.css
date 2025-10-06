@@ -1,0 +1,14 @@
+.selectImg {
+  display: grid;
+  gap: 1rem;
+  place-items: center;
+}
+
+.imgContainer {
+  display: grid;
+  place-items: center;
+}
+
+.img {
+  border-radius: var(--mui-shape-borderRadius);
+}

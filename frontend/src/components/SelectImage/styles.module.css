@@ -1,0 +1,33 @@
+.container {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+}
+
+.mainContent {
+  flex-grow: 1;
+}
+
+.dropzone {
+  border: 2px dashed #ccc;
+  border-radius: 4px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  background-color: #fafafa;
+  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+  min-height: 400px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dropzoneActive {
+  background-color: #e0e0e0;
+  border-color: #2196f3;
+}

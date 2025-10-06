@@ -7,6 +7,7 @@ import InventoryIcon from "@mui/icons-material/Inventory";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import LocalMallIcon from "@mui/icons-material/LocalMall";
 import SettingsIcon from "@mui/icons-material/Settings";
+import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 
 export const MENU_ITEMS = [
   {
@@ -48,6 +49,11 @@ export const MENU_ITEMS = [
     label: "Реферальные боты",
     Icon: SmartToyIcon,
     path: "/referral-bots",
+  },
+  {
+    label: "Изображения",
+    Icon: PhotoLibraryIcon,
+    path: "/images",
   },
   {
     label: "Настройки",

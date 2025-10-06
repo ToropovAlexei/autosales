@@ -15,6 +15,8 @@ export const ENDPOINTS = {
   ORDERS: "orders",
   SET_BOT_PRIMARY: "referrals/:id/set-primary",
   TOGGLE_BLOCK: "admin/bot-users/:id/toggle-block",
+  IMAGES: "admin/images",
+  IMAGE_FOLDERS: "admin/image-folders",
 };
 
 export const ENDPOINT_UPDATE_PUT_EXCEPTIONS = new Set<string>([

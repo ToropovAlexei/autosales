@@ -17,6 +17,7 @@ import AddIcon from "@mui/icons-material/Add";
 import { dataLayer } from "@/lib/dataLayer";
 import { queryKeys } from "@/utils/query";
 import { PageLayout } from "@/components/PageLayout";
+import { CONFIG } from "../../../../config";
 
 export default function CategoriesPage() {
   const queryClient = useQueryClient();
@@ -117,10 +118,10 @@ export default function CategoriesPage() {
   ) {
     const { itemId, label, ...other } = props;
     const categoryId = parseInt(itemId, 10);
+    const category = findCategoryById(categories?.data || [], categoryId);
 
     const handleEdit = (event: React.MouseEvent) => {
       event.stopPropagation();
-      const category = findCategoryById(categories?.data || [], categoryId);
       if (category) {
         openDialog(category);
       }
@@ -143,7 +144,15 @@ export default function CategoriesPage() {
         itemId={itemId}
         label={
           <div className={classes.treeItemLabel}>
-            <span className={classes.treeItemLabelText}>{label}</span>
+            <div className={classes.labelContainer}>
+              {category?.image_id && (
+                <img
+                  src={`${CONFIG.IMAGES_URL}/${category.image_id}`}
+                  className={classes.categoryImage}
+                />
+              )}
+              <span className={classes.treeItemLabelText}>{label}</span>
+            </div>
             <div className={classes.actions}>
               <IconButton
                 aria-label="add"

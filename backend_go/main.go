@@ -104,6 +104,7 @@ func main() {
 	rtr.DashboardRouter(r, container.DashboardHandler)
 	rtr.ReferralsRouter(r, container.ReferralHandler)
 	rtr.PaymentRouter(r, container.PaymentHandler)
+	rtr.ImagesRouter(r, container.ImageHandler)
 
 	// Swagger route
 	rtr.SwaggerRouter(r)

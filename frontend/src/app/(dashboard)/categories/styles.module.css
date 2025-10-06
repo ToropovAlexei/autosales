@@ -34,3 +34,18 @@
 .treeItemLabel:hover .actions {
   visibility: visible;
 }
+
+.labelContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-grow: 1; /* Allow container to take up space */
+}
+
+.categoryImage {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--mui-shape-borderRadius);
+  object-fit: cover;
+  flex-shrink: 0; /* Prevent image from shrinking */
+}

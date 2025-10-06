@@ -3,3 +3,4 @@ export * from "./Authorized";
 export * from "./Sidebar";
 export * from "./ConfirmModal";
 export * from "./NavBar";
+export * from "./SelectImage";

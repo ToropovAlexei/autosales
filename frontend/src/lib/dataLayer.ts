@@ -53,8 +53,12 @@ class DataLayer {
     params?: unknown;
     meta?: Record<string, unknown>;
   }) => {
+    const isFormData = params instanceof FormData;
     const response = await newApi
-      .post(fillUrlWithMeta(url, meta), { json: params })
+      .post(
+        fillUrlWithMeta(url, meta),
+        isFormData ? { body: params } : { json: params }
+      )
       .json<{ data: T }>();
     return response.data;
   };

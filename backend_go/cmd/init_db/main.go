@@ -37,6 +37,7 @@ func main() {
 		&models.RefTransaction{},
 		&models.UserSubscription{},
 		&models.PaymentInvoice{},
+		&models.Image{},
 	); migrateErr != nil {
 		log.Fatalf("failed to migrate database: %v", migrateErr)
 	}
@@ -57,6 +58,7 @@ func dropAllTables(db *gorm.DB) {
 		&models.BotUser{},
 		&models.User{},
 		&models.PaymentInvoice{},
+		&models.Image{},
 	}
 	if err := db.Migrator().DropTable(tables...); err != nil {
 		log.Fatalf("Failed to drop tables: %v", err)

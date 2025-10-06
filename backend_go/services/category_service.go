@@ -4,14 +4,16 @@ import (
 	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
+
+	"github.com/google/uuid"
 )
 
 // CategoryService определяет интерфейс для работы с категориями, включая иерархию.
 type CategoryService interface {
 	GetAll() ([]models.CategoryResponse, error)
 	GetByID(id uint) (*models.CategoryResponse, error)
-	Create(name string, parentID *uint) (*models.CategoryResponse, error)
-	Update(id uint, name string, parentID *uint) (*models.CategoryResponse, error)
+	Create(name string, parentID *uint, imageID *uuid.UUID) (*models.CategoryResponse, error)
+	Update(id uint, name string, parentID *uint, imageID *uuid.UUID) (*models.CategoryResponse, error)
 	Delete(id uint) error
 }
 
@@ -46,12 +48,14 @@ func buildCategoryTree(categories []models.Category) []models.CategoryResponse {
 		}
 		res := make([]models.CategoryResponse, len(cats))
 		for i, c := range cats {
-			res[i] = models.CategoryResponse{
+			responseItem := models.CategoryResponse{
 				ID:            c.ID,
 				Name:          c.Name,
 				ParentID:      c.ParentID,
 				SubCategories: buildResponse(categoryMap[c.ID]), // Рекурсивный вызов для дочерних элементов
+				ImageID:       c.ImageID,
 			}
+			res[i] = responseItem
 		}
 		return res
 	}
@@ -88,8 +92,11 @@ func (s *categoryService) GetByID(id uint) (*models.CategoryResponse, error) {
 	}, nil
 }
 
-func (s *categoryService) Create(name string, parentID *uint) (*models.CategoryResponse, error) {
-	category := &models.Category{Name: name, ParentID: parentID}
+func (s *categoryService) Create(name string, parentID *uint, imageID *uuid.UUID) (*models.CategoryResponse, error) {
+	if parentID != nil && *parentID == 0 {
+		parentID = nil
+	}
+	category := &models.Category{Name: name, ParentID: parentID, ImageID: imageID}
 	if err := s.categoryRepo.Create(category); err != nil {
 		return nil, apperrors.New(500, "Failed to create category", err)
 	}
@@ -100,13 +107,16 @@ func (s *categoryService) Create(name string, parentID *uint) (*models.CategoryR
 	}, nil
 }
 
-func (s *categoryService) Update(id uint, name string, parentID *uint) (*models.CategoryResponse, error) {
+func (s *categoryService) Update(id uint, name string, parentID *uint, imageID *uuid.UUID) (*models.CategoryResponse, error) {
+	if parentID != nil && *parentID == 0 {
+		parentID = nil
+	}
 	category, err := s.categoryRepo.GetByID(id)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "Category", ID: id}
 	}
 
-	updateData := models.Category{Name: name, ParentID: parentID}
+	updateData := models.Category{Name: name, ParentID: parentID, ImageID: imageID}
 	if err := s.categoryRepo.Update(category, updateData); err != nil {
 		return nil, apperrors.New(500, "Failed to update category", err)
 	}

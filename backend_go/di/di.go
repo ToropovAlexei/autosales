@@ -37,6 +37,7 @@ type Container struct {
 	AdminService           services.AdminService
 	PaymentService         services.PaymentService
 	WebhookService         services.WebhookService
+	ImageService           services.ImageService
 	UserRepo               repositories.UserRepository
 	AuthHandler            *handlers.AuthHandler
 	UserHandler            *handlers.UserHandler
@@ -50,6 +51,7 @@ type Container struct {
 	StockHandler           *handlers.StockHandler
 	AdminHandler           *handlers.AdminHandler
 	PaymentHandler         *handlers.PaymentHandler
+	ImageHandler           *handlers.ImageHandler
 	SubscriptionWorker     *workers.SubscriptionWorker
 	PaymentWorker          *workers.PaymentWorker
 }
@@ -87,6 +89,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	adminRepo := repositories.NewAdminRepository(db)
 	userSubscriptionRepo := repositories.NewUserSubscriptionRepository(db)
 	paymentInvoiceRepo := repositories.NewPaymentInvoiceRepository(db)
+	imageRepo := repositories.NewImageRepository(db)
 
 	// Init services
 	tokenService := services.NewTokenService()
@@ -103,6 +106,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	adminService := services.NewAdminService(adminRepo, botUserRepo)
 	webhookService := services.NewWebhookService(appSettings)
 	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo, botUserRepo, webhookService, appSettings)
+	imageService := services.NewImageService(db, imageRepo, appSettings)
 
 	// Init workers
 	subscriptionWorker := workers.NewSubscriptionWorker(orderService, userSubscriptionRepo, logger)
@@ -121,6 +125,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	stockHandler := handlers.NewStockHandler(stockService)
 	adminHandler := handlers.NewAdminHandler(adminService)
 	paymentHandler := handlers.NewPaymentHandler(paymentService)
+	imageHandler := handlers.NewImageHandler(imageService)
 
 	return &Container{
 		DB:                     db,
@@ -142,6 +147,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 		AdminService:           adminService,
 		PaymentService:         paymentService,
 		WebhookService:         webhookService,
+		ImageService:           imageService,
 		UserRepo:               userRepo,
 		AuthHandler:            authHandler,
 		UserHandler:            userHandler,
@@ -155,6 +161,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 		StockHandler:           stockHandler,
 		AdminHandler:           adminHandler,
 		PaymentHandler:         paymentHandler,
+		ImageHandler:           imageHandler,
 		SubscriptionWorker:     subscriptionWorker,
 		PaymentWorker:          paymentWorker,
 	}, nil

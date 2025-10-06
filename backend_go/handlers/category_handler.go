@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type CategoryHandler struct {
@@ -35,8 +36,9 @@ func (h *CategoryHandler) GetCategoriesHandler(c *gin.Context) {
 }
 
 type categoryPayload struct {
-	Name     string `json:"name" binding:"required"`
-	ParentID *uint  `json:"parent_id"`
+	Name     string     `json:"name" binding:"required"`
+	ParentID *uint      `json:"parent_id"`
+	ImageID  *uuid.UUID `json:"image_id"`
 }
 
 // @Summary      Create a new category
@@ -57,7 +59,7 @@ func (h *CategoryHandler) CreateCategoryHandler(c *gin.Context) {
 		return
 	}
 
-	category, err := h.categoryService.Create(json.Name, json.ParentID)
+	category, err := h.categoryService.Create(json.Name, json.ParentID, json.ImageID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -118,7 +120,7 @@ func (h *CategoryHandler) UpdateCategoryHandler(c *gin.Context) {
 		return
 	}
 
-	category, err := h.categoryService.Update(id, json.Name, json.ParentID)
+	category, err := h.categoryService.Update(id, json.Name, json.ParentID, json.ImageID)
 	if err != nil {
 		c.Error(err)
 		return
