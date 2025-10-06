@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"frbktg/backend_go/models"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -11,6 +12,7 @@ type PaymentInvoiceRepository interface {
 	Create(invoice *models.PaymentInvoice) error
 	FindByOrderID(orderID string) (*models.PaymentInvoice, error)
 	Update(invoice *models.PaymentInvoice) error
+	GetPendingInvoicesOlderThan(minutes int) ([]models.PaymentInvoice, error)
 }
 
 type gormPaymentInvoiceRepository struct {
@@ -39,4 +41,15 @@ func (r *gormPaymentInvoiceRepository) FindByOrderID(orderID string) (*models.Pa
 
 func (r *gormPaymentInvoiceRepository) Update(invoice *models.PaymentInvoice) error {
 	return r.db.Save(invoice).Error
+}
+
+func (r *gormPaymentInvoiceRepository) GetPendingInvoicesOlderThan(minutes int) ([]models.PaymentInvoice, error) {
+	var invoices []models.PaymentInvoice
+	err := r.db.
+		Preload("BotUser").
+		Where("status = ?", models.InvoiceStatusPending).
+		Where("was_notification_sent = ?", false).
+		Where("created_at < ?", time.Now().Add(-time.Duration(minutes)*time.Minute)).
+		Find(&invoices).Error
+	return invoices, err
 }

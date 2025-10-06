@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"frbktg/backend_go/apperrors"
+	"frbktg/backend_go/config"
 	"frbktg/backend_go/gateways"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
@@ -25,6 +26,7 @@ type PaymentService interface {
 	CreateInvoice(userID uint, gatewayName string, amount float64) (*CreateInvoiceResponse, error)
 	SetInvoiceMessageID(orderID string, messageID int64) error
 	HandleWebhook(gatewayName string, r *http.Request) error
+	NotifyUnfinishedPayments() error
 }
 
 type paymentService struct {
@@ -34,9 +36,10 @@ type paymentService struct {
 	transactionRepo repositories.TransactionRepository
 	botUserRepo     repositories.BotUserRepository
 	webhookService  WebhookService
+	config          config.Settings
 }
 
-func NewPaymentService(db *gorm.DB, registry *gateways.ProviderRegistry, invoiceRepo repositories.PaymentInvoiceRepository, transactionRepo repositories.TransactionRepository, botUserRepo repositories.BotUserRepository, webhookService WebhookService) PaymentService {
+func NewPaymentService(db *gorm.DB, registry *gateways.ProviderRegistry, invoiceRepo repositories.PaymentInvoiceRepository, transactionRepo repositories.TransactionRepository, botUserRepo repositories.BotUserRepository, webhookService WebhookService, config config.Settings) PaymentService {
 	return &paymentService{
 		db:              db,
 		registry:        registry,
@@ -44,6 +47,7 @@ func NewPaymentService(db *gorm.DB, registry *gateways.ProviderRegistry, invoice
 		transactionRepo: transactionRepo,
 		botUserRepo:     botUserRepo,
 		webhookService:  webhookService,
+		config:          config,
 	}
 }
 
@@ -173,6 +177,60 @@ func (s *paymentService) HandleWebhook(gatewayName string, r *http.Request) erro
 		go func() {
 			if err := s.webhookService.SendNotification(userToNotify.LastSeenWithBot, userToNotify.TelegramID, message, messageToEdit); err != nil {
 				slog.Error("failed to send payment notification webhook", "userID", userToNotify.ID, "error", err)
+			}
+		}()
+	}
+
+	return nil
+}
+
+func (s *paymentService) NotifyUnfinishedPayments() error {
+	minutes := s.config.PaymentNotificationMinutes
+	if minutes <= 0 {
+		slog.Debug("payment notification is disabled")
+		return nil
+	}
+
+	invoices, err := s.invoiceRepo.GetPendingInvoicesOlderThan(minutes)
+	if err != nil {
+		return fmt.Errorf("failed to get pending invoices: %w", err)
+	}
+
+	if len(invoices) == 0 {
+		return nil
+	}
+
+	slog.Info("found unfinished payments to notify", "count", len(invoices))
+
+	for _, invoice := range invoices {
+		// Use a copy of the invoice in the goroutine
+		invoiceCopy := invoice
+
+		go func() {
+			message := fmt.Sprintf(
+				"Вы недавно пытались пополнить баланс на %.2f ₽. Возникли ли у вас какие-либо проблемы с оплатой?",
+				invoiceCopy.Amount,
+			)
+
+			// Send notification
+			err := s.webhookService.SendNotification(
+				invoiceCopy.BotUser.LastSeenWithBot,
+				invoiceCopy.BotUser.TelegramID,
+				message,
+				nil, // No message to edit
+			)
+			if err != nil {
+				slog.Error("failed to send payment notification", "invoice_id", invoiceCopy.ID, "error", err)
+				// Continue to next invoice even if one fails
+				return
+			}
+
+			// Mark invoice as notified
+			invoiceCopy.WasNotificationSent = true
+			if err := s.invoiceRepo.Update(&invoiceCopy); err != nil {
+				slog.Error("failed to update invoice notification status", "invoice_id", invoiceCopy.ID, "error", err)
+			} else {
+				slog.Info("successfully sent unfinished payment notification", "invoice_id", invoiceCopy.ID, "user_id", invoiceCopy.BotUserID)
 			}
 		}()
 	}

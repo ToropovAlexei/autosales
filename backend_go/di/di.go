@@ -51,6 +51,7 @@ type Container struct {
 	AdminHandler           *handlers.AdminHandler
 	PaymentHandler         *handlers.PaymentHandler
 	SubscriptionWorker     *workers.SubscriptionWorker
+	PaymentWorker          *workers.PaymentWorker
 }
 
 // NewContainer creates a new dependency container.
@@ -101,10 +102,11 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	stockService := services.NewStockService(stockRepo)
 	adminService := services.NewAdminService(adminRepo, botUserRepo)
 	webhookService := services.NewWebhookService(appSettings)
-	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo, botUserRepo, webhookService)
+	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo, botUserRepo, webhookService, appSettings)
 
 	// Init workers
 	subscriptionWorker := workers.NewSubscriptionWorker(orderService, userSubscriptionRepo, logger)
+	paymentWorker := workers.NewPaymentWorker(paymentService, logger)
 
 	// Init handlers
 	authHandler := handlers.NewAuthHandler(authService)
@@ -121,38 +123,45 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	paymentHandler := handlers.NewPaymentHandler(paymentService)
 
 	return &Container{
-		DB:                   db,
-		AppSettings:          appSettings,
-		Logger:               logger,
-		ProviderRegistry:     providerRegistry,
+		DB:                     db,
+		AppSettings:            appSettings,
+		Logger:                 logger,
+		ProviderRegistry:       providerRegistry,
 		PaymentGatewayRegistry: paymentGatewayRegistry,
-		TokenService:         tokenService,
-		AuthService:          authService,
-		UserService:          userService,
-		ProductService:       productService,
-		CategoryService:      categoryService,
-		ReferralService:      referralService,
-		OrderService:         orderService,
-		TransactionService:   transactionService,
-		DashboardService:     dashboardService,
-		BalanceService:       balanceService,
-		StockService:         stockService,
-		AdminService:         adminService,
-		PaymentService:       paymentService,
-		WebhookService:       webhookService,
-		UserRepo:             userRepo,
-		AuthHandler:          authHandler,
-		UserHandler:          userHandler,
-		ProductHandler:       productHandler,
-		CategoryHandler:      categoryHandler,
-		OrderHandler:         orderHandler,
-		TransactionHandler:   transactionHandler,
-		ReferralHandler:      referralHandler,
-		DashboardHandler:     dashboardHandler,
-		BalanceHandler:       balanceHandler,
-		StockHandler:         stockHandler,
-		AdminHandler:         adminHandler,
-		PaymentHandler:       paymentHandler,
-		SubscriptionWorker:   subscriptionWorker,
+		TokenService:           tokenService,
+		AuthService:            authService,
+		UserService:            userService,
+		ProductService:         productService,
+		CategoryService:        categoryService,
+		ReferralService:        referralService,
+		OrderService:           orderService,
+		TransactionService:     transactionService,
+		DashboardService:       dashboardService,
+		BalanceService:         balanceService,
+		StockService:           stockService,
+		AdminService:           adminService,
+		PaymentService:         paymentService,
+		WebhookService:         webhookService,
+		UserRepo:               userRepo,
+		AuthHandler:            authHandler,
+		UserHandler:            userHandler,
+		ProductHandler:         productHandler,
+		CategoryHandler:        categoryHandler,
+		OrderHandler:           orderHandler,
+		TransactionHandler:     transactionHandler,
+		ReferralHandler:        referralHandler,
+		DashboardHandler:       dashboardHandler,
+		BalanceHandler:         balanceHandler,
+		StockHandler:           stockHandler,
+		AdminHandler:           adminHandler,
+		PaymentHandler:         paymentHandler,
+		SubscriptionWorker:     subscriptionWorker,
+		PaymentWorker:          paymentWorker,
 	}, nil
+}
+
+// StartWorkers starts all the background workers.
+func (c *Container) StartWorkers() {
+	c.SubscriptionWorker.Start()
+	c.PaymentWorker.Start()
 }

@@ -69,8 +69,8 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to create container")
 	}
 
-	// Start the subscription worker
-	container.SubscriptionWorker.Start()
+	// Start workers
+	container.StartWorkers()
 
 	// Перенаправляем стандартный логгер Gin в zerolog через наш адаптер
 	gin.DefaultWriter = GinLogAdapter{}

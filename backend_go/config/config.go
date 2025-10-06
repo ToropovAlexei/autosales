@@ -9,19 +9,20 @@ import (
 )
 
 type Settings struct {
-	DatabaseHost             string   `mapstructure:"DATABASE_HOST"`
-	DatabasePort             string   `mapstructure:"DATABASE_PORT"`
-	DatabaseUser             string   `mapstructure:"DATABASE_USER"`
-	DatabasePassword         string   `mapstructure:"DATABASE_PASSWORD"`
-	DatabaseName             string   `mapstructure:"DATABASE_NAME"`
-	CorsOrigins              []string `mapstructure:"CORS_ORIGINS"`
-	SecretKey                string   `mapstructure:"SECRET_KEY"`
-	Algorithm                string   `mapstructure:"ALGORITHM"`
-	AccessTokenExpireMinutes int      `mapstructure:"ACCESS_TOKEN_EXPIRE_MINUTES"`
-	ServiceAPIKey            string   `mapstructure:"SERVICE_API_KEY"`
-	Port                     string   `mapstructure:"PORT"`
-	MockGatewayURL           string   `mapstructure:"MOCK_GATEWAY_URL"`
-	BotDispatcherWebhookURL  string   `mapstructure:"BOT_DISPATCHER_WEBHOOK_URL"`
+	DatabaseHost               string   `mapstructure:"DATABASE_HOST"`
+	DatabasePort               string   `mapstructure:"DATABASE_PORT"`
+	DatabaseUser               string   `mapstructure:"DATABASE_USER"`
+	DatabasePassword           string   `mapstructure:"DATABASE_PASSWORD"`
+	DatabaseName               string   `mapstructure:"DATABASE_NAME"`
+	CorsOrigins                []string `mapstructure:"CORS_ORIGINS"`
+	SecretKey                  string   `mapstructure:"SECRET_KEY"`
+	Algorithm                  string   `mapstructure:"ALGORITHM"`
+	AccessTokenExpireMinutes   int      `mapstructure:"ACCESS_TOKEN_EXPIRE_MINUTES"`
+	ServiceAPIKey              string   `mapstructure:"SERVICE_API_KEY"`
+	Port                       string   `mapstructure:"PORT"`
+	MockGatewayURL             string   `mapstructure:"MOCK_GATEWAY_URL"`
+	BotDispatcherWebhookURL    string   `mapstructure:"BOT_DISPATCHER_WEBHOOK_URL"`
+	PaymentNotificationMinutes int      `mapstructure:"PAYMENT_NOTIFICATION_MINUTES"`
 }
 
 func (s *Settings) GetDBConnStr() string {
