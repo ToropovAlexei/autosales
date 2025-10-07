@@ -1,10 +1,14 @@
 from aiogram import Router, F
 import logging
-from aiogram.types import CallbackQuery
+import aiohttp
+from aiogram.types import CallbackQuery, BufferedInputFile
 from aiogram.utils.markdown import hbold, hitalic
 
 from api import APIClient
 from keyboards.inline import CategoryCallback, categories_menu, products_menu, product_card
+from config import settings
+
+from aiogram.exceptions import TelegramBadRequest
 
 router = Router()
 
@@ -60,25 +64,64 @@ async def navigate_categories(callback_query: CallbackQuery, callback_data: Cate
 
             sub_categories = selected_category.get('sub_categories', [])
             parent_id_for_back = selected_category.get('parent_id')
+            image_id = selected_category.get('image_id')
+
+            # Determine caption and reply markup first
+            caption = "🛍️ Выберите категорию:"
+            reply_markup = None
 
             if sub_categories:
-                await callback_query.message.edit_text(
-                    "🛍️ Выберите категорию:",
-                    reply_markup=categories_menu(sub_categories, parent_id_for_back or 0)
-                )
+                reply_markup = categories_menu(sub_categories, parent_id_for_back or 0)
             else:
-                parent_id = selected_category.get('parent_id') or 0
+                caption = "Выберите товар:"
                 products_response = await api_client.get_products(category_id)
                 if products_response.get("success"):
                     products = products_response["data"]
-                    await callback_query.message.edit_text(
-                        "Выберите товар:",
-                        reply_markup=products_menu(products, category_id, parent_id)
-                    )
+                    reply_markup = products_menu(products, category_id, parent_id_for_back or 0)
                 else:
+                    await callback_query.message.edit_text(f"Не удалось загрузить товары: {products_response.get('error')}")
+                    await callback_query.answer()
+                    return
+
+            # Now, decide how to send the message
+            if image_id:
+                image_url = f"{settings.api_url.replace('/api', '').rstrip('/')}/images/{image_id}"
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(image_url) as resp:
+                            if resp.status == 200:
+                                image_bytes = await resp.read()
+                                # Send the new photo message FIRST
+                                await callback_query.message.answer_photo(
+                                    photo=BufferedInputFile(image_bytes, filename="image.jpg"),
+                                    caption=caption,
+                                    reply_markup=reply_markup
+                                )
+                                # If successful, THEN delete the old one
+                                await callback_query.message.delete()
+                            else:
+                                logging.warning(f"Failed to download image {image_url}, status: {resp.status}. Falling back to text.")
+                                await callback_query.message.edit_text(caption, reply_markup=reply_markup)
+                except Exception as e:
+                    logging.error(f"Failed to process or send image {image_url}: {e}")
+                    # If anything fails, try to edit the original message as a fallback
+                    try:
+                        await callback_query.message.edit_text(caption, reply_markup=reply_markup)
+                    except Exception as inner_e:
+                        logging.error(f"Failed to fall back to edit_text: {inner_e}")
+            else:
+                # The target is a text menu. The source could be a photo menu.
+                try:
                     await callback_query.message.edit_text(
-                        f"Не удалось загрузить товары: {products_response.get('error')}",
-                        reply_markup=categories_menu([], parent_id=category_id)
+                        caption,
+                        reply_markup=reply_markup
+                    )
+                except TelegramBadRequest:
+                    # Failed, so we're coming from a photo. Delete and send new text message.
+                    await callback_query.message.delete()
+                    await callback_query.message.answer(
+                        caption,
+                        reply_markup=reply_markup
                     )
 
     except Exception:
@@ -118,10 +161,17 @@ async def go_back_category(callback_query: CallbackQuery, callback_data: Categor
                 if grandparent:
                     categories_to_show = grandparent.get('sub_categories', [])
 
-            await callback_query.message.edit_text(
-                "🛍️ Выберите категорию:",
-                reply_markup=categories_menu(categories_to_show, grandparent_id)
-            )
+            try:
+                await callback_query.message.edit_text(
+                    "🛍️ Выберите категорию:",
+                    reply_markup=categories_menu(categories_to_show, grandparent_id)
+                )
+            except TelegramBadRequest:
+                await callback_query.message.delete()
+                await callback_query.message.answer(
+                    "🛍️ Выберите категорию:",
+                    reply_markup=categories_menu(categories_to_show, grandparent_id)
+                )
 
     except Exception:
         logging.exception("An error occurred in go_back_category")
