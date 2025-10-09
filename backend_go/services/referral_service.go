@@ -85,7 +85,7 @@ func (s *referralService) ProcessReferral(tx *gorm.DB, referralBotToken *string,
 	}
 
 	refBot, err := s.referralRepo.WithTx(tx).FindByBotToken(*referralBotToken)
-	if err != nil || !refBot.IsActive {
+	if err != nil || refBot == nil || !refBot.IsActive {
 		// Bot not found or not active, just ignore
 		return nil
 	}
@@ -116,14 +116,12 @@ func (s *referralService) CreateReferralBot(ownerTelegramID int64, botToken stri
 		return nil, apperrors.ErrBotLimitExceeded
 	}
 
-	_, err = s.referralRepo.FindReferralBotByToken(botToken)
-	// We expect a "not found" error here. If any other error occurs, or if no error occurs (meaning bot was found), we fail.
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		if err == nil { // Bot was found
-			return nil, &apperrors.ErrAlreadyExists{Base: apperrors.New(http.StatusConflict, "", nil), Resource: "ReferralBot", Field: "token", Value: botToken}
-		}
-		// Another unexpected error
+	bot, err := s.referralRepo.FindByBotToken(botToken)
+	if err != nil {
 		return nil, apperrors.New(http.StatusInternalServerError, "Failed to check for existing bot", err)
+	}
+	if bot != nil {
+		return nil, &apperrors.ErrAlreadyExists{Base: apperrors.New(http.StatusConflict, "", nil), Resource: "ReferralBot", Field: "token", Value: botToken}
 	}
 
 	dbBot := &models.ReferralBot{
@@ -137,6 +135,21 @@ func (s *referralService) CreateReferralBot(ownerTelegramID int64, botToken stri
 			return nil, &apperrors.ErrAlreadyExists{Base: apperrors.New(http.StatusConflict, "", nil), Resource: "ReferralBot", Field: "token", Value: botToken}
 		}
 		return nil, apperrors.New(http.StatusInternalServerError, "Failed to create referral bot", err)
+	}
+
+	bots, err := s.referralRepo.GetBotsByOwnerID(owner.ID)
+	if err == nil {
+		hasPrimary := false
+		for _, bot := range bots {
+			if bot.IsPrimary {
+				hasPrimary = true
+				break
+			}
+		}
+		if !hasPrimary {
+			s.referralRepo.SetPrimary(owner.ID, dbBot.ID)
+			dbBot.IsPrimary = true
+		}
 	}
 
 	return dbBot, nil
@@ -242,5 +255,31 @@ func (s *referralService) ServiceDeleteReferralBot(botID uint, telegramID int64)
 		return apperrors.ErrForbidden
 	}
 
-	return s.referralRepo.DeleteReferralBot(bot)
+	wasPrimary := bot.IsPrimary
+
+	if err := s.referralRepo.DeleteReferralBot(bot); err != nil {
+		return apperrors.New(http.StatusInternalServerError, "Failed to delete referral bot", err)
+	}
+
+	if wasPrimary {
+		bots, err := s.referralRepo.GetBotsByOwnerID(user.ID)
+		if err != nil || len(bots) == 0 {
+			return nil // No other bots to make primary
+		}
+
+		var nextPrimary *models.ReferralBot
+		for i := range bots {
+			if bots[i].IsActive {
+				if nextPrimary == nil || bots[i].CreatedAt.After(nextPrimary.CreatedAt) {
+					nextPrimary = &bots[i]
+				}
+			}
+		}
+
+		if nextPrimary != nil {
+			s.referralRepo.SetPrimary(user.ID, nextPrimary.ID)
+		}
+	}
+
+	return nil
 }

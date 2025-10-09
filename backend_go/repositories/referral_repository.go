@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"errors"
 	"frbktg/backend_go/models"
 
 	"gorm.io/gorm"
@@ -9,10 +10,10 @@ import (
 type ReferralRepository interface {
 	WithTx(tx *gorm.DB) ReferralRepository
 	CountByOwnerID(ownerID uint) (int64, error)
+	GetBotsByOwnerID(ownerID uint) ([]models.ReferralBot, error)
 	SetPrimary(ownerID, botID uint) error
 	FindByBotToken(botToken string) (*models.ReferralBot, error)
 	CreateReferralBot(bot *models.ReferralBot) error
-	FindReferralBotByToken(botToken string) (*models.ReferralBot, error)
 	GetAllReferralBots() ([]models.ReferralBot, error)
 	GetAdminInfoForOwner(ownerID uint) ([]models.ReferralBotAdminInfo, error)
 	GetAllAdminInfo() ([]models.ReferralBotAdminInfo, error)
@@ -39,9 +40,21 @@ func (r *gormReferralRepository) CountByOwnerID(ownerID uint) (int64, error) {
 	return count, err
 }
 
+func (r *gormReferralRepository) GetBotsByOwnerID(ownerID uint) ([]models.ReferralBot, error) {
+	var bots []models.ReferralBot
+	if err := r.db.Where("owner_id = ?", ownerID).Find(&bots).Error; err != nil {
+		return nil, err
+	}
+	return bots, nil
+}
+
 func (r *gormReferralRepository) FindByBotToken(botToken string) (*models.ReferralBot, error) {
 	var bot models.ReferralBot
-	if err := r.db.Where("bot_token = ?", botToken).First(&bot).Error; err != nil {
+	err := r.db.Where("bot_token = ?", botToken).First(&bot).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &bot, nil
@@ -49,14 +62,6 @@ func (r *gormReferralRepository) FindByBotToken(botToken string) (*models.Referr
 
 func (r *gormReferralRepository) CreateReferralBot(bot *models.ReferralBot) error {
 	return r.db.Create(bot).Error
-}
-
-func (r *gormReferralRepository) FindReferralBotByToken(botToken string) (*models.ReferralBot, error) {
-	var bot models.ReferralBot
-	if err := r.db.Where("bot_token = ?", botToken).First(&bot).Error; err != nil {
-		return nil, err
-	}
-	return &bot, nil
 }
 
 func (r *gormReferralRepository) GetAllReferralBots() ([]models.ReferralBot, error) {
