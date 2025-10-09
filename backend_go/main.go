@@ -10,6 +10,7 @@ import (
 	"frbktg/backend_go/di"
 	_ "frbktg/backend_go/docs" // This is required for swag to find your docs
 	"frbktg/backend_go/middleware"
+	"frbktg/backend_go/models"
 	"frbktg/backend_go/routers"
 
 	"github.com/gin-contrib/cors"
@@ -72,10 +73,17 @@ func main() {
 	// Start workers
 	container.StartWorkers()
 
+	// Run migrations
+	if err := container.DB.AutoMigrate(&models.Setting{}); err != nil {
+		log.Fatal().Err(err).Msg("failed to migrate database")
+	}
+
 	// Перенаправляем стандартный логгер Gin в zerolog через наш адаптер
 	gin.DefaultWriter = GinLogAdapter{}
 
 	r := gin.New()
+	r.RedirectTrailingSlash = false
+	r.RedirectFixedPath = false
 
 	// Используем стандартный Recovery middleware и наши кастомные
 	r.Use(gin.Recovery())
@@ -89,25 +97,26 @@ func main() {
 	corsConfig.AddAllowHeaders("*")
 	r.Use(cors.New(corsConfig))
 
-	rtr := routers.NewRouter(container.DB, container.AppSettings, container.Logger, container.TokenService, container.UserRepo)
+	authMiddleware := middleware.NewAuthMiddleware(container.TokenService, container.UserService)
 
-	// API routes
-	rtr.AuthRouter(r, container.AuthHandler)
-	rtr.CategoriesRouter(r, container.CategoryHandler)
-	rtr.ProductsRouter(r, container.ProductHandler)
-	rtr.UsersRouter(r, container.UserHandler)
-	rtr.BalanceRouter(r, container.BalanceHandler)
-	rtr.OrdersRouter(r, container.OrderHandler)
-	rtr.AdminRouter(r, container.AdminHandler)
-	rtr.TransactionsRouter(r, container.TransactionHandler)
-	rtr.StockRouter(r, container.StockHandler)
-	rtr.DashboardRouter(r, container.DashboardHandler)
-	rtr.ReferralsRouter(r, container.ReferralHandler)
-	rtr.PaymentRouter(r, container.PaymentHandler)
-	rtr.ImagesRouter(r, container.ImageHandler)
+	// Register all routes
+	routers.RegisterAuthRoutes(r, container.AuthHandler)
+	routers.RegisterCategoryRoutes(r, container.CategoryHandler, authMiddleware)
+	routers.RegisterProductRoutes(r, container.ProductHandler, authMiddleware)
+	routers.RegisterUserRoutes(r, container.UserHandler, authMiddleware)
+	routers.RegisterBalanceRoutes(r, container.BalanceHandler, authMiddleware)
+	routers.RegisterOrderRoutes(r, container.OrderHandler, authMiddleware)
+	routers.RegisterAdminRoutes(r, container.AdminHandler, authMiddleware)
+	routers.RegisterTransactionRoutes(r, container.TransactionHandler, authMiddleware)
+	routers.RegisterStockRoutes(r, container.StockHandler, authMiddleware)
+	routers.RegisterDashboardRoutes(r, container.DashboardHandler, authMiddleware)
+	routers.RegisterReferralRoutes(r, container.ReferralHandler, authMiddleware)
+	routers.RegisterPaymentRoutes(r, container.PaymentHandler, authMiddleware)
+	routers.RegisterImageRoutes(r, container.ImageHandler, authMiddleware)
+	routers.RegisterSettingRoutes(r, container.SettingHandler, authMiddleware)
 
 	// Swagger route
-	rtr.SwaggerRouter(r)
+	// rtr.SwaggerRouter(r)
 
 	for _, route := range r.Routes() {
 		log.Info().Msgf("Registered route: %s %s", route.Method, route.Path)

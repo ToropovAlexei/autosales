@@ -32,5 +32,5 @@ func (s *authService) Login(username, password string) (string, error) {
 		return "", &apperrors.ErrValidation{Message: "incorrect username or password"}
 	}
 
-	return s.tokenService.GenerateToken(user, s.appSettings.SecretKey, s.appSettings.AccessTokenExpireMinutes)
+	return s.tokenService.GenerateToken(user)
 }

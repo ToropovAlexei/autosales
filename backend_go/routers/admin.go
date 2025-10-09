@@ -7,8 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (r *Router) AdminRouter(router *gin.Engine, adminHandler *handlers.AdminHandler) {
+func RegisterAdminRoutes(router *gin.Engine, adminHandler *handlers.AdminHandler, authMiddleware *middleware.AuthMiddleware) {
 	admin := router.Group("/api/admin")
-	admin.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo), middleware.AdminMiddleware())
-	admin.GET("/bot-users", adminHandler.GetBotUsersHandler)
+	admin.Use(authMiddleware.RequireAuth, middleware.AdminMiddleware())
+	{
+		admin.GET("/bot-users", adminHandler.GetBotUsersHandler)
+	}
 }

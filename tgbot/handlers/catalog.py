@@ -102,13 +102,13 @@ async def navigate_categories(callback_query: CallbackQuery, callback_data: Cate
                             else:
                                 logging.warning(f"Failed to download image {image_url}, status: {resp.status}. Falling back to text.")
                                 await callback_query.message.edit_text(caption, reply_markup=reply_markup)
-                except Exception as e:
-                    logging.error(f"Failed to process or send image {image_url}: {e}")
+                except Exception:
+                    logging.exception(f"Failed to process or send image {image_url}")
                     # If anything fails, try to edit the original message as a fallback
                     try:
                         await callback_query.message.edit_text(caption, reply_markup=reply_markup)
                     except Exception as inner_e:
-                        logging.error(f"Failed to fall back to edit_text: {inner_e}")
+                        logging.exception(f"Failed to fall back to edit_text: {inner_e}")
             else:
                 # The target is a text menu. The source could be a photo menu.
                 try:

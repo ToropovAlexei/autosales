@@ -21,7 +21,6 @@ func NewReferralHandler(referralService services.ReferralService) *ReferralHandl
 
 type referralBotCreatePayload struct {
 	OwnerID  int64  `json:"owner_id" binding:"required"`
-	SellerID uint   `json:"seller_id" binding:"required"`
 	BotToken string `json:"bot_token" binding:"required"`
 }
 
@@ -32,7 +31,7 @@ func (h *ReferralHandler) CreateReferralBotHandler(c *gin.Context) {
 		return
 	}
 
-	bot, err := h.referralService.CreateReferralBot(json.OwnerID, json.SellerID, json.BotToken)
+	bot, err := h.referralService.CreateReferralBot(json.OwnerID, json.BotToken)
 	if err != nil {
 		c.Error(err)
 		return
@@ -50,7 +49,7 @@ func (h *ReferralHandler) GetReferralBotsHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusOK, bots)
 }
 
-func (h *ReferralHandler) GetReferralBotsAdminHandler(c *gin.Context) {
+func (h *ReferralHandler) GetAllReferralBotsAdminHandler(c *gin.Context) {
 	user, exists := c.Get("user")
 	if !exists {
 		c.Error(apperrors.ErrForbidden)
@@ -62,12 +61,12 @@ func (h *ReferralHandler) GetReferralBotsAdminHandler(c *gin.Context) {
 		return
 	}
 
-	if currentUser.Role != models.Admin && currentUser.Role != models.Seller {
+	if currentUser.Role != models.Admin {
 		c.Error(apperrors.ErrForbidden)
 		return
 	}
 
-	bots, err := h.referralService.GetAdminInfoForSeller(currentUser.ID)
+	bots, err := h.referralService.GetAllAdminInfo()
 	if err != nil {
 		c.Error(err)
 		return
@@ -85,13 +84,8 @@ type botActionPayload struct {
 }
 
 func (h *ReferralHandler) UpdateReferralBotStatusHandler(c *gin.Context) {
-	user, exists := c.Get("user")
+	_, exists := c.Get("user")
 	if !exists {
-		c.Error(apperrors.ErrForbidden)
-		return
-	}
-	currentUser, ok := user.(models.User)
-	if !ok {
 		c.Error(apperrors.ErrForbidden)
 		return
 	}
@@ -108,13 +102,20 @@ func (h *ReferralHandler) UpdateReferralBotStatusHandler(c *gin.Context) {
 		return
 	}
 
-	bot, err := h.referralService.UpdateReferralBotStatus(uint(botID), currentUser.ID, json.IsActive)
+	// First, get the bot to find out the ownerID
+	bot, err := h.referralService.GetReferralBotByID(uint(botID))
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	responses.SuccessResponse(c, http.StatusOK, bot)
+	updatedBot, err := h.referralService.UpdateReferralBotStatus(uint(botID), bot.OwnerID, json.IsActive)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, updatedBot)
 }
 
 func (h *ReferralHandler) ServiceSetPrimaryBotHandler(c *gin.Context) {

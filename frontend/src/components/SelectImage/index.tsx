@@ -31,6 +31,7 @@ interface IImage {
 }
 
 const FOLDERS = [{ id: "categories", name: "Категории" }];
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 interface SelectImageProps {
   open: boolean;
@@ -41,6 +42,7 @@ interface SelectImageProps {
 export const SelectImage = ({ open, onClose, onSelect }: SelectImageProps) => {
   const [selectedFolder, setSelectedFolder] = useState("categories");
   const [isDragging, setIsDragging] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const client = useQueryClient();
 
   const { data: imagesData, isPending: isLoadingImages } = useList<IImage>({
@@ -62,15 +64,28 @@ export const SelectImage = ({ open, onClose, onSelect }: SelectImageProps) => {
     },
     onSuccess: () => {
       client.invalidateQueries({ queryKey: queryKeys.list(ENDPOINTS.IMAGES) });
+      setError(null);
+    },
+    onError: (err) => {
+      setError(err.message || "Failed to upload image.");
     },
   });
+
+  const validateFile = (file: File) => {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError(`Неверный тип файла. Пожалуйста, загрузите изображение в формате JPEG, PNG, GIF или WEBP.`);
+      return false;
+    }
+    setError(null);
+    return true;
+  };
 
   const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
     setIsDragging(false);
     const file = event.dataTransfer.files?.[0];
-    if (file) {
+    if (file && validateFile(file)) {
       uploadMutation.mutate({ file, folder: selectedFolder });
     }
   };
@@ -110,6 +125,7 @@ export const SelectImage = ({ open, onClose, onSelect }: SelectImageProps) => {
             </List>
           </div>
           <div className={classes.mainContent}>
+            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
             {uploadMutation.error && (
               <Alert severity="error" sx={{ mb: 2 }}>
                 {uploadMutation.error.message}

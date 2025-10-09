@@ -61,11 +61,11 @@ class APIClient:
     async def get_referral_bots(self):
         return await self._request("GET", "/referrals")
 
-    async def get_seller_info(self):
-        return await self._request("GET", "/users/seller-settings")
+    async def get_public_settings(self):
+        return await self._request("GET", "/settings/public")
 
-    async def create_referral_bot(self, owner_telegram_id: int, seller_id: int, bot_token: str):
-        return await self._request("POST", "/referrals", json={"owner_id": owner_telegram_id, "seller_id": seller_id, "bot_token": bot_token})
+    async def create_referral_bot(self, owner_telegram_id: int, bot_token: str):
+        return await self._request("POST", "/referrals", json={"owner_id": owner_telegram_id, "bot_token": bot_token})
 
     async def get_my_referral_bots(self, telegram_id: int):
         return await self._request("GET", f"/referrals/user/{telegram_id}")

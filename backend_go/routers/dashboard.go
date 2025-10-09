@@ -7,13 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (r *Router) DashboardRouter(router *gin.Engine, dashboardHandler *handlers.DashboardHandler) {
-	auth := router.Group("/api/dashboard")
-	auth.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo))
+func RegisterDashboardRoutes(router *gin.Engine, dashboardHandler *handlers.DashboardHandler, authMiddleware *middleware.AuthMiddleware) {
+	dashboard := router.Group("/api/dashboard")
+	dashboard.Use(authMiddleware.RequireAuth)
 	{
-		auth.GET("/stats", dashboardHandler.GetDashboardStatsHandler)
-		auth.GET("/time-series", dashboardHandler.GetTimeSeriesDashboardDataHandler)
-		auth.GET("/top-products", dashboardHandler.GetTopProductsHandler)
-		auth.GET("/sales-by-category", dashboardHandler.GetSalesByCategoryHandler)
+		dashboard.GET("/stats", dashboardHandler.GetDashboardStatsHandler)
+		dashboard.GET("/time-series", dashboardHandler.GetTimeSeriesDashboardDataHandler)
+		dashboard.GET("/top-products", dashboardHandler.GetTopProductsHandler)
+		dashboard.GET("/sales-by-category", dashboardHandler.GetSalesByCategoryHandler)
 	}
 }

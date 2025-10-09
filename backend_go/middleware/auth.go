@@ -1,10 +1,9 @@
 package middleware
 
 import (
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/config"
 	"frbktg/backend_go/models"
-	"frbktg/backend_go/repositories"
-	"frbktg/backend_go/responses"
 	"frbktg/backend_go/services"
 	"net/http"
 	"strings"
@@ -13,40 +12,54 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func AuthMiddleware(appSettings config.Settings, tokenService services.TokenService, userRepo repositories.UserRepository) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			responses.ErrorResponse(c, http.StatusUnauthorized, "Authorization header is missing")
-			c.Abort()
-			return
-		}
+// AuthMiddleware handles authentication.
 
-		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+type AuthMiddleware struct {
+	tokenService services.TokenService
+	userService  services.UserService
+}
 
-		token, err := tokenService.ValidateToken(tokenString, appSettings.SecretKey)
+// NewAuthMiddleware creates a new AuthMiddleware.
+func NewAuthMiddleware(tokenService services.TokenService, userService services.UserService) *AuthMiddleware {
+	return &AuthMiddleware{
+		tokenService: tokenService,
+		userService:  userService,
+	}
+}
 
+// RequireAuth is a middleware function to protect routes.
+func (m *AuthMiddleware) RequireAuth(c *gin.Context) {
+	authHeader := c.GetHeader("Authorization")
+	if authHeader == "" {
+		c.Error(apperrors.New(http.StatusUnauthorized, "Authorization header is missing", nil))
+		c.Abort()
+		return
+	}
+
+	tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+
+	token, err := m.tokenService.ValidateToken(tokenString)
+
+	if err != nil {
+		c.Error(apperrors.New(http.StatusUnauthorized, "Invalid token", err))
+		c.Abort()
+		return
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		user, err := m.userService.GetMeByEmail(claims["sub"].(string))
 		if err != nil {
-			responses.ErrorResponse(c, http.StatusUnauthorized, "Invalid token")
+			c.Error(apperrors.New(http.StatusUnauthorized, "User not found", err))
 			c.Abort()
 			return
 		}
 
-		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			user, err := userRepo.FindByEmail(claims["sub"].(string))
-			if err != nil {
-				responses.ErrorResponse(c, http.StatusUnauthorized, "User not found")
-				c.Abort()
-				return
-			}
-
-			c.Set("user", *user)
-			c.Next()
-		} else {
-			responses.ErrorResponse(c, http.StatusUnauthorized, "Invalid token")
-			c.Abort()
-			return
-		}
+		c.Set("user", *user)
+		c.Next()
+	} else {
+		c.Error(apperrors.New(http.StatusUnauthorized, "Invalid token", nil))
+		c.Abort()
+		return
 	}
 }
 
@@ -54,13 +67,13 @@ func ServiceTokenMiddleware(appSettings config.Settings) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		apiKey := c.GetHeader("X-API-KEY")
 		if apiKey == "" {
-			responses.ErrorResponse(c, http.StatusForbidden, "API key is missing")
+			c.Error(apperrors.New(http.StatusForbidden, "API key is missing", nil))
 			c.Abort()
 			return
 		}
 
 		if apiKey != appSettings.ServiceAPIKey {
-			responses.ErrorResponse(c, http.StatusForbidden, "Invalid service token")
+			c.Error(apperrors.New(http.StatusForbidden, "Invalid service token", nil))
 			c.Abort()
 			return
 		}
@@ -73,19 +86,19 @@ func AdminMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		user, exists := c.Get("user")
 		if !exists {
-			responses.ErrorResponse(c, http.StatusUnauthorized, "User not found in context")
+			c.Error(apperrors.New(http.StatusUnauthorized, "User not found in context", nil))
 			c.Abort()
 			return
 		}
 
 		currentUser, ok := user.(models.User)
 		if !ok {
-			responses.ErrorResponse(c, http.StatusInternalServerError, "Invalid user type in context")
+			c.Error(apperrors.New(http.StatusInternalServerError, "Invalid user type in context", nil))
 			c.Abort()
 			return
 		}
 		if currentUser.Role != models.Admin {
-			responses.ErrorResponse(c, http.StatusForbidden, "The user doesn't have enough privileges")
+			c.Error(apperrors.New(http.StatusForbidden, "The user doesn't have enough privileges", nil))
 			c.Abort()
 			return
 		}

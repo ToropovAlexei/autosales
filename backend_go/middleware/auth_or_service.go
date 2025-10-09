@@ -41,7 +41,7 @@ func AuthOrServiceTokenMiddleware(appSettings config.Settings, tokenService serv
 		}
 
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
-		token, err := tokenService.ValidateToken(tokenString, appSettings.SecretKey)
+		token, err := tokenService.ValidateToken(tokenString)
 
 		if err != nil {
 			responses.ErrorResponse(c, http.StatusUnauthorized, "Invalid token")

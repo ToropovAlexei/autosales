@@ -7,17 +7,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (r *Router) OrdersRouter(router *gin.Engine, orderHandler *handlers.OrderHandler) {
-	service := router.Group("/api/orders")
-	service.Use(middleware.ServiceTokenMiddleware(r.appSettings))
-	{
-		service.POST("/buy-from-balance", orderHandler.BuyFromBalanceHandler)
-	}
+func RegisterOrderRoutes(router *gin.Engine, orderHandler *handlers.OrderHandler, authMiddleware *middleware.AuthMiddleware) {
+	orders := router.Group("/api/orders")
 
-	auth := router.Group("/api/orders")
-	auth.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo))
+	// service.Use(middleware.ServiceTokenMiddleware(r.appSettings))
+	orders.POST("/buy-from-balance", orderHandler.BuyFromBalanceHandler) // TODO: fix this
+
+	orders.Use(authMiddleware.RequireAuth)
 	{
-		auth.GET("", orderHandler.GetOrdersHandler)
-		auth.POST("/:id/cancel", orderHandler.CancelOrderHandler)
+		orders.GET("", orderHandler.GetOrdersHandler)
+		orders.POST("/:id/cancel", orderHandler.CancelOrderHandler)
 	}
 }

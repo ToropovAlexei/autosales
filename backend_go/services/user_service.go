@@ -12,6 +12,7 @@ import (
 
 type UserService interface {
 	GetMe(user models.User) *models.UserResponse
+	GetMeByEmail(email string) (*models.User, error)
 	UpdateReferralSettings(user *models.User, enabled bool, percentage float64) error
 	RegisterBotUser(telegramID int64, botName string) (*models.BotUser, float64, bool, bool, error)
 	GetBotUser(id uint) (*models.BotUser, float64, error)
@@ -23,7 +24,6 @@ type UserService interface {
 	GetUserOrdersByTelegramID(telegramID int64) ([]models.Order, error)
 	UpdateUserCaptchaStatus(id uint, hasPassed bool) error
 	UpdateUserCaptchaStatusByTelegramID(telegramID int64, hasPassed bool) error
-	GetSellerSettings() (*models.User, error)
 }
 
 type userService struct {
@@ -67,6 +67,10 @@ func (s *userService) GetMe(user models.User) *models.UserResponse {
 		ReferralProgramEnabled: user.ReferralProgramEnabled,
 		ReferralPercentage:     user.ReferralPercentage,
 	}
+}
+
+func (s *userService) GetMeByEmail(email string) (*models.User, error) {
+	return s.userRepo.FindByEmail(email)
 }
 
 func (s *userService) UpdateReferralSettings(user *models.User, enabled bool, percentage float64) error {
@@ -193,10 +197,4 @@ func (s *userService) UpdateUserCaptchaStatusByTelegramID(telegramID int64, hasP
 	return s.botUserRepo.UpdateCaptchaStatus(user, hasPassed)
 }
 
-func (s *userService) GetSellerSettings() (*models.User, error) {
-	seller, err := s.userRepo.FindSellerSettings()
-	if err != nil {
-		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "SellerSettings"}
-	}
-	return seller, nil
-}
+

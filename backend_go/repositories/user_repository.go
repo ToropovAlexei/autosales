@@ -9,7 +9,6 @@ import (
 type UserRepository interface {
 	WithTx(tx *gorm.DB) UserRepository
 	UpdateReferralSettings(user *models.User, enabled bool, percentage float64) error
-	FindSellerSettings() (*models.User, error)
 	FindByID(id uint) (*models.User, error)
 	FindByEmail(email string) (*models.User, error)
 }
@@ -31,16 +30,6 @@ func (r *gormUserRepository) UpdateReferralSettings(user *models.User, enabled b
 		ReferralProgramEnabled: enabled,
 		ReferralPercentage:     percentage,
 	}).Error
-}
-
-func (r *gormUserRepository) FindSellerSettings() (*models.User, error) {
-	var seller models.User
-	if err := r.db.Where("role = ?", models.Admin).First(&seller).Error; err != nil {
-		if err = r.db.First(&seller).Error; err != nil {
-			return nil, err
-		}
-	}
-	return &seller, nil
 }
 
 func (r *gormUserRepository) FindByID(id uint) (*models.User, error) {

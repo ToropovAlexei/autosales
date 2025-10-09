@@ -6,43 +6,81 @@ import (
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/gorm"
 )
 
+
+
 type ReferralService interface {
 	ProcessReferral(tx *gorm.DB, referralBotToken *string, order models.Order, orderAmount float64) error
-	CreateReferralBot(ownerTelegramID int64, sellerID uint, botToken string) (*models.ReferralBot, error)
+	CreateReferralBot(ownerTelegramID int64, botToken string) (*models.ReferralBot, error)
 	GetAllReferralBots() ([]models.ReferralBotResponse, error)
-	GetAdminInfoForSeller(sellerID uint) ([]models.ReferralBotAdminInfo, error)
+	GetReferralBotByID(botID uint) (*models.ReferralBot, error)
 	GetReferralBotsByTelegramID(telegramID int64) ([]models.ReferralBotAdminInfo, error)
-	UpdateReferralBotStatus(botID uint, sellerID uint, isActive bool) (*models.ReferralBot, error)
-	SetPrimary(botID uint, sellerID uint) error
-	DeleteReferralBot(botID uint, sellerID uint) error
+	GetAllAdminInfo() ([]models.ReferralBotAdminInfo, error)
+	UpdateReferralBotStatus(botID uint, ownerID uint, isActive bool) (*models.ReferralBot, error)
+	SetPrimary(botID uint, ownerID uint) error
+	DeleteReferralBot(botID uint, ownerID uint) error
 	ServiceSetPrimary(botID uint, telegramID int64) error
 	ServiceDeleteReferralBot(botID uint, telegramID int64) error
 }
 
 type referralService struct {
-	userRepo     repositories.UserRepository
-	botUserRepo  repositories.BotUserRepository
-	referralRepo repositories.ReferralRepository
-	transRepo    repositories.TransactionRepository
+	userRepo       repositories.UserRepository
+	botUserRepo    repositories.BotUserRepository
+	referralRepo   repositories.ReferralRepository
+	transRepo      repositories.TransactionRepository
+	settingService SettingService
 }
 
-func NewReferralService(userRepo repositories.UserRepository, botUserRepo repositories.BotUserRepository, referralRepo repositories.ReferralRepository, transRepo repositories.TransactionRepository) ReferralService {
+func NewReferralService(userRepo repositories.UserRepository, botUserRepo repositories.BotUserRepository, referralRepo repositories.ReferralRepository, transRepo repositories.TransactionRepository, settingService SettingService) ReferralService {
 	return &referralService{
-		userRepo:     userRepo,
-		botUserRepo:  botUserRepo,
-		referralRepo: referralRepo,
-		transRepo:    transRepo,
+		userRepo:       userRepo,
+		botUserRepo:    botUserRepo,
+		referralRepo:   referralRepo,
+		transRepo:      transRepo,
+		settingService: settingService,
 	}
 }
 
+func (s *referralService) GetAllAdminInfo() ([]models.ReferralBotAdminInfo, error) {
+	bots, err := s.referralRepo.GetAllAdminInfo()
+	if err != nil {
+		return nil, apperrors.New(500, "Failed to get all referral bots admin info", err)
+	}
+	return bots, nil
+}
+
+func (s *referralService) GetReferralBotByID(botID uint) (*models.ReferralBot, error) {
+	bot, err := s.referralRepo.GetReferralBotByID(botID)
+	if err != nil {
+		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "ReferralBot", ID: botID}
+	}
+	return bot, nil
+}
+
+
 func (s *referralService) ProcessReferral(tx *gorm.DB, referralBotToken *string, order models.Order, orderAmount float64) error {
 	if referralBotToken == nil {
+		return nil
+	}
+
+	settings, err := s.settingService.GetSettings()
+	if err != nil {
+		// Log the error but don't fail the transaction, as referral is non-critical
+		return nil
+	}
+
+	if enabled, _ := strconv.ParseBool(settings["referral_program_enabled"]); !enabled {
+		return nil
+	}
+
+	percentage, _ := strconv.ParseFloat(settings["referral_percentage"], 64)
+	if percentage <= 0 {
 		return nil
 	}
 
@@ -52,29 +90,18 @@ func (s *referralService) ProcessReferral(tx *gorm.DB, referralBotToken *string,
 		return nil
 	}
 
-	seller, err := s.userRepo.WithTx(tx).FindByID(refBot.SellerID)
-	if err != nil {
-		// Seller not found, ignore
-		return nil
+	refShare := orderAmount * (percentage / percentDenominator)
+	refTransaction := &models.RefTransaction{
+		RefOwnerID: refBot.OwnerID,
+		OrderID:    order.ID,
+		Amount:     orderAmount,
+		RefShare:   refShare,
+		CreatedAt:  time.Now().UTC(),
 	}
-
-	if seller.ReferralProgramEnabled && seller.ReferralPercentage > 0 {
-		refShare := orderAmount * (seller.ReferralPercentage / percentDenominator)
-		refTransaction := &models.RefTransaction{
-			RefOwnerID: refBot.OwnerID,
-			SellerID:   seller.ID,
-			OrderID:    order.ID,
-			Amount:     orderAmount,
-			RefShare:   refShare,
-			CreatedAt:  time.Now().UTC(),
-		}
-		return s.transRepo.WithTx(tx).CreateRefTransaction(refTransaction)
-	}
-
-	return nil
+	return s.transRepo.WithTx(tx).CreateRefTransaction(refTransaction)
 }
 
-func (s *referralService) CreateReferralBot(ownerTelegramID int64, sellerID uint, botToken string) (*models.ReferralBot, error) {
+func (s *referralService) CreateReferralBot(ownerTelegramID int64, botToken string) (*models.ReferralBot, error) {
 	owner, err := s.botUserRepo.FindByTelegramID(ownerTelegramID)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Base: apperrors.New(http.StatusNotFound, "", err), Resource: "User", ID: uint(ownerTelegramID)}
@@ -89,8 +116,6 @@ func (s *referralService) CreateReferralBot(ownerTelegramID int64, sellerID uint
 		return nil, apperrors.ErrBotLimitExceeded
 	}
 
-	// We assume seller is validated in the handler via auth context
-
 	_, err = s.referralRepo.FindReferralBotByToken(botToken)
 	// We expect a "not found" error here. If any other error occurs, or if no error occurs (meaning bot was found), we fail.
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -103,7 +128,6 @@ func (s *referralService) CreateReferralBot(ownerTelegramID int64, sellerID uint
 
 	dbBot := &models.ReferralBot{
 		OwnerID:  owner.ID,
-		SellerID: sellerID,
 		BotToken: botToken,
 	}
 
@@ -132,10 +156,6 @@ func (s *referralService) GetAllReferralBots() ([]models.ReferralBotResponse, er
 	return response, nil
 }
 
-func (s *referralService) GetAdminInfoForSeller(sellerID uint) ([]models.ReferralBotAdminInfo, error) {
-	return s.referralRepo.GetAdminInfoForSeller(sellerID)
-}
-
 func (s *referralService) GetReferralBotsByTelegramID(telegramID int64) ([]models.ReferralBotAdminInfo, error) {
 	owner, err := s.botUserRepo.FindByTelegramID(telegramID)
 	if err != nil {
@@ -145,13 +165,13 @@ func (s *referralService) GetReferralBotsByTelegramID(telegramID int64) ([]model
 	return s.referralRepo.GetAdminInfoForOwner(owner.ID)
 }
 
-func (s *referralService) UpdateReferralBotStatus(botID uint, sellerID uint, isActive bool) (*models.ReferralBot, error) {
+func (s *referralService) UpdateReferralBotStatus(botID uint, ownerID uint, isActive bool) (*models.ReferralBot, error) {
 	bot, err := s.referralRepo.GetReferralBotByID(botID)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "ReferralBot", ID: botID}
 	}
 
-	if bot.SellerID != sellerID {
+	if bot.OwnerID != ownerID {
 		return nil, apperrors.ErrForbidden
 	}
 
@@ -163,26 +183,26 @@ func (s *referralService) UpdateReferralBotStatus(botID uint, sellerID uint, isA
 	return bot, nil
 }
 
-func (s *referralService) SetPrimary(botID uint, sellerID uint) error {
+func (s *referralService) SetPrimary(botID uint, ownerID uint) error {
 	bot, err := s.referralRepo.GetReferralBotByID(botID)
 	if err != nil {
 		return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "ReferralBot", ID: botID}
 	}
 
-	if bot.SellerID != sellerID {
+	if bot.OwnerID != ownerID {
 		return apperrors.ErrForbidden
 	}
 
-	return s.referralRepo.SetPrimary(sellerID, botID)
+	return s.referralRepo.SetPrimary(ownerID, botID)
 }
 
-func (s *referralService) DeleteReferralBot(botID uint, sellerID uint) error {
+func (s *referralService) DeleteReferralBot(botID uint, ownerID uint) error {
 	bot, err := s.referralRepo.GetReferralBotByID(botID)
 	if err != nil {
 		return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "ReferralBot", ID: botID}
 	}
 
-	if bot.SellerID != sellerID {
+	if bot.OwnerID != ownerID {
 		return apperrors.ErrForbidden
 	}
 
@@ -204,9 +224,7 @@ func (s *referralService) ServiceSetPrimary(botID uint, telegramID int64) error 
 		return apperrors.ErrForbidden
 	}
 
-	// The SetPrimary method in the repository takes a sellerID.
-	// All bots for a given owner should have the same sellerID.
-	return s.referralRepo.SetPrimary(bot.SellerID, botID)
+	return s.referralRepo.SetPrimary(user.ID, botID)
 }
 
 func (s *referralService) ServiceDeleteReferralBot(botID uint, telegramID int64) error {

@@ -29,6 +29,7 @@ interface IImage {
 }
 
 const FOLDERS = [{ id: "categories", name: "Категории" }];
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 export default function ImagesPage() {
   const [error, setError] = useState<string | null>(null);
@@ -64,9 +65,18 @@ export default function ImagesPage() {
     },
   });
 
+  const validateFile = (file: File) => {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError(`Неверный тип файла. Пожалуйста, загрузите изображение в формате JPEG, PNG, GIF или WEBP.`);
+      return false;
+    }
+    setError(null);
+    return true;
+  };
+
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
+    if (file && validateFile(file)) {
       uploadMutation.mutate({ file, folder: selectedFolder });
     }
   };
@@ -78,7 +88,7 @@ export default function ImagesPage() {
     event.stopPropagation();
     setIsDragging(false);
     const file = event.dataTransfer.files?.[0];
-    if (file) {
+    if (file && validateFile(file)) {
       uploadMutation.mutate({ file, folder: selectedFolder });
     }
   };
@@ -134,7 +144,7 @@ export default function ImagesPage() {
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
-              accept="image/*"
+              accept={ALLOWED_TYPES.join(",")}
               style={{ display: "none" }}
               multiple={false}
             />

@@ -28,7 +28,7 @@ API_HASH = os.getenv("API_HASH")
 SESSION_NAME = "bot_creator"
 
 # For Backend API
-API_URL = os.getenv("API_URL")
+API_URL = f'{os.getenv("API_URL")}'
 SERVICE_TOKEN = os.getenv("SERVICE_TOKEN")
 
 # For Redis
@@ -103,18 +103,25 @@ def requests_session() -> requests.Session:
     session.mount('http://', adapter)
     return session
 
-def get_bot_info(token: str) -> dict | None:
+def get_bot_info(token: str) -> (dict | None, bool, bool):
+    """Checks bot health. Returns (info, is_invalid, is_temporary_error)."""
     url = f"https://api.telegram.org/bot{token}/getMe"
     try:
         response = requests.get(url, timeout=15)
         if response.status_code == 200 and response.json().get("ok"):
             logging.info(f"Health check passed for token ...{token[-4:]}")
-            return response.json()["result"]
-        logging.warning(f"Health check failed for token ...{token[-4:]} with status {response.status_code}")
-        return None
+            return response.json()["result"], False, False
+        
+        if response.status_code in [401, 403, 404]: # 404 means token was revoked
+            logging.warning(f"Token ...{token[-4:]} is invalid with status {response.status_code}. This is a permanent error.")
+            return None, True, False
+
+        logging.warning(f"Health check failed for token ...{token[-4:]} with status {response.status_code}. This is a temporary error.")
+        return None, False, True
+
     except requests.exceptions.RequestException as e:
-        logging.error(f"Health check network exception for ...{token[-4:]}: {e}")
-        return None
+        logging.error(f"Health check network exception for ...{token[-4:]}: {e}. This is a temporary error.")
+        return None, False, True
 
 # --- Referral Bot Logic ---
 
@@ -173,7 +180,12 @@ async def manage_referral_bots():
                         del running_procs[owner_id]
                     else:
                         running_bot_token = next((b['bot_token'] for b in owner_bots if b['id'] == running_bot_id), None)
-                        if not running_bot_token or not get_bot_info(running_bot_token):
+                        if not running_bot_token:
+                            is_invalid = True # No token found, treat as invalid
+                        else:
+                            _, is_invalid, _ = get_bot_info(running_bot_token)
+
+                        if is_invalid:
                             logging.warning(f"Health check failed for running bot ID {running_bot_id}. Killing process.")
                             proc.kill()
                             set_bot_status_api(session, running_bot_id, False)
@@ -183,18 +195,26 @@ async def manage_referral_bots():
 
                 primary_bot = next((b for b in owner_bots if b.get("is_primary")), None)
                 bot_to_start = None
-                if primary_bot and get_bot_info(primary_bot.get("bot_token")):
-                    bot_to_start = primary_bot
-                    logging.info(f"Primary bot ID {bot_to_start['id']} for owner {owner_id} is healthy. Will attempt to start.")
-                else:
+                if primary_bot:
+                    info, is_invalid, _ = get_bot_info(primary_bot.get("bot_token"))
+                    if info:
+                        bot_to_start = primary_bot
+                        logging.info(f"Primary bot ID {bot_to_start['id']} for owner {owner_id} is healthy. Will attempt to start.")
+                    elif is_invalid:
+                         logging.warning(f"Primary bot ID {primary_bot['id']} for owner {owner_id} is invalid.")
+                
+                if not bot_to_start:
                     if primary_bot:
-                        logging.warning(f"Primary bot ID {primary_bot['id']} for owner {owner_id} failed health check.")
+                        logging.warning(f"Primary bot ID {primary_bot['id']} for owner {owner_id} failed health check. Looking for reserve.")
                     for reserve_bot in sorted(owner_bots, key=lambda b: b.get('id')):
                         if not reserve_bot.get("is_primary"):
-                            if get_bot_info(reserve_bot.get("bot_token")):
+                            info, is_invalid, _ = get_bot_info(reserve_bot.get("bot_token"))
+                            if info:
                                 bot_to_start = reserve_bot
                                 logging.info(f"Found healthy reserve bot ID {bot_to_start['id']} for owner {owner_id}. Will attempt to start.")
                                 break
+                            elif is_invalid:
+                                logging.warning(f"Reserve bot ID {reserve_bot['id']} is invalid, skipping.")
                 
                 if bot_to_start:
                     logging.info(f"Starting process for bot ID {bot_to_start['id']} (Owner: {owner_id}).")
@@ -211,23 +231,31 @@ async def manage_referral_bots():
 
 # --- Main Bot Logic ---
 
-def load_main_tokens() -> list[str]:
-    if not TOKENS_FILE.exists(): return []
+def _load_clean_tokens(file_path: Path) -> list[str]:
+    if not file_path.exists(): return []
     try:
-        with open(TOKENS_FILE, "r") as f: return [line.strip() for line in f if line.strip()]
+        with open(file_path, "r") as f: return [line.strip() for line in f if line.strip()]
     except IOError as e:
-        logging.error(f"Error reading {TOKENS_FILE}: {e}")
+        logging.error(f"Error reading {file_path}: {e}")
         return []
 
 def mark_main_token_as_unavailable(token: str):
     logging.warning(f"Marking main bot token ...{token[-4:]} as unavailable.")
     try:
-        with open(UNAVAILABLE_TOKENS_FILE, "a") as f: f.write(f"{token}\n")
-        current_tokens = load_main_tokens()
+        # Cleanly write to unavailable tokens file
+        unavailable_tokens = _load_clean_tokens(UNAVAILABLE_TOKENS_FILE)
+        if token not in unavailable_tokens:
+            unavailable_tokens.append(token)
+            with open(UNAVAILABLE_TOKENS_FILE, "w") as f:
+                f.write("\n".join(unavailable_tokens) + "\n")
+
+        # Cleanly remove from main tokens file
+        current_tokens = _load_clean_tokens(TOKENS_FILE)
         if token in current_tokens:
             current_tokens.remove(token)
             with open(TOKENS_FILE, "w") as f:
-                for t in current_tokens: f.write(f"{t}\n")
+                if current_tokens:
+                    f.write("\n".join(current_tokens) + "\n")
     except IOError as e:
         logging.error(f"Error updating main token files: {e}")
 
@@ -265,10 +293,14 @@ async def request_new_main_bot_token() -> bool:
                     elif 'Done! Congratulations' in resp.text:
                         token_match = re.search(r'(\d{9,10}:[a-zA-Z0-9_-]{35})', resp.text)
                         if token_match:
-                            new_token = token_match.group(1)
+                            new_token = token_match.group(1).strip()
                             logging.info(f"Successfully created a new bot with token ...{new_token[-4:]}")
-                            with open(TOKENS_FILE, "a") as f:
-                                f.write(f"{new_token}\n")
+                            # Cleanly add the new token
+                            current_tokens = _load_clean_tokens(TOKENS_FILE)
+                            if new_token not in current_tokens:
+                                current_tokens.append(new_token)
+                                with open(TOKENS_FILE, "w") as f:
+                                    f.write("\n".join(current_tokens) + "\n")
                             return True
                         else:
                             logging.error("Could not parse the new bot token.")
@@ -288,13 +320,15 @@ async def manage_main_bots():
     bot_process = None
     try:
         while True:
-            all_tokens = load_main_tokens()
+            all_tokens = _load_clean_tokens(TOKENS_FILE)
             healthy_bots = deque()
             logging.info(f"Found {len(all_tokens)} main tokens. Checking for healthy bots...")
             for token in all_tokens:
-                info = get_bot_info(token)
-                if info: healthy_bots.append({'token': token, 'info': info})
-                else: mark_main_token_as_unavailable(token)
+                info, is_invalid, _ = get_bot_info(token)
+                if info: 
+                    healthy_bots.append({'token': token, 'info': info})
+                elif is_invalid:
+                    mark_main_token_as_unavailable(token)
             
             if not healthy_bots:
                 logging.warning("No healthy main bots found. Requesting a new one.")
@@ -327,14 +361,15 @@ async def manage_main_bots():
             await asyncio.sleep(STARTUP_WAIT_TIME)
 
             if bot_process.poll() is not None:
-                logging.error(f"Main bot @{active_bot_info['username']} terminated on startup. Marking as unavailable.")
-                mark_main_token_as_unavailable(active_token)
+                logging.error(f"Main bot @{active_bot_info['username']} terminated on startup. This is likely a code issue, not a token problem. Will retry after interval.")
+                # Не помечаем токен как невалидный, так как это, скорее всего, ошибка в коде
                 continue
 
             logging.info(f"Successfully started and monitoring main bot @{active_bot_info['username']}.")
 
             while True:
-                if get_bot_info(active_token) is None:
+                _, is_invalid, _ = get_bot_info(active_token)
+                if is_invalid:
                     logging.warning(f"Main bot @{active_bot_info['username']} is not healthy. Killing process.")
                     bot_process.kill()
                     mark_main_token_as_unavailable(active_token)

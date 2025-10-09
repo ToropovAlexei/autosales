@@ -1,6 +1,6 @@
 export const ENDPOINTS = {
   USERS_ME: "me",
-  USERS_ME_REFERRAL_SETTINGS: "me/referral-settings",
+  ADMIN_SETTINGS: "admin/settings",
   REFERRALS: "referrals",
   REFERRAL_BOTS_ADMIN: "referrals/admin-list",
   CATEGORIES: "categories",
@@ -20,7 +20,7 @@ export const ENDPOINTS = {
 };
 
 export const ENDPOINT_UPDATE_PUT_EXCEPTIONS = new Set<string>([
-  ENDPOINTS.USERS_ME_REFERRAL_SETTINGS,
+  ENDPOINTS.ADMIN_SETTINGS,
   ENDPOINTS.REFERRALS,
   ENDPOINTS.SET_BOT_PRIMARY,
   ENDPOINTS.CATEGORIES,

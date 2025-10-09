@@ -17,38 +17,29 @@ import { queryKeys } from "@/utils/query";
 import { PageLayout } from "@/components/PageLayout";
 import { toast } from "react-toastify";
 
-interface User {
-  id: number;
-  email: string;
-  is_active: boolean;
-  role: string;
-  referral_program_enabled: boolean;
-  referral_percentage: number;
+interface Settings {
+  [key: string]: string;
 }
 
 export default function SettingsPage() {
   const {
-    data: user,
-    isPending: isUserPending,
+    data: settings,
+    isPending: isSettingsPending,
     refetch,
-  } = useOne<User>({
-    endpoint: ENDPOINTS.USERS_ME,
+  } = useOne<Settings>({
+    endpoint: ENDPOINTS.ADMIN_SETTINGS,
   });
   const client = useQueryClient();
 
   const { mutate } = useMutation({
-    mutationFn: async (opts: {
-      referral_program_enabled?: boolean;
-      referral_percentage?: number;
-    }) => {
-      if (!user) {
+    mutationFn: async (opts: { [key: string]: any }) => {
+      if (!settings) {
         return;
       }
       return dataLayer.update({
-        url: ENDPOINTS.USERS_ME_REFERRAL_SETTINGS,
+        url: ENDPOINTS.ADMIN_SETTINGS,
         params: {
-          referral_program_enabled: user.referral_program_enabled,
-          referral_percentage: user.referral_percentage,
+          ...settings,
           ...opts,
         },
       });
@@ -60,30 +51,33 @@ export default function SettingsPage() {
 
   const debouncedMutate = useDebouncedCallback(mutate, { wait: 1000 });
 
-  const optimisticMutation = (percentage: number) => {
-    const key = queryKeys.one(ENDPOINTS.USERS_ME);
-    client.setQueryData(key, {
-      ...client.getQueryData(key),
-      referral_percentage: percentage,
-    });
-    debouncedMutate({ referral_percentage: percentage });
+  const optimisticMutation = (key: string, value: any) => {
+    const queryKey = queryKeys.one(ENDPOINTS.ADMIN_SETTINGS);
+    client.setQueryData(queryKey, (old: any) => ({
+      ...old,
+      [key]: value,
+    }));
+    debouncedMutate({ [key]: value });
   };
+
+  const referralProgramEnabled = settings?.referral_program_enabled === "true";
+  const referralPercentage = Number(settings?.referral_percentage || 0);
 
   return (
     <PageLayout title="Настройки">
       <Card sx={{ mb: 3 }}>
         <CardHeader title="Реферальная программа" />
         <CardContent>
-          {isUserPending ? (
+          {isSettingsPending ? (
             <p>Загрузка...</p>
           ) : (
             <>
               <FormControlLabel
                 control={
                   <Switch
-                    checked={!!user?.referral_program_enabled}
+                    checked={referralProgramEnabled}
                     onChange={(e) =>
-                      mutate({ referral_program_enabled: e.target.checked })
+                      mutate({ referral_program_enabled: String(e.target.checked) })
                     }
                   />
                 }
@@ -92,9 +86,11 @@ export default function SettingsPage() {
               <TextField
                 label="Процент отчислений рефоводам (%)"
                 type="number"
-                value={user?.referral_percentage || 0}
-                onChange={(e) => optimisticMutation(Number(e.target.value))}
-                disabled={!user?.referral_program_enabled}
+                value={referralPercentage}
+                onChange={(e) =>
+                  optimisticMutation("referral_percentage", e.target.value)
+                }
+                disabled={!referralProgramEnabled}
                 fullWidth
                 margin="normal"
                 size="small"

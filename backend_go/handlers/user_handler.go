@@ -296,26 +296,7 @@ func (h *UserHandler) UpdateUserCaptchaStatusHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusOK, responses.MessageResponse{Message: "Captcha status updated successfully"})
 }
 
-// @Summary      Get Seller Settings
-// @Description  Retrieves public settings for the seller, like referral program status.
-// @Tags         Users
-// @Produce      json
-// @Success      200 {object} responses.ResponseSchema[responses.SellerSettingsResponse]
-// @Failure      404 {object} responses.ErrorResponseSchema
-// @Router       /users/seller-settings [get]
-func (h *UserHandler) GetSellerSettingsHandler(c *gin.Context) {
-	seller, err := h.userService.GetSellerSettings()
-	if err != nil {
-		c.Error(err)
-		return
-	}
 
-	responses.SuccessResponse(c, http.StatusOK, responses.SellerSettingsResponse{
-		ID:                     seller.ID,
-		ReferralProgramEnabled: seller.ReferralProgramEnabled,
-		ReferralPercentage:     seller.ReferralPercentage,
-	})
-}
 
 // @Summary      Get User Subscriptions
 // @Description  Retrieves a list of a bot user's active and expired subscriptions.

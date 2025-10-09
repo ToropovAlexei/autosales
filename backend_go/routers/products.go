@@ -7,21 +7,22 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (r *Router) ProductsRouter(router *gin.Engine, productHandler *handlers.ProductHandler) {
+func RegisterProductRoutes(router *gin.Engine, productHandler *handlers.ProductHandler, authMiddleware *middleware.AuthMiddleware) {
+	products := router.Group("/api/products")
+
 	// Группа для роутов, доступных и для пользователей, и для сервисов
-	openAPI := router.Group("/api")
-	{
-		openAPI.GET("/products", middleware.AuthOrServiceTokenMiddleware(r.appSettings, r.tokenService, r.userRepo), productHandler.GetProductsHandler)
-	}
+	// openAPI := router.Group("/api")
+	// {
+	products.GET("", productHandler.GetProductsHandler) // TODO: fix auth
+	// }
 
 	// Группа для роутов, требующих строгой аутентификации пользователя (JWT)
-	authAPI := router.Group("/api/products")
-	authAPI.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo))
+	products.Use(authMiddleware.RequireAuth)
 	{
-		authAPI.POST("", productHandler.CreateProductHandler)
-		authAPI.GET("/:id", productHandler.GetProductHandler)
-		authAPI.PATCH("/:id", productHandler.UpdateProductHandler)
-		authAPI.DELETE("/:id", productHandler.DeleteProductHandler)
-		authAPI.POST("/:id/stock/movements", productHandler.CreateStockMovementHandler)
+		products.POST("", productHandler.CreateProductHandler)
+		products.GET("/:id", productHandler.GetProductHandler)
+		products.PATCH("/:id", productHandler.UpdateProductHandler)
+		products.DELETE("/:id", productHandler.DeleteProductHandler)
+		products.POST("/:id/stock/movements", productHandler.CreateStockMovementHandler)
 	}
 }

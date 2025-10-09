@@ -5,7 +5,6 @@ import "time"
 type ReferralBot struct {
 	ID        uint      `gorm:"primaryKey"`
 	OwnerID   uint      `gorm:"index"`
-	SellerID  uint
 	BotToken  string    `gorm:"unique"`
 	IsActive  bool      `gorm:"default:true"`
 	IsPrimary bool      `gorm:"default:false"`
@@ -15,7 +14,6 @@ type ReferralBot struct {
 type RefTransaction struct {
 	ID         uint `gorm:"primaryKey"`
 	RefOwnerID uint
-	SellerID   uint
 	OrderID    uint
 	Amount     float64   `gorm:"not null"`
 	RefShare   float64   `gorm:"not null"`
@@ -25,7 +23,6 @@ type RefTransaction struct {
 type ReferralBotAdminInfo struct {
 	ID              uint      `json:"id"`
 	OwnerID         uint      `json:"owner_id"`
-	SellerID        uint      `json:"seller_id"`
 	BotToken        string    `json:"bot_token"`
 	IsActive        bool      `json:"is_active"`
 	IsPrimary       bool      `json:"is_primary"`
@@ -38,7 +35,6 @@ type ReferralBotAdminInfo struct {
 type ReferralBotResponse struct {
 	ID        uint      `json:"id"`
 	OwnerID   uint      `json:"owner_id"`
-	SellerID  uint      `json:"seller_id"`
 	BotToken  string    `json:"bot_token"`
 	IsActive  bool      `json:"is_active"`
 	IsPrimary bool      `json:"is_primary"`

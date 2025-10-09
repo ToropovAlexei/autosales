@@ -7,10 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (r *Router) BalanceRouter(router *gin.Engine, balanceHandler *handlers.BalanceHandler) {
-	service := router.Group("/api/balance")
-	service.Use(middleware.ServiceTokenMiddleware(r.appSettings))
-	service.POST("/deposit", balanceHandler.DepositBalanceHandler)
+func RegisterBalanceRoutes(router *gin.Engine, balanceHandler *handlers.BalanceHandler, authMiddleware *middleware.AuthMiddleware) {
+	balance := router.Group("/api/balance")
+	// service.Use(middleware.ServiceTokenMiddleware(r.appSettings)) // TODO: fix this
+	balance.POST("/deposit", balanceHandler.DepositBalanceHandler)
 
-	router.POST("/api/balance/webhook", balanceHandler.PaymentWebhookHandler)
+	balance.POST("/webhook", balanceHandler.PaymentWebhookHandler)
 }

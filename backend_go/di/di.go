@@ -38,6 +38,7 @@ type Container struct {
 	PaymentService         services.PaymentService
 	WebhookService         services.WebhookService
 	ImageService           services.ImageService
+	SettingService         services.SettingService
 	UserRepo               repositories.UserRepository
 	AuthHandler            *handlers.AuthHandler
 	UserHandler            *handlers.UserHandler
@@ -52,6 +53,7 @@ type Container struct {
 	AdminHandler           *handlers.AdminHandler
 	PaymentHandler         *handlers.PaymentHandler
 	ImageHandler           *handlers.ImageHandler
+	SettingHandler         *handlers.SettingHandler
 	SubscriptionWorker     *workers.SubscriptionWorker
 	PaymentWorker          *workers.PaymentWorker
 }
@@ -90,14 +92,16 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	userSubscriptionRepo := repositories.NewUserSubscriptionRepository(db)
 	paymentInvoiceRepo := repositories.NewPaymentInvoiceRepository(db)
 	imageRepo := repositories.NewImageRepository(db)
+	settingRepo := repositories.NewSettingRepository(db)
 
 	// Init services
-	tokenService := services.NewTokenService()
+	tokenService := services.NewTokenService(appSettings.SecretKey, appSettings.AccessTokenExpireMinutes)
+	settingService := services.NewSettingService(settingRepo, userRepo)
 	authService := services.NewAuthService(userRepo, tokenService, appSettings)
 	userService := services.NewUserService(userRepo, botUserRepo, userSubscriptionRepo, orderRepo)
 	productService := services.NewProductService(productRepo, categoryRepo, providerRegistry)
 	categoryService := services.NewCategoryService(categoryRepo, productService)
-	referralService := services.NewReferralService(userRepo, botUserRepo, referralRepo, transactionRepo)
+	referralService := services.NewReferralService(userRepo, botUserRepo, referralRepo, transactionRepo, *settingService)
 	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, userSubscriptionRepo, categoryRepo, referralService, providerRegistry)
 	transactionService := services.NewTransactionService(transactionRepo)
 	dashboardService := services.NewDashboardService(dashboardRepo)
@@ -126,6 +130,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	adminHandler := handlers.NewAdminHandler(adminService)
 	paymentHandler := handlers.NewPaymentHandler(paymentService)
 	imageHandler := handlers.NewImageHandler(imageService)
+	settingHandler := handlers.NewSettingHandler(settingService)
 
 	return &Container{
 		DB:                     db,
@@ -162,6 +167,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 		AdminHandler:           adminHandler,
 		PaymentHandler:         paymentHandler,
 		ImageHandler:           imageHandler,
+		SettingHandler:         settingHandler,
 		SubscriptionWorker:     subscriptionWorker,
 		PaymentWorker:          paymentWorker,
 	}, nil

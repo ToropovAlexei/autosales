@@ -7,10 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func (r *Router) StockRouter(router *gin.Engine, stockHandler *handlers.StockHandler) {
-	auth := router.Group("/api/stock")
-	auth.Use(middleware.AuthMiddleware(r.appSettings, r.tokenService, r.userRepo))
+func RegisterStockRoutes(router *gin.Engine, stockHandler *handlers.StockHandler, authMiddleware *middleware.AuthMiddleware) {
+	stock := router.Group("/api/stock")
+	stock.Use(authMiddleware.RequireAuth)
 	{
-		auth.GET("/movements", stockHandler.GetStockMovementsHandler)
+		stock.GET("/movements", stockHandler.GetStockMovementsHandler)
 	}
 }

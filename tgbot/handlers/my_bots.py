@@ -60,7 +60,7 @@ async def show_my_bots(query: CallbackQuery, api_client: APIClient):
             reply_markup=my_bots_keyboard(bots)
         )
     else:
-        seller_info_response = await api_client.get_seller_info()
+        seller_info_response = await api_client.get_public_settings()
         referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
         await query.message.edit_text("Не удалось получить список ваших ботов. Попробуйте позже.", reply_markup=inline.main_menu(
             referral_program_enabled=referral_program_enabled,
@@ -102,8 +102,7 @@ async def delete_bot_handler(callback_query: CallbackQuery, callback_data: BotCa
 
 @router.callback_query(BotCallback.filter(F.action == "add"))
 async def add_bot_handler(callback_query: CallbackQuery, state: FSMContext, api_client: APIClient):
-    await state.set_state(ReferralState.waiting_for_token)
-    seller_info_response = await api_client.get_seller_info()
+    seller_info_response = await api_client.get_public_settings()
     if not seller_info_response.get("success"):
         await callback_query.message.edit_text(
             "Не удалось загрузить информацию о реферальной программе. Попробуйте позже.",
@@ -148,21 +147,7 @@ async def token_handler(message: Message, state: FSMContext, api_client: APIClie
             await state.clear()
             return
 
-        seller_info_response = await api_client.get_seller_info()
-        if not seller_info_response.get("success"):
-            await message.answer("Не удалось получить информацию о продавце. Попробуйте позже.")
-            await state.clear()
-            return
-        
-        seller_data = seller_info_response.get("data", {})
-        seller_id = seller_data.get("id")
-
-        if not seller_id:
-            await message.answer("Не удалось определить ID продавца. Попробуйте позже.")
-            await state.clear()
-            return
-
-        result = await api_client.create_referral_bot(telegram_id, seller_id, token)
+        result = await api_client.create_referral_bot(telegram_id, token)
         
         if result.get("success"):
             await message.answer(

@@ -9,13 +9,13 @@ import (
 type ReferralRepository interface {
 	WithTx(tx *gorm.DB) ReferralRepository
 	CountByOwnerID(ownerID uint) (int64, error)
-	SetPrimary(sellerID, botID uint) error
+	SetPrimary(ownerID, botID uint) error
 	FindByBotToken(botToken string) (*models.ReferralBot, error)
 	CreateReferralBot(bot *models.ReferralBot) error
 	FindReferralBotByToken(botToken string) (*models.ReferralBot, error)
 	GetAllReferralBots() ([]models.ReferralBot, error)
-	GetAdminInfoForSeller(sellerID uint) ([]models.ReferralBotAdminInfo, error)
 	GetAdminInfoForOwner(ownerID uint) ([]models.ReferralBotAdminInfo, error)
+	GetAllAdminInfo() ([]models.ReferralBotAdminInfo, error)
 	GetReferralBotByID(id uint) (*models.ReferralBot, error)
 	UpdateReferralBot(bot *models.ReferralBot) error
 	DeleteReferralBot(bot *models.ReferralBot) error
@@ -67,12 +67,12 @@ func (r *gormReferralRepository) GetAllReferralBots() ([]models.ReferralBot, err
 	return bots, nil
 }
 
-func (r *gormReferralRepository) GetAdminInfoForSeller(sellerID uint) ([]models.ReferralBotAdminInfo, error) {
+func (r *gormReferralRepository) GetAdminInfoForOwner(ownerID uint) ([]models.ReferralBotAdminInfo, error) {
 	var bots []models.ReferralBotAdminInfo
 
 	err := r.db.Table("referral_bots").
 		Select(
-			"referral_bots.id, referral_bots.owner_id, referral_bots.seller_id, "+
+			"referral_bots.id, referral_bots.owner_id, "+
 				"referral_bots.bot_token, referral_bots.is_active, referral_bots.is_primary, referral_bots.created_at, "+
 				"bot_users.telegram_id as owner_telegram_id, "+
 				"COALESCE(SUM(ref_transactions.amount), 0) as turnover, "+
@@ -80,7 +80,7 @@ func (r *gormReferralRepository) GetAdminInfoForSeller(sellerID uint) ([]models.
 		).
 		Joins("join bot_users on referral_bots.owner_id = bot_users.id").
 		Joins("left join ref_transactions on referral_bots.owner_id = ref_transactions.ref_owner_id").
-		Where("referral_bots.seller_id = ?", sellerID).
+		Where("referral_bots.owner_id = ?", ownerID).
 		Group("referral_bots.id, bot_users.telegram_id").
 		Order("referral_bots.id asc").
 		Scan(&bots).Error
@@ -95,12 +95,12 @@ func (r *gormReferralRepository) GetAdminInfoForSeller(sellerID uint) ([]models.
 	return bots, err
 }
 
-func (r *gormReferralRepository) GetAdminInfoForOwner(ownerID uint) ([]models.ReferralBotAdminInfo, error) {
+func (r *gormReferralRepository) GetAllAdminInfo() ([]models.ReferralBotAdminInfo, error) {
 	var bots []models.ReferralBotAdminInfo
 
 	err := r.db.Table("referral_bots").
 		Select(
-			"referral_bots.id, referral_bots.owner_id, referral_bots.seller_id, "+
+			"referral_bots.id, referral_bots.owner_id, "+
 				"referral_bots.bot_token, referral_bots.is_active, referral_bots.is_primary, referral_bots.created_at, "+
 				"bot_users.telegram_id as owner_telegram_id, "+
 				"COALESCE(SUM(ref_transactions.amount), 0) as turnover, "+
@@ -108,7 +108,6 @@ func (r *gormReferralRepository) GetAdminInfoForOwner(ownerID uint) ([]models.Re
 		).
 		Joins("join bot_users on referral_bots.owner_id = bot_users.id").
 		Joins("left join ref_transactions on referral_bots.owner_id = ref_transactions.ref_owner_id").
-		Where("referral_bots.owner_id = ?", ownerID).
 		Group("referral_bots.id, bot_users.telegram_id").
 		Order("referral_bots.id asc").
 		Scan(&bots).Error
@@ -135,15 +134,15 @@ func (r *gormReferralRepository) UpdateReferralBot(bot *models.ReferralBot) erro
 	return r.db.Save(bot).Error
 }
 
-func (r *gormReferralRepository) SetPrimary(sellerID, botID uint) error {
+func (r *gormReferralRepository) SetPrimary(ownerID, botID uint) error {
 	return r.db.Transaction(func(tx *gorm.DB) error {
 		// Шаг 1: Сбросить флаг IsPrimary для всех ботов этого продавца
-		if err := tx.Model(&models.ReferralBot{}).Where("seller_id = ?", sellerID).Update("is_primary", false).Error; err != nil {
+		if err := tx.Model(&models.ReferralBot{}).Where("owner_id = ?", ownerID).Update("is_primary", false).Error; err != nil {
 			return err
 		}
 
 		// Шаг 2: Установить флаг IsPrimary для выбранного бота
-		if err := tx.Model(&models.ReferralBot{}).Where("id = ? AND seller_id = ?", botID, sellerID).Update("is_primary", true).Error; err != nil {
+		if err := tx.Model(&models.ReferralBot{}).Where("id = ? AND owner_id = ?", botID, ownerID).Update("is_primary", true).Error; err != nil {
 			return err
 		}
 
