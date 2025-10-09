@@ -121,6 +121,7 @@ async def add_bot_handler(callback_query: CallbackQuery, state: FSMContext, api_
         "Я жду ваш токен.",
         parse_mode="HTML"
     )
+    await state.set_state(ReferralState.waiting_for_token)
     await callback_query.answer()
 
 @router.message(ReferralState.waiting_for_token)
