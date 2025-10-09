@@ -1,5 +1,3 @@
-"use client";
-
 import { ConfirmModal } from "@/components";
 import {
   Card,
@@ -11,7 +9,10 @@ import {
   Switch,
   Button,
   Stack,
+  TextField,
+  IconButton,
 } from "@mui/material";
+import { Edit } from "@mui/icons-material";
 import { useState } from "react";
 import classes from "./styles.module.css";
 
@@ -24,12 +25,14 @@ interface ReferralBot {
   is_primary: boolean;
   turnover: number;
   accruals: number;
+  referral_percentage: number;
 }
 
 interface ReferralBotCardProps {
   bot: ReferralBot;
   onUpdateStatus: (opts: { botId: number; isActive: boolean }) => void;
   onSetPrimary: (botId: number) => void;
+  onUpdatePercentage: (opts: { botId: number; percentage: number }) => void;
   onDelete: (botId: number) => void;
   isUpdatingStatus: boolean;
   isSettingPrimary: boolean;
@@ -39,11 +42,15 @@ export const ReferralBotCard = ({
   bot,
   onUpdateStatus,
   onSetPrimary,
+  onUpdatePercentage,
   onDelete,
   isUpdatingStatus,
   isSettingPrimary,
 }: ReferralBotCardProps) => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [percentage, setPercentage] = useState(bot.referral_percentage.toString());
+  const [validationError, setValidationError] = useState("");
 
   const openConfirmDialog = () => {
     setIsConfirmOpen(true);
@@ -56,6 +63,24 @@ export const ReferralBotCard = ({
   const handleDelete = () => {
     onDelete(bot.id);
     closeConfirmDialog();
+  };
+
+  const handleUpdatePercentage = () => {
+    const percentageValue = parseFloat(percentage);
+    if (isNaN(percentageValue) || percentageValue < 0 || percentageValue > 100) {
+      setValidationError("Процент должен быть от 0 до 100");
+      return;
+    }
+    onUpdatePercentage({ botId: bot.id, percentage: percentageValue });
+    setIsEditing(false);
+    setValidationError("");
+  };
+
+  const handlePercentageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPercentage(e.target.value);
+    if (validationError) {
+      setValidationError("");
+    }
   };
 
   return (
@@ -94,6 +119,34 @@ export const ReferralBotCard = ({
             <Typography variant="body2" color="text.secondary">
               Начисления: {bot.accruals.toFixed(2)} ₽
             </Typography>
+            {isEditing ? (
+              <div className={classes.editContainer}>
+                <TextField
+                  label="Процент"
+                  type="number"
+                  value={percentage}
+                  onChange={handlePercentageChange}
+                  size="small"
+                  error={!!validationError}
+                  helperText={validationError}
+                />
+                <Button onClick={handleUpdatePercentage} size="small">
+                  Сохранить
+                </Button>
+                <Button onClick={() => setIsEditing(false)} size="small">
+                  Отмена
+                </Button>
+              </div>
+            ) : (
+              <Stack direction="row" alignItems="center" gap={1}>
+                <Typography variant="body2" color="text.secondary">
+                  Процент: {bot.referral_percentage}%
+                </Typography>
+                <IconButton onClick={() => setIsEditing(true)} size="small">
+                  <Edit fontSize="small" />
+                </IconButton>
+              </Stack>
+            )}
           </div>
           <Stack direction="row" gap={1} alignItems="center" mt={1}>
             <Typography variant="subtitle2">Статус</Typography>

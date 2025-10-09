@@ -22,22 +22,25 @@ class BotInfoCallback(CallbackData, prefix="bot_info"):
     username: str
     is_primary: str # '1' or '0'
     is_active: str  # '1' or '0'
+    referral_percentage: str
 
 def my_bots_keyboard(bots: list):
     buttons = []
     for bot in bots:
         status = "(Основной)" if bot.get('is_primary') else "(Активен)" if bot.get('is_active') else "(Неактивен)"
         bot_username = bot.get('bot_token').split(':')[0] # Simplified, should get from getMe
+        percentage = bot.get('referral_percentage', 0)
         
         is_primary_str = '1' if bot.get('is_primary') else '0'
         is_active_str = '1' if bot.get('is_active') else '0'
         info_callback_data = BotInfoCallback(
             username=bot_username,
             is_primary=is_primary_str,
-            is_active=is_active_str
+            is_active=is_active_str,
+            referral_percentage=str(percentage)
         ).pack()
 
-        buttons.append([InlineKeyboardButton(text=f"@{bot_username} {status}", callback_data=info_callback_data)])
+        buttons.append([InlineKeyboardButton(text=f"@{bot_username} {status} - {percentage}%", callback_data=info_callback_data)])
         
         action_buttons = []
         if not bot.get('is_primary'):
@@ -73,7 +76,7 @@ async def bot_info_handler(callback_query: CallbackQuery, callback_data: BotInfo
     primary_status = "Основной" if callback_data.is_primary == '1' else "Резервный"
     active_status = "Активен" if callback_data.is_active == '1' else "Неактивен"
     
-    text = f"Бот @{callback_data.username}\nСтатус: {active_status}, {primary_status}"
+    text = f"Бот @{callback_data.username}\nСтатус: {active_status}, {primary_status}\nПроцент: {callback_data.referral_percentage}%"
     
     await callback_query.answer(text, show_alert=True)
 

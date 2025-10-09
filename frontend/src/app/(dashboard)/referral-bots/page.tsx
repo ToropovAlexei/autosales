@@ -18,6 +18,7 @@ interface ReferralBot {
   is_primary: boolean;
   turnover: number;
   accruals: number;
+  referral_percentage: number;
 }
 
 export default function ReferralBotsPage() {
@@ -32,6 +33,26 @@ export default function ReferralBotsPage() {
       dataLayer.update({
         url: `/referrals/${botId}/status`,
         params: { is_active: isActive },
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.REFERRAL_BOTS_ADMIN),
+      });
+    },
+  });
+
+  const updatePercentageMutation = useMutation({
+    mutationFn: ({
+      botId,
+      percentage,
+    }: {
+      botId: number;
+      percentage: number;
+    }) =>
+      dataLayer.update({
+        url: ENDPOINTS.REFERRAL_PERCENTAGE,
+        params: { percentage },
+        meta: { ":id": botId },
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({
@@ -74,6 +95,7 @@ export default function ReferralBotsPage() {
             bot={bot}
             onUpdateStatus={updateStatusMutation.mutate}
             onSetPrimary={setPrimaryMutation.mutate}
+            onUpdatePercentage={updatePercentageMutation.mutate}
             onDelete={deleteMutation.mutate}
             isUpdatingStatus={updateStatusMutation.isPending}
             isSettingPrimary={setPrimaryMutation.isPending}

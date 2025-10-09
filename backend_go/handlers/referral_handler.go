@@ -118,6 +118,38 @@ func (h *ReferralHandler) UpdateReferralBotStatusHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusOK, updatedBot)
 }
 
+type updateBotPercentagePayload struct {
+	Percentage float64 `json:"percentage"`
+}
+
+func (h *ReferralHandler) UpdateReferralBotPercentageHandler(c *gin.Context) {
+	_, exists := c.Get("user")
+	if !exists {
+		c.Error(apperrors.ErrForbidden)
+		return
+	}
+
+	botID, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid bot ID"})
+		return
+	}
+
+	var json updateBotPercentagePayload
+	if err := bindJSON(c, &json); err != nil {
+		c.Error(err)
+		return
+	}
+
+	bot, err := h.referralService.UpdateReferralBotPercentage(uint(botID), json.Percentage)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, bot)
+}
+
 func (h *ReferralHandler) ServiceSetPrimaryBotHandler(c *gin.Context) {
 	botID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {

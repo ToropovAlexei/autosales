@@ -12,6 +12,7 @@ type ReferralRepository interface {
 	CountByOwnerID(ownerID uint) (int64, error)
 	GetBotsByOwnerID(ownerID uint) ([]models.ReferralBot, error)
 	SetPrimary(ownerID, botID uint) error
+	UpdatePercentageForOwner(ownerID uint, percentage float64) error
 	FindByBotToken(botToken string) (*models.ReferralBot, error)
 	CreateReferralBot(bot *models.ReferralBot) error
 	GetAllReferralBots() ([]models.ReferralBot, error)
@@ -29,6 +30,11 @@ type gormReferralRepository struct {
 func NewReferralRepository(db *gorm.DB) ReferralRepository {
 	return &gormReferralRepository{db: db}
 }
+
+func (r *gormReferralRepository) UpdatePercentageForOwner(ownerID uint, percentage float64) error {
+	return r.db.Model(&models.ReferralBot{}).Where("owner_id = ?", ownerID).Update("referral_percentage", percentage).Error
+}
+
 
 func (r *gormReferralRepository) WithTx(tx *gorm.DB) ReferralRepository {
 	return &gormReferralRepository{db: tx}
@@ -77,7 +83,7 @@ func (r *gormReferralRepository) GetAdminInfoForOwner(ownerID uint) ([]models.Re
 
 	err := r.db.Table("referral_bots").
 		Select(
-			"referral_bots.id, referral_bots.owner_id, "+
+			"referral_bots.id, referral_bots.owner_id, referral_bots.referral_percentage, "+
 				"referral_bots.bot_token, referral_bots.is_active, referral_bots.is_primary, referral_bots.created_at, "+
 				"bot_users.telegram_id as owner_telegram_id, "+
 				"COALESCE(SUM(ref_transactions.amount), 0) as turnover, "+
@@ -105,7 +111,7 @@ func (r *gormReferralRepository) GetAllAdminInfo() ([]models.ReferralBotAdminInf
 
 	err := r.db.Table("referral_bots").
 		Select(
-			"referral_bots.id, referral_bots.owner_id, "+
+			"referral_bots.id, referral_bots.owner_id, referral_bots.referral_percentage, "+
 				"referral_bots.bot_token, referral_bots.is_active, referral_bots.is_primary, referral_bots.created_at, "+
 				"bot_users.telegram_id as owner_telegram_id, "+
 				"COALESCE(SUM(ref_transactions.amount), 0) as turnover, "+

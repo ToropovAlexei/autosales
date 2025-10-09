@@ -23,5 +23,6 @@ func RegisterReferralRoutes(router *gin.Engine, referralHandler *handlers.Referr
 	{
 		referrals.GET("/admin-list", referralHandler.GetAllReferralBotsAdminHandler)
 		referrals.PUT("/:id/status", referralHandler.UpdateReferralBotStatusHandler)
+		referrals.PUT("/:id/percentage", referralHandler.UpdateReferralBotPercentageHandler)
 	}
 }

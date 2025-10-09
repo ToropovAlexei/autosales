@@ -23,6 +23,7 @@ type ReferralService interface {
 	GetReferralBotsByTelegramID(telegramID int64) ([]models.ReferralBotAdminInfo, error)
 	GetAllAdminInfo() ([]models.ReferralBotAdminInfo, error)
 	UpdateReferralBotStatus(botID uint, ownerID uint, isActive bool) (*models.ReferralBot, error)
+	UpdateReferralBotPercentage(botID uint, percentage float64) (*models.ReferralBot, error)
 	SetPrimary(botID uint, ownerID uint) error
 	DeleteReferralBot(botID uint, ownerID uint) error
 	ServiceSetPrimary(botID uint, telegramID int64) error
@@ -45,6 +46,23 @@ func NewReferralService(userRepo repositories.UserRepository, botUserRepo reposi
 		transRepo:      transRepo,
 		settingService: settingService,
 	}
+}
+
+func (s *referralService) UpdateReferralBotPercentage(botID uint, percentage float64) (*models.ReferralBot, error) {
+	if percentage < 0 || percentage > 100 {
+		return nil, &apperrors.ErrValidation{Base: apperrors.New(400, "", nil), Message: "Percentage must be between 0 and 100"}
+	}
+	bot, err := s.referralRepo.GetReferralBotByID(botID)
+	if err != nil {
+		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "ReferralBot", ID: botID}
+	}
+
+	if err := s.referralRepo.UpdatePercentageForOwner(bot.OwnerID, percentage); err != nil {
+		return nil, apperrors.New(500, "Failed to update referral bot percentage", err)
+	}
+
+	bot.ReferralPercentage = percentage
+	return bot, nil
 }
 
 func (s *referralService) GetAllAdminInfo() ([]models.ReferralBotAdminInfo, error) {
@@ -79,14 +97,14 @@ func (s *referralService) ProcessReferral(tx *gorm.DB, referralBotToken *string,
 		return nil
 	}
 
-	percentage, _ := strconv.ParseFloat(settings["referral_percentage"], 64)
-	if percentage <= 0 {
-		return nil
-	}
-
 	refBot, err := s.referralRepo.WithTx(tx).FindByBotToken(*referralBotToken)
 	if err != nil || refBot == nil || !refBot.IsActive {
 		// Bot not found or not active, just ignore
+		return nil
+	}
+
+	percentage := refBot.ReferralPercentage
+	if percentage <= 0 {
 		return nil
 	}
 
@@ -124,9 +142,16 @@ func (s *referralService) CreateReferralBot(ownerTelegramID int64, botToken stri
 		return nil, &apperrors.ErrAlreadyExists{Base: apperrors.New(http.StatusConflict, "", nil), Resource: "ReferralBot", Field: "token", Value: botToken}
 	}
 
+	settings, err := s.settingService.GetSettings()
+	if err != nil {
+		return nil, apperrors.New(http.StatusInternalServerError, "Failed to get settings", err)
+	}
+	defaultPercentage, _ := strconv.ParseFloat(settings["referral_percentage"], 64)
+
 	dbBot := &models.ReferralBot{
-		OwnerID:  owner.ID,
-		BotToken: botToken,
+		OwnerID:            owner.ID,
+		BotToken:           botToken,
+		ReferralPercentage: defaultPercentage,
 	}
 
 	if err := s.referralRepo.CreateReferralBot(dbBot); err != nil {
@@ -163,7 +188,14 @@ func (s *referralService) GetAllReferralBots() ([]models.ReferralBotResponse, er
 
 	var response []models.ReferralBotResponse
 	for _, b := range bots {
-		response = append(response, models.ReferralBotResponse(b))
+		response = append(response, models.ReferralBotResponse{
+			ID:        b.ID,
+			OwnerID:   b.OwnerID,
+			BotToken:  b.BotToken,
+			IsActive:  b.IsActive,
+			IsPrimary: b.IsPrimary,
+			CreatedAt: b.CreatedAt,
+		})
 	}
 
 	return response, nil

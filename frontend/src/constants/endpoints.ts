@@ -17,6 +17,7 @@ export const ENDPOINTS = {
   TOGGLE_BLOCK: "admin/bot-users/:id/toggle-block",
   IMAGES: "admin/images",
   IMAGE_FOLDERS: "admin/image-folders",
+  REFERRAL_PERCENTAGE: "referrals/:id/percentage",
 };
 
 export const ENDPOINT_UPDATE_PUT_EXCEPTIONS = new Set<string>([
@@ -24,4 +25,5 @@ export const ENDPOINT_UPDATE_PUT_EXCEPTIONS = new Set<string>([
   ENDPOINTS.REFERRALS,
   ENDPOINTS.SET_BOT_PRIMARY,
   ENDPOINTS.CATEGORIES,
+  ENDPOINTS.REFERRAL_PERCENTAGE,
 ]);
