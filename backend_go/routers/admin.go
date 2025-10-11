@@ -10,10 +10,9 @@ import (
 func RegisterAdminRoutes(router *gin.Engine, adminHandler *handlers.AdminHandler, authMiddleware *middleware.AuthMiddleware) {
 	admin := router.Group("/api/admin")
 	admin.Use(authMiddleware.RequireAuth)
-	admin.Use(middleware.PermissionMiddleware("rbac:manage"))
 	{
-		admin.GET("/bot-users", adminHandler.GetBotUsers)
-		admin.GET("/bot-users/:telegram_id", adminHandler.GetBotUser)
-		admin.PATCH("/bot-users/:telegram_id/toggle-block", adminHandler.ToggleBlockUser)
+		admin.GET("/bot-users", middleware.PermissionMiddleware("users:read"), adminHandler.GetBotUsers)
+		admin.GET("/bot-users/:telegram_id", middleware.PermissionMiddleware("users:read"), adminHandler.GetBotUser)
+		admin.PATCH("/bot-users/:telegram_id/toggle-block", middleware.PermissionMiddleware("users:update"), adminHandler.ToggleBlockUser)
 	}
 }

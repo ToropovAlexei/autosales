@@ -15,60 +15,72 @@ export const MENU_ITEMS = [
     label: "Дашборд",
     Icon: HomeRoundedIcon,
     path: "/dashboard",
+    permission: "dashboard:read",
   },
   {
     label: "Категории",
     Icon: CategoryIcon,
     path: "/categories",
+    permission: "categories:read",
   },
   {
     label: "Товары",
     Icon: ShoppingCartIcon,
     path: "/products",
+    permission: "products:read",
   },
   {
     label: "Пользователи бота",
     Icon: GroupIcon,
     path: "/bot-users",
+    permission: "users:read", // Assuming bot users fall under general user read
   },
   {
     label: "Транзакции",
     Icon: ReceiptIcon,
     path: "/transactions",
+    permission: "transactions:read",
   },
   {
     label: "Заказы",
     Icon: LocalMallIcon,
     path: "/orders",
+    permission: "orders:read",
   },
   {
     label: "Склад",
     Icon: InventoryIcon,
     path: "/stock",
+    permission: "stock:read",
   },
   {
     label: "Реферальные боты",
     Icon: SmartToyIcon,
     path: "/referral-bots",
+    permission: "referrals:read",
   },
   {
     label: "Роли",
     Icon: AdminPanelSettingsIcon,
     path: "/roles",
+    permission: "rbac:manage",
   },
   {
     label: "Администраторы",
     Icon: GroupIcon,
     path: "/users",
+    permission: "rbac:manage",
   },
   {
     label: "Изображения",
     Icon: PhotoLibraryIcon,
     path: "/images",
+    permission: "images:upload", // Or a more general images permission
   },
   {
     label: "Настройки",
     Icon: SettingsIcon,
     path: "/settings",
+    permission: "settings:read",
   },
 ];

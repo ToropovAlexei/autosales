@@ -11,6 +11,6 @@ func RegisterStockRoutes(router *gin.Engine, stockHandler *handlers.StockHandler
 	stock := router.Group("/api/stock")
 	stock.Use(authMiddleware.RequireAuth)
 	{
-		stock.GET("/movements", stockHandler.GetStockMovementsHandler)
+		stock.GET("/movements", middleware.PermissionMiddleware("stock:read"), stockHandler.GetStockMovementsHandler)
 	}
 }

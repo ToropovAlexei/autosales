@@ -19,10 +19,10 @@ func RegisterProductRoutes(router *gin.Engine, productHandler *handlers.ProductH
 	// Группа для роутов, требующих строгой аутентификации пользователя (JWT)
 	products.Use(authMiddleware.RequireAuth)
 	{
-		products.POST("", productHandler.CreateProductHandler)
-		products.GET("/:id", productHandler.GetProductHandler)
-		products.PATCH("/:id", productHandler.UpdateProductHandler)
-		products.DELETE("/:id", productHandler.DeleteProductHandler)
-		products.POST("/:id/stock/movements", productHandler.CreateStockMovementHandler)
+		products.POST("", middleware.PermissionMiddleware("products:create"), productHandler.CreateProductHandler)
+		products.GET("/:id", middleware.PermissionMiddleware("products:read"), productHandler.GetProductHandler)
+		products.PATCH("/:id", middleware.PermissionMiddleware("products:update"), productHandler.UpdateProductHandler)
+		products.DELETE("/:id", middleware.PermissionMiddleware("products:delete"), productHandler.DeleteProductHandler)
+		products.POST("/:id/stock/movements", middleware.PermissionMiddleware("stock:update"), productHandler.CreateStockMovementHandler)
 	}
 }

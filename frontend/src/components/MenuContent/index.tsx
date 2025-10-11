@@ -1,35 +1,39 @@
-import * as React from 'react';
-import List from '@mui/material/List';
-import ListItem from '@mui/material/ListItem';
-import ListItemButton from '@mui/material/ListItemButton';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
-import Stack from '@mui/material/Stack';
+import { List, ListItem, ListItemButton, ListItemIcon, ListItemText } from "@mui/material";
 import { usePathname, useRouter } from "next/navigation";
 import { MENU_ITEMS } from '@/components/Sidebar/constants';
-import classes from './styles.module.css';
+import { useCan } from "@/hooks";
 
-export const MenuContent = () => {
+const MenuItem = ({ item }) => {
   const router = useRouter();
   const pathname = usePathname();
+  const { label, Icon, path, permission } = item;
+  const canAccess = useCan(permission);
+
+  if (!canAccess) {
+    return null;
+  }
 
   return (
-    <Stack className={classes.menuContentStack}>
-      <List dense>
-        {MENU_ITEMS.map(({ label, Icon, path }) => (
-          <ListItem key={label} disablePadding sx={{ display: 'block' }}>
-            <ListItemButton
-              selected={pathname === path}
-              onClick={() => router.push(path)}
-            >
-              <ListItemIcon>
-                <Icon />
-              </ListItemIcon>
-              <ListItemText primary={label} />
-            </ListItemButton>
-          </ListItem>
-        ))}
-      </List>
-    </Stack>
+    <ListItem key={path} disablePadding>
+      <ListItemButton
+        selected={pathname.startsWith(path)}
+        onClick={() => router.push(path)}
+      >
+        <ListItemIcon>
+          <Icon />
+        </ListItemIcon>
+        <ListItemText primary={label} />
+      </ListItemButton>
+    </ListItem>
   );
-}
+};
+
+export const MenuContent = () => {
+  return (
+    <List>
+      {MENU_ITEMS.map((item) => (
+        <MenuItem key={item.path} item={item} />
+      ))}
+    </List>
+  );
+};

@@ -14,9 +14,9 @@ func RegisterCategoryRoutes(router *gin.Engine, categoryHandler *handlers.Catego
 	// Группа для роутов, требующих строгой аутентификации пользователя (JWT)
 	categories.Use(authMiddleware.RequireAuth)
 	{
-		categories.POST("", categoryHandler.CreateCategoryHandler)
-		categories.GET("/:id", categoryHandler.GetCategoryHandler)
-		categories.PUT("/:id", categoryHandler.UpdateCategoryHandler)
-		categories.DELETE("/:id", categoryHandler.DeleteCategoryHandler)
+		categories.POST("", middleware.PermissionMiddleware("categories:create"), categoryHandler.CreateCategoryHandler)
+		categories.GET("/:id", middleware.PermissionMiddleware("categories:read"), categoryHandler.GetCategoryHandler)
+		categories.PUT("/:id", middleware.PermissionMiddleware("categories:update"), categoryHandler.UpdateCategoryHandler)
+		categories.DELETE("/:id", middleware.PermissionMiddleware("categories:delete"), categoryHandler.DeleteCategoryHandler)
 	}
 }

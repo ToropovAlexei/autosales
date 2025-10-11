@@ -36,9 +36,10 @@ func main() {
 func seedData(db *gorm.DB) {
 	dropAllTables(db)
 	autoMigrate(db)
-	createRbacData(db)
+	permissions := createRbacData(db)
 	adminUser := createAdmin(db)
 	assignAdminRole(db, adminUser)
+	createTestUsers(db, permissions)
 	users := createBotUsers(db, 50)
 	categories := createCategories(db)
 	products := createProducts(db, categories, 100)
@@ -73,9 +74,9 @@ func autoMigrate(db *gorm.DB) {
 	}
 }
 
-func createRbacData(db *gorm.DB) {
-	fmt.Println("Creating permissions and admin role...")
-	permissions := []models.Permission{
+func createRbacData(db *gorm.DB) map[string]models.Permission {
+	fmt.Println("Creating permissions and roles...")
+	permissionsList := []models.Permission{
 		{Name: "rbac:manage", Group: "RBAC"},
 		{Name: "products:read", Group: "Products"}, {Name: "products:create", Group: "Products"}, {Name: "products:update", Group: "Products"}, {Name: "products:delete", Group: "Products"},
 		{Name: "categories:read", Group: "Categories"}, {Name: "categories:create", Group: "Categories"}, {Name: "categories:update", Group: "Categories"}, {Name: "categories:delete", Group: "Categories"},
@@ -89,12 +90,17 @@ func createRbacData(db *gorm.DB) {
 		{Name: "balance:read", Group: "Balance"},
 		{Name: "stock:read", Group: "Stock"}, {Name: "stock:update", Group: "Stock"},
 	}
-	for _, p := range permissions {
+	permissionsMap := make(map[string]models.Permission)
+	for _, p := range permissionsList {
 		db.FirstOrCreate(&p, models.Permission{Name: p.Name})
+		permissionsMap[p.Name] = p
 	}
 
-	adminRole := models.Role{Name: "admin", IsSuper: true}
-	db.FirstOrCreate(&adminRole, models.Role{Name: adminRole.Name})
+	db.FirstOrCreate(&models.Role{Name: "admin", IsSuper: true}, models.Role{Name: "admin"})
+	db.FirstOrCreate(&models.Role{Name: "бухгалтер"}, models.Role{Name: "бухгалтер"})
+	db.FirstOrCreate(&models.Role{Name: "менеджер"}, models.Role{Name: "менеджер"})
+
+	return permissionsMap
 }
 
 func createAdmin(db *gorm.DB) models.User {
@@ -116,6 +122,54 @@ func assignAdminRole(db *gorm.DB, user models.User) {
 	if adminRole.ID != 0 {
 		userRole := models.UserRole{UserID: user.ID, RoleID: adminRole.ID}
 		db.FirstOrCreate(&userRole, userRole)
+	}
+}
+
+func createTestUsers(db *gorm.DB, permissions map[string]models.Permission) {
+	fmt.Println("Creating test users...")
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
+
+	// admin@gmail.com user with admin role
+	admin2 := models.User{Email: "admin@gmail.com", HashedPassword: string(hashedPassword), IsActive: true}
+	db.FirstOrCreate(&admin2, models.User{Email: admin2.Email})
+	assignAdminRole(db, admin2)
+
+	// Accountant
+	accountant := models.User{Email: "accountant@example.com", HashedPassword: string(hashedPassword), IsActive: true}
+	db.FirstOrCreate(&accountant, models.User{Email: accountant.Email})
+	var accountantRole models.Role
+	db.First(&accountantRole, "name = ?", "бухгалтер")
+	if accountantRole.ID != 0 {
+		db.Create(&models.UserRole{UserID: accountant.ID, RoleID: accountantRole.ID})
+		db.Create(&models.RolePermission{RoleID: accountantRole.ID, PermissionID: permissions["transactions:read"].ID})
+		db.Create(&models.RolePermission{RoleID: accountantRole.ID, PermissionID: permissions["balance:read"].ID})
+	}
+
+	// Manager
+	manager := models.User{Email: "manager@example.com", HashedPassword: string(hashedPassword), IsActive: true}
+	db.FirstOrCreate(&manager, models.User{Email: manager.Email})
+	var managerRole models.Role
+	db.First(&managerRole, "name = ?", "менеджер")
+	if managerRole.ID != 0 {
+		db.Create(&models.UserRole{UserID: manager.ID, RoleID: managerRole.ID})
+		managerPermissions := []string{
+			"products:read", "products:create", "products:update", "products:delete",
+			"categories:read", "categories:create", "categories:update", "categories:delete",
+			"orders:read", "orders:update", "stock:read", "stock:update",
+		}
+		for _, pName := range managerPermissions {
+			db.Create(&models.RolePermission{RoleID: managerRole.ID, PermissionID: permissions[pName].ID})
+		}
+	}
+
+	// Godlike user
+	godlikeUser := models.User{Email: "god@example.com", HashedPassword: string(hashedPassword), IsActive: true}
+	db.FirstOrCreate(&godlikeUser, models.User{Email: godlikeUser.Email})
+	godlikeRole := models.Role{Name: "godlike", IsSuper: false}
+	db.FirstOrCreate(&godlikeRole, models.Role{Name: godlikeRole.Name})
+	db.Create(&models.UserRole{UserID: godlikeUser.ID, RoleID: godlikeRole.ID})
+	for _, p := range permissions {
+		db.Create(&models.RolePermission{RoleID: godlikeRole.ID, PermissionID: p.ID})
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 func RegisterDashboardRoutes(router *gin.Engine, dashboardHandler *handlers.DashboardHandler, authMiddleware *middleware.AuthMiddleware) {
 	dashboard := router.Group("/api/dashboard")
 	dashboard.Use(authMiddleware.RequireAuth)
+	dashboard.Use(middleware.PermissionMiddleware("dashboard:read"))
 	{
 		dashboard.GET("/stats", dashboardHandler.GetDashboardStatsHandler)
 		dashboard.GET("/time-series", dashboardHandler.GetTimeSeriesDashboardDataHandler)

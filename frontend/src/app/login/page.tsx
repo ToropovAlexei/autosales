@@ -30,7 +30,7 @@ export default function LoginPage() {
         .then(({ data }) => data.access_token),
     onSuccess: (token) => {
       localStorage.setItem("jwt", token);
-      router.push("/dashboard");
+      router.push("/post-login");
     },
   });
 

@@ -11,8 +11,8 @@ func RegisterSettingRoutes(router *gin.Engine, h *handlers.SettingHandler, authM
 	adminRoutes := router.Group("/api/admin")
 	adminRoutes.Use(authMiddleware.RequireAuth)
 	{
-		adminRoutes.GET("/settings", h.GetSettings)
-		adminRoutes.PUT("/settings", h.UpdateSettings)
+		adminRoutes.GET("/settings", middleware.PermissionMiddleware("settings:read"), h.GetSettings)
+		adminRoutes.PUT("/settings", middleware.PermissionMiddleware("settings:edit"), h.UpdateSettings)
 	}
 
 	// Public route

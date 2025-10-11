@@ -14,10 +14,10 @@ func RegisterImageRoutes(router *gin.Engine, imageHandler *handlers.ImageHandler
 	images.GET("/:id", imageHandler.ServeImageHandler)
 
 	// Protected routes for uploading and deleting images
-	images.Use(authMiddleware.RequireAuth)
-	images.Use(middleware.PermissionMiddleware("products:update")) // Example permission
+	adminImages := router.Group("/api/admin/images")
+	adminImages.Use(authMiddleware.RequireAuth)
 	{
-		images.POST("", imageHandler.UploadImageHandler)
-		images.DELETE("/:id", imageHandler.DeleteImageHandler)
+		adminImages.POST("", middleware.PermissionMiddleware("images:upload"), imageHandler.UploadImageHandler)
+		adminImages.DELETE("/:id", middleware.PermissionMiddleware("images:delete"), imageHandler.DeleteImageHandler)
 	}
 }

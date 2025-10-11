@@ -29,6 +29,7 @@ func RegisterUserRoutes(router *gin.Engine, userHandler *handlers.UserHandler, a
 	me.Use(authMiddleware.RequireAuth)
 	{
 		me.GET("", userHandler.GetMeHandler)
+		me.GET("/permissions", userHandler.GetMyPermissionsHandler)
 		me.PUT("/referral-settings", userHandler.UpdateReferralSettingsHandler)
 	}
 

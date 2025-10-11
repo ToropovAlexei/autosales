@@ -21,8 +21,8 @@ func RegisterReferralRoutes(router *gin.Engine, referralHandler *handlers.Referr
 
 	referrals.Use(authMiddleware.RequireAuth)
 	{
-		referrals.GET("/admin-list", referralHandler.GetAllReferralBotsAdminHandler)
-		referrals.PUT("/:id/status", referralHandler.UpdateReferralBotStatusHandler)
-		referrals.PUT("/:id/percentage", referralHandler.UpdateReferralBotPercentageHandler)
+		referrals.GET("/admin-list", middleware.PermissionMiddleware("referrals:read"), referralHandler.GetAllReferralBotsAdminHandler)
+		referrals.PUT("/:id/status", middleware.PermissionMiddleware("referrals:update"), referralHandler.UpdateReferralBotStatusHandler)
+		referrals.PUT("/:id/percentage", middleware.PermissionMiddleware("referrals:update"), referralHandler.UpdateReferralBotPercentageHandler)
 	}
 }

@@ -4,6 +4,7 @@ import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
 import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
 import { User } from "@/types";
+import { useCan } from "@/hooks";
 
 interface UsersTableProps {
   users: User[];
@@ -12,6 +13,8 @@ interface UsersTableProps {
 }
 
 export const UsersTable = ({ users, onConfigure, loading }: UsersTableProps) => {
+  const canConfigure = useCan("rbac:manage");
+
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", width: 90 },
     { field: "email", headerName: "Email", flex: 1 },
@@ -28,14 +31,17 @@ export const UsersTable = ({ users, onConfigure, loading }: UsersTableProps) => 
       width: 100,
       cellClassName: "actions",
       getActions: ({ row }) => {
-        return [
-          <GridActionsCellItem
-            key="configure"
-            icon={<ManageAccountsIcon />}
-            label="Configure"
-            onClick={() => onConfigure(row)}
-          />,
-        ];
+        if (canConfigure) {
+          return [
+            <GridActionsCellItem
+              key="configure"
+              icon={<ManageAccountsIcon />}
+              label="Configure"
+              onClick={() => onConfigure(row)}
+            />,
+          ];
+        }
+        return [];
       },
     },
   ];

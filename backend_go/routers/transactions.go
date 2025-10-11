@@ -11,6 +11,6 @@ func RegisterTransactionRoutes(router *gin.Engine, transactionHandler *handlers.
 	transactions := router.Group("/api/transactions")
 	transactions.Use(authMiddleware.RequireAuth)
 	{
-		transactions.GET("", transactionHandler.GetAllTransactionsHandler)
+		transactions.GET("", middleware.PermissionMiddleware("transactions:read"), transactionHandler.GetAllTransactionsHandler)
 	}
 }

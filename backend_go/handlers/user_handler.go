@@ -13,10 +13,11 @@ import (
 
 type UserHandler struct {
 	userService services.UserService
+	roleService  services.RoleService
 }
 
-func NewUserHandler(userService services.UserService) *UserHandler {
-	return &UserHandler{userService: userService}
+func NewUserHandler(userService services.UserService, roleService services.RoleService) *UserHandler {
+	return &UserHandler{userService: userService, roleService: roleService}
 }
 
 // @Summary      Get Current User
@@ -298,6 +299,27 @@ func (h *UserHandler) GetUserOrdersHandler(c *gin.Context) {
 	}
 
 	responses.SuccessResponse(c, http.StatusOK, orders)
+}
+
+func (h *UserHandler) GetMyPermissionsHandler(c *gin.Context) {
+	user, exists := c.Get("user")
+	if !exists {
+		c.Error(apperrors.ErrForbidden)
+		return
+	}
+	currentUser, ok := user.(models.User)
+	if !ok {
+		c.Error(apperrors.ErrForbidden)
+		return
+	}
+
+	permissions, err := h.roleService.GetUserFinalPermissions(currentUser.ID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, permissions)
 }
 
 func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
