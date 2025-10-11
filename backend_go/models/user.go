@@ -1,27 +1,21 @@
 package models
 
-type UserRole string
-
-const (
-	Admin  UserRole = "admin"
-	Seller UserRole = "seller"
-)
-
 type User struct {
-	ID                     uint   `gorm:"primaryKey"`
-	Email                  string `gorm:"uniqueIndex"`
-	HashedPassword         string
-	IsActive               bool     `gorm:"default:true"`
-	Role                   UserRole `gorm:"default:seller;not null"`
-	ReferralProgramEnabled bool     `gorm:"default:false"`
-	ReferralPercentage     float64  `gorm:"default:0.0"`
+	ID                     uint      `gorm:"primaryKey" json:"id"`
+	Email                  string    `gorm:"uniqueIndex" json:"email"`
+	HashedPassword         string    `json:"-"` // Do not expose hashed password
+	IsActive               bool      `gorm:"default:true" json:"is_active"`
+	ReferralProgramEnabled bool      `gorm:"default:false" json:"referral_program_enabled"`
+	ReferralPercentage     float64   `gorm:"default:0.0" json:"referral_percentage"`
+	Roles                  []*Role   `gorm:"many2many:user_roles;" json:"roles,omitempty"`
+	Permissions            []*UserPermission `json:"permissions,omitempty"`
 }
 
 type UserResponse struct {
 	ID                     uint     `json:"id"`
 	Email                  string   `json:"email"`
 	IsActive               bool     `json:"is_active"`
-	Role                   UserRole `json:"role"`
 	ReferralProgramEnabled bool     `json:"referral_program_enabled"`
 	ReferralPercentage     float64  `json:"referral_percentage"`
+	Roles                  []*Role  `json:"roles,omitempty"`
 }

@@ -8,14 +8,16 @@ import (
 )
 
 func RegisterImageRoutes(router *gin.Engine, imageHandler *handlers.ImageHandler, authMiddleware *middleware.AuthMiddleware) {
-	// Public route to serve images
-	router.GET("/images/:id", imageHandler.ServeImageHandler)
+	images := router.Group("/api/images")
 
-	// Admin routes for managing images
-	adminImagesAPI := router.Group("/api/admin/images")
-	adminImagesAPI.Use(authMiddleware.RequireAuth, middleware.AdminMiddleware())
+	// Public route to get an image
+	images.GET("/:id", imageHandler.ServeImageHandler)
+
+	// Protected routes for uploading and deleting images
+	images.Use(authMiddleware.RequireAuth)
+	images.Use(middleware.PermissionMiddleware("products:update")) // Example permission
 	{
-		adminImagesAPI.GET("", imageHandler.ListImagesHandler)
-		adminImagesAPI.POST("/upload", imageHandler.UploadImageHandler)
+		images.POST("", imageHandler.UploadImageHandler)
+		images.DELETE("/:id", imageHandler.DeleteImageHandler)
 	}
 }

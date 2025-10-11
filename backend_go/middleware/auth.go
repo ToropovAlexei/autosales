@@ -3,7 +3,6 @@ package middleware
 import (
 	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/config"
-	"frbktg/backend_go/models"
 	"frbktg/backend_go/services"
 	"net/http"
 	"strings"
@@ -74,31 +73,6 @@ func ServiceTokenMiddleware(appSettings config.Settings) gin.HandlerFunc {
 
 		if apiKey != appSettings.ServiceAPIKey {
 			c.Error(apperrors.New(http.StatusForbidden, "Invalid service token", nil))
-			c.Abort()
-			return
-		}
-
-		c.Next()
-	}
-}
-
-func AdminMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		user, exists := c.Get("user")
-		if !exists {
-			c.Error(apperrors.New(http.StatusUnauthorized, "User not found in context", nil))
-			c.Abort()
-			return
-		}
-
-		currentUser, ok := user.(models.User)
-		if !ok {
-			c.Error(apperrors.New(http.StatusInternalServerError, "Invalid user type in context", nil))
-			c.Abort()
-			return
-		}
-		if currentUser.Role != models.Admin {
-			c.Error(apperrors.New(http.StatusForbidden, "The user doesn't have enough privileges", nil))
 			c.Abort()
 			return
 		}

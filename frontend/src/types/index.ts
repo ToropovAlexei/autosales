@@ -1,3 +1,6 @@
+export * from './common';
+export * from './role';
+
 export interface ICategory {
   id: number;
   name: string;

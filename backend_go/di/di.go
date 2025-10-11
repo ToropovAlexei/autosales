@@ -39,6 +39,7 @@ type Container struct {
 	WebhookService         services.WebhookService
 	ImageService           services.ImageService
 	SettingService         services.SettingService
+	RoleService            services.RoleService
 	UserRepo               repositories.UserRepository
 	AuthHandler            *handlers.AuthHandler
 	UserHandler            *handlers.UserHandler
@@ -54,6 +55,7 @@ type Container struct {
 	PaymentHandler         *handlers.PaymentHandler
 	ImageHandler           *handlers.ImageHandler
 	SettingHandler         *handlers.SettingHandler
+	RoleHandler            *handlers.RoleHandler
 	SubscriptionWorker     *workers.SubscriptionWorker
 	PaymentWorker          *workers.PaymentWorker
 }
@@ -93,6 +95,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	paymentInvoiceRepo := repositories.NewPaymentInvoiceRepository(db)
 	imageRepo := repositories.NewImageRepository(db)
 	settingRepo := repositories.NewSettingRepository(db)
+	roleRepo := repositories.NewRoleRepository(db)
 
 	// Init services
 	tokenService := services.NewTokenService(appSettings.SecretKey, appSettings.AccessTokenExpireMinutes)
@@ -111,6 +114,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	webhookService := services.NewWebhookService(appSettings)
 	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo, botUserRepo, webhookService, appSettings)
 	imageService := services.NewImageService(db, imageRepo, appSettings)
+	roleService := services.NewRoleService(roleRepo)
 
 	// Init workers
 	subscriptionWorker := workers.NewSubscriptionWorker(orderService, userSubscriptionRepo, logger)
@@ -127,10 +131,11 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
 	balanceHandler := handlers.NewBalanceHandler(balanceService)
 	stockHandler := handlers.NewStockHandler(stockService)
-	adminHandler := handlers.NewAdminHandler(adminService)
+	adminHandler := handlers.NewAdminHandler(adminService, userService)
 	paymentHandler := handlers.NewPaymentHandler(paymentService)
 	imageHandler := handlers.NewImageHandler(imageService)
 	settingHandler := handlers.NewSettingHandler(settingService)
+	roleHandler := handlers.NewRoleHandler(roleService)
 
 	return &Container{
 		DB:                     db,
@@ -153,6 +158,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 		PaymentService:         paymentService,
 		WebhookService:         webhookService,
 		ImageService:           imageService,
+		RoleService:            roleService,
 		UserRepo:               userRepo,
 		AuthHandler:            authHandler,
 		UserHandler:            userHandler,
@@ -168,6 +174,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 		PaymentHandler:         paymentHandler,
 		ImageHandler:           imageHandler,
 		SettingHandler:         settingHandler,
+		RoleHandler:            roleHandler,
 		SubscriptionWorker:     subscriptionWorker,
 		PaymentWorker:          paymentWorker,
 	}, nil

@@ -11,6 +11,7 @@ type UserRepository interface {
 	UpdateReferralSettings(user *models.User, enabled bool, percentage float64) error
 	FindByID(id uint) (*models.User, error)
 	FindByEmail(email string) (*models.User, error)
+	GetUsers() ([]models.User, error)
 }
 
 type gormUserRepository struct {
@@ -42,8 +43,16 @@ func (r *gormUserRepository) FindByID(id uint) (*models.User, error) {
 
 func (r *gormUserRepository) FindByEmail(email string) (*models.User, error) {
 	var user models.User
-	if err := r.db.Where("email = ?", email).First(&user).Error; err != nil {
+	if err := r.db.Preload("Roles").Where("email = ?", email).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
+}
+
+func (r *gormUserRepository) GetUsers() ([]models.User, error) {
+	var users []models.User
+	if err := r.db.Preload("Roles").Find(&users).Error; err != nil {
+		return nil, err
+	}
+	return users, nil
 }

@@ -8,6 +8,7 @@ import SmartToyIcon from "@mui/icons-material/SmartToy";
 import LocalMallIcon from "@mui/icons-material/LocalMall";
 import SettingsIcon from "@mui/icons-material/Settings";
 import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
+import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 
 export const MENU_ITEMS = [
   {
@@ -49,6 +50,16 @@ export const MENU_ITEMS = [
     label: "Реферальные боты",
     Icon: SmartToyIcon,
     path: "/referral-bots",
+  },
+  {
+    label: "Роли",
+    Icon: AdminPanelSettingsIcon,
+    path: "/roles",
+  },
+  {
+    label: "Администраторы",
+    Icon: GroupIcon,
+    path: "/users",
   },
   {
     label: "Изображения",

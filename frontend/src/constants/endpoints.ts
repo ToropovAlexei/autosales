@@ -18,6 +18,10 @@ export const ENDPOINTS = {
   IMAGES: "admin/images",
   IMAGE_FOLDERS: "admin/image-folders",
   REFERRAL_PERCENTAGE: "referrals/:id/percentage",
+  ROLES: "admin/roles",
+  PERMISSIONS: "admin/permissions",
+  USERS: "admin/users",
+  USER_ROLES: "admin/users/:id/roles",
 };
 
 export const ENDPOINT_UPDATE_PUT_EXCEPTIONS = new Set<string>([
@@ -26,4 +30,5 @@ export const ENDPOINT_UPDATE_PUT_EXCEPTIONS = new Set<string>([
   ENDPOINTS.SET_BOT_PRIMARY,
   ENDPOINTS.CATEGORIES,
   ENDPOINTS.REFERRAL_PERCENTAGE,
+  ENDPOINTS.USER_ROLES,
 ]);

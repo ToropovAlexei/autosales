@@ -21,6 +21,7 @@ type ImageService interface {
 	ListImages(folder string) ([]models.Image, error)
 	UploadImage(fileHeader *multipart.FileHeader, folder string) (*models.Image, error)
 	GetImageFilePath(imageID uuid.UUID) (string, error)
+	DeleteImage(imageID uuid.UUID) error
 }
 
 type imageService struct {
@@ -39,6 +40,26 @@ func NewImageService(db *gorm.DB, imageRepo repositories.ImageRepository, cfg co
 		imageRepo: imageRepo,
 		cfg:       cfg,
 	}
+}
+
+func (s *imageService) DeleteImage(imageID uuid.UUID) error {
+	image, err := s.imageRepo.FindByID(imageID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Resource: "Image", IDString: imageID.String()}
+	}
+
+	fileExtension := filepath.Ext(image.OriginalFilename)
+	filename := image.ID.String() + fileExtension
+	filePath := filepath.Join(s.cfg.ImageUploadPath, filename)
+
+	if err := os.Remove(filePath); err != nil {
+		// Log the error but don't fail if the file is already gone
+		if !os.IsNotExist(err) {
+			return apperrors.New(500, "failed to delete image file from disk", err)
+		}
+	}
+
+	return s.imageRepo.Delete(imageID)
 }
 
 func (s *imageService) ListImages(folder string) ([]models.Image, error) {

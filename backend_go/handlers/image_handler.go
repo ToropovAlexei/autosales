@@ -95,3 +95,30 @@ func (h *ImageHandler) ServeImageHandler(c *gin.Context) {
 
 	c.File(filePath)
 }
+
+// DeleteImageHandler godoc
+// @Summary      Delete an image
+// @Description  Deletes an image by its UUID.
+// @Tags         Admin
+// @Produce      json
+// @Param        id   path      string  true  "Image UUID"
+// @Success      204  {object}  nil
+// @Failure      404  {object}  apperrors.ErrorResponse
+// @Failure      500  {object}  apperrors.ErrorResponse
+// @Router       /admin/images/{id} [delete]
+// @Security     ApiKeyAuth
+func (h *ImageHandler) DeleteImageHandler(c *gin.Context) {
+	idStr := c.Param("id")
+	imageID, err := uuid.Parse(idStr)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	if err := h.imageService.DeleteImage(imageID); err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusNoContent, nil)
+}

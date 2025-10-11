@@ -71,10 +71,6 @@ func (h *UserHandler) UpdateReferralSettingsHandler(c *gin.Context) {
 		c.Error(apperrors.ErrForbidden)
 		return
 	}
-	if currentUser.Role != models.Admin && currentUser.Role != models.Seller {
-		c.Error(apperrors.ErrForbidden)
-		return
-	}
 
 	var json referralSettingsPayload
 	if err := c.ShouldBindJSON(&json); err != nil {
@@ -147,54 +143,6 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 	})
 }
 
-type getBotUserPayload struct {
-	BotName string `json:"bot_name"`
-}
-
-// @Summary      Get Bot User by Telegram ID
-// @Description  Retrieves bot user details by their Telegram ID.
-// @Tags         Users
-// @Accept       json
-// @Produce      json
-// @Param        telegram_id path int true "User Telegram ID"
-// @Param        bot_name body getBotUserPayload true "Bot Name"
-// @Success      200 {object} responses.ResponseSchema[models.BotUserResponse]
-// @Failure      400 {object} responses.ErrorResponseSchema
-// @Failure      404 {object} responses.ErrorResponseSchema
-// @Router       /users/{telegram_id} [get]
-// @Security     ServiceApiKeyAuth
-func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
-	if err != nil {
-		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid user ID"})
-		return
-	}
-
-	var json getBotUserPayload
-	if err := c.ShouldBindJSON(&json); err != nil {
-		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: err.Error()})
-		return
-	}
-
-	user, balance, err := h.userService.GetBotUserByTelegramID(id, json.BotName)
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	response := models.BotUserResponse{
-		ID:                user.ID,
-		TelegramID:        user.TelegramID,
-		IsBlocked:         user.IsBlocked,
-		HasPassedCaptcha:  user.HasPassedCaptcha,
-		Balance:           balance,
-		RegisteredWithBot: user.RegisteredWithBot,
-		LastSeenWithBot:   user.LastSeenWithBot,
-		LastSeenAt:        user.LastSeenAt,
-	}
-
-	responses.SuccessResponse(c, http.StatusOK, response)
-}
 
 // @Summary      Get User Balance
 // @Description  Retrieves the current balance for a bot user.
@@ -323,6 +271,10 @@ func (h *UserHandler) GetUserSubscriptionsHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusOK, subscriptions)
 }
 
+type getBotUserPayload struct {
+	BotName string `json:"bot_name"`
+}
+
 // @Summary      Get User Orders
 // @Description  Retrieves the order history for a bot user.
 // @Tags         Users, Orders
@@ -346,6 +298,39 @@ func (h *UserHandler) GetUserOrdersHandler(c *gin.Context) {
 	}
 
 	responses.SuccessResponse(c, http.StatusOK, orders)
+}
+
+func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
+	if err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid user ID"})
+		return
+	}
+
+	var json getBotUserPayload
+	if err := c.ShouldBindJSON(&json); err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: err.Error()})
+		return
+	}
+
+	user, balance, err := h.userService.GetBotUserByTelegramID(id, json.BotName)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	response := models.BotUserResponse{
+		ID:                user.ID,
+		TelegramID:        user.TelegramID,
+		IsBlocked:         user.IsBlocked,
+		HasPassedCaptcha:  user.HasPassedCaptcha,
+		Balance:           balance,
+		RegisteredWithBot: user.RegisteredWithBot,
+		LastSeenWithBot:   user.LastSeenWithBot,
+		LastSeenAt:        user.LastSeenAt,
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, response)
 }
 
 // @Summary      Toggle Block Status of a Bot User

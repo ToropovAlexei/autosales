@@ -13,6 +13,7 @@ import (
 type UserService interface {
 	GetMe(user models.User) *models.UserResponse
 	GetMeByEmail(email string) (*models.User, error)
+	GetUsers() ([]models.User, error)
 	UpdateReferralSettings(user *models.User, enabled bool, percentage float64) error
 	RegisterBotUser(telegramID int64, botName string) (*models.BotUser, float64, bool, bool, error)
 	GetBotUser(id uint) (*models.BotUser, float64, error)
@@ -63,7 +64,6 @@ func (s *userService) GetMe(user models.User) *models.UserResponse {
 		ID:                     user.ID,
 		Email:                  user.Email,
 		IsActive:               user.IsActive,
-		Role:                   user.Role,
 		ReferralProgramEnabled: user.ReferralProgramEnabled,
 		ReferralPercentage:     user.ReferralPercentage,
 	}
@@ -71,6 +71,10 @@ func (s *userService) GetMe(user models.User) *models.UserResponse {
 
 func (s *userService) GetMeByEmail(email string) (*models.User, error) {
 	return s.userRepo.FindByEmail(email)
+}
+
+func (s *userService) GetUsers() ([]models.User, error) {
+	return s.userRepo.GetUsers()
 }
 
 func (s *userService) UpdateReferralSettings(user *models.User, enabled bool, percentage float64) error {

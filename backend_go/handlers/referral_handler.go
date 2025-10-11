@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"frbktg/backend_go/apperrors"
-	"frbktg/backend_go/models"
 	"frbktg/backend_go/responses"
 	"frbktg/backend_go/services"
 	"net/http"
@@ -50,22 +49,6 @@ func (h *ReferralHandler) GetReferralBotsHandler(c *gin.Context) {
 }
 
 func (h *ReferralHandler) GetAllReferralBotsAdminHandler(c *gin.Context) {
-	user, exists := c.Get("user")
-	if !exists {
-		c.Error(apperrors.ErrForbidden)
-		return
-	}
-	currentUser, ok := user.(models.User)
-	if !ok {
-		c.Error(apperrors.ErrForbidden)
-		return
-	}
-
-	if currentUser.Role != models.Admin {
-		c.Error(apperrors.ErrForbidden)
-		return
-	}
-
 	bots, err := h.referralService.GetAllAdminInfo()
 	if err != nil {
 		c.Error(err)

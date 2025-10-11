@@ -18,7 +18,7 @@ import (
 func main() {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	appSettings, err := config.LoadConfig(".env.example")
+	appSettings, err := config.LoadConfig(".env")
 	if err != nil {
 		log.Fatalf("could not load config: %v", err)
 	}
@@ -36,17 +36,25 @@ func main() {
 func seedData(db *gorm.DB) {
 	dropAllTables(db)
 	autoMigrate(db)
-	createAdmin(db)
+	createRbacData(db)
+	adminUser := createAdmin(db)
+	assignAdminRole(db, adminUser)
 	users := createBotUsers(db, 50)
 	categories := createCategories(db)
 	products := createProducts(db, categories, 100)
 	createInitialStock(db, products)
-	createOrdersAndTransactions(db, users, products, 500) // Increased transaction count
+	createOrdersAndTransactions(db, users, products, 500)
 }
 
 func dropAllTables(db *gorm.DB) {
 	fmt.Println("Dropping all tables...")
-	tables := []interface{}{&models.UserSubscription{}, &models.RefTransaction{}, &models.ReferralBot{}, &models.StockMovement{}, &models.Order{}, &models.Transaction{}, &models.Product{}, &models.Category{}, &models.BotUser{}, &models.User{}, &models.PaymentInvoice{}}
+	tables := []interface{}{
+		&models.UserSubscription{}, &models.RefTransaction{}, &models.ReferralBot{},
+		&models.StockMovement{}, &models.Order{}, &models.Transaction{},
+		&models.Product{}, &models.Category{}, &models.BotUser{}, &models.User{},
+		&models.PaymentInvoice{}, &models.Image{}, &models.UserPermission{},
+		&models.UserRole{}, &models.RolePermission{}, &models.Permission{}, &models.Role{},
+	}
 	if err := db.Migrator().DropTable(tables...); err != nil {
 		log.Fatalf("Failed to drop tables: %v", err)
 	}
@@ -54,16 +62,61 @@ func dropAllTables(db *gorm.DB) {
 
 func autoMigrate(db *gorm.DB) {
 	fmt.Println("Auto-migrating tables...")
-	if err := db.AutoMigrate(&models.User{}, &models.BotUser{}, &models.Category{}, &models.Product{}, &models.Order{}, &models.Transaction{}, &models.StockMovement{}, &models.ReferralBot{}, &models.RefTransaction{}, &models.UserSubscription{}, &models.PaymentInvoice{}); err != nil {
+	if err := db.AutoMigrate(
+		&models.User{}, &models.BotUser{}, &models.Category{}, &models.Product{},
+		&models.Order{}, &models.Transaction{}, &models.StockMovement{},
+		&models.ReferralBot{}, &models.RefTransaction{}, &models.UserSubscription{},
+		&models.PaymentInvoice{}, &models.Image{}, &models.Role{}, &models.Permission{},
+		&models.RolePermission{}, &models.UserRole{}, &models.UserPermission{},
+	); err != nil {
 		log.Fatalf("Failed to auto-migrate: %v", err)
 	}
 }
 
-func createAdmin(db *gorm.DB) {
+func createRbacData(db *gorm.DB) {
+	fmt.Println("Creating permissions and admin role...")
+	permissions := []models.Permission{
+		{Name: "rbac:manage", Group: "RBAC"},
+		{Name: "products:read", Group: "Products"}, {Name: "products:create", Group: "Products"}, {Name: "products:update", Group: "Products"}, {Name: "products:delete", Group: "Products"},
+		{Name: "categories:read", Group: "Categories"}, {Name: "categories:create", Group: "Categories"}, {Name: "categories:update", Group: "Categories"}, {Name: "categories:delete", Group: "Categories"},
+		{Name: "orders:read", Group: "Orders"}, {Name: "orders:update", Group: "Orders"},
+		{Name: "users:read", Group: "Users"}, {Name: "users:create", Group: "Users"}, {Name: "users:update", Group: "Users"}, {Name: "users:delete", Group: "Users"},
+		{Name: "dashboard:read", Group: "Dashboard"},
+		{Name: "settings:read", Group: "Settings"}, {Name: "settings:edit", Group: "Settings"},
+		{Name: "images:upload", Group: "Images"}, {Name: "images:delete", Group: "Images"},
+		{Name: "referrals:read", Group: "Referrals"}, {Name: "referrals:update", Group: "Referrals"},
+		{Name: "transactions:read", Group: "Transactions"},
+		{Name: "balance:read", Group: "Balance"},
+		{Name: "stock:read", Group: "Stock"}, {Name: "stock:update", Group: "Stock"},
+	}
+	for _, p := range permissions {
+		db.FirstOrCreate(&p, models.Permission{Name: p.Name})
+	}
+
+	adminRole := models.Role{Name: "admin", IsSuper: true}
+	db.FirstOrCreate(&adminRole, models.Role{Name: adminRole.Name})
+}
+
+func createAdmin(db *gorm.DB) models.User {
 	fmt.Println("Creating admin user...")
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
-	admin := models.User{Email: "test@example.com", HashedPassword: string(hashedPassword), Role: models.Admin}
-	db.Create(&admin)
+	admin := models.User{
+		Email:          "test@example.com",
+		HashedPassword: string(hashedPassword),
+		IsActive:       true,
+	}
+	db.FirstOrCreate(&admin, models.User{Email: admin.Email})
+	return admin
+}
+
+func assignAdminRole(db *gorm.DB, user models.User) {
+	fmt.Println("Assigning admin role...")
+	var adminRole models.Role
+	db.First(&adminRole, "name = ?", "admin")
+	if adminRole.ID != 0 {
+		userRole := models.UserRole{UserID: user.ID, RoleID: adminRole.ID}
+		db.FirstOrCreate(&userRole, userRole)
+	}
 }
 
 func createBotUsers(db *gorm.DB, count int) []models.BotUser {
@@ -72,10 +125,8 @@ func createBotUsers(db *gorm.DB, count int) []models.BotUser {
 	var users []models.BotUser
 	for i := 0; i < count; i++ {
 		botName := botNames[rand.Intn(len(botNames))]
-		// Random time in the last year
 		createdAt := time.Now().AddDate(0, -rand.Intn(12), -rand.Intn(28))
 		lastSeen := createdAt.Add(time.Hour * time.Duration(rand.Intn(24*30)))
-
 		users = append(users, models.BotUser{
 			TelegramID:        rand.Int63n(900000000) + 100000000,
 			HasPassedCaptcha:  true,
@@ -169,20 +220,17 @@ func createInitialStock(db *gorm.DB, products []models.Product) {
 
 func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products []models.Product, purchaseCount int) {
 	fmt.Println("Creating deposits and purchases...")
-
 	userBalances := make(map[uint]float64)
 	var allTransactions []models.Transaction
 
-	// 1. Create initial deposits for every user
 	fmt.Println("Phase 1: Creating initial deposits for all users.")
 	for _, user := range users {
-		numDeposits := rand.Intn(4) + 2 // 2 to 5 deposits per user
+		numDeposits := rand.Intn(4) + 2
 		totalDeposit := 0.0
 		for i := 0; i < numDeposits; i++ {
 			depositAmount := float64(rand.Intn(15000-500) + 500)
 			totalDeposit += depositAmount
 			createdAt := time.Now().AddDate(-1, 0, 0).Add(time.Hour * time.Duration(rand.Intn(365*24)))
-
 			allTransactions = append(allTransactions, models.Transaction{
 				UserID:      user.ID,
 				Type:        models.Deposit,
@@ -195,7 +243,6 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 	}
 	db.Create(&allTransactions)
 
-	// 2. Create purchases, ensuring user has enough balance
 	fmt.Printf("Phase 2: Creating %d valid purchases.\n", purchaseCount)
 	var allPurchaseTransactions []models.Transaction
 	var allStockMovements []models.StockMovement
@@ -203,15 +250,12 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 	for i := 0; i < purchaseCount; i++ {
 		user := users[rand.Intn(len(users))]
 		product := products[rand.Intn(len(products))]
-		quantity := 1 // Keep quantity simple
+		quantity := 1
 		amount := product.Price * float64(quantity)
 
 		if userBalances[user.ID] >= amount {
-			// User can afford it, create the purchase
 			userBalances[user.ID] -= amount
-
 			createdAt := time.Now().AddDate(-1, 0, 0).Add(time.Hour * time.Duration(rand.Intn(365*24)))
-
 			order := models.Order{
 				UserID:    user.ID,
 				ProductID: product.ID,
@@ -220,7 +264,6 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 				Status:    "success",
 				CreatedAt: createdAt,
 			}
-			// We need to create order one by one to get its ID for FKs
 			db.Create(&order)
 
 			allPurchaseTransactions = append(allPurchaseTransactions, models.Transaction{
@@ -242,7 +285,6 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 			})
 		}
 	}
-
 	db.Create(&allPurchaseTransactions)
 	db.Create(&allStockMovements)
 }

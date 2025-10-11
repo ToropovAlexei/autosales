@@ -13,6 +13,7 @@ type ImageRepository interface {
 	FindByHash(hash string) (*models.Image, error)
 	FindByID(id uuid.UUID) (*models.Image, error)
 	ListByFolder(folder string) ([]models.Image, error)
+	Delete(id uuid.UUID) error
 }
 
 type gormImageRepository struct {
@@ -21,6 +22,10 @@ type gormImageRepository struct {
 
 func NewImageRepository(db *gorm.DB) ImageRepository {
 	return &gormImageRepository{db: db}
+}
+
+func (r *gormImageRepository) Delete(id uuid.UUID) error {
+	return r.db.Delete(&models.Image{}, "id = ?", id).Error
 }
 
 func (r *gormImageRepository) WithTx(tx *gorm.DB) ImageRepository {

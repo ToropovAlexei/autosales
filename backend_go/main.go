@@ -88,6 +88,7 @@ func main() {
 	// Используем стандартный Recovery middleware и наши кастомные
 	r.Use(gin.Recovery())
 	r.Use(middleware.LogContext())   // Добавляет контекст в логгер
+	r.Use(middleware.ServicesMiddleware(container.RoleService)) // Inject services into context
 	r.Use(middleware.ErrorHandler()) // Должен быть после LogContext
 
 	corsConfig := cors.DefaultConfig()
@@ -114,6 +115,8 @@ func main() {
 	routers.RegisterPaymentRoutes(r, container.PaymentHandler, authMiddleware)
 	routers.RegisterImageRoutes(r, container.ImageHandler, authMiddleware)
 	routers.RegisterSettingRoutes(r, container.SettingHandler, authMiddleware)
+	routers.RegisterRoleRoutes(r, container.RoleHandler, authMiddleware)
+	routers.RegisterAdminUserRoutes(r, container.RoleHandler, container.AdminHandler, authMiddleware)
 
 	// Swagger route
 	// rtr.SwaggerRouter(r)

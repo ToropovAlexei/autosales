@@ -23,12 +23,6 @@ func RegisterUserRoutes(router *gin.Engine, userHandler *handlers.UserHandler, a
 		users.PUT("/:telegram_id/captcha-status", userHandler.UpdateUserCaptchaStatusHandler)
 	}
 
-	// Admin API for managing bot users
-	adminBotUsersAPI := router.Group("/api/admin/bot-users")
-	adminBotUsersAPI.Use(authMiddleware.RequireAuth)
-	{
-		adminBotUsersAPI.PATCH("/:telegram_id/toggle-block", userHandler.ToggleBlockUserHandler)
-	}
 
 	// Admin/Seller API for their own data
 	me := router.Group("/api/me")

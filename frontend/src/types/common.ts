@@ -1,3 +1,5 @@
+import { Role } from "@/types/role";
+
 export interface IFilter {
   [key: string]:
     | string
@@ -15,7 +17,7 @@ export interface User {
   id: number;
   email: string;
   is_active: boolean;
-  role: string;
+  roles: Role[];
   referral_program_enabled: boolean;
   referral_percentage: number;
 }
