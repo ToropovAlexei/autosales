@@ -1,10 +1,21 @@
 "use client";
 
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, FormGroup, FormControlLabel, Checkbox } from "@mui/material";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  FormGroup,
+  FormControlLabel,
+  Checkbox,
+} from "@mui/material";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { Permission, Role } from "@/types";
 import { useEffect, useState } from "react";
+import { translatePermission, translatePermissionGroup } from "@/lib/permissions";
 
 interface RoleModalProps {
   open: boolean;
@@ -50,7 +61,7 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
   };
 
   const groupedPermissions = allPermissions?.data?.reduce((acc, permission) => {
-    const group = permission.group || 'Other';
+    const group = permission.group || "Other";
     if (!acc[group]) {
       acc[group] = [];
     }
@@ -71,25 +82,26 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        {groupedPermissions && Object.entries(groupedPermissions).map(([group, permissions]) => (
-          <div key={group}>
-            <h4>{group}</h4>
-            <FormGroup>
-              {permissions.map((permission) => (
-                <FormControlLabel
-                  key={permission.id}
-                  control={
-                    <Checkbox
-                      checked={selectedPermissions.includes(permission.id)}
-                      onChange={() => handlePermissionChange(permission.id)}
-                    />
-                  }
-                  label={permission.name}
-                />
-              ))}
-            </FormGroup>
-          </div>
-        ))}
+        {groupedPermissions &&
+          Object.entries(groupedPermissions).map(([group, permissions]) => (
+            <div key={group}>
+              <h4>{translatePermissionGroup(group)}</h4>
+              <FormGroup>
+                {permissions.map((permission) => (
+                  <FormControlLabel
+                    key={permission.id}
+                    control={
+                      <Checkbox
+                        checked={selectedPermissions.includes(permission.id)}
+                        onChange={() => handlePermissionChange(permission.id)}
+                      />
+                    }
+                    label={translatePermission(permission.name)}
+                  />
+                ))}
+              </FormGroup>
+            </div>
+          ))}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Отмена</Button>
@@ -98,4 +110,3 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
     </Dialog>
   );
 };
-

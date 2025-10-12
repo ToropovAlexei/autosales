@@ -1,0 +1,54 @@
+export const PERMISSION_GROUP_TRANSLATIONS: Record<string, string> = {
+  "RBAC": "Управление доступом",
+  "Products": "Товары",
+  "Categories": "Категории",
+  "Orders": "Заказы",
+  "Users": "Пользователи",
+  "Dashboard": "Дашборд",
+  "Settings": "Настройки",
+  "Images": "Изображения",
+  "Referrals": "Рефералы",
+  "Transactions": "Транзакции",
+  "Balance": "Баланс",
+  "Stock": "Склад",
+  "AuditLog": "Журнал аудита",
+  "Other": "Другое",
+};
+
+export const translatePermissionGroup = (group: string): string => {
+  return PERMISSION_GROUP_TRANSLATIONS[group] || group;
+};
+
+export const PERMISSION_TRANSLATIONS: Record<string, string> = {
+  "rbac:manage": "Управление доступом",
+  "products:read": "Просмотр товаров",
+  "products:create": "Создание товаров",
+  "products:update": "Обновление товаров",
+  "products:delete": "Удаление товаров",
+  "categories:read": "Просмотр категорий",
+  "categories:create": "Создание категорий",
+  "categories:update": "Обновление категорий",
+  "categories:delete": "Удаление категорий",
+  "orders:read": "Просмотр заказов",
+  "orders:update": "Обновление заказов",
+  "users:read": "Просмотр пользователей",
+  "users:create": "Создание пользователей",
+  "users:update": "Обновление пользователей",
+  "users:delete": "Удаление пользователей",
+  "dashboard:read": "Просмотр дашборда",
+  "settings:read": "Просмотр настроек",
+  "settings:edit": "Редактирование настроек",
+  "images:upload": "Загрузка изображений",
+  "images:delete": "Удаление изображений",
+  "referrals:read": "Просмотр рефералов",
+  "referrals:update": "Обновление рефералов",
+  "transactions:read": "Просмотр транзакций",
+  "balance:read": "Просмотр баланса",
+  "stock:read": "Просмотр склада",
+  "stock:update": "Обновление склада",
+  "audit_log.read": "Просмотр журнала аудита",
+};
+
+export const translatePermission = (permission: string): string => {
+  return PERMISSION_TRANSLATIONS[permission] || permission;
+};

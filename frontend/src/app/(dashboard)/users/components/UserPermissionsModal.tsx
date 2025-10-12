@@ -8,7 +8,6 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  FormGroup,
   FormControlLabel,
   RadioGroup,
   Radio,
@@ -21,6 +20,7 @@ import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dataLayer } from "@/lib/dataLayer";
 import { queryKeys } from "@/utils/query";
+import { translatePermission } from "@/lib/permissions";
 
 interface UserPermissionsModalProps {
   open: boolean;
@@ -163,7 +163,7 @@ export const UserPermissionsModal = ({
                   margin: "8px 0",
                 }}
               >
-                <span>{permission.name}</span>
+                <span>{translatePermission(permission.name)}</span>
                 <RadioGroup
                   row
                   value={userPermissions[permission.id] || "inherit"}
