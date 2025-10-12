@@ -47,9 +47,6 @@ export const OrdersTable = ({ orders, loading }: OrdersTableProps) => {
         rows={orders}
         columns={columns}
         density="compact"
-        getRowClassName={(params) =>
-          params.indexRelativeToCurrentPage % 2 === 0 ? 'even' : 'odd'
-        }
         initialState={{
           pagination: {
             paginationModel: {

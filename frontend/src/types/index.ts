@@ -1,6 +1,20 @@
 export * from './common';
 export * from './role';
 
+export interface IAuditLog {
+  id: number;
+  user_id: number;
+  user_email: string;
+  action: string;
+  target_type: string;
+  target_id: number;
+  changes: any;
+  status: string;
+  ip_address: string;
+  user_agent: string;
+  created_at: string;
+}
+
 export interface ICategory {
   id: number;
   name: string;

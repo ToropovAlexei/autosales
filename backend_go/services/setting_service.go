@@ -3,15 +3,18 @@ package services
 import (
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
+
+	"github.com/gin-gonic/gin"
 )
 
 type SettingService struct {
-	repo             *repositories.SettingRepository
-	userRepository repositories.UserRepository
+	repo             repositories.SettingRepository
+	userRepository   repositories.UserRepository
+	auditLogService  AuditLogService
 }
 
-func NewSettingService(repo *repositories.SettingRepository, userRepository repositories.UserRepository) *SettingService {
-	return &SettingService{repo: repo, userRepository: userRepository}
+func NewSettingService(repo repositories.SettingRepository, userRepository repositories.UserRepository, auditLogService AuditLogService) *SettingService {
+	return &SettingService{repo: repo, userRepository: userRepository, auditLogService: auditLogService}
 }
 
 func (s *SettingService) GetSettings() (map[string]string, error) {
@@ -31,10 +34,23 @@ func (s *SettingService) GetPublicSettings() (map[string]string, error) {
 	return s.GetSettings()
 }
 
-func (s *SettingService) UpdateSettings(settingsMap map[string]string) error {
+func (s *SettingService) UpdateSettings(ctx *gin.Context, settingsMap map[string]string) error {
+	before, err := s.GetSettings()
+	if err != nil {
+		// Log the error but proceed, as we might be creating settings for the first time.
+		// In a real-world scenario, you might want more sophisticated error handling.
+	}
+
 	var settings []models.Setting
 	for key, value := range settingsMap {
 		settings = append(settings, models.Setting{Key: key, Value: value})
 	}
-	return s.repo.UpsertSettings(settings)
+
+	if err := s.repo.UpsertSettings(settings); err != nil {
+		return err
+	}
+
+	s.auditLogService.Log(ctx, "SETTINGS_UPDATE", "GlobalSettings", 0, map[string]interface{}{"before": before, "after": settingsMap})
+
+	return nil
 }

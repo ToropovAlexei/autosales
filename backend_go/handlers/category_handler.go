@@ -59,7 +59,7 @@ func (h *CategoryHandler) CreateCategoryHandler(c *gin.Context) {
 		return
 	}
 
-	category, err := h.categoryService.Create(json.Name, json.ParentID, json.ImageID)
+	category, err := h.categoryService.Create(c, json.Name, json.ParentID, json.ImageID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -120,7 +120,7 @@ func (h *CategoryHandler) UpdateCategoryHandler(c *gin.Context) {
 		return
 	}
 
-	category, err := h.categoryService.Update(id, json.Name, json.ParentID, json.ImageID)
+	category, err := h.categoryService.Update(c, id, json.Name, json.ParentID, json.ImageID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -147,7 +147,7 @@ func (h *CategoryHandler) DeleteCategoryHandler(c *gin.Context) {
 		return
 	}
 
-	if err := h.categoryService.Delete(id); err != nil {
+	if err := h.categoryService.Delete(c, id); err != nil {
 		c.Error(err)
 		return
 	}

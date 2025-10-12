@@ -29,7 +29,7 @@ func (h *RoleHandler) CreateRoleHandler(c *gin.Context) {
 		return
 	}
 
-	role, err := h.roleService.CreateRole(json.Name)
+	role, err := h.roleService.CreateRole(c, json.Name)
 	if err != nil {
 		c.Error(err)
 		return
@@ -75,7 +75,7 @@ func (h *RoleHandler) UpdateRoleHandler(c *gin.Context) {
 		return
 	}
 
-	role, err := h.roleService.UpdateRole(uint(id), json.Name)
+	role, err := h.roleService.UpdateRole(c, uint(id), json.Name)
 	if err != nil {
 		c.Error(err)
 		return
@@ -91,7 +91,7 @@ func (h *RoleHandler) DeleteRoleHandler(c *gin.Context) {
 		return
 	}
 
-	if err := h.roleService.DeleteRole(uint(id)); err != nil {
+	if err := h.roleService.DeleteRole(c, uint(id)); err != nil {
 		c.Error(err)
 		return
 	}
@@ -140,7 +140,7 @@ func (h *RoleHandler) AddPermissionToRoleHandler(c *gin.Context) {
 		return
 	}
 
-	if err := h.roleService.AddPermissionToRole(uint(id), json.PermissionID); err != nil {
+	if err := h.roleService.AddPermissionToRole(c, uint(id), json.PermissionID); err != nil {
 		c.Error(err)
 		return
 	}
@@ -161,7 +161,7 @@ func (h *RoleHandler) RemovePermissionFromRoleHandler(c *gin.Context) {
 		return
 	}
 
-	if err := h.roleService.RemovePermissionFromRole(uint(id), uint(permissionID)); err != nil {
+	if err := h.roleService.RemovePermissionFromRole(c, uint(id), uint(permissionID)); err != nil {
 		c.Error(err)
 		return
 	}
@@ -201,7 +201,7 @@ func (h *RoleHandler) SetUserRoleHandler(c *gin.Context) {
 		return
 	}
 
-	if err := h.roleService.SetUserRole(uint(id), json.RoleID); err != nil {
+	if err := h.roleService.SetUserRole(c, uint(id), json.RoleID); err != nil {
 		c.Error(err)
 		return
 	}
@@ -242,7 +242,7 @@ func (h *RoleHandler) AddUserPermissionHandler(c *gin.Context) {
 		return
 	}
 
-	up, err := h.roleService.AddUserPermission(uint(id), json.PermissionID, json.Effect)
+	up, err := h.roleService.AddUserPermission(c, uint(id), json.PermissionID, json.Effect)
 	if err != nil {
 		c.Error(err)
 		return
@@ -264,7 +264,7 @@ func (h *RoleHandler) RemoveUserPermissionHandler(c *gin.Context) {
 		return
 	}
 
-	if err := h.roleService.RemoveUserPermission(uint(id), uint(permissionID)); err != nil {
+	if err := h.roleService.RemoveUserPermission(c, uint(id), uint(permissionID)); err != nil {
 		c.Error(err)
 		return
 	}

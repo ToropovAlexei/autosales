@@ -2,7 +2,7 @@
 
 import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
-import ManageAccountsIcon from '@mui/icons-material/ManageAccounts';
+import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import { User } from "@/types";
 import { useCan } from "@/hooks";
 
@@ -12,7 +12,11 @@ interface UsersTableProps {
   loading: boolean;
 }
 
-export const UsersTable = ({ users, onConfigure, loading }: UsersTableProps) => {
+export const UsersTable = ({
+  users,
+  onConfigure,
+  loading,
+}: UsersTableProps) => {
   const canConfigure = useCan("rbac:manage");
 
   const columns: GridColDef[] = [
@@ -22,7 +26,7 @@ export const UsersTable = ({ users, onConfigure, loading }: UsersTableProps) => 
       field: "roles",
       headerName: "Роли",
       flex: 1,
-      valueGetter: (value) => value?.map((role: any) => role.name).join(', '),
+      valueGetter: (value) => value?.map((role: any) => role.name).join(", "),
     },
     {
       field: "actions",
@@ -53,10 +57,6 @@ export const UsersTable = ({ users, onConfigure, loading }: UsersTableProps) => 
         columns={columns}
         density="compact"
         loading={loading}
-        autoHeight
-        getRowClassName={(params) =>
-          params.indexRelativeToCurrentPage % 2 === 0 ? "even" : "odd"
-        }
         initialState={{
           pagination: {
             paginationModel: {

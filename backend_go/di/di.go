@@ -40,6 +40,7 @@ type Container struct {
 	ImageService           services.ImageService
 	SettingService         services.SettingService
 	RoleService            services.RoleService
+	AuditLogService        services.AuditLogService
 	UserRepo               repositories.UserRepository
 	AuthHandler            *handlers.AuthHandler
 	UserHandler            *handlers.UserHandler
@@ -56,6 +57,7 @@ type Container struct {
 	ImageHandler           *handlers.ImageHandler
 	SettingHandler         *handlers.SettingHandler
 	RoleHandler            *handlers.RoleHandler
+	AuditLogHandler        *handlers.AuditLogHandler
 	SubscriptionWorker     *workers.SubscriptionWorker
 	PaymentWorker          *workers.PaymentWorker
 }
@@ -96,14 +98,16 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	imageRepo := repositories.NewImageRepository(db)
 	settingRepo := repositories.NewSettingRepository(db)
 	roleRepo := repositories.NewRoleRepository(db)
+	auditLogRepo := repositories.NewAuditLogRepository(db)
 
 	// Init services
 	tokenService := services.NewTokenService(appSettings.SecretKey, appSettings.AccessTokenExpireMinutes)
-	settingService := services.NewSettingService(settingRepo, userRepo)
+	auditLogService := services.NewAuditLogService(auditLogRepo)
+	settingService := services.NewSettingService(*settingRepo, userRepo, auditLogService)
 	authService := services.NewAuthService(userRepo, tokenService, appSettings)
-	userService := services.NewUserService(userRepo, botUserRepo, userSubscriptionRepo, orderRepo)
-	productService := services.NewProductService(productRepo, categoryRepo, providerRegistry)
-	categoryService := services.NewCategoryService(categoryRepo, productService)
+	userService := services.NewUserService(userRepo, botUserRepo, userSubscriptionRepo, orderRepo, auditLogService)
+	productService := services.NewProductService(productRepo, categoryRepo, providerRegistry, auditLogService)
+	categoryService := services.NewCategoryService(categoryRepo, productService, auditLogService)
 	referralService := services.NewReferralService(userRepo, botUserRepo, referralRepo, transactionRepo, *settingService)
 	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, userSubscriptionRepo, categoryRepo, referralService, providerRegistry)
 	transactionService := services.NewTransactionService(transactionRepo)
@@ -114,7 +118,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	webhookService := services.NewWebhookService(appSettings)
 	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo, botUserRepo, webhookService, appSettings)
 	imageService := services.NewImageService(db, imageRepo, appSettings)
-	roleService := services.NewRoleService(roleRepo)
+	roleService := services.NewRoleService(roleRepo, auditLogService)
 
 	// Init workers
 	subscriptionWorker := workers.NewSubscriptionWorker(orderService, userSubscriptionRepo, logger)
@@ -136,6 +140,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	imageHandler := handlers.NewImageHandler(imageService)
 	settingHandler := handlers.NewSettingHandler(settingService)
 	roleHandler := handlers.NewRoleHandler(roleService)
+	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 
 	return &Container{
 		DB:                     db,
@@ -158,7 +163,9 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 		PaymentService:         paymentService,
 		WebhookService:         webhookService,
 		ImageService:           imageService,
+		SettingService:         *settingService,
 		RoleService:            roleService,
+		AuditLogService:        auditLogService,
 		UserRepo:               userRepo,
 		AuthHandler:            authHandler,
 		UserHandler:            userHandler,
@@ -175,6 +182,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 		ImageHandler:           imageHandler,
 		SettingHandler:         settingHandler,
 		RoleHandler:            roleHandler,
+		AuditLogHandler:        auditLogHandler,
 		SubscriptionWorker:     subscriptionWorker,
 		PaymentWorker:          paymentWorker,
 	}, nil

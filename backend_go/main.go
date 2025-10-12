@@ -74,7 +74,7 @@ func main() {
 	container.StartWorkers()
 
 	// Run migrations
-	if err := container.DB.AutoMigrate(&models.Setting{}); err != nil {
+	if err := container.DB.AutoMigrate(&models.Setting{}, &models.AuditLog{}); err != nil {
 		log.Fatal().Err(err).Msg("failed to migrate database")
 	}
 
@@ -117,6 +117,7 @@ func main() {
 	routers.RegisterSettingRoutes(r, container.SettingHandler, authMiddleware)
 	routers.RegisterRoleRoutes(r, container.RoleHandler, authMiddleware)
 	routers.RegisterAdminUserRoutes(r, container.RoleHandler, container.AdminHandler, authMiddleware)
+	routers.SetupAuditLogRoutes(r.Group("/api"), container)
 
 	// Swagger route
 	// rtr.SwaggerRouter(r)

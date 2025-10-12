@@ -74,7 +74,7 @@ func (h *ProductHandler) CreateProductHandler(c *gin.Context) {
 		return
 	}
 
-	product, err := h.productService.CreateProduct(json.Name, json.CategoryID, json.Price, json.InitialStock, json.Type, json.SubscriptionPeriodDays)
+	product, err := h.productService.CreateProduct(c, json.Name, json.CategoryID, json.Price, json.InitialStock, json.Type, json.SubscriptionPeriodDays)
 	if err != nil {
 		c.Error(err)
 		return
@@ -135,7 +135,7 @@ func (h *ProductHandler) UpdateProductHandler(c *gin.Context) {
 		return
 	}
 
-	updatedProduct, err := h.productService.UpdateProduct(uint(id), json)
+	updatedProduct, err := h.productService.UpdateProduct(c, uint(id), json)
 	if err != nil {
 		c.Error(err)
 		return
@@ -160,7 +160,7 @@ func (h *ProductHandler) DeleteProductHandler(c *gin.Context) {
 		return
 	}
 
-	if err := h.productService.DeleteProduct(uint(id)); err != nil {
+	if err := h.productService.DeleteProduct(c, uint(id)); err != nil {
 		c.Error(err)
 		return
 	}
@@ -201,7 +201,7 @@ func (h *ProductHandler) CreateStockMovementHandler(c *gin.Context) {
 		return
 	}
 
-	movement, err := h.productService.CreateStockMovement(uint(productID), json.Type, json.Quantity, json.Description, json.OrderID)
+	movement, err := h.productService.CreateStockMovement(c, uint(productID), json.Type, json.Quantity, json.Description, json.OrderID)
 	if err != nil {
 		c.Error(err)
 		return

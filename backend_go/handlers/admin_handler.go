@@ -58,7 +58,7 @@ func (h *AdminHandler) ToggleBlockUser(c *gin.Context) {
 		return
 	}
 
-	if err := h.userService.ToggleBlockUser(user.TelegramID); err != nil {
+	if err := h.userService.ToggleBlockUser(c, user.TelegramID); err != nil {
 		c.Error(err)
 		return
 	}

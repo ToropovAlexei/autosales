@@ -7,6 +7,7 @@ import (
 	"frbktg/backend_go/repositories"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
 
@@ -14,11 +15,11 @@ type UserService interface {
 	GetMe(user models.User) *models.UserResponse
 	GetMeByEmail(email string) (*models.User, error)
 	GetUsers() ([]models.User, error)
-	UpdateReferralSettings(user *models.User, enabled bool, percentage float64) error
+	UpdateReferralSettings(ctx *gin.Context, user *models.User, enabled bool, percentage float64) error
 	RegisterBotUser(telegramID int64, botName string) (*models.BotUser, float64, bool, bool, error)
 	GetBotUser(id uint) (*models.BotUser, float64, error)
 	GetBotUserByTelegramID(telegramID int64, botName string) (*models.BotUser, float64, error)
-	ToggleBlockUser(telegramID int64) error
+	ToggleBlockUser(ctx *gin.Context, telegramID int64) error
 	GetUserBalance(telegramID int64) (float64, error)
 	GetUserTransactions(telegramID int64) ([]models.Transaction, error)
 	GetUserSubscriptionsByTelegramID(telegramID int64) ([]models.UserSubscription, error)
@@ -32,14 +33,16 @@ type userService struct {
 	botUserRepo          repositories.BotUserRepository
 	userSubscriptionRepo repositories.UserSubscriptionRepository
 	orderRepo            repositories.OrderRepository
+	auditLogService      AuditLogService
 }
 
-func NewUserService(userRepo repositories.UserRepository, botUserRepo repositories.BotUserRepository, userSubscriptionRepo repositories.UserSubscriptionRepository, orderRepo repositories.OrderRepository) UserService {
+func NewUserService(userRepo repositories.UserRepository, botUserRepo repositories.BotUserRepository, userSubscriptionRepo repositories.UserSubscriptionRepository, orderRepo repositories.OrderRepository, auditLogService AuditLogService) UserService {
 	return &userService{
 		userRepo:             userRepo,
 		botUserRepo:          botUserRepo,
 		userSubscriptionRepo: userSubscriptionRepo,
 		orderRepo:            orderRepo,
+		auditLogService:      auditLogService,
 	}
 }
 
@@ -77,8 +80,14 @@ func (s *userService) GetUsers() ([]models.User, error) {
 	return s.userRepo.GetUsers()
 }
 
-func (s *userService) UpdateReferralSettings(user *models.User, enabled bool, percentage float64) error {
-	return s.userRepo.UpdateReferralSettings(user, enabled, percentage)
+func (s *userService) UpdateReferralSettings(ctx *gin.Context, user *models.User, enabled bool, percentage float64) error {
+	before := *user
+	if err := s.userRepo.UpdateReferralSettings(user, enabled, percentage); err != nil {
+		return err
+	}
+	after, _ := s.userRepo.FindByID(user.ID)
+	s.auditLogService.Log(ctx, "USER_UPDATE_REFERRAL_SETTINGS", "User", user.ID, map[string]interface{}{"before": before, "after": after})
+	return nil
 }
 
 func (s *userService) RegisterBotUser(telegramID int64, botName string) (*models.BotUser, float64, bool, bool, error) {
@@ -124,15 +133,22 @@ func (s *userService) RegisterBotUser(telegramID int64, botName string) (*models
 	return newUser, 0, true, false, nil
 }
 
-func (s *userService) ToggleBlockUser(telegramID int64) error {
+func (s *userService) ToggleBlockUser(ctx *gin.Context, telegramID int64) error {
 	user, err := s.botUserRepo.FindByTelegramID(telegramID)
 	if err != nil {
 		return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "BotUser", ID: uint(telegramID)}
 	}
 
+	before := *user
 	user.IsBlocked = !user.IsBlocked
 
-	return s.botUserRepo.Update(user)
+	if err := s.botUserRepo.Update(user); err != nil {
+		return err
+	}
+
+	s.auditLogService.Log(ctx, "USER_TOGGLE_BLOCK", "BotUser", user.ID, map[string]interface{}{"before": before, "after": user})
+
+	return nil
 }
 
 func (s *userService) GetBotUser(id uint) (*models.BotUser, float64, error) {

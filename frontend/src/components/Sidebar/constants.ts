@@ -9,6 +9,7 @@ import LocalMallIcon from "@mui/icons-material/LocalMall";
 import SettingsIcon from "@mui/icons-material/Settings";
 import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
+import HistoryIcon from "@mui/icons-material/History";
 
 export const MENU_ITEMS = [
   {
@@ -76,6 +77,12 @@ export const MENU_ITEMS = [
     Icon: PhotoLibraryIcon,
     path: "/images",
     permission: "images:upload", // Or a more general images permission
+  },
+  {
+    label: "Журнал аудита",
+    Icon: HistoryIcon,
+    path: "/audit-log",
+    permission: "audit_log.read",
   },
   {
     label: "Настройки",

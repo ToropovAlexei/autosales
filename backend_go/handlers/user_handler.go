@@ -84,7 +84,7 @@ func (h *UserHandler) UpdateReferralSettingsHandler(c *gin.Context) {
 		return
 	}
 
-	if err := h.userService.UpdateReferralSettings(&currentUser, json.ReferralProgramEnabled, json.ReferralPercentage); err != nil {
+	if err := h.userService.UpdateReferralSettings(c, &currentUser, json.ReferralProgramEnabled, json.ReferralPercentage); err != nil {
 		c.Error(err)
 		return
 	}
@@ -372,7 +372,7 @@ func (h *UserHandler) ToggleBlockUserHandler(c *gin.Context) {
 		return
 	}
 
-	if err := h.userService.ToggleBlockUser(id); err != nil {
+	if err := h.userService.ToggleBlockUser(c, id); err != nil {
 		c.Error(err)
 		return
 	}

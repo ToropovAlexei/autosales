@@ -51,7 +51,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		return
 	}
 
-	if err := h.service.UpdateSettings(settingsMap); err != nil {
+	if err := h.service.UpdateSettings(c, settingsMap); err != nil {
 		c.Error(apperrors.New(http.StatusInternalServerError, "Failed to update settings", err))
 		return
 	}

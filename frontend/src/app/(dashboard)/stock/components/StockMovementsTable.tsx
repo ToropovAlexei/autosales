@@ -37,9 +37,6 @@ export const StockMovementsTable = ({ movements }: StockMovementsTableProps) => 
         rows={movements}
         columns={columns}
         density="compact"
-        getRowClassName={(params) =>
-          params.indexRelativeToCurrentPage % 2 === 0 ? 'even' : 'odd'
-        }
         initialState={{
           pagination: {
             paginationModel: {

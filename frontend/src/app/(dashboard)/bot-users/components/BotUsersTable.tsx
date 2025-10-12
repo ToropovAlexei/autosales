@@ -88,9 +88,6 @@ export const BotUsersTable = ({
         columns={columns}
         density="compact"
         loading={loading}
-        getRowClassName={(params) =>
-          params.indexRelativeToCurrentPage % 2 === 0 ? "even" : "odd"
-        }
         initialState={{
           pagination: {
             paginationModel: {

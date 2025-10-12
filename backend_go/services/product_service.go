@@ -9,6 +9,8 @@ import (
 	"frbktg/backend_go/repositories"
 	"log/slog"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 // ProductUpdatePayload is the DTO for partial product updates.
@@ -24,10 +26,10 @@ type ProductUpdatePayload struct {
 type ProductService interface {
 	GetProducts(categoryIDs []uint) ([]models.ProductResponse, error)
 	GetProduct(id uint) (*models.ProductResponse, error)
-	CreateProduct(name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int) (*models.ProductResponse, error)
-	UpdateProduct(id uint, payload ProductUpdatePayload) (*models.ProductResponse, error)
-	DeleteProduct(id uint) error
-	CreateStockMovement(productID uint, movementType models.StockMovementType, quantity int, description string, orderID *uint) (*models.StockMovement, error)
+	CreateProduct(ctx *gin.Context, name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int) (*models.ProductResponse, error)
+	UpdateProduct(ctx *gin.Context, id uint, payload ProductUpdatePayload) (*models.ProductResponse, error)
+	DeleteProduct(ctx *gin.Context, id uint) error
+	CreateStockMovement(ctx *gin.Context, productID uint, movementType models.StockMovementType, quantity int, description string, orderID *uint) (*models.StockMovement, error)
 	SyncExternalProductsAndCategories() error
 }
 
@@ -35,13 +37,19 @@ type productService struct {
 	productRepo      repositories.ProductRepository
 	categoryRepo     repositories.CategoryRepository
 	providerRegistry *external_providers.ProviderRegistry
+	auditLogService  AuditLogService
 }
 
-func NewProductService(productRepo repositories.ProductRepository, categoryRepo repositories.CategoryRepository, providerRegistry *external_providers.ProviderRegistry) ProductService {
-	return &productService{productRepo: productRepo, categoryRepo: categoryRepo, providerRegistry: providerRegistry}
+func NewProductService(productRepo repositories.ProductRepository, categoryRepo repositories.CategoryRepository, providerRegistry *external_providers.ProviderRegistry, auditLogService AuditLogService) ProductService {
+	return &productService{productRepo: productRepo, categoryRepo: categoryRepo, providerRegistry: providerRegistry, auditLogService: auditLogService}
 }
 
-func (s *productService) UpdateProduct(id uint, payload ProductUpdatePayload) (*models.ProductResponse, error) {
+func (s *productService) UpdateProduct(ctx *gin.Context, id uint, payload ProductUpdatePayload) (*models.ProductResponse, error) {
+	before, err := s.GetProduct(id)
+	if err != nil {
+		return nil, &apperrors.ErrNotFound{Resource: "Product", ID: id}
+	}
+
 	product, err := s.productRepo.GetProductByID(id)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Resource: "Product", ID: id}
@@ -96,7 +104,14 @@ func (s *productService) UpdateProduct(id uint, payload ProductUpdatePayload) (*
 		}
 	}
 
-	return s.GetProduct(id)
+	after, err := s.GetProduct(id)
+	if err != nil {
+		return nil, err
+	}
+
+	s.auditLogService.Log(ctx, "PRODUCT_UPDATE", "Product", id, map[string]interface{}{"before": before, "after": after})
+
+	return after, nil
 }
 
 // ... (The rest of the service file)
@@ -227,7 +242,7 @@ func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
 	}, nil
 }
 
-func (s *productService) CreateProduct(name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int) (*models.ProductResponse, error) {
+func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int) (*models.ProductResponse, error) {
 	_, err := s.productRepo.FindCategoryByID(categoryID)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Resource: "Category", ID: categoryID}
@@ -255,6 +270,7 @@ func (s *productService) CreateProduct(name string, categoryID uint, price float
 			CreatedAt:   time.Now().UTC(),
 		}
 		if err := s.productRepo.CreateStockMovement(stockMovement); err != nil {
+			// TODO: Should we roll back product creation?
 			return nil, err
 		}
 		stock = initialStock
@@ -262,7 +278,7 @@ func (s *productService) CreateProduct(name string, categoryID uint, price float
 		stock = -1
 	}
 
-	return &models.ProductResponse{
+	response := &models.ProductResponse{
 		ID:                     product.ID,
 		Name:                   product.Name,
 		Price:                  product.Price,
@@ -270,18 +286,34 @@ func (s *productService) CreateProduct(name string, categoryID uint, price float
 		Stock:                  stock,
 		Type:                   product.Type,
 		SubscriptionPeriodDays: product.SubscriptionPeriodDays,
-	}, nil
+	}
+
+	s.auditLogService.Log(ctx, "PRODUCT_CREATE", "Product", product.ID, map[string]interface{}{"after": response})
+
+	return response, nil
 }
 
-func (s *productService) DeleteProduct(id uint) error {
+func (s *productService) DeleteProduct(ctx *gin.Context, id uint) error {
+	before, err := s.GetProduct(id)
+	if err != nil {
+		return &apperrors.ErrNotFound{Resource: "Product", ID: id}
+	}
+
 	product, err := s.productRepo.GetProductByID(id)
 	if err != nil {
 		return &apperrors.ErrNotFound{Resource: "Product", ID: id}
 	}
-	return s.productRepo.DeleteProduct(product)
+
+	if err := s.productRepo.DeleteProduct(product); err != nil {
+		return err
+	}
+
+	s.auditLogService.Log(ctx, "PRODUCT_DELETE", "Product", id, map[string]interface{}{"before": before})
+
+	return nil
 }
 
-func (s *productService) CreateStockMovement(productID uint, movementType models.StockMovementType, quantity int, description string, orderID *uint) (*models.StockMovement, error) {
+func (s *productService) CreateStockMovement(ctx *gin.Context, productID uint, movementType models.StockMovementType, quantity int, description string, orderID *uint) (*models.StockMovement, error) {
 	product, err := s.productRepo.GetProductByID(productID)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Resource: "Product", ID: productID}
@@ -303,6 +335,8 @@ func (s *productService) CreateStockMovement(productID uint, movementType models
 	if err := s.productRepo.CreateStockMovement(movement); err != nil {
 		return nil, err
 	}
+
+	s.auditLogService.Log(ctx, "STOCK_MOVEMENT_CREATE", "StockMovement", movement.ID, map[string]interface{}{"after": movement})
 
 	return movement, nil
 }

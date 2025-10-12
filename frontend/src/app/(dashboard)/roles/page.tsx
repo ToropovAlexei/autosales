@@ -55,7 +55,8 @@ export default function RolesPage() {
       permissions: number[];
     }) =>
       dataLayer.update({
-        url: `${ENDPOINTS.ROLES}/${id}`,
+        url: ENDPOINTS.ROLES,
+        id,
         params: { name, permissions },
       }),
     onSuccess: () => {

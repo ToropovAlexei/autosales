@@ -83,9 +83,6 @@ export const ProductsTable = ({
         rows={products}
         columns={columns}
         density="compact"
-        getRowClassName={(params) =>
-          params.indexRelativeToCurrentPage % 2 === 0 ? 'even' : 'odd'
-        }
         initialState={{
           pagination: {
             paginationModel: {
@@ -101,23 +98,23 @@ export const ProductsTable = ({
           filterPanel: {
             filterFormProps: {
               logicOperatorInputProps: {
-                variant: 'outlined',
-                size: 'small',
+                variant: "outlined",
+                size: "small",
               },
               columnInputProps: {
-                variant: 'outlined',
-                size: 'small',
-                sx: { mt: 'auto' },
+                variant: "outlined",
+                size: "small",
+                sx: { mt: "auto" },
               },
               operatorInputProps: {
-                variant: 'outlined',
-                size: 'small',
-                sx: { mt: 'auto' },
+                variant: "outlined",
+                size: "small",
+                sx: { mt: "auto" },
               },
               valueInputProps: {
                 InputComponentProps: {
-                  variant: 'outlined',
-                  size: 'small',
+                  variant: "outlined",
+                  size: "small",
                 },
               },
             },

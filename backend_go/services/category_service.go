@@ -5,6 +5,7 @@ import (
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
@@ -12,18 +13,19 @@ import (
 type CategoryService interface {
 	GetAll() ([]models.CategoryResponse, error)
 	GetByID(id uint) (*models.CategoryResponse, error)
-	Create(name string, parentID *uint, imageID *uuid.UUID) (*models.CategoryResponse, error)
-	Update(id uint, name string, parentID *uint, imageID *uuid.UUID) (*models.CategoryResponse, error)
-	Delete(id uint) error
+	Create(ctx *gin.Context, name string, parentID *uint, imageID *uuid.UUID) (*models.CategoryResponse, error)
+	Update(ctx *gin.Context, id uint, name string, parentID *uint, imageID *uuid.UUID) (*models.CategoryResponse, error)
+	Delete(ctx *gin.Context, id uint) error
 }
 
 type categoryService struct {
 	categoryRepo   repositories.CategoryRepository
 	productService ProductService
+	auditLogService  AuditLogService
 }
 
-func NewCategoryService(categoryRepo repositories.CategoryRepository, productService ProductService) CategoryService {
-	return &categoryService{categoryRepo: categoryRepo, productService: productService}
+func NewCategoryService(categoryRepo repositories.CategoryRepository, productService ProductService, auditLogService AuditLogService) CategoryService {
+	return &categoryService{categoryRepo: categoryRepo, productService: productService, auditLogService: auditLogService}
 }
 
 // buildCategoryTree строит иерархическое дерево из плоского списка категорий с помощью рекурсии.
@@ -92,7 +94,7 @@ func (s *categoryService) GetByID(id uint) (*models.CategoryResponse, error) {
 	}, nil
 }
 
-func (s *categoryService) Create(name string, parentID *uint, imageID *uuid.UUID) (*models.CategoryResponse, error) {
+func (s *categoryService) Create(ctx *gin.Context, name string, parentID *uint, imageID *uuid.UUID) (*models.CategoryResponse, error) {
 	if parentID != nil && *parentID == 0 {
 		parentID = nil
 	}
@@ -100,17 +102,27 @@ func (s *categoryService) Create(name string, parentID *uint, imageID *uuid.UUID
 	if err := s.categoryRepo.Create(category); err != nil {
 		return nil, apperrors.New(500, "Failed to create category", err)
 	}
-	return &models.CategoryResponse{
+
+	response := &models.CategoryResponse{
 		ID:       category.ID,
 		Name:     category.Name,
 		ParentID: category.ParentID,
-	}, nil
+	}
+
+	s.auditLogService.Log(ctx, "CATEGORY_CREATE", "Category", category.ID, map[string]interface{}{"after": response})
+
+	return response, nil
 }
 
-func (s *categoryService) Update(id uint, name string, parentID *uint, imageID *uuid.UUID) (*models.CategoryResponse, error) {
+func (s *categoryService) Update(ctx *gin.Context, id uint, name string, parentID *uint, imageID *uuid.UUID) (*models.CategoryResponse, error) {
 	if parentID != nil && *parentID == 0 {
 		parentID = nil
 	}
+	before, err := s.GetByID(id)
+	if err != nil {
+		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "Category", ID: id}
+	}
+
 	category, err := s.categoryRepo.GetByID(id)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "Category", ID: id}
@@ -121,14 +133,23 @@ func (s *categoryService) Update(id uint, name string, parentID *uint, imageID *
 		return nil, apperrors.New(500, "Failed to update category", err)
 	}
 
-	return &models.CategoryResponse{
+	after := &models.CategoryResponse{
 		ID:       id,
 		Name:     name,
 		ParentID: parentID,
-	}, nil
+	}
+
+	s.auditLogService.Log(ctx, "CATEGORY_UPDATE", "Category", id, map[string]interface{}{"before": before, "after": after})
+
+	return after, nil
 }
 
-func (s *categoryService) Delete(id uint) error {
+func (s *categoryService) Delete(ctx *gin.Context, id uint) error {
+	before, err := s.GetByID(id)
+	if err != nil {
+		return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "Category", ID: id}
+	}
+
 	category, err := s.categoryRepo.GetByID(id)
 	if err != nil {
 		return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "Category", ID: id}
@@ -136,5 +157,8 @@ func (s *categoryService) Delete(id uint) error {
 	if err := s.categoryRepo.Delete(category); err != nil {
 		return apperrors.New(500, "Failed to delete category", err)
 	}
+
+	s.auditLogService.Log(ctx, "CATEGORY_DELETE", "Category", id, map[string]interface{}{"before": before})
+
 	return nil
 }

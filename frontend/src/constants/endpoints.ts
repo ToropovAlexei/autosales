@@ -23,6 +23,7 @@ export const ENDPOINTS = {
   PERMISSIONS: "admin/permissions",
   USERS: "admin/users",
   USER_ROLES: "admin/users/:id/roles",
+  AUDIT_LOGS: "admin/audit-logs",
 };
 
 export const ENDPOINT_UPDATE_PUT_EXCEPTIONS = new Set<string>([
@@ -32,4 +33,5 @@ export const ENDPOINT_UPDATE_PUT_EXCEPTIONS = new Set<string>([
   ENDPOINTS.CATEGORIES,
   ENDPOINTS.REFERRAL_PERCENTAGE,
   ENDPOINTS.USER_ROLES,
+  ENDPOINTS.ROLES,
 ]);
