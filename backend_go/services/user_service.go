@@ -9,12 +9,15 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 type UserService interface {
 	GetMe(user models.User) *models.UserResponse
 	GetMeByEmail(email string) (*models.User, error)
 	GetUsers() ([]models.User, error)
+	CreateUser(ctx *gin.Context, email, password string, roleID uint) (*models.User, error)
 	UpdateReferralSettings(ctx *gin.Context, user *models.User, enabled bool, percentage float64) error
 	RegisterBotUser(telegramID int64, botName string) (*models.BotUser, float64, bool, bool, error)
 	GetBotUser(id uint) (*models.BotUser, float64, error)
@@ -217,4 +220,28 @@ func (s *userService) UpdateUserCaptchaStatusByTelegramID(telegramID int64, hasP
 	return s.botUserRepo.UpdateCaptchaStatus(user, hasPassed)
 }
 
+func (s *userService) CreateUser(ctx *gin.Context, email, password string, roleID uint) (*models.User, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
 
+	user := &models.User{
+		Email:          email,
+		HashedPassword: string(hashedPassword),
+		IsActive:       true,
+	}
+
+	if err := s.userRepo.Create(user); err != nil {
+		return nil, err
+	}
+
+	if err := s.userRepo.SetUserRole(user.ID, roleID); err != nil {
+		// TODO: maybe delete the user if role assignment fails?
+		return nil, err
+	}
+
+	s.auditLogService.Log(ctx, "USER_CREATE", "User", user.ID, map[string]interface{}{"after": user})
+
+	return user, nil
+}

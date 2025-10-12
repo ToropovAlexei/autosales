@@ -74,3 +74,25 @@ func (h *AdminHandler) GetUsersHandler(c *gin.Context) {
 	}
 	responses.SuccessResponse(c, http.StatusOK, users)
 }
+
+type createUserPayload struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=8"`
+	RoleID   uint   `json:"role_id" binding:"required"`
+}
+
+func (h *AdminHandler) CreateUserHandler(c *gin.Context) {
+	var json createUserPayload
+	if err := c.ShouldBindJSON(&json); err != nil {
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
+		return
+	}
+
+	user, err := h.userService.CreateUser(c, json.Email, json.Password, json.RoleID)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusCreated, user)
+}

@@ -13,6 +13,7 @@ func RegisterAdminUserRoutes(router *gin.Engine, roleHandler *handlers.RoleHandl
 	users.Use(middleware.PermissionMiddleware("rbac:manage"))
 	{
 		users.GET("", adminHandler.GetUsersHandler)
+		users.POST("", middleware.PermissionMiddleware("users:create"), adminHandler.CreateUserHandler)
 		users.GET("/:id/roles", roleHandler.GetUserRolesHandler)
 		users.PUT("/:id/roles", roleHandler.SetUserRoleHandler)
 		users.GET("/:id/permissions", roleHandler.GetUserPermissionsHandler)

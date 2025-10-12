@@ -1,45 +1,85 @@
 "use client";
 
 import { useState } from "react";
-import { useList } from "@/hooks";
+import { useList, useCan } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { PageLayout } from "@/components/PageLayout";
 import { User } from "@/types";
 import { UserPermissionsModal } from "./components/UserPermissionsModal";
 import { UsersTable } from "./components/UsersTable";
+import { Button } from "@mui/material";
+import { UserModal } from "./components/UserModal";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { dataLayer } from "@/lib/dataLayer";
+import { queryKeys } from "@/utils/query";
+import { toast } from "react-toastify";
 
 export default function UsersPage() {
   const { data: users, isPending } = useList<User>({
     endpoint: ENDPOINTS.USERS,
   });
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const canCreate = useCan("users:create");
+  const queryClient = useQueryClient();
 
-  const openModal = (user: User) => {
+  const openPermissionsModal = (user: User) => {
     setSelectedUser(user);
-    setIsModalOpen(true);
+    setIsPermissionsModalOpen(true);
   };
 
-  const closeModal = () => {
+  const closePermissionsModal = () => {
     setSelectedUser(null);
-    setIsModalOpen(false);
+    setIsPermissionsModalOpen(false);
   };
+
+  const openUserModal = () => {
+    setIsUserModalOpen(true);
+  };
+
+  const closeUserModal = () => {
+    setIsUserModalOpen(false);
+  };
+
+  const createMutation = useMutation({
+    mutationFn: (params: any) =>
+      dataLayer.create({ url: ENDPOINTS.USERS, params }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.USERS),
+      });
+      closeUserModal();
+    },
+    onError: (error) => toast.error(error.message),
+  });
 
   return (
     <PageLayout title="Управление администраторами">
+      {canCreate && (
+        <Button variant="contained" sx={{ mb: 2 }} onClick={openUserModal}>
+          Создать пользователя
+        </Button>
+      )}
       <UsersTable
         users={users?.data || []}
-        onConfigure={openModal}
+        onConfigure={openPermissionsModal}
         loading={isPending}
       />
-      {isModalOpen && (
+      {isPermissionsModalOpen && (
         <UserPermissionsModal
-          open={isModalOpen}
-          onClose={closeModal}
+          open={isPermissionsModalOpen}
+          onClose={closePermissionsModal}
           user={selectedUser}
+        />
+      )}
+      {isUserModalOpen && (
+        <UserModal
+          open={isUserModalOpen}
+          onClose={closeUserModal}
+          onSave={createMutation.mutate}
         />
       )}
     </PageLayout>
   );
 }
-

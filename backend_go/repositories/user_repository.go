@@ -12,6 +12,8 @@ type UserRepository interface {
 	FindByID(id uint) (*models.User, error)
 	FindByEmail(email string) (*models.User, error)
 	GetUsers() ([]models.User, error)
+	Create(user *models.User) error
+	SetUserRole(userID, roleID uint) error
 }
 
 type gormUserRepository struct {
@@ -55,4 +57,13 @@ func (r *gormUserRepository) GetUsers() ([]models.User, error) {
 		return nil, err
 	}
 	return users, nil
+}
+
+func (r *gormUserRepository) Create(user *models.User) error {
+	return r.db.Create(user).Error
+}
+
+func (r *gormUserRepository) SetUserRole(userID, roleID uint) error {
+	userRole := models.UserRole{UserID: userID, RoleID: roleID}
+	return r.db.FirstOrCreate(&userRole, userRole).Error
 }
