@@ -41,7 +41,7 @@ type BuyPayload struct {
 	Provider          *string `json:"provider"`
 	ExternalProductID *string `json:"external_product_id"`
 	Quantity          int     `json:"quantity" binding:"required,gt=0"`
-	ReferralBotToken  *string `json:"referral_bot_token"`
+	ReferralBotID     *uint   `json:"referral_bot_id"`
 }
 
 // @Summary      Buy a Product
@@ -76,7 +76,7 @@ func (h *OrderHandler) BuyFromBalanceHandler(c *gin.Context) {
 		Provider:          json.Provider,
 		ExternalProductID: json.ExternalProductID,
 		Quantity:          json.Quantity,
-		ReferralBotToken:  json.ReferralBotToken,
+		ReferralBotID:     json.ReferralBotID,
 	}
 
 	buyResponse, err := h.orderService.BuyFromBalance(buyRequest)

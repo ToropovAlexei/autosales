@@ -18,6 +18,7 @@ type ReferralRepository interface {
 	GetAllReferralBots() ([]models.ReferralBot, error)
 	GetAdminInfoForOwner(ownerID uint) ([]models.ReferralBotAdminInfo, error)
 	GetAllAdminInfo() ([]models.ReferralBotAdminInfo, error)
+	GetReferralStats(ownerID uint) (map[uint]models.ReferralBotStats, error)
 	GetReferralBotByID(id uint) (*models.ReferralBot, error)
 	UpdateReferralBot(bot *models.ReferralBot) error
 	DeleteReferralBot(bot *models.ReferralBot) error
@@ -163,4 +164,24 @@ func (r *gormReferralRepository) SetPrimary(ownerID, botID uint) error {
 
 func (r *gormReferralRepository) DeleteReferralBot(bot *models.ReferralBot) error {
 	return r.db.Delete(bot).Error
+}
+
+func (r *gormReferralRepository) GetReferralStats(ownerID uint) (map[uint]models.ReferralBotStats, error) {
+	var stats []models.ReferralBotStats
+	if err := r.db.Table("referral_bots").
+		Select("referral_bots.id as bot_id, COALESCE(SUM(ref_transactions.ref_share), 0) as total_earnings, COUNT(DISTINCT orders.id) as purchase_count").
+		Joins("left join orders on orders.referral_bot_id = referral_bots.id").
+		Joins("left join ref_transactions on ref_transactions.order_id = orders.id").
+		Where("referral_bots.owner_id = ?", ownerID).
+		Group("referral_bots.id").
+		Scan(&stats).Error; err != nil {
+		return nil, err
+	}
+
+	statsMap := make(map[uint]models.ReferralBotStats)
+	for _, s := range stats {
+		statsMap[s.BotID] = s
+	}
+
+	return statsMap, nil
 }

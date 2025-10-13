@@ -1,28 +1,30 @@
 package routers
 
 import (
+	"frbktg/backend_go/config"
 	"frbktg/backend_go/handlers"
 	"frbktg/backend_go/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterReferralRoutes(router *gin.Engine, referralHandler *handlers.ReferralHandler, authMiddleware *middleware.AuthMiddleware) {
-	referrals := router.Group("/api/referrals")
-
-	// service.Use(middleware.ServiceTokenMiddleware(r.appSettings))
+func RegisterReferralRoutes(router *gin.Engine, referralHandler *handlers.ReferralHandler, authMiddleware *middleware.AuthMiddleware, appSettings config.Settings) {
+	serviceReferrals := router.Group("/api/referrals")
+	serviceReferrals.Use(middleware.ServiceTokenMiddleware(appSettings))
 	{
-		referrals.POST("", referralHandler.CreateReferralBotHandler)
-		referrals.GET("", referralHandler.GetReferralBotsHandler)
-		referrals.GET("/user/:telegram_id", referralHandler.GetReferralBotsByTelegramIDHandler)
-		referrals.PUT("/:id/set-primary", referralHandler.ServiceSetPrimaryBotHandler)
-		referrals.DELETE("/:id", referralHandler.ServiceDeleteReferralBotHandler)
+		serviceReferrals.POST("", referralHandler.CreateReferralBotHandler)
+		serviceReferrals.GET("", referralHandler.GetReferralBotsHandler)
+		serviceReferrals.GET("/user/:telegram_id", referralHandler.GetReferralBotsByTelegramIDHandler)
+		serviceReferrals.GET("/stats/:telegram_id", referralHandler.GetReferralStatsHandler)
+		serviceReferrals.PUT("/:id/set-primary", referralHandler.ServiceSetPrimaryBotHandler)
+		serviceReferrals.DELETE("/:id", referralHandler.ServiceDeleteReferralBotHandler)
 	}
 
-	referrals.Use(authMiddleware.RequireAuth)
+	adminReferrals := router.Group("/api/referrals")
+	adminReferrals.Use(authMiddleware.RequireAuth)
 	{
-		referrals.GET("/admin-list", middleware.PermissionMiddleware("referrals:read"), referralHandler.GetAllReferralBotsAdminHandler)
-		referrals.PUT("/:id/status", middleware.PermissionMiddleware("referrals:update"), referralHandler.UpdateReferralBotStatusHandler)
-		referrals.PUT("/:id/percentage", middleware.PermissionMiddleware("referrals:update"), referralHandler.UpdateReferralBotPercentageHandler)
+		adminReferrals.GET("/admin-list", middleware.PermissionMiddleware("referrals:read"), referralHandler.GetAllReferralBotsAdminHandler)
+		adminReferrals.PUT("/:id/status", middleware.PermissionMiddleware("referrals:update"), referralHandler.UpdateReferralBotStatusHandler)
+		adminReferrals.PUT("/:id/percentage", middleware.PermissionMiddleware("referrals:update"), referralHandler.UpdateReferralBotPercentageHandler)
 	}
 }

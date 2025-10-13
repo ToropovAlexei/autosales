@@ -33,16 +33,22 @@ class APIClient:
             endpoint += f"?category_ids[]={category_id}"
         return await self._request("GET", endpoint)
 
-    async def buy_product(self, telegram_id: int, product_id: int):
-        return await self._request("POST", "/orders/buy-from-balance", json={"user_id": telegram_id, "product_id": product_id, "quantity": 1})
+    async def buy_product(self, telegram_id: int, product_id: int, referral_bot_id: int = None):
+        payload = {"user_id": telegram_id, "product_id": product_id, "quantity": 1}
+        if referral_bot_id:
+            payload["referral_bot_id"] = referral_bot_id
+        return await self._request("POST", "/orders/buy-from-balance", json=payload)
 
-    async def buy_external_product(self, telegram_id: int, provider: str, external_product_id: str):
-        return await self._request("POST", "/orders/buy-from-balance", json={
+    async def buy_external_product(self, telegram_id: int, provider: str, external_product_id: str, referral_bot_id: int = None):
+        payload = {
             "user_id": telegram_id, 
             "provider": provider, 
             "external_product_id": external_product_id, 
             "quantity": 1
-        })
+        }
+        if referral_bot_id:
+            payload["referral_bot_id"] = referral_bot_id
+        return await self._request("POST", "/orders/buy-from-balance", json=payload)
 
     async def get_payment_gateways(self):
         return await self._request("GET", "/gateways")
@@ -69,6 +75,9 @@ class APIClient:
 
     async def get_my_referral_bots(self, telegram_id: int):
         return await self._request("GET", f"/referrals/user/{telegram_id}")
+
+    async def get_my_referral_stats(self, telegram_id: int):
+        return await self._request("GET", f"/referrals/stats/{telegram_id}")
 
     async def set_primary_bot(self, bot_id: int, telegram_id: int):
         return await self._request("PUT", f"/referrals/{bot_id}/set-primary", json={"telegram_id": telegram_id})

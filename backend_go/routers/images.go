@@ -17,6 +17,7 @@ func RegisterImageRoutes(router *gin.Engine, imageHandler *handlers.ImageHandler
 	adminImages := router.Group("/api/admin/images")
 	adminImages.Use(authMiddleware.RequireAuth)
 	{
+		adminImages.GET("", middleware.PermissionMiddleware("images:read"), imageHandler.ListImagesHandler)
 		adminImages.POST("", middleware.PermissionMiddleware("images:upload"), imageHandler.UploadImageHandler)
 		adminImages.DELETE("/:id", middleware.PermissionMiddleware("images:delete"), imageHandler.DeleteImageHandler)
 	}

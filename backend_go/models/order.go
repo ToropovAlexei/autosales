@@ -3,14 +3,15 @@ package models
 import "time"
 
 type Order struct {
-	ID        uint      `gorm:"primaryKey" json:"id"`
-	UserID    uint      `json:"user_id"`
-	ProductID uint      `json:"product_id"`
-	Product   Product   `gorm:"foreignKey:ProductID" json:"Product"`
-	Quantity  int       `gorm:"default:1" json:"quantity"`
-	Amount    float64   `json:"amount"`
-	Status    string    `json:"status"`
-	CreatedAt time.Time `gorm:"not null;default:now()" json:"created_at"`
+	ID            uint      `gorm:"primaryKey" json:"id"`
+	UserID        uint      `json:"user_id"`
+	ProductID     uint      `json:"product_id"`
+	Product       Product   `gorm:"foreignKey:ProductID" json:"Product"`
+	Quantity      int       `gorm:"default:1" json:"quantity"`
+	Amount        float64   `json:"amount"`
+	Status        string    `json:"status"`
+	ReferralBotID *uint     `gorm:"index" json:"referral_bot_id"`
+	CreatedAt     time.Time `gorm:"not null;default:now()" json:"created_at"`
 }
 
 type OrderResponse struct {

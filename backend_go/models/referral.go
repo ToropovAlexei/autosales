@@ -42,3 +42,9 @@ type ReferralBotResponse struct {
 	IsPrimary bool      `json:"is_primary"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type ReferralBotStats struct {
+	BotID         uint    `json:"bot_id"`
+	TotalEarnings float64 `json:"total_earnings"`
+	PurchaseCount int64   `json:"purchase_count"`
+}

@@ -50,7 +50,7 @@ export default function ImagesPage() {
       formData.append("image", variables.file);
       formData.append("folder", variables.folder);
       return dataLayer.create<{ data: IImage }>({
-        url: `${ENDPOINTS.IMAGES}/upload`,
+        url: ENDPOINTS.IMAGES,
         params: formData,
       });
     },
@@ -67,7 +67,9 @@ export default function ImagesPage() {
 
   const validateFile = (file: File) => {
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setError(`Неверный тип файла. Пожалуйста, загрузите изображение в формате JPEG, PNG, GIF или WEBP.`);
+      setError(
+        `Неверный тип файла. Пожалуйста, загрузите изображение в формате JPEG, PNG, GIF или WEBP.`
+      );
       return false;
     }
     setError(null);

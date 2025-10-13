@@ -111,7 +111,7 @@ func main() {
 	routers.RegisterTransactionRoutes(r, container.TransactionHandler, authMiddleware)
 	routers.RegisterStockRoutes(r, container.StockHandler, authMiddleware)
 	routers.RegisterDashboardRoutes(r, container.DashboardHandler, authMiddleware)
-	routers.RegisterReferralRoutes(r, container.ReferralHandler, authMiddleware)
+	routers.RegisterReferralRoutes(r, container.ReferralHandler, authMiddleware, appSettings)
 	routers.RegisterPaymentRoutes(r, container.PaymentHandler, authMiddleware)
 	routers.RegisterImageRoutes(r, container.ImageHandler, authMiddleware)
 	routers.RegisterSettingRoutes(r, container.SettingHandler, authMiddleware)

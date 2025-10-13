@@ -16,11 +16,12 @@ import (
 
 
 type ReferralService interface {
-	ProcessReferral(tx *gorm.DB, referralBotToken *string, order models.Order, orderAmount float64) error
+	ProcessReferral(tx *gorm.DB, referralBotID uint, order models.Order, orderAmount float64) error
 	CreateReferralBot(ownerTelegramID int64, botToken string) (*models.ReferralBot, error)
 	GetAllReferralBots() ([]models.ReferralBotResponse, error)
 	GetReferralBotByID(botID uint) (*models.ReferralBot, error)
 	GetReferralBotsByTelegramID(telegramID int64) ([]models.ReferralBotAdminInfo, error)
+	GetReferralStats(telegramID int64) (map[uint]models.ReferralBotStats, error)
 	GetAllAdminInfo() ([]models.ReferralBotAdminInfo, error)
 	UpdateReferralBotStatus(botID uint, ownerID uint, isActive bool) (*models.ReferralBot, error)
 	UpdateReferralBotPercentage(botID uint, percentage float64) (*models.ReferralBot, error)
@@ -82,8 +83,8 @@ func (s *referralService) GetReferralBotByID(botID uint) (*models.ReferralBot, e
 }
 
 
-func (s *referralService) ProcessReferral(tx *gorm.DB, referralBotToken *string, order models.Order, orderAmount float64) error {
-	if referralBotToken == nil {
+func (s *referralService) ProcessReferral(tx *gorm.DB, referralBotID uint, order models.Order, orderAmount float64) error {
+	if referralBotID == 0 {
 		return nil
 	}
 
@@ -97,7 +98,7 @@ func (s *referralService) ProcessReferral(tx *gorm.DB, referralBotToken *string,
 		return nil
 	}
 
-	refBot, err := s.referralRepo.WithTx(tx).FindByBotToken(*referralBotToken)
+	refBot, err := s.referralRepo.WithTx(tx).GetReferralBotByID(referralBotID)
 	if err != nil || refBot == nil || !refBot.IsActive {
 		// Bot not found or not active, just ignore
 		return nil
@@ -314,4 +315,13 @@ func (s *referralService) ServiceDeleteReferralBot(botID uint, telegramID int64)
 	}
 
 	return nil
+}
+
+func (s *referralService) GetReferralStats(telegramID int64) (map[uint]models.ReferralBotStats, error) {
+	user, err := s.botUserRepo.FindByTelegramID(telegramID)
+	if err != nil {
+		return nil, &apperrors.ErrNotFound{Base: apperrors.New(http.StatusNotFound, "", err), Resource: "User", ID: uint(telegramID)}
+	}
+
+	return s.referralRepo.GetReferralStats(user.ID)
 }

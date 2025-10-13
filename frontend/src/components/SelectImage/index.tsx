@@ -58,7 +58,7 @@ export const SelectImage = ({ open, onClose, onSelect }: SelectImageProps) => {
       formData.append("image", variables.file);
       formData.append("folder", variables.folder);
       return dataLayer.create<{ data: IImage }>({
-        url: `${ENDPOINTS.IMAGES}/upload`,
+        url: ENDPOINTS.IMAGES,
         params: formData,
       });
     },

@@ -84,7 +84,7 @@ func createRbacData(db *gorm.DB) map[string]models.Permission {
 		{Name: "users:read", Group: "Users"}, {Name: "users:create", Group: "Users"}, {Name: "users:update", Group: "Users"}, {Name: "users:delete", Group: "Users"},
 		{Name: "dashboard:read", Group: "Dashboard"},
 		{Name: "settings:read", Group: "Settings"}, {Name: "settings:edit", Group: "Settings"},
-		{Name: "images:upload", Group: "Images"}, {Name: "images:delete", Group: "Images"},
+		{Name: "images:read", Group: "Images"}, {Name: "images:upload", Group: "Images"}, {Name: "images:delete", Group: "Images"},
 		{Name: "referrals:read", Group: "Referrals"}, {Name: "referrals:update", Group: "Referrals"},
 		{Name: "transactions:read", Group: "Transactions"},
 		{Name: "balance:read", Group: "Balance"},

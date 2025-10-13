@@ -23,7 +23,7 @@ type BuyRequest struct {
 	Provider          *string `json:"provider"`
 	ExternalProductID *string `json:"external_product_id"`
 	Quantity          int     `json:"quantity"`
-	ReferralBotToken  *string `json:"referral_bot_token"`
+	ReferralBotID     *uint   `json:"referral_bot_id"`
 }
 
 type OrderService interface {
@@ -122,12 +122,13 @@ func (s *orderService) handleInternalProductPurchase(tx *gorm.DB, user *models.B
 	}
 
 	order := &models.Order{
-		UserID:    user.ID,
-		ProductID: product.ID,
-		Quantity:  req.Quantity,
-		Amount:    orderAmount,
-		Status:    "success",
-		CreatedAt: time.Now().UTC(),
+		UserID:        user.ID,
+		ProductID:     product.ID,
+		Quantity:      req.Quantity,
+		Amount:        orderAmount,
+		Status:        "success",
+		ReferralBotID: req.ReferralBotID,
+		CreatedAt:     time.Now().UTC(),
 	}
 
 	if err := s.orderRepo.WithTx(tx).CreateOrder(order); err != nil {
@@ -140,7 +141,7 @@ func (s *orderService) handleInternalProductPurchase(tx *gorm.DB, user *models.B
 		}
 	}
 
-	if err := s.createOrderTransactionsAndMovements(tx, user, product, *order, orderAmount, req.ReferralBotToken); err != nil {
+	if err := s.createOrderTransactionsAndMovements(tx, user, product, *order, orderAmount); err != nil {
 		return nil, err
 	}
 
@@ -256,12 +257,13 @@ func (s *orderService) handleExternalProductPurchase(tx *gorm.DB, user *models.B
 	}
 
 	order := &models.Order{
-		UserID:    user.ID,
-		ProductID: placeholderProduct.ID, // Link to the placeholder
-		Quantity:  req.Quantity,
-		Amount:    orderAmount,
-		Status:    "success",
-		CreatedAt: time.Now().UTC(),
+		UserID:        user.ID,
+		ProductID:     placeholderProduct.ID, // Link to the placeholder
+		Quantity:      req.Quantity,
+		Amount:        orderAmount,
+		Status:        "success",
+		ReferralBotID: req.ReferralBotID,
+		CreatedAt:     time.Now().UTC(),
 	}
 
 	if err := s.orderRepo.WithTx(tx).CreateOrder(order); err != nil {
@@ -272,7 +274,7 @@ func (s *orderService) handleExternalProductPurchase(tx *gorm.DB, user *models.B
 		return nil, err
 	}
 
-	if err := s.createOrderTransactionsAndMovements(tx, user, placeholderProduct, *order, orderAmount, req.ReferralBotToken); err != nil {
+	if err := s.createOrderTransactionsAndMovements(tx, user, placeholderProduct, *order, orderAmount); err != nil {
 		return nil, err
 	}
 
@@ -464,7 +466,6 @@ func (s *orderService) createOrderTransactionsAndMovements(
 	product *models.Product,
 	order models.Order,
 	orderAmount float64,
-	referralBotToken *string,
 ) error {
 	purchaseTransaction := &models.Transaction{
 		UserID:      user.ID,
@@ -492,8 +493,10 @@ func (s *orderService) createOrderTransactionsAndMovements(
 		}
 	}
 
-	if err := s.referralService.ProcessReferral(tx, referralBotToken, order, orderAmount); err != nil {
-		return err
+	if order.ReferralBotID != nil {
+		if err := s.referralService.ProcessReferral(tx, *order.ReferralBotID, order, orderAmount); err != nil {
+			return err
+		}
 	}
 
 	return nil

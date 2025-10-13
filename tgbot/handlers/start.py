@@ -47,6 +47,14 @@ async def update_pinned_message(message: Message):
 @router.message(Command("start"))
 async def start_handler(message: Message, state: FSMContext, api_client: APIClient):
     try:
+        args = message.text.split()
+        if len(args) > 1:
+            try:
+                referral_bot_id = int(args[1])
+                await state.update_data(referral_bot_id=referral_bot_id)
+            except (ValueError, IndexError):
+                pass  # Ignore if the payload is not a valid integer
+
         response = await api_client.register_user(message.from_user.id)
         if response.get("success"):
             data = response["data"]

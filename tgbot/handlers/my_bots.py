@@ -51,6 +51,7 @@ def my_bots_keyboard(bots: list):
     if len(bots) < 3:
         buttons.append([InlineKeyboardButton(text="➕ Добавить бота", callback_data=BotCallback(action="add").pack())])
     
+    buttons.append([InlineKeyboardButton(text="📊 Статистика", callback_data=BotCallback(action="stats").pack())])
     buttons.append([InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
@@ -102,6 +103,46 @@ async def delete_bot_handler(callback_query: CallbackQuery, callback_data: BotCa
     await api_client.delete_referral_bot(callback_data.bot_id, callback_query.from_user.id)
     await callback_query.answer("Бот удален.", show_alert=True)
     await show_my_bots(callback_query, api_client)
+
+@router.callback_query(BotCallback.filter(F.action == "stats"))
+async def stats_handler(callback_query: CallbackQuery, api_client: APIClient):
+    stats_response = await api_client.get_my_referral_stats(callback_query.from_user.id)
+    bots_response = await api_client.get_my_referral_bots(callback_query.from_user.id)
+
+    if not stats_response.get("success") or not bots_response.get("success"):
+        await callback_query.answer("Не удалось получить статистику. Попробуйте позже.", show_alert=True)
+        return
+
+    stats = stats_response.get("data", {})
+    bots = {bot['id']: bot for bot in bots_response.get("data", [])}
+
+    if not stats:
+        await callback_query.answer("У вас пока нет статистики.", show_alert=True)
+        return
+
+    stats_message = "📊 Статистика по вашим ботам:\n\n"
+    total_earnings = 0
+    total_purchases = 0
+
+    for bot_id_str, bot_stats in stats.items():
+        bot_id = int(bot_id_str)
+        bot_info = bots.get(bot_id)
+        if bot_info:
+            bot_username = bot_info.get('bot_token').split(':')[0]
+            earnings = bot_stats.get('total_earnings', 0)
+            purchases = bot_stats.get('purchase_count', 0)
+            stats_message += f"🤖 @{bot_username}:\n"
+            stats_message += f"    - 💰 Заработано: {earnings:.2f} руб.\n"
+            stats_message += f"    - 🛒 Продаж: {purchases}\n\n"
+            total_earnings += earnings
+            total_purchases += purchases
+
+    stats_message += f"🏆 Итого:\n"
+    stats_message += f"    - 💰 Заработано: {total_earnings:.2f} руб.\n"
+    stats_message += f"    - 🛒 Продаж: {total_purchases}"
+
+    await callback_query.message.edit_text(stats_message, reply_markup=back_to_main_menu_keyboard())
+    await callback_query.answer()
 
 @router.callback_query(BotCallback.filter(F.action == "add"))
 async def add_bot_handler(callback_query: CallbackQuery, state: FSMContext, api_client: APIClient):
