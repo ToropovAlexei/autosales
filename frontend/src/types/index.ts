@@ -34,3 +34,15 @@ export interface IProduct {
   provider?: string;
   external_id?: string;
 }
+
+export interface IFilter {
+  page?: number;
+  pageSize?: number;
+  orderBy?: string;
+  order?: string;
+  filters?: {
+    field: string;
+    op: string;
+    value: any;
+  }[];
+}

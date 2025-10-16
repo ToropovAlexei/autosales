@@ -16,7 +16,7 @@ import (
 type UserService interface {
 	GetMe(user models.User) *models.UserResponse
 	GetMeByEmail(email string) (*models.User, error)
-	GetUsers() ([]models.User, error)
+	GetUsers(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.User], error)
 	CreateUser(ctx *gin.Context, email, password string, roleID uint) (*models.User, error)
 	UpdateReferralSettings(ctx *gin.Context, user *models.User, enabled bool, percentage float64) error
 	RegisterBotUser(telegramID int64, botName string) (*models.BotUser, float64, bool, bool, error)
@@ -79,8 +79,8 @@ func (s *userService) GetMeByEmail(email string) (*models.User, error) {
 	return s.userRepo.FindByEmail(email)
 }
 
-func (s *userService) GetUsers() ([]models.User, error) {
-	return s.userRepo.GetUsers()
+func (s *userService) GetUsers(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.User], error) {
+	return s.userRepo.GetUsers(page, filters)
 }
 
 func (s *userService) UpdateReferralSettings(ctx *gin.Context, user *models.User, enabled bool, percentage float64) error {

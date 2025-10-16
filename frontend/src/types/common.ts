@@ -1,14 +1,13 @@
 import { Role } from "@/types/role";
 
 export interface IFilter {
-  [key: string]:
-    | string
-    | number
-    | string[]
-    | number[]
-    | boolean
-    | undefined
-    | null;
+  page?: number;
+  pageSize?: number;
+  filters?: {
+    field: string;
+    op: string;
+    value: any;
+  }[];
 }
 
 export type FalsyValues = false | null | 0 | "" | undefined;

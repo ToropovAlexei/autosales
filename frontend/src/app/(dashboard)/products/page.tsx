@@ -2,18 +2,11 @@
 
 import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useList } from "@/hooks";
+import { useDataGrid, useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { ICategory, IProduct } from "@/types";
 import { flattenCategoriesForSelect, findCategoryNameById } from "@/lib/utils";
-import {
-  Button,
-  Select,
-  MenuItem,
-  FormControl,
-  InputLabel,
-  OutlinedInput,
-} from "@mui/material";
+import { Button } from "@mui/material";
 import { ProductForm } from "./components/ProductForm";
 import { ProductsTable } from "./components/ProductsTable";
 import { dataLayer } from "@/lib/dataLayer";
@@ -24,11 +17,17 @@ export default function ProductsPage() {
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-
-  const { data: products, isPending: isLoadingProducts } = useList<IProduct>({
-    endpoint: ENDPOINTS.PRODUCTS,
-  });
+  const {
+    rows: products,
+    rowCount,
+    loading: isLoadingProducts,
+    paginationModel,
+    onPaginationModelChange,
+    filterModel,
+    onFilterModelChange,
+    sortModel,
+    onSortModelChange,
+  } = useDataGrid(ENDPOINTS.PRODUCTS);
 
   const { data: categories, isPending: isLoadingCategories } =
     useList<ICategory>({
@@ -81,33 +80,27 @@ export default function ProductsPage() {
     mutation.mutate(data);
   };
 
-  if (isLoadingProducts || isLoadingCategories) return <div>Loading...</div>;
+  if (isLoadingCategories) return <div>Loading...</div>;
 
   return (
     <PageLayout title="Товары">
       <Button variant="contained" onClick={() => openForm()}>
         Добавить товар
       </Button>
-      <FormControl fullWidth margin="normal">
-        <InputLabel>Фильтр по категориям</InputLabel>
-        <Select
-          multiple
-          value={selectedCategories}
-          onChange={(e) => setSelectedCategories(e.target.value as string[])}
-          input={<OutlinedInput label="Фильтр по категориям" />}
-        >
-          {flattenedCategories.map((cat) => (
-            <MenuItem key={cat.id} value={cat.id.toString()}>
-              {cat.name}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
       <ProductsTable
-        products={products?.data || []}
+        products={products}
         onEdit={openForm}
         onDelete={deleteMutation.mutate}
         getCategoryName={getCategoryName}
+        loading={isLoadingProducts}
+        rowCount={rowCount}
+        paginationModel={paginationModel}
+        onPaginationModelChange={onPaginationModelChange}
+        filterModel={filterModel}
+        onFilterModelChange={onFilterModelChange}
+        sortModel={sortModel}
+        onSortModelChange={onSortModelChange}
+        categories={flattenedCategories}
       />
       {isFormOpen && (
         <ProductForm

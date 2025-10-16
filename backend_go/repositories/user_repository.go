@@ -11,7 +11,7 @@ type UserRepository interface {
 	UpdateReferralSettings(user *models.User, enabled bool, percentage float64) error
 	FindByID(id uint) (*models.User, error)
 	FindByEmail(email string) (*models.User, error)
-	GetUsers() ([]models.User, error)
+	GetUsers(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.User], error)
 	Create(user *models.User) error
 	SetUserRole(userID, roleID uint) error
 }
@@ -51,12 +51,10 @@ func (r *gormUserRepository) FindByEmail(email string) (*models.User, error) {
 	return &user, nil
 }
 
-func (r *gormUserRepository) GetUsers() ([]models.User, error) {
-	var users []models.User
-	if err := r.db.Preload("Roles").Find(&users).Error; err != nil {
-		return nil, err
-	}
-	return users, nil
+func (r *gormUserRepository) GetUsers(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.User], error) {
+	db := r.db.Preload("Roles")
+	db = ApplyFilters[models.User](db, filters)
+	return ApplyPagination[models.User](db, page)
 }
 
 func (r *gormUserRepository) Create(user *models.User) error {

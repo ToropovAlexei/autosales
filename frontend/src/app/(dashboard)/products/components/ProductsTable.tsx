@@ -1,6 +1,12 @@
 "use client";
 
-import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridActionsCellItem,
+  GridPaginationModel,
+  GridFilterModel,
+} from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
 import { IProduct } from "@/types";
 import EditIcon from "@mui/icons-material/Edit";
@@ -11,6 +17,15 @@ interface ProductsTableProps {
   onEdit: (product: IProduct) => void;
   onDelete: (id: number) => void;
   getCategoryName: (id: number) => string;
+  loading: boolean;
+  rowCount: number;
+  paginationModel: GridPaginationModel;
+  onPaginationModelChange: (model: GridPaginationModel) => void;
+  filterModel: GridFilterModel;
+  onFilterModelChange: (model: GridFilterModel) => void;
+  sortModel: GridSortModel;
+  onSortModelChange: (model: GridSortModel) => void;
+  categories: { id: number; name: string }[];
 }
 
 export const ProductsTable = ({
@@ -18,9 +33,18 @@ export const ProductsTable = ({
   onEdit,
   onDelete,
   getCategoryName,
+  loading,
+  rowCount,
+  paginationModel,
+  onPaginationModelChange,
+  filterModel,
+  onFilterModelChange,
+  sortModel,
+  onSortModelChange,
+  categories,
 }: ProductsTableProps) => {
   const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 90 },
+    { field: "id", headerName: "ID", width: 90, filterable: false }, // Not reliable for sorting/filtering
     { field: "name", headerName: "Название", width: 250, flex: 1 },
     {
       field: "type",
@@ -34,13 +58,17 @@ export const ProductsTable = ({
           : "Товар";
       },
       flex: 1,
+      type: "singleSelect",
+      valueOptions: ["item", "subscription"],
     },
     {
       field: "category_id",
       headerName: "Категория",
       width: 200,
-      valueGetter: (value) => getCategoryName(value),
+      valueFormatter: (value) => getCategoryName(value),
       flex: 1,
+      type: "singleSelect",
+      valueOptions: categories.map((c) => ({ value: c.id, label: c.name })),
     },
     { field: "price", headerName: "Цена", type: "number", width: 110 },
     {
@@ -49,6 +77,7 @@ export const ProductsTable = ({
       type: "number",
       width: 110,
       valueGetter: (value, row) => (row.type === "subscription" ? "∞" : value),
+      filterable: false, // Stock is calculated and not a direct DB field
     },
     {
       field: "actions",
@@ -83,13 +112,17 @@ export const ProductsTable = ({
         rows={products}
         columns={columns}
         density="compact"
-        initialState={{
-          pagination: {
-            paginationModel: {
-              pageSize: 25,
-            },
-          },
-        }}
+        loading={loading}
+        rowCount={rowCount}
+        paginationModel={paginationModel}
+        onPaginationModelChange={onPaginationModelChange}
+        filterModel={filterModel}
+        onFilterModelChange={onFilterModelChange}
+        sortingMode="server"
+        sortModel={sortModel}
+        onSortModelChange={onSortModelChange}
+        paginationMode="server"
+        filterMode="server"
         getRowId={(row) =>
           row.provider ? `${row.provider}-${row.external_id}` : row.id
         }

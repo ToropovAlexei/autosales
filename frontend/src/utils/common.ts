@@ -3,21 +3,28 @@ import { IFilter } from "@/types";
 export const serializeFilter = (filter: IFilter) => {
   const params = new URLSearchParams();
 
-  for (const [key, value] of Object.entries(filter)) {
-    if (value === undefined || value === null) {
-      continue;
-    }
+  if (filter.page) {
+    params.append("page", String(filter.page));
+  }
 
-    if (Array.isArray(value)) {
-      value.forEach((item) => {
-        if (item !== undefined && item !== null) {
-          params.append(key, String(item));
-        }
-      });
-      continue;
-    }
+  if (filter.pageSize) {
+    params.append("pageSize", String(filter.pageSize));
+  }
 
-    params.append(key, String(value));
+  if (filter.orderBy) {
+    params.append("orderBy", filter.orderBy);
+  }
+
+  if (filter.order) {
+    params.append("order", filter.order);
+  }
+
+  if (filter.filters) {
+    const mappedFilters = filter.filters.map((f) => ({
+      ...f,
+      op: f.op === "is" ? "=" : f.op,
+    }));
+    params.append("filters", JSON.stringify(mappedFilters));
   }
 
   return params.toString();

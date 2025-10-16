@@ -1,21 +1,32 @@
 "use client";
 
-import { useList } from "@/hooks";
+import { useDataGrid } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
-import { IAuditLog } from "@/types";
 import { PageLayout } from "@/components/PageLayout";
 import { AuditLogTable } from "./components/AuditLogTable";
 
 export default function AuditLogPage() {
-  const { data: auditLogs, isPending: isLoading } = useList<IAuditLog>({
-    endpoint: ENDPOINTS.AUDIT_LOGS,
-  });
-
-  if (isLoading) return <div>Loading...</div>;
+  const {
+    rows,
+    rowCount,
+    loading,
+    paginationModel,
+    onPaginationModelChange,
+    filterModel,
+    onFilterModelChange,
+  } = useDataGrid(ENDPOINTS.AUDIT_LOGS);
 
   return (
     <PageLayout title="Журнал аудита">
-      <AuditLogTable logs={auditLogs?.data || []} />
+      <AuditLogTable
+        logs={rows}
+        loading={loading}
+        rowCount={rowCount}
+        paginationModel={paginationModel}
+        onPaginationModelChange={onPaginationModelChange}
+        filterModel={filterModel}
+        onFilterModelChange={onFilterModelChange}
+      />
     </PageLayout>
   );
 }

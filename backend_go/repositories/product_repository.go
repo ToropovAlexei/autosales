@@ -9,7 +9,7 @@ import (
 
 type ProductRepository interface {
 	WithTx(tx *gorm.DB) ProductRepository
-	GetProducts(categoryIDs []uint) ([]models.Product, error)
+	GetProducts(filters []models.Filter) ([]models.Product, error)
 	GetProductByID(id uint) (*models.Product, error)
 	FindByName(name string) (*models.Product, error)
 	CreateProduct(product *models.Product) error
@@ -32,13 +32,11 @@ func (r *gormProductRepository) WithTx(tx *gorm.DB) ProductRepository {
 	return &gormProductRepository{db: tx}
 }
 
-func (r *gormProductRepository) GetProducts(categoryIDs []uint) ([]models.Product, error) {
+func (r *gormProductRepository) GetProducts(filters []models.Filter) ([]models.Product, error) {
 	var products []models.Product
-	query := r.db.Order("id asc").Where("visible = ?", true)
-	if len(categoryIDs) > 0 {
-		query = query.Where("category_id IN ?", categoryIDs)
-	}
-	if err := query.Find(&products).Error; err != nil {
+	db := r.db.Model(&models.Product{}).Where("visible = ?", true)
+	db = ApplyFilters[models.Product](db, filters)
+	if err := db.Find(&products).Error; err != nil {
 		return nil, err
 	}
 	return products, nil

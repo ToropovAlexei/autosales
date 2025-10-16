@@ -1,6 +1,6 @@
 "use client";
 
-import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridActionsCellItem, GridPaginationModel, GridFilterModel } from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
 import { User } from "@/types";
@@ -10,12 +10,22 @@ interface UsersTableProps {
   users: User[];
   onConfigure: (user: User) => void;
   loading: boolean;
+  rowCount: number;
+  paginationModel: GridPaginationModel;
+  onPaginationModelChange: (model: GridPaginationModel) => void;
+  filterModel: GridFilterModel;
+  onFilterModelChange: (model: GridFilterModel) => void;
 }
 
 export const UsersTable = ({
   users,
   onConfigure,
   loading,
+  rowCount,
+  paginationModel,
+  onPaginationModelChange,
+  filterModel,
+  onFilterModelChange,
 }: UsersTableProps) => {
   const canConfigure = useCan("rbac:manage");
 
@@ -57,13 +67,13 @@ export const UsersTable = ({
         columns={columns}
         density="compact"
         loading={loading}
-        initialState={{
-          pagination: {
-            paginationModel: {
-              pageSize: 25,
-            },
-          },
-        }}
+        rowCount={rowCount}
+        paginationModel={paginationModel}
+        onPaginationModelChange={onPaginationModelChange}
+        filterModel={filterModel}
+        onFilterModelChange={onFilterModelChange}
+        paginationMode="server"
+        filterMode="server"
         localeText={ruRU.components.MuiDataGrid.defaultProps.localeText}
       />
     </div>

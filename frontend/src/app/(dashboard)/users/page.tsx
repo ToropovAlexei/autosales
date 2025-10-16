@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useList, useCan } from "@/hooks";
+import { useDataGrid, useCan } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { PageLayout } from "@/components/PageLayout";
 import { User } from "@/types";
@@ -15,9 +15,15 @@ import { queryKeys } from "@/utils/query";
 import { toast } from "react-toastify";
 
 export default function UsersPage() {
-  const { data: users, isPending } = useList<User>({
-    endpoint: ENDPOINTS.USERS,
-  });
+  const {
+    rows,
+    rowCount,
+    loading,
+    paginationModel,
+    onPaginationModelChange,
+    filterModel,
+    onFilterModelChange,
+  } = useDataGrid(ENDPOINTS.USERS);
   const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
@@ -62,9 +68,14 @@ export default function UsersPage() {
         </Button>
       )}
       <UsersTable
-        users={users?.data || []}
+        users={rows}
         onConfigure={openPermissionsModal}
-        loading={isPending}
+        loading={loading}
+        rowCount={rowCount}
+        paginationModel={paginationModel}
+        onPaginationModelChange={onPaginationModelChange}
+        filterModel={filterModel}
+        onFilterModelChange={onFilterModelChange}
       />
       {isPermissionsModalOpen && (
         <UserPermissionsModal

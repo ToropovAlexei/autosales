@@ -1,9 +1,12 @@
 package handlers
 
 import (
+	"encoding/json"
+	"frbktg/backend_go/apperrors"
+	"frbktg/backend_go/models"
+	"frbktg/backend_go/responses"
 	"frbktg/backend_go/services"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -17,17 +20,25 @@ func NewAuditLogHandler(service services.AuditLogService) *AuditLogHandler {
 }
 
 func (h *AuditLogHandler) GetAuditLogs(c *gin.Context) {
-	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
-	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
-
-	logs, total, err := h.service.GetAuditLogs(page, pageSize)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve audit logs"})
+	var page models.Page
+	if err := c.ShouldBindQuery(&page); err != nil {
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{
-		"data":  logs,
-		"total": total,
-	})
+	var filters []models.Filter
+	if filtersJSON := c.Query("filters"); filtersJSON != "" {
+		if err := json.Unmarshal([]byte(filtersJSON), &filters); err != nil {
+			c.Error(&apperrors.ErrValidation{Message: "Invalid filters format"})
+			return
+		}
+	}
+
+	result, err := h.service.GetAuditLogs(page, filters)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, result)
 }

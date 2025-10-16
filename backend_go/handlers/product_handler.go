@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/responses"
@@ -20,31 +21,46 @@ func NewProductHandler(productService services.ProductService) *ProductHandler {
 }
 
 // @Summary      List products
-// @Description  Get a list of all products, optionally filtered by category.
+// @Description  Get a paginated and filtered list of all products.
 // @Tags         Products
 // @Produce      json
-// @Param        category_ids[] query []string false "Category IDs to filter by"
-// @Success      200 {object} responses.ResponseSchema[[]models.ProductResponse]
+// @Param        page query int false "Page number" default(1)
+// @Param        pageSize query int false "Number of items per page" default(10)
+// @Param        orderBy query string false "Field to order by" default(name)
+// @Param        order query string false "Order direction (asc/desc)" default(asc)
+// @Param        filters query string false "JSON array of filters"
+// @Success      200 {object} responses.ResponseSchema[models.PaginatedResult[models.ProductResponse]]
+// @Failure      400 {object} responses.ErrorResponseSchema
 // @Failure      500 {object} responses.ErrorResponseSchema
 // @Router       /products [get]
 // @Security     ApiKeyAuth
 // @Security     ServiceApiKeyAuth
 func (h *ProductHandler) GetProductsHandler(c *gin.Context) {
-	categoryIDStrs, _ := c.GetQueryArray("category_ids[]")
-	var categoryIDs []uint
-	for _, s := range categoryIDStrs {
-		id, err := strconv.ParseUint(s, 10, 32)
-		if err == nil {
-			categoryIDs = append(categoryIDs, uint(id))
+	var page models.Page
+	if err := c.ShouldBindQuery(&page); err != nil {
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
+		return
+	}
+	// Default sort order to 'name' since 'id' is not reliable across combined product types
+	if page.OrderBy == "id" {
+		page.OrderBy = "name"
+	}
+
+	var filters []models.Filter
+	if filtersJSON := c.Query("filters"); filtersJSON != "" {
+		if err := json.Unmarshal([]byte(filtersJSON), &filters); err != nil {
+			c.Error(&apperrors.ErrValidation{Message: "Invalid filters format"})
+			return
 		}
 	}
 
-	products, err := h.productService.GetProducts(categoryIDs)
+	result, err := h.productService.GetProducts(page, filters)
 	if err != nil {
 		c.Error(err)
 		return
 	}
-	responses.SuccessResponse(c, http.StatusOK, products)
+
+	responses.SuccessResponse(c, http.StatusOK, result)
 }
 
 type productCreatePayload struct {

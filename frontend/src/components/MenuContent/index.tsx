@@ -1,6 +1,12 @@
-import { List, ListItem, ListItemButton, ListItemIcon, ListItemText } from "@mui/material";
+import {
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+} from "@mui/material";
 import { usePathname, useRouter } from "next/navigation";
-import { MENU_ITEMS } from '@/components/Sidebar/constants';
+import { MENU_ITEMS } from "@/components/Sidebar/constants";
 import { useCan } from "@/hooks";
 
 const MenuItem = ({ item }) => {

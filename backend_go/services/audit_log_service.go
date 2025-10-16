@@ -11,7 +11,7 @@ import (
 
 type AuditLogService interface {
 	Log(ctx *gin.Context, action string, targetType string, targetID uint, changes map[string]interface{}) error
-	GetAuditLogs(page, pageSize int) ([]models.AuditLog, int64, error)
+	GetAuditLogs(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.AuditLog], error)
 }
 
 type auditLogService struct {
@@ -46,6 +46,6 @@ func (s *auditLogService) Log(ctx *gin.Context, action string, targetType string
 	return s.repo.Create(&logEntry)
 }
 
-func (s *auditLogService) GetAuditLogs(page, pageSize int) ([]models.AuditLog, int64, error) {
-	return s.repo.GetPaginated(page, pageSize)
+func (s *auditLogService) GetAuditLogs(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.AuditLog], error) {
+	return s.repo.GetAuditLogs(page, filters)
 }

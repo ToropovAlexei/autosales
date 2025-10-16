@@ -1,14 +1,33 @@
 "use client";
 
-import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridFilterModel,
+  GridPaginationModel,
+} from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
 import { IAuditLog } from "@/types";
 
 interface AuditLogTableProps {
   logs: IAuditLog[];
+  loading: boolean;
+  rowCount: number;
+  paginationModel: GridPaginationModel;
+  onPaginationModelChange: (model: GridPaginationModel) => void;
+  filterModel: GridFilterModel;
+  onFilterModelChange: (model: GridFilterModel) => void;
 }
 
-export const AuditLogTable = ({ logs }: AuditLogTableProps) => {
+export const AuditLogTable = ({
+  logs,
+  loading,
+  rowCount,
+  paginationModel,
+  onPaginationModelChange,
+  filterModel,
+  onFilterModelChange,
+}: AuditLogTableProps) => {
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", width: 90 },
     { field: "user_email", headerName: "User", width: 250, flex: 1 },
@@ -19,6 +38,7 @@ export const AuditLogTable = ({ logs }: AuditLogTableProps) => {
       width: 200,
       valueGetter: (value, row) => `${row.target_type} (${row.target_id})`,
       flex: 1,
+      filterable: false,
     },
     { field: "status", headerName: "Status", width: 110 },
     {
@@ -26,6 +46,7 @@ export const AuditLogTable = ({ logs }: AuditLogTableProps) => {
       headerName: "Date",
       width: 200,
       valueGetter: (value) => new Date(value).toLocaleString(),
+      filterOperator: "onOrAfter",
     },
   ];
 
@@ -35,13 +56,14 @@ export const AuditLogTable = ({ logs }: AuditLogTableProps) => {
         rows={logs}
         columns={columns}
         density="compact"
-        initialState={{
-          pagination: {
-            paginationModel: {
-              pageSize: 25,
-            },
-          },
-        }}
+        loading={loading}
+        rowCount={rowCount}
+        paginationModel={paginationModel}
+        onPaginationModelChange={onPaginationModelChange}
+        filterModel={filterModel}
+        onFilterModelChange={onFilterModelChange}
+        paginationMode="server"
+        filterMode="server"
         localeText={ruRU.components.MuiDataGrid.defaultProps.localeText}
       />
     </div>

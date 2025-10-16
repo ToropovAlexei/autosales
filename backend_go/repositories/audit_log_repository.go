@@ -8,7 +8,7 @@ import (
 
 type AuditLogRepository interface {
 	Create(log *models.AuditLog) error
-	GetPaginated(page, pageSize int) ([]models.AuditLog, int64, error)
+	GetAuditLogs(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.AuditLog], error)
 }
 
 type gormAuditLogRepository struct {
@@ -23,20 +23,8 @@ func (r *gormAuditLogRepository) Create(log *models.AuditLog) error {
 	return r.db.Create(log).Error
 }
 
-func (r *gormAuditLogRepository) GetPaginated(page, pageSize int) ([]models.AuditLog, int64, error) {
-	var logs []models.AuditLog
-	var total int64
-
+func (r *gormAuditLogRepository) GetAuditLogs(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.AuditLog], error) {
 	db := r.db.Model(&models.AuditLog{})
-
-	if err := db.Count(&total).Error; err != nil {
-		return nil, 0, err
-	}
-
-	offset := (page - 1) * pageSize
-	if err := db.Offset(offset).Limit(pageSize).Order("created_at desc").Find(&logs).Error; err != nil {
-		return nil, 0, err
-	}
-
-	return logs, total, nil
+	db = ApplyFilters[models.AuditLog](db, filters)
+	return ApplyPagination[models.AuditLog](db, page)
 }

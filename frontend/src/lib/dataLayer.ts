@@ -33,15 +33,16 @@ class DataLayer {
     filter: IFilter | undefined,
     meta?: Record<string, unknown>
   ) => {
-    const fullUrl = [
-      fillUrlWithMeta(url, meta),
-      new URLSearchParams(serializeFilter(filter || {})).toString(),
-    ]
+    const fullUrl = [fillUrlWithMeta(url, meta), serializeFilter(filter || {})]
       .filter(Boolean)
       .join("?");
-    const response = await newApi.get(fullUrl).json<{ data: T[] }>();
-    // TODO Total
-    return { data: response.data, total: 0 };
+    const response = await newApi
+      .get(fullUrl)
+      .json<{ data: { data: T[]; total: number } }>();
+    return {
+      data: response.data.data || response.data,
+      total: response.data.total,
+    };
   };
 
   public create = async <T>({
