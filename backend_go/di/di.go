@@ -5,7 +5,7 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/external_providers"
 	"frbktg/backend_go/external_providers/contms"
-	"frbktg/backend_go/external_providers/new_payment_provider"
+	"frbktg/backend_go/external_providers/platform_payment_system"
 	"frbktg/backend_go/gateways"
 	"frbktg/backend_go/gateways/mock"
 	"frbktg/backend_go/handlers"
@@ -82,15 +82,30 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	mockGatewayAdapter := mock.NewMockGatewayAdapter(appSettings.MockGatewayURL)
 	paymentGatewayRegistry.RegisterProvider(mockGatewayAdapter)
 
-	// Register the new payment provider
-	newPaymentProviderClient := new_payment_provider.NewClient(
-		appSettings.NewPaymentProviderBaseURL,
-		appSettings.NewPaymentProviderLogin,
-		appSettings.NewPaymentProviderPassword,
-		appSettings.NewPaymentProvider2FAKey,
+	// Register the Platform Payment System provider (as two separate methods)
+	platformPaymentSystemClient := platform_payment_system.NewClient(
+		appSettings.PlatformPaymentSystemBaseURL,
+		appSettings.PlatformPaymentSystemLogin,
+		appSettings.PlatformPaymentSystemPassword,
+		appSettings.PlatformPaymentSystem2FAKey,
 	)
-	newPaymentProviderAdapter := gateways.NewNewPaymentProviderAdapter(newPaymentProviderClient)
-	paymentGatewayRegistry.RegisterProvider(newPaymentProviderAdapter)
+	// Card Method
+	platformCardAdapter := gateways.NewPlatformPaymentSystemAdapter(
+		platformPaymentSystemClient,
+		"platform_card",
+		"Platform (Карта)",
+		1, // id_pay_method for Card
+	)
+	paymentGatewayRegistry.RegisterProvider(platformCardAdapter)
+
+	// SBP Method
+	platformSbpAdapter := gateways.NewPlatformPaymentSystemAdapter(
+		platformPaymentSystemClient,
+		"platform_sbp",
+		"Platform (СБП)",
+		2, // id_pay_method for SBP
+	)
+	paymentGatewayRegistry.RegisterProvider(platformSbpAdapter)
 
 	// Init repositories
 	userRepo := repositories.NewUserRepository(db)

@@ -1,4 +1,4 @@
-package new_payment_provider
+package platform_payment_system
 
 import (
 	"encoding/json"
