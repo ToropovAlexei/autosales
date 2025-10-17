@@ -78,22 +78,51 @@ async def select_amount_handler(callback_query: CallbackQuery, callback_data: Pa
 
         if response.get("success"):
             invoice_data = response["data"]
-            pay_url = invoice_data["pay_url"]
             order_id = invoice_data["order_id"]
+            pay_url = invoice_data.get("pay_url")
+            details = invoice_data.get("details")
 
-            sent_message = await callback_query.message.edit_text(
-                f"✅ Ваш счет на {hbold(f'{amount} ₽')} создан.\n\nНажмите на кнопку ниже, чтобы перейти к оплате.",
-                reply_markup=inline.InlineKeyboardMarkup(inline_keyboard=[
-                    [inline.InlineKeyboardButton(text="Оплатить", url=pay_url)],
-                    [inline.InlineKeyboardButton(text="⬅️ Назад", callback_data="deposit")]
-                ]),
-                parse_mode="HTML"
-            )
+            sent_message = None
+            if pay_url:
+                sent_message = await callback_query.message.edit_text(
+                    f"✅ Ваш счет на {hbold(f'{amount} ₽')} создан.\n\nНажмите на кнопку ниже, чтобы перейти к оплате.",
+                    reply_markup=inline.InlineKeyboardMarkup(inline_keyboard=[
+                        [inline.InlineKeyboardButton(text="Оплатить", url=pay_url)],
+                        [inline.InlineKeyboardButton(text="⬅️ Назад", callback_data="deposit")]
+                    ]),
+                    parse_mode="HTML"
+                )
+            elif details:
+                requisites_text = (
+                    f"Реквизиты для оплаты:\n\n"
+                    f"{hbold('Банк:')} {details.get('data_bank', {}).get('name', 'N/A')}\n"
+                    f"{hbold('Номер карты:')} {details.get('value', 'N/A')}\n"
+                    f"{hbold('Получатель:')} {details.get('data_people', {}).get('surname', '')} {details.get('data_people', {}).get('name', '')} {details.get('data_people', {}).get('patronymic', '')}\n"
+                    f"{hbold('Сумма:')} {details.get('data_mathematics', {}).get('amount_pay', 'N/A')} ₽\n\n"
+                    f"После оплаты, пожалуйста, подождите. Статус платежа обновится автоматически в течение нескольких минут."
+                )
+                sent_message = await callback_query.message.edit_text(
+                    requisites_text,
+                    reply_markup=inline.InlineKeyboardMarkup(inline_keyboard=[
+                        [inline.InlineKeyboardButton(text="⬅️ Назад", callback_data="deposit")]
+                    ]),
+                    parse_mode="HTML"
+                )
+            else:
+                await callback_query.message.edit_text(
+                    "Не удалось получить реквизиты для оплаты. Попробуйте другой способ.",
+                    reply_markup=inline.deposit_amount_menu(gateway=gateway)
+                )
+                await callback_query.answer()
+                return
+
             # Associate message_id with the invoice
-            await api_client.set_invoice_message_id(order_id, sent_message.message_id)
+            if sent_message:
+                await api_client.set_invoice_message_id(order_id, sent_message.message_id)
         else:
+            error_message = response.get('error', 'Неизвестная ошибка')
             await callback_query.message.edit_text(
-                f"Не удалось создать счет: {response.get('error')}",
+                f"Не удалось создать счет: {error_message}",
                 reply_markup=inline.deposit_amount_menu(gateway=gateway)
             )
     except Exception:

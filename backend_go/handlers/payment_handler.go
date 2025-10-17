@@ -131,3 +131,23 @@ func (h *PaymentHandler) WebhookHandler(c *gin.Context) {
 
 	c.Status(http.StatusOK)
 }
+
+// @Summary      Get Payment Gateways (Admin)
+// @Description  Retrieves a list of available payment gateways for admin panel.
+// @Tags         Admin
+// @Produce      json
+// @Success      200  {object}  responses.ResponseSchema[[]gatewayDTO]
+// @Failure      500  {object}  responses.ErrorResponseSchema
+// @Router       /admin/payment-providers [get]
+// @Security     BearerAuth
+func (h *PaymentHandler) AdminGetGatewaysHandler(c *gin.Context) {
+	gateways := h.paymentService.GetAvailableGateways()
+	var response []gatewayDTO
+	for _, gw := range gateways {
+		response = append(response, gatewayDTO{
+			Name:        gw.GetName(),
+			DisplayName: gw.GetDisplayName(),
+		})
+	}
+	responses.SuccessResponse(c, http.StatusOK, response)
+}

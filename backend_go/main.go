@@ -107,7 +107,7 @@ func main() {
 	routers.RegisterUserRoutes(r, container.UserHandler, authMiddleware)
 	routers.RegisterBalanceRoutes(r, container.BalanceHandler, authMiddleware)
 	routers.RegisterOrderRoutes(r, container.OrderHandler, authMiddleware)
-	routers.RegisterAdminRoutes(r, container.AdminHandler, authMiddleware)
+	routers.RegisterAdminRoutes(r, container.AdminHandler, container.PaymentHandler, authMiddleware)
 	routers.RegisterTransactionRoutes(r, container.TransactionHandler, authMiddleware)
 	routers.RegisterStockRoutes(r, container.StockHandler, authMiddleware)
 	routers.RegisterDashboardRoutes(r, container.DashboardHandler, authMiddleware)

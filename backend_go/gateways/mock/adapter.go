@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"frbktg/backend_go/gateways"
+	"frbktg/backend_go/models"
 	"io"
 	"net/http"
 	"time"
@@ -77,11 +78,11 @@ func (a *MockGatewayAdapter) HandleWebhook(r *http.Request) (*gateways.WebhookRe
 	}
 
 	var webhookPayload struct {
-		Event            string  `json:"event"`
-		OrderID          string  `json:"order_id"`
-		InvoiceID        string  `json:"invoice_id"`
-		Amount           float64 `json:"amount"`
-		Status           string  `json:"status"`
+		Event     string  `json:"event"`
+		OrderID   string  `json:"order_id"`
+		InvoiceID string  `json:"invoice_id"`
+		Amount    float64 `json:"amount"`
+		Status    string  `json:"status"`
 	}
 
 	if err := json.Unmarshal(body, &webhookPayload); err != nil {
@@ -99,5 +100,13 @@ func (a *MockGatewayAdapter) HandleWebhook(r *http.Request) (*gateways.WebhookRe
 		OrderID:          webhookPayload.OrderID,
 		Status:           webhookPayload.Status,
 		Amount:           webhookPayload.Amount,
+	}, nil
+}
+
+func (a *MockGatewayAdapter) GetInvoiceStatus(gatewayInvoiceID string) (*gateways.StatusResult, error) {
+	// For the mock adapter, we'll just assume the payment is completed immediately.
+	return &gateways.StatusResult{
+		Status:           string(models.InvoiceStatusCompleted),
+		GatewayInvoiceID: gatewayInvoiceID,
 	}, nil
 }

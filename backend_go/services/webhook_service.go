@@ -9,7 +9,7 @@ import (
 )
 
 type WebhookService interface {
-	SendNotification(botName string, telegramID int64, message string, messageToEdit *int64) error
+	SendNotification(botName string, telegramID int64, message string, messageToEdit *int64, messageToDelete *int64) error
 }
 
 type webhookService struct {
@@ -27,22 +27,24 @@ func NewWebhookService(cfg config.Settings) WebhookService {
 }
 
 type notificationPayload struct {
-	BotName       string `json:"bot_name"`
-	TelegramID    int64  `json:"telegram_id"`
-	Message       string `json:"message"`
-	MessageToEdit *int64 `json:"message_to_edit,omitempty"`
+	BotName         string `json:"bot_name"`
+	TelegramID      int64  `json:"telegram_id"`
+	Message         string `json:"message"`
+	MessageToEdit   *int64 `json:"message_to_edit,omitempty"`
+	MessageToDelete *int64 `json:"message_to_delete,omitempty"`
 }
 
-func (s *webhookService) SendNotification(botName string, telegramID int64, message string, messageToEdit *int64) error {
+func (s *webhookService) SendNotification(botName string, telegramID int64, message string, messageToEdit *int64, messageToDelete *int64) error {
 	if s.dispatcherURL == "" {
 		return nil
 	}
 
 	payload := notificationPayload{
-		BotName:       botName,
-		TelegramID:    telegramID,
-		Message:       message,
-		MessageToEdit: messageToEdit,
+		BotName:         botName,
+		TelegramID:      telegramID,
+		Message:         message,
+		MessageToEdit:   messageToEdit,
+		MessageToDelete: messageToDelete,
 	}
 
 	payloadBytes, err := json.Marshal(payload)

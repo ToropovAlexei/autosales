@@ -2,9 +2,11 @@ package config
 
 import (
 	"io"
+	"log/slog"
 	"os"
 	"time"
 
+	slogzerolog "github.com/samber/slog-zerolog/v2"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -27,14 +29,18 @@ func InitLogger() {
 	// MultiWriter для одновременной записи в файл (в формате JSON) и в консоль (в текстовом формате)
 	multiWriter := io.MultiWriter(consoleWriter, logRotator)
 
-	// Устанавливаем глобальный логгер с хуком для добавления stack trace к ошибкам
-	log.Logger = zerolog.New(multiWriter).With().Timestamp().Logger().Hook(zerolog.HookFunc(
-		func(e *zerolog.Event, level zerolog.Level, msg string) {
-			if level == zerolog.ErrorLevel {
-				e.Stack()
-			}
-		},
-	))
+	// Создаем и настраиваем логгер zerolog
+	zlog := zerolog.New(multiWriter).With().Timestamp().Logger().Level(zerolog.DebugLevel)
+
+	// Устанавливаем глобальный логгер для пакета zerolog/log
+	log.Logger = zlog
+
+	// Создаем и устанавливаем обработчик slog, который использует наш zerolog
+	handler := slogzerolog.Option{
+		Logger: &zlog,
+		Level:  slog.LevelInfo,
+	}.NewZerologHandler()
+	slog.SetDefault(slog.New(handler))
 
 	log.Info().Msg("Logger initialized successfully")
 }

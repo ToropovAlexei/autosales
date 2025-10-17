@@ -24,8 +24,17 @@ func NewPaymentWorker(paymentService services.PaymentService, logger *slog.Logge
 
 func (w *PaymentWorker) Start() {
 	w.scheduler.Every(1).Minute().Do(w.checkUnfinishedPayments)
+	w.scheduler.Every(30).Seconds().Do(w.pollPaymentStatus)
 	w.scheduler.StartAsync()
 	w.logger.Info("Payment worker started")
+}
+
+func (w *PaymentWorker) pollPaymentStatus() {
+	w.logger.Info("Starting payment polling job")
+	if err := w.paymentService.PollPendingPayments(); err != nil {
+		w.logger.Error("failed to poll pending payments", "error", err)
+	}
+	w.logger.Info("Payment polling job finished")
 }
 
 func (w *PaymentWorker) checkUnfinishedPayments() {

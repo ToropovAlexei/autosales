@@ -5,6 +5,7 @@ import (
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/external_providers"
 	"frbktg/backend_go/external_providers/contms"
+	"frbktg/backend_go/external_providers/new_payment_provider"
 	"frbktg/backend_go/gateways"
 	"frbktg/backend_go/gateways/mock"
 	"frbktg/backend_go/handlers"
@@ -81,6 +82,16 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	mockGatewayAdapter := mock.NewMockGatewayAdapter(appSettings.MockGatewayURL)
 	paymentGatewayRegistry.RegisterProvider(mockGatewayAdapter)
 
+	// Register the new payment provider
+	newPaymentProviderClient := new_payment_provider.NewClient(
+		appSettings.NewPaymentProviderBaseURL,
+		appSettings.NewPaymentProviderLogin,
+		appSettings.NewPaymentProviderPassword,
+		appSettings.NewPaymentProvider2FAKey,
+	)
+	newPaymentProviderAdapter := gateways.NewNewPaymentProviderAdapter(newPaymentProviderClient)
+	paymentGatewayRegistry.RegisterProvider(newPaymentProviderAdapter)
+
 	// Init repositories
 	userRepo := repositories.NewUserRepository(db)
 	botUserRepo := repositories.NewBotUserRepository(db)
@@ -116,7 +127,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	stockService := services.NewStockService(stockRepo)
 	adminService := services.NewAdminService(adminRepo, botUserRepo)
 	webhookService := services.NewWebhookService(appSettings)
-	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo, botUserRepo, webhookService, appSettings)
+	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo, botUserRepo, webhookService, settingService, appSettings)
 	imageService := services.NewImageService(db, imageRepo, appSettings)
 	roleService := services.NewRoleService(roleRepo, auditLogService)
 

@@ -30,6 +30,14 @@ async def redis_listener(bot: Bot, redis_client: redis.Redis, bot_username: str)
             telegram_id = message_data.get('telegram_id')
             text = message_data.get('message')
             message_to_edit = message_data.get('message_to_edit')
+            message_to_delete = message_data.get('message_to_delete')
+
+            if message_to_delete:
+                try:
+                    await bot.delete_message(chat_id=telegram_id, message_id=message_to_delete)
+                    logging.info(f"Deleted message {message_to_delete} for user {telegram_id}")
+                except Exception as e:
+                    logging.warning(f"Could not delete message {message_to_delete} for user {telegram_id}. It might have been deleted already. Error: {e}")
 
             if telegram_id and text:
                 if message_to_edit:

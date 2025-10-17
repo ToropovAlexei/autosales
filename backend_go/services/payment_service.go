@@ -16,9 +16,10 @@ import (
 
 // CreateInvoiceResponse is a custom response that includes both external gateway data and our internal OrderID
 type CreateInvoiceResponse struct {
-	PayURL           string `json:"pay_url"`
-	GatewayInvoiceID string `json:"gateway_invoice_id"`
-	OrderID          string `json:"order_id"` // Our internal ID
+	PayURL           string      `json:"pay_url"`
+	GatewayInvoiceID string      `json:"gateway_invoice_id"`
+	OrderID          string      `json:"order_id"` // Our internal ID
+	Details          interface{} `json:"details,omitempty"`
 }
 
 type PaymentService interface {
@@ -27,6 +28,7 @@ type PaymentService interface {
 	SetInvoiceMessageID(orderID string, messageID int64) error
 	HandleWebhook(gatewayName string, r *http.Request) error
 	NotifyUnfinishedPayments() error
+	PollPendingPayments() error
 }
 
 type paymentService struct {
@@ -36,10 +38,11 @@ type paymentService struct {
 	transactionRepo repositories.TransactionRepository
 	botUserRepo     repositories.BotUserRepository
 	webhookService  WebhookService
+	settingService  *SettingService
 	config          config.Settings
 }
 
-func NewPaymentService(db *gorm.DB, registry *gateways.ProviderRegistry, invoiceRepo repositories.PaymentInvoiceRepository, transactionRepo repositories.TransactionRepository, botUserRepo repositories.BotUserRepository, webhookService WebhookService, config config.Settings) PaymentService {
+func NewPaymentService(db *gorm.DB, registry *gateways.ProviderRegistry, invoiceRepo repositories.PaymentInvoiceRepository, transactionRepo repositories.TransactionRepository, botUserRepo repositories.BotUserRepository, webhookService WebhookService, settingService *SettingService, config config.Settings) PaymentService {
 	return &paymentService{
 		db:              db,
 		registry:        registry,
@@ -47,6 +50,7 @@ func NewPaymentService(db *gorm.DB, registry *gateways.ProviderRegistry, invoice
 		transactionRepo: transactionRepo,
 		botUserRepo:     botUserRepo,
 		webhookService:  webhookService,
+		settingService:  settingService,
 		config:          config,
 	}
 }
@@ -56,6 +60,19 @@ func (s *paymentService) GetAvailableGateways() []gateways.PaymentGateway {
 }
 
 func (s *paymentService) CreateInvoice(botUserID uint, gatewayName string, amount float64) (*CreateInvoiceResponse, error) {
+	if gatewayName == "" {
+		settings, err := s.settingService.GetSettings()
+		if err != nil {
+			return nil, apperrors.New(http.StatusInternalServerError, "Failed to get settings for default gateway", err)
+		}
+		defaultGateway, ok := settings["DEFAULT_PAYMENT_GATEWAY"]
+		if !ok || defaultGateway == "" {
+			return nil, apperrors.New(http.StatusInternalServerError, "Default payment gateway is not configured", nil)
+		}
+		gatewayName = defaultGateway
+		slog.Debug("no gateway specified, using default", "default_gateway", gatewayName)
+	}
+
 	gateway, err := s.registry.GetProvider(gatewayName)
 	if err != nil {
 		return nil, apperrors.New(http.StatusBadRequest, "Invalid payment gateway", err)
@@ -91,6 +108,7 @@ func (s *paymentService) CreateInvoice(botUserID uint, gatewayName string, amoun
 		PayURL:           externalInvoice.PayURL,
 		GatewayInvoiceID: externalInvoice.GatewayInvoiceID,
 		OrderID:          orderID,
+		Details:          externalInvoice.Details,
 	}, nil
 }
 
@@ -104,6 +122,71 @@ func (s *paymentService) SetInvoiceMessageID(orderID string, messageID int64) er
 	return s.invoiceRepo.Update(invoice)
 }
 
+// processCompletedInvoice handles the business logic for a completed invoice.
+// This method is designed to be called within a database transaction.
+func (s *paymentService) processCompletedInvoice(tx *gorm.DB, orderID string) error {
+	invoiceRepo := s.invoiceRepo.WithTx(tx)
+	txnRepo := s.transactionRepo.WithTx(tx)
+
+	invoice, err := invoiceRepo.FindByOrderID(orderID)
+	if err != nil {
+		return fmt.Errorf("could not find invoice with order_id %s: %w", orderID, err)
+	}
+
+	if invoice.Status == models.InvoiceStatusCompleted {
+		slog.Info("invoice already completed, skipping", "order_id", orderID)
+		return nil // Not an error, just already done.
+	}
+
+	if invoice.Status == models.InvoiceStatusFailed {
+		return fmt.Errorf("invoice %s was already marked as failed", invoice.OrderID)
+	}
+
+	invoice.Status = models.InvoiceStatusCompleted
+	if err := invoiceRepo.Update(invoice); err != nil {
+		return fmt.Errorf("failed to update invoice status: %w", err)
+	}
+
+	gateway, err := s.registry.GetProvider(invoice.Gateway)
+	if err != nil {
+		// This should ideally not happen if the gateway was valid on creation
+		slog.Error("could not find gateway for completed invoice", "gateway", invoice.Gateway, "order_id", orderID)
+		gateway = nil // Continue without gateway info
+	}
+	gatewayName := "N/A"
+	if gateway != nil {
+		gatewayName = gateway.GetDisplayName()
+	}
+
+	depositTx := &models.Transaction{
+		UserID:      invoice.BotUserID,
+		Type:        models.Deposit,
+		Amount:      invoice.Amount,
+		Description: fmt.Sprintf("Пополнение баланса через %s (Счет: %s)", gatewayName, invoice.GatewayInvoiceID),
+	}
+
+	if err := txnRepo.CreateTransaction(depositTx); err != nil {
+		return fmt.Errorf("failed to create deposit transaction: %w", err)
+	}
+
+	// We need to fetch the user with the transaction context
+	user, err := s.botUserRepo.WithTx(tx).FindByID(invoice.BotUserID)
+	if err != nil {
+		slog.Error("could not find user to notify about payment", "userID", invoice.BotUserID, "error", err)
+		// Decide if this should be a fatal error for the transaction. For now, we'll let it commit.
+	} else {
+		message := fmt.Sprintf("✅ Ваш баланс успешно пополнен на %.2f ₽.", invoice.Amount)
+		go func() {
+			// We pass nil for messageToEdit and the original message ID to messageToDelete to trigger a delete-and-send-new action in the bot.
+			if err := s.webhookService.SendNotification(user.LastSeenWithBot, user.TelegramID, message, nil, invoice.BotMessageID); err != nil {
+				slog.Error("failed to send payment notification webhook", "userID", user.ID, "error", err)
+			}
+		}()
+	}
+
+	return nil
+}
+
 func (s *paymentService) HandleWebhook(gatewayName string, r *http.Request) error {
 	gateway, err := s.registry.GetProvider(gatewayName)
 	if err != nil {
@@ -115,72 +198,58 @@ func (s *paymentService) HandleWebhook(gatewayName string, r *http.Request) erro
 		return apperrors.New(http.StatusBadRequest, "Webhook handling failed", err)
 	}
 
-	if webhookResult.Status != "completed" {
+	// Handle cases where webhook is not supported or event is not relevant
+	if webhookResult == nil || webhookResult.Status != string(models.InvoiceStatusCompleted) {
 		return nil
 	}
 
-	var userToNotify *models.BotUser
-	var processedAmount float64
-	var messageToEdit *int64
-
 	txErr := s.db.Transaction(func(tx *gorm.DB) error {
-		invoiceRepo := s.invoiceRepo.WithTx(tx)
-		txnRepo := s.transactionRepo.WithTx(tx)
-
-		invoice, err := invoiceRepo.FindByOrderID(webhookResult.OrderID)
-		if err != nil {
-			return fmt.Errorf("could not find invoice with order_id %s: %w", webhookResult.OrderID, err)
-		}
-
-		if invoice.Status == models.InvoiceStatusCompleted {
-			return nil
-		}
-
-		if invoice.Status == models.InvoiceStatusFailed {
-			return fmt.Errorf("invoice %s was already marked as failed", invoice.OrderID)
-		}
-
-		invoice.Status = models.InvoiceStatusCompleted
-		if err := invoiceRepo.Update(invoice); err != nil {
-			return fmt.Errorf("failed to update invoice status: %w", err)
-		}
-
-		depositTx := &models.Transaction{
-			UserID:      invoice.BotUserID,
-			Type:        models.Deposit,
-			Amount:      invoice.Amount,
-			Description: fmt.Sprintf("Пополнение баланса через %s (Счет: %s)", gateway.GetDisplayName(), invoice.GatewayInvoiceID),
-		}
-
-		if err := txnRepo.CreateTransaction(depositTx); err != nil {
-			return fmt.Errorf("failed to create deposit transaction: %w", err)
-		}
-
-		user, err := s.botUserRepo.FindByID(invoice.BotUserID)
-		if err != nil {
-			slog.Error("could not find user to notify about payment", "userID", invoice.BotUserID, "error", err)
-		} else {
-			userToNotify = user
-			processedAmount = invoice.Amount
-			messageToEdit = invoice.BotMessageID
-		}
-
-		return nil
+		return s.processCompletedInvoice(tx, webhookResult.OrderID)
 	})
 
 	if txErr != nil {
 		return apperrors.New(http.StatusInternalServerError, "Failed to process webhook transaction", txErr)
 	}
 
-	if userToNotify != nil {
-		message := fmt.Sprintf("✅ Ваш баланс успешно пополнен на %.2f ₽.", processedAmount)
-		go func() {
-			if err := s.webhookService.SendNotification(userToNotify.LastSeenWithBot, userToNotify.TelegramID, message, messageToEdit); err != nil {
-				slog.Error("failed to send payment notification webhook", "userID", userToNotify.ID, "error", err)
-			}
-		}()
+	return nil
+}
+
+func (s *paymentService) PollPendingPayments() error {
+	slog.Debug("starting payment polling job")
+	invoices, err := s.invoiceRepo.GetPendingInvoices()
+	if err != nil {
+		return fmt.Errorf("failed to get pending invoices for polling: %w", err)
 	}
 
+	if len(invoices) > 0 {
+		slog.Info("found pending invoices to poll", "count", len(invoices))
+	}
+
+	for _, invoice := range invoices {
+		gateway, err := s.registry.GetProvider(invoice.Gateway)
+		if err != nil {
+			slog.Error("polling: could not find gateway for invoice", "gateway", invoice.Gateway, "order_id", invoice.OrderID)
+			continue
+		}
+
+		statusResult, err := gateway.GetInvoiceStatus(invoice.GatewayInvoiceID)
+		if err != nil {
+			slog.Error("polling: failed to get invoice status from gateway", "gateway", invoice.Gateway, "order_id", invoice.OrderID, "error", err)
+			continue
+		}
+
+		if statusResult != nil && statusResult.Status == string(models.InvoiceStatusCompleted) {
+			slog.Info("polling: found completed payment", "gateway", invoice.Gateway, "order_id", invoice.OrderID)
+			txErr := s.db.Transaction(func(tx *gorm.DB) error {
+				return s.processCompletedInvoice(tx, invoice.OrderID)
+			})
+			if txErr != nil {
+				slog.Error("polling: failed to process completed payment", "gateway", invoice.Gateway, "order_id", invoice.OrderID, "error", txErr)
+			}
+		}
+	}
+
+	slog.Debug("payment polling job finished")
 	return nil
 }
 
@@ -218,6 +287,7 @@ func (s *paymentService) NotifyUnfinishedPayments() error {
 				invoiceCopy.BotUser.TelegramID,
 				message,
 				nil, // No message to edit
+				nil, // No message to delete
 			)
 			if err != nil {
 				slog.Error("failed to send payment notification", "invoice_id", invoiceCopy.ID, "error", err)

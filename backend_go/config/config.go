@@ -24,6 +24,11 @@ type Settings struct {
 	BotDispatcherWebhookURL    string   `mapstructure:"BOT_DISPATCHER_WEBHOOK_URL"`
 	PaymentNotificationMinutes int      `mapstructure:"PAYMENT_NOTIFICATION_MINUTES"`
 	ImageUploadPath            string   `mapstructure:"IMAGE_UPLOAD_PATH"`
+
+	NewPaymentProviderBaseURL  string `mapstructure:"NEW_PAYMENT_PROVIDER_BASE_URL"`
+	NewPaymentProviderLogin    string `mapstructure:"NEW_PAYMENT_PROVIDER_LOGIN"`
+	NewPaymentProviderPassword string `mapstructure:"NEW_PAYMENT_PROVIDER_PASSWORD"`
+	NewPaymentProvider2FAKey   string `mapstructure:"NEW_PAYMENT_PROVIDER_2FA_KEY"`
 }
 
 func (s *Settings) GetDBConnStr() string {
