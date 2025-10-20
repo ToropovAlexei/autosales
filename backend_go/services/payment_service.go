@@ -9,6 +9,7 @@ import (
 	"frbktg/backend_go/repositories"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -149,36 +150,55 @@ func (s *paymentService) processCompletedInvoice(tx *gorm.DB, orderID string) er
 
 	gateway, err := s.registry.GetProvider(invoice.Gateway)
 	if err != nil {
-		// This should ideally not happen if the gateway was valid on creation
 		slog.Error("could not find gateway for completed invoice", "gateway", invoice.Gateway, "order_id", orderID)
-		gateway = nil // Continue without gateway info
 	}
 	gatewayName := "N/A"
 	if gateway != nil {
 		gatewayName = gateway.GetDisplayName()
 	}
 
+	// --- Gateway Bonus Logic ---
+	allSettings, err := s.settingService.GetSettings()
+	if err != nil {
+		slog.Error("could not retrieve settings to check for gateway bonus", "error", err)
+	}
+
+	bonusKey := "GATEWAY_BONUS_" + invoice.Gateway
+	bonusPercentageStr, hasBonus := allSettings[bonusKey]
+
+	totalAmount := invoice.Amount
+	notificationMessage := fmt.Sprintf("✅ Ваш баланс успешно пополнен на %.2f ₽.", totalAmount)
+	description := fmt.Sprintf("Пополнение баланса через %s (Счет: %s)", gatewayName, invoice.GatewayInvoiceID)
+
+	if hasBonus && err == nil {
+		if bonusPercentage, parseErr := strconv.ParseFloat(bonusPercentageStr, 64); parseErr == nil && bonusPercentage > 0 {
+			bonusAmount := invoice.Amount * (bonusPercentage / 100.0)
+			totalAmount = invoice.Amount + bonusAmount
+
+			description = fmt.Sprintf("Пополнение через %s (Счет: %s). Начислен бонус %.2f%% (%.2f ₽).", gatewayName, invoice.GatewayInvoiceID, bonusPercentage, bonusAmount)
+			notificationMessage = fmt.Sprintf("✅ Ваш баланс пополнен на %.2f ₽ (включая бонус %.2f ₽).", totalAmount, bonusAmount)
+		}
+	}
+	// --- End Gateway Bonus Logic ---
+
 	depositTx := &models.Transaction{
 		UserID:      invoice.BotUserID,
 		Type:        models.Deposit,
-		Amount:      invoice.Amount,
-		Description: fmt.Sprintf("Пополнение баланса через %s (Счет: %s)", gatewayName, invoice.GatewayInvoiceID),
+		Amount:      totalAmount,
+		Description: description,
 	}
 
 	if err := txnRepo.CreateTransaction(depositTx); err != nil {
 		return fmt.Errorf("failed to create deposit transaction: %w", err)
 	}
 
-	// We need to fetch the user with the transaction context
 	user, err := s.botUserRepo.WithTx(tx).FindByID(invoice.BotUserID)
 	if err != nil {
 		slog.Error("could not find user to notify about payment", "userID", invoice.BotUserID, "error", err)
-		// Decide if this should be a fatal error for the transaction. For now, we'll let it commit.
 	} else {
-		message := fmt.Sprintf("✅ Ваш баланс успешно пополнен на %.2f ₽.", invoice.Amount)
 		go func() {
 			// We pass nil for messageToEdit and the original message ID to messageToDelete to trigger a delete-and-send-new action in the bot.
-			if err := s.webhookService.SendNotification(user.LastSeenWithBot, user.TelegramID, message, nil, invoice.BotMessageID); err != nil {
+			if err := s.webhookService.SendNotification(user.LastSeenWithBot, user.TelegramID, notificationMessage, nil, invoice.BotMessageID); err != nil {
 				slog.Error("failed to send payment notification webhook", "userID", user.ID, "error", err)
 			}
 		}()

@@ -70,6 +70,8 @@ type productCreatePayload struct {
 	InitialStock           int     `json:"initial_stock" binding:"gte=0"`
 	Type                   string  `json:"type" binding:"oneof=item subscription"`
 	SubscriptionPeriodDays int     `json:"subscription_period_days" binding:"gte=0"`
+	FulfillmentType        string  `json:"fulfillment_type"`
+	FulfillmentContent     string  `json:"fulfillment_content"`
 }
 
 // @Summary      Create a product
@@ -90,7 +92,7 @@ func (h *ProductHandler) CreateProductHandler(c *gin.Context) {
 		return
 	}
 
-	product, err := h.productService.CreateProduct(c, json.Name, json.CategoryID, json.Price, json.InitialStock, json.Type, json.SubscriptionPeriodDays)
+	product, err := h.productService.CreateProduct(c, json.Name, json.CategoryID, json.Price, json.InitialStock, json.Type, json.SubscriptionPeriodDays, json.FulfillmentType, json.FulfillmentContent)
 	if err != nil {
 		c.Error(err)
 		return
@@ -224,4 +226,25 @@ func (h *ProductHandler) CreateStockMovementHandler(c *gin.Context) {
 	}
 
 	responses.SuccessResponse(c, http.StatusCreated, movement)
+}
+
+func (h *ProductHandler) GetProductsForBotHandler(c *gin.Context) {
+	categoryIDStr := c.Query("category_id")
+	var categoryID uint64
+	var err error
+	if categoryIDStr != "" {
+		categoryID, err = strconv.ParseUint(categoryIDStr, 10, 32)
+		if err != nil {
+			c.Error(&apperrors.ErrValidation{Message: "Invalid category_id"})
+			return
+		}
+	}
+
+	products, err := h.productService.GetProductsForBot(uint(categoryID))
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, products)
 }

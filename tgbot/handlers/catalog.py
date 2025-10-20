@@ -53,7 +53,7 @@ async def navigate_categories(callback_query: CallbackQuery, callback_data: Cate
         if category_id == 0:  # Root level
             await callback_query.message.edit_text(
                 "🛍️ Выберите категорию:",
-                reply_markup=categories_menu(all_categories, 0)
+                reply_markup=categories_menu(all_categories, 0, category_id=0)
             )
         else:  # Category level
             selected_category = find_category_by_id(all_categories, category_id)
@@ -66,22 +66,17 @@ async def navigate_categories(callback_query: CallbackQuery, callback_data: Cate
             parent_id_for_back = selected_category.get('parent_id')
             image_id = selected_category.get('image_id')
 
-            # Determine caption and reply markup first
-            caption = "🛍️ Выберите категорию:"
-            reply_markup = None
-
-            if sub_categories:
-                reply_markup = categories_menu(sub_categories, parent_id_for_back or 0)
+            # Always fetch products for the current category
+            products = []
+            products_response = await api_client.get_products_for_bot(category_id)
+            if products_response.get("success"):
+                products = products_response.get("data") or []
             else:
-                caption = "Выберите товар:"
-                products_response = await api_client.get_products(category_id)
-                if products_response.get("success"):
-                    products = products_response["data"]
-                    reply_markup = products_menu(products, category_id, parent_id_for_back or 0)
-                else:
-                    await callback_query.message.edit_text(f"Не удалось загрузить товары: {products_response.get('error')}")
-                    await callback_query.answer()
-                    return
+                logging.warning(f"Could not fetch products for category {category_id}")
+
+            # Determine caption and reply markup
+            caption = "🛍️ Выберите товар или категорию:"
+            reply_markup = categories_menu(sub_categories, parent_id_for_back or 0, products, category_id)
 
             # Now, decide how to send the message
             if image_id:
@@ -138,40 +133,48 @@ async def go_back_category(callback_query: CallbackQuery, callback_data: Categor
     target_category_id = callback_data.category_id
 
     try:
-        response = await api_client.get_categories()
-        if not response.get("success"):
+        # Fetch all categories for navigation tree structure
+        categories_response = await api_client.get_categories()
+        if not categories_response.get("success"):
             await callback_query.message.edit_text("Не удалось загрузить категории.")
             await callback_query.answer()
             return
+        all_categories = categories_response["data"]
 
-        all_categories = response["data"]
+        # Fetch products for the category we are going back to
+        products = []
+        products_response = await api_client.get_products_for_bot(target_category_id)
+        if products_response.get("success"):
+            products = products_response.get("data") or []
 
+        # Determine which categories to show in the menu
+        categories_to_show = []
+        parent_id_for_back = 0
         if target_category_id == 0:
-            await callback_query.message.edit_text(
-                "🛍️ Выберите категорию или товар:",
-                reply_markup=categories_menu(all_categories, 0)
-            )
+            categories_to_show = all_categories
         else:
-            grandparent_id = find_parent_id(all_categories, target_category_id) or 0
-            categories_to_show = []
-            if grandparent_id == 0:
-                categories_to_show = all_categories
-            else:
-                grandparent = find_category_by_id(all_categories, grandparent_id)
-                if grandparent:
-                    categories_to_show = grandparent.get('sub_categories', [])
+            parent_id_for_back = find_parent_id(all_categories, target_category_id) or 0
+            parent_category = find_category_by_id(all_categories, parent_id_for_back)
+            if parent_category:
+                categories_to_show = parent_category.get('sub_categories', [])
+            elif parent_id_for_back == 0:
+                 categories_to_show = all_categories
 
-            try:
-                await callback_query.message.edit_text(
-                    "🛍️ Выберите категорию:",
-                    reply_markup=categories_menu(categories_to_show, grandparent_id)
-                )
-            except TelegramBadRequest:
-                await callback_query.message.delete()
-                await callback_query.message.answer(
-                    "🛍️ Выберите категорию:",
-                    reply_markup=categories_menu(categories_to_show, grandparent_id)
-                )
+
+        caption = "🛍️ Выберите категорию или товар:"
+        reply_markup = categories_menu(categories_to_show, parent_id_for_back, products, category_id=target_category_id)
+
+        try:
+            await callback_query.message.edit_text(
+                caption,
+                reply_markup=reply_markup
+            )
+        except TelegramBadRequest:
+            await callback_query.message.delete()
+            await callback_query.message.answer(
+                caption,
+                reply_markup=reply_markup
+            )
 
     except Exception:
         logging.exception("An error occurred in go_back_category")
@@ -187,7 +190,7 @@ async def product_handler(callback_query: CallbackQuery, api_client: APIClient):
         product_id = int(product_id_str)
         category_id = int(category_id_str)
 
-        response = await api_client.get_products(category_id)
+        response = await api_client.get_products_for_bot(category_id)
         if response.get("success"):
             products = response["data"]
             product = next((p for p in products if p.get('id') == product_id), None)
@@ -218,7 +221,7 @@ async def external_product_handler(callback_query: CallbackQuery, api_client: AP
         provider = '_'.join(parts[1:-1])
         external_id = parts[-1]
         
-        response = await api_client.get_products()
+        response = await api_client.get_products_for_bot()
         if response.get("success"):
             products = response["data"]
             product = next((p for p in products if p.get('provider') == provider and p.get('external_id') == external_id), None)

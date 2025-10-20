@@ -21,6 +21,10 @@ func LogContext() gin.HandlerFunc {
 			Str("user_agent", c.Request.UserAgent()).
 			Logger()
 
+		if rawQuery := c.Request.URL.RawQuery; rawQuery != "" {
+			logger = logger.With().Str("query", rawQuery).Logger()
+		}
+
 		// Сохраняем обогащенный логгер в контексте Gin
 		c.Set("logger", &logger)
 

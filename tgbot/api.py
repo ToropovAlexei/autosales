@@ -1,4 +1,8 @@
 import aiohttp
+import asyncio
+import math
+import json
+from urllib.parse import urlencode
 from config import settings
 
 class APIClient:
@@ -19,7 +23,7 @@ class APIClient:
         return await self._request("POST", "/users/register", json={"telegram_id": telegram_id, "bot_name": self.bot_username})
 
     async def get_user(self, telegram_id: int):
-        return await self._request("GET", f"/users/{telegram_id}", json={"bot_name": self.bot_username})
+        return await self._request("GET", f"/users/{telegram_id}", params={"bot_name": self.bot_username})
 
     async def get_user_balance(self, telegram_id: int):
         return await self._request("GET", f"/users/{telegram_id}/balance")
@@ -27,11 +31,13 @@ class APIClient:
     async def get_categories(self):
         return await self._request("GET", "/categories")
 
-    async def get_products(self, category_id: int = None):
-        endpoint = "/products"
-        if category_id:
-            endpoint += f"?category_ids[]={category_id}"
-        return await self._request("GET", endpoint)
+    async def get_products_for_bot(self, category_id: int = None):
+        endpoint = "/bot/products"
+        params = {}
+        if category_id is not None:
+            params["category_id"] = category_id
+        return await self._request("GET", endpoint, params=params)
+
 
     async def buy_product(self, telegram_id: int, product_id: int, referral_bot_id: int = None):
         payload = {"user_id": telegram_id, "product_id": product_id, "quantity": 1}

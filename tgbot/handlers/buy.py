@@ -20,11 +20,20 @@ async def process_buy_result(callback_query: CallbackQuery, result: dict):
         new_balance = data.get("balance")
         product_name = data.get("product_name")
         product_price = data.get("product_price")
+        fulfilled_content = data.get("fulfilled_content")
 
         if new_balance is not None and product_name and product_price is not None:
-            await callback_query.message.edit_text(
+            success_message = (
                 f"✅ Поздравляем! Вы успешно купили товар {hbold(product_name)} за {hbold(f'{product_price} ₽')}.\n\n"
-                f"💳 Ваш новый баланс: {hbold(f'{new_balance} ₽')}",
+                f"💳 Ваш новый баланс: {hbold(f'{new_balance} ₽')}"
+            )
+
+            if fulfilled_content:
+                # We use hcode for multiline content to preserve formatting
+                success_message += f"\n\n{hbold('Ваш товар:')}\n<pre>{fulfilled_content}</pre>"
+
+            await callback_query.message.edit_text(
+                success_message,
                 parse_mode="HTML",
                 reply_markup=back_to_main_menu_keyboard()
             )

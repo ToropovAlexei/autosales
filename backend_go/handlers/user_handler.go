@@ -13,7 +13,7 @@ import (
 
 type UserHandler struct {
 	userService services.UserService
-	roleService  services.RoleService
+	roleService services.RoleService
 }
 
 func NewUserHandler(userService services.UserService, roleService services.RoleService) *UserHandler {
@@ -115,7 +115,7 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 		return
 	}
 
-	user, balance, isNew, hasPassedCaptcha, err := h.userService.RegisterBotUser(json.TelegramID, json.BotName)
+	user, balance, isNew, _, err := h.userService.RegisterBotUser(json.TelegramID, json.BotName)
 	if err != nil {
 		c.Error(err)
 		return
@@ -137,13 +137,8 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 		status = http.StatusCreated
 	}
 
-	responses.SuccessResponse(c, status, responses.RegisterBotUserResponse{
-		User:             userResponse,
-		IsNew:            isNew,
-		HasPassedCaptcha: hasPassedCaptcha,
-	})
+	responses.SuccessResponse(c, status, userResponse)
 }
-
 
 // @Summary      Get User Balance
 // @Description  Retrieves the current balance for a bot user.
@@ -245,8 +240,6 @@ func (h *UserHandler) UpdateUserCaptchaStatusHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusOK, responses.MessageResponse{Message: "Captcha status updated successfully"})
 }
 
-
-
 // @Summary      Get User Subscriptions
 // @Description  Retrieves a list of a bot user's active and expired subscriptions.
 // @Tags         Users, Subscriptions
@@ -298,7 +291,19 @@ func (h *UserHandler) GetUserOrdersHandler(c *gin.Context) {
 		return
 	}
 
-	responses.SuccessResponse(c, http.StatusOK, orders)
+	// Map to DTO
+	response := make([]models.UserOrderResponse, 0, len(orders))
+	for _, order := range orders {
+		response = append(response, models.UserOrderResponse{
+			ID:               order.ID,
+			ProductName:      order.Product.Name,
+			Amount:           order.Amount,
+			CreatedAt:        order.CreatedAt,
+			FulfilledContent: order.FulfilledContent,
+		})
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, response)
 }
 
 func (h *UserHandler) GetMyPermissionsHandler(c *gin.Context) {
@@ -329,13 +334,16 @@ func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
 		return
 	}
 
-	var json getBotUserPayload
-	if err := c.ShouldBindJSON(&json); err != nil {
-		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: err.Error()})
+	botName := c.Query("bot_name")
+	if botName == "" {
+		c.Error(&apperrors.ErrValidation{
+			Base:    apperrors.New(400, "", nil),
+			Message: "Missing bot_name query parameter",
+		})
 		return
 	}
 
-	user, balance, err := h.userService.GetBotUserByTelegramID(id, json.BotName)
+	user, balance, err := h.userService.GetBotUserByTelegramID(id, botName)
 	if err != nil {
 		c.Error(err)
 		return

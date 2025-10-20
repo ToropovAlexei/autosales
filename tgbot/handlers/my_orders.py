@@ -24,7 +24,7 @@ async def my_orders_handler(callback_query: CallbackQuery, api_client: APIClient
 
             response_text = f"{hbold('🧾 Ваши заказы:')}\n\n"
             for order in orders:
-                product_name = order.get('Product', {}).get('name', 'Неизвестный продукт')
+                product_name = order.get('product_name', 'Неизвестный продукт')
                 created_at_str = order.get('created_at', '')
                 
                 try:
@@ -36,16 +36,9 @@ async def my_orders_handler(callback_query: CallbackQuery, api_client: APIClient
                 response_text += f"🔹 {hbold(product_name)} - {order.get('amount')} ₽\n"
                 response_text += f"   {hitalic(created_formatted)}\n"
 
-                details_json = order.get('Product', {}).get('details')
-                if details_json:
-                    try:
-                        details = json.loads(details_json) if isinstance(details_json, str) else details_json
-                        if details:
-                            response_text += f"   {hbold('Дополнительная информация:')}\n"
-                            for key, value in details.items():
-                                response_text += f"     - {key}: {hcode(str(value))}\n"
-                    except (json.JSONDecodeError, TypeError):
-                        logging.warning(f"Could not parse order details: {details_json}")
+                fulfilled_content = order.get('fulfilled_content')
+                if fulfilled_content:
+                    response_text += f"   {hbold('Ваш товар:')}\n<pre>{fulfilled_content}</pre>\n"
                 
                 response_text += "\n"
 

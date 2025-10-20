@@ -21,6 +21,8 @@ interface ProductFormData {
   stock?: number;
   type: "item" | "subscription";
   subscription_period_days?: number;
+  fulfillment_type: "none" | "text" | "image_url";
+  fulfillment_content?: string;
 }
 
 interface ProductFormProps {
@@ -69,11 +71,14 @@ export const ProductForm = ({
       stock: defaultValues?.stock || 0,
       initial_stock: !isEditMode ? 0 : undefined,
       subscription_period_days: defaultValues?.subscription_period_days || 30,
+      fulfillment_type: defaultValues?.fulfillment_type || "none",
+      fulfillment_content: defaultValues?.fulfillment_content || "",
     },
   });
   const { handleSubmit, watch } = form;
 
   const productType = watch("type");
+  const fulfillmentType = watch("fulfillment_type");
 
   const proceedToConfirm = (data: ProductFormData) => {
     const payload: Partial<IProduct> = {
@@ -92,6 +97,11 @@ export const ProductForm = ({
       }
     } else {
       payload.subscription_period_days = data.subscription_period_days;
+    }
+
+    payload.fulfillment_type = data.fulfillment_type;
+    if (data.fulfillment_type !== "none") {
+      payload.fulfillment_content = data.fulfillment_content;
     }
 
     onConfirm(payload);
@@ -165,6 +175,24 @@ export const ProductForm = ({
                   name="subscription_period_days"
                   label="Срок (дней)"
                   required
+                />
+              )}
+
+              <InputSelect
+                name="fulfillment_type"
+                label="Тип выдачи товара"
+                options={[
+                  { value: "none", label: "Ничего" },
+                  { value: "text", label: "Текст / Ключ" },
+                  { value: "image_url", label: "Ссылка на изображение" },
+                ]}
+              />
+              {fulfillmentType !== "none" && (
+                <InputText
+                  name="fulfillment_content"
+                  label="Содержимое для выдачи"
+                  multiline
+                  rows={4}
                 />
               )}
             </DialogContent>

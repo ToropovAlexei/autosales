@@ -9,6 +9,7 @@ import (
 	"frbktg/backend_go/external_providers"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
+	"log/slog"
 	"time"
 
 	"gorm.io/gorm"
@@ -34,10 +35,11 @@ type OrderService interface {
 }
 
 type BuyResponse struct {
-	Order        models.OrderSlimResponse `json:"order"`
-	ProductName  string                   `json:"product_name"`
-	ProductPrice float64                  `json:"product_price"`
-	Balance      float64                  `json:"balance"`
+	Order            models.OrderSlimResponse `json:"order"`
+	ProductName      string                   `json:"product_name"`
+	ProductPrice     float64                  `json:"product_price"`
+	Balance          float64                  `json:"balance"`
+	FulfilledContent string                   `json:"fulfilled_content,omitempty"`
 }
 
 type orderService struct {
@@ -50,9 +52,10 @@ type orderService struct {
 	categoryRepo         repositories.CategoryRepository
 	referralService      ReferralService
 	providerRegistry     *external_providers.ProviderRegistry
+	webhookService       WebhookService
 }
 
-func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, productRepo repositories.ProductRepository, botUserRepo repositories.BotUserRepository, transactionRepo repositories.TransactionRepository, userSubscriptionRepo repositories.UserSubscriptionRepository, categoryRepo repositories.CategoryRepository, referralService ReferralService, providerRegistry *external_providers.ProviderRegistry) OrderService {
+func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, productRepo repositories.ProductRepository, botUserRepo repositories.BotUserRepository, transactionRepo repositories.TransactionRepository, userSubscriptionRepo repositories.UserSubscriptionRepository, categoryRepo repositories.CategoryRepository, referralService ReferralService, providerRegistry *external_providers.ProviderRegistry, webhookService WebhookService) OrderService {
 	return &orderService{
 		db:                   db,
 		orderRepo:            orderRepo,
@@ -63,6 +66,7 @@ func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, produc
 		categoryRepo:         categoryRepo,
 		referralService:      referralService,
 		providerRegistry:     providerRegistry,
+		webhookService:       webhookService,
 	}
 }
 
@@ -145,6 +149,16 @@ func (s *orderService) handleInternalProductPurchase(tx *gorm.DB, user *models.B
 		return nil, err
 	}
 
+	// --- Fulfillment Logic ---
+	if product.FulfillmentType != "none" && product.FulfillmentContent != "" {
+		order.FulfilledContent = product.FulfillmentContent
+		if err := s.orderRepo.WithTx(tx).UpdateOrder(order); err != nil {
+			// Log the error but don't fail the transaction
+			slog.Error("failed to update order with fulfilled content", "order_id", order.ID, "error", err)
+		}
+	}
+	// --- End Fulfillment Logic ---
+
 	newBalance := balance - orderAmount
 	return &BuyResponse{
 		Order: models.OrderSlimResponse{
@@ -156,9 +170,10 @@ func (s *orderService) handleInternalProductPurchase(tx *gorm.DB, user *models.B
 			Status:    order.Status,
 			CreatedAt: order.CreatedAt,
 		},
-		ProductName:  product.Name,
-		ProductPrice: product.Price,
-		Balance:      newBalance,
+		ProductName:      product.Name,
+		ProductPrice:     product.Price,
+		Balance:          newBalance,
+		FulfilledContent: order.FulfilledContent,
 	}, nil
 }
 

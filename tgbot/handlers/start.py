@@ -57,17 +57,13 @@ async def start_handler(message: Message, state: FSMContext, api_client: APIClie
 
         response = await api_client.register_user(message.from_user.id)
         if response.get("success"):
-            data = response["data"]
-            user_data = data["user"]
+            user_data = response["data"]
 
             if user_data.get("is_blocked"):
                 await message.answer("Ваш аккаунт заблокирован.")
                 return
 
-            is_new = data["is_new"]
-            has_passed_captcha = user_data["has_passed_captcha"]
-
-            if is_new or not has_passed_captcha:
+            if not user_data.get("has_passed_captcha"):
                 captcha_image, correct_answer, options = generate_captcha_and_options()
                 await state.set_state(CaptchaState.waiting_for_answer)
                 await state.update_data(correct_answer=correct_answer, user_id=user_data["id"], telegram_id=message.from_user.id)

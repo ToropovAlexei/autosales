@@ -60,13 +60,19 @@ def deposit_amount_menu(gateway: str):
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-def categories_menu(categories: list, parent_id: int = 0, products: list = []):
+def categories_menu(categories: list, parent_id: int = 0, products: list = [], category_id: int = 0):
     buttons = []
     for product in products:
-        buttons.append([InlineKeyboardButton(
-            text=f"🔹 {product['name']} - {product['price']} ₽", 
-            callback_data=f"extproduct_{product['provider']}_{product['external_id']}"
-        )])
+        if product.get('provider'):
+            buttons.append([InlineKeyboardButton(
+                text=f"🔹 {product['name']} - {product['price']} ₽", 
+                callback_data=f"extproduct_{product['provider']}_{product['external_id']}"
+            )])
+        else:
+            buttons.append([InlineKeyboardButton(
+                text=f"🔹 {product['name']} - {product['price']} ₽", 
+                callback_data=f"product_{product['id']}_{category_id}"
+            )])
 
     for category in categories:
         buttons.append([InlineKeyboardButton(

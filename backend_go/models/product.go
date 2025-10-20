@@ -12,6 +12,8 @@ type Product struct {
 	SubscriptionPeriodDays int            `gorm:"default:0" json:"subscription_period_days"`
 	Details                sql.NullString `gorm:"type:jsonb" json:"details"`
 	Visible                bool           `gorm:"default:true" json:"visible"`
+	FulfillmentType        string         `gorm:"default:'none'" json:"fulfillment_type"` // none, text, image_url
+	FulfillmentContent     string         `gorm:"type:text" json:"fulfillment_content"`   // The content to be delivered
 }
 
 type ProductResponse struct {
@@ -25,4 +27,6 @@ type ProductResponse struct {
 	Provider               string  `json:"provider,omitempty"`
 	ExternalID             string  `json:"external_id,omitempty"`
 	Visible                bool    `json:"visible"`
+	FulfillmentType        string  `json:"fulfillment_type"`
+	FulfillmentContent     string  `json:"fulfillment_content"`
 }
