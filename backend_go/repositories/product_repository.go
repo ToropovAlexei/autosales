@@ -75,7 +75,7 @@ func (r *gormProductRepository) DeleteProduct(product *models.Product) error {
 
 func (r *gormProductRepository) GetStockForProduct(productID uint) (int, error) {
 	var stock int64
-	if err := r.db.Model(&models.StockMovement{}).Where("product_id = ?", productID).Select("sum(quantity)").
+	if err := r.db.Model(&models.StockMovement{}).Where("product_id = ?", productID).Select("COALESCE(sum(quantity), 0)").
 		Row().Scan(&stock); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return 0, err
 	}

@@ -269,6 +269,13 @@ func (s *orderService) handleExternalProductPurchase(tx *gorm.DB, user *models.B
 			return nil, apperrors.New(500, "failed to create placeholder product", err)
 		}
 		placeholderProduct = newPlaceholder
+	} else {
+		if placeholderProduct.Visible {
+			if err := s.productRepo.WithTx(tx).UpdateProduct(placeholderProduct, map[string]interface{}{"visible": false}); err != nil {
+				return nil, apperrors.New(500, "failed to update placeholder product visibility", err)
+			}
+			placeholderProduct.Visible = false // Update in memory as well
+		}
 	}
 
 	order := &models.Order{
