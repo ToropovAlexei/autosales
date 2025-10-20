@@ -32,6 +32,7 @@ use tokio_util::sync::CancellationToken;
 mod handlers;
 mod keyboards;
 mod middlewares;
+mod callback_data;
 
 #[derive(Clone, Serialize, Deserialize, Default)]
 pub enum BotState {

@@ -4,9 +4,7 @@ use crate::api::captcha_api::CaptchaApi;
 use crate::bot::keyboards::captcha::captcha_keyboard_inline;
 use crate::bot::keyboards::main_menu::main_menu_inline_keyboard;
 use crate::bot::{BotState, generate_captcha_and_options};
-use crate::{
-    api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult, models::user::BotUser,
-};
+use crate::{api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult};
 use teloxide::Bot;
 use teloxide::payloads::{SendMessageSetters, SendPhotoSetters};
 use teloxide::prelude::Request;
@@ -22,7 +20,7 @@ pub async fn start_handler(
     captcha_api_client: Arc<CaptchaApi>,
 ) -> AppResult<()> {
     let user_id = msg.chat.id;
-    let user = match ensure_user(api_client.clone(), user_id.0, &username).await {
+    let user = match api_client.register_user(user_id.0, &username).await {
         Ok(res) => res,
         Err(err) => {
             tracing::error!("Error getting user: {user_id}, {err}");
@@ -86,16 +84,4 @@ pub async fn start_handler(
     .await?;
 
     Ok(())
-}
-
-async fn ensure_user(
-    api_client: Arc<BackendApi>,
-    user_id: i64,
-    bot_username: &str,
-) -> AppResult<BotUser> {
-    if let Ok(user) = api_client.get_user(user_id, bot_username).await {
-        Ok(user)
-    } else {
-        api_client.register_user(user_id, bot_username).await
-    }
 }
