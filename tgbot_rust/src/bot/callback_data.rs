@@ -7,11 +7,22 @@ pub enum CategoryAction {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+pub enum PaymentAction {
+    SelectGateway,
+    SelectAmount,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "type", content = "data")]
 pub enum CallbackData {
     Category {
         action: CategoryAction,
         category_id: i64,
+    },
+    Payment {
+        action: PaymentAction,
+        gateway: String,
+        amount: i64,
     },
     Balance,
     MyOrders,
