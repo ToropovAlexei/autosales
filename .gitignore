@@ -31,3 +31,5 @@ yarn-error.log*
 tokens.txt
 unavailable_tokens.txt
 uploads/
+*/target/
+logs/
