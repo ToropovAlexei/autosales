@@ -80,7 +80,7 @@ export default function ProductsPage() {
     mutation.mutate(data);
   };
 
-  if (isLoadingCategories) return <div>Loading...</div>;
+  if (isLoadingCategories) return <div>Загрузка...</div>;
 
   return (
     <PageLayout title="Товары">

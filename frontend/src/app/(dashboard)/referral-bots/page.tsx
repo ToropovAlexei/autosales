@@ -24,7 +24,7 @@ interface ReferralBot {
 export default function ReferralBotsPage() {
   const queryClient = useQueryClient();
 
-  const { data: referralBots, isPending } = useList<ReferralBot>({
+  const { data: referralBots } = useList<ReferralBot>({
     endpoint: ENDPOINTS.REFERRAL_BOTS_ADMIN,
   });
 
@@ -83,8 +83,6 @@ export default function ReferralBotsPage() {
       });
     },
   });
-
-  if (isPending) return <div>Loading...</div>;
 
   return (
     <PageLayout title="Управление реферальными ботами">

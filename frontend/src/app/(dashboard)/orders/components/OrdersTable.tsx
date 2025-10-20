@@ -47,6 +47,7 @@ export const OrdersTable = ({ orders, loading }: OrdersTableProps) => {
         rows={orders}
         columns={columns}
         density="compact"
+        loading={loading}
         initialState={{
           pagination: {
             paginationModel: {
@@ -59,23 +60,23 @@ export const OrdersTable = ({ orders, loading }: OrdersTableProps) => {
           filterPanel: {
             filterFormProps: {
               logicOperatorInputProps: {
-                variant: 'outlined',
-                size: 'small',
+                variant: "outlined",
+                size: "small",
               },
               columnInputProps: {
-                variant: 'outlined',
-                size: 'small',
-                sx: { mt: 'auto' },
+                variant: "outlined",
+                size: "small",
+                sx: { mt: "auto" },
               },
               operatorInputProps: {
-                variant: 'outlined',
-                size: 'small',
-                sx: { mt: 'auto' },
+                variant: "outlined",
+                size: "small",
+                sx: { mt: "auto" },
               },
               valueInputProps: {
                 InputComponentProps: {
-                  variant: 'outlined',
-                  size: 'small',
+                  variant: "outlined",
+                  size: "small",
                 },
               },
             },

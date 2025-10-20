@@ -15,7 +15,7 @@ export const Authorized = ({ children }: PropsWithChildren) => {
   }, [data, isPending, router]);
 
   if (isPending) {
-    return <div>Loading...</div>;
+    return <div>Загрузка...</div>;
   }
 
   if (data) {

@@ -178,7 +178,7 @@ export default function CategoriesPage() {
     );
   });
 
-  if (isPending) return <div>Loading...</div>;
+  if (isPending) return <div>Загрузка...</div>;
 
   return (
     <PageLayout title="Категории">
