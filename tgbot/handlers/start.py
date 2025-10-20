@@ -76,7 +76,7 @@ async def start_handler(message: Message, state: FSMContext, api_client: APIClie
             else:
                 await update_pinned_message(message)
                 seller_info_response = await api_client.get_public_settings()
-                referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
+                referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False) == 'true'
 
                 await message.answer(
                     f"С возвращением, {hbold(message.from_user.full_name)}!",

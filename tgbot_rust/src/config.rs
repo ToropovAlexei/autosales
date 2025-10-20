@@ -13,6 +13,7 @@ pub struct Config {
     pub webhook_port: u16,
     pub main_bots_tokens_file_path: String,
     pub unavailable_main_bots_tokens_file_path: String,
+    pub captcha_api_url: String,
     //TODO Should be in config table in db
     pub support_url: String,
     //TODO Should be in config table in db

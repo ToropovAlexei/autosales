@@ -5,7 +5,6 @@ pub mod errors;
 pub mod models;
 pub mod monitor;
 pub mod webhook;
-pub mod utils;
 
 use std::{io, sync::Arc};
 

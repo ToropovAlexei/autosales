@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use crate::bot::BotState;
+use crate::api::captcha_api::CaptchaApi;
 use crate::bot::keyboards::captcha::captcha_keyboard_inline;
-use crate::utils::generate_captcha_and_options;
+use crate::bot::{BotState, generate_captcha_and_options};
 use crate::{
     api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult, models::user::BotUser,
 };
@@ -18,6 +18,7 @@ pub async fn start_handler(
     msg: Message,
     username: String,
     api_client: Arc<BackendApi>,
+    captcha_api_client: Arc<CaptchaApi>,
 ) -> AppResult<()> {
     let user_id = msg.chat.id;
     let user = match ensure_user(api_client, user_id.0, &username).await {
@@ -42,16 +43,17 @@ pub async fn start_handler(
     }
 
     if !user.has_passed_captcha {
-        let (png_bytes, captcha_text, options) = match generate_captcha_and_options(6, 12) {
-            Ok((i, a, o)) => (i, a, o),
-            Err(e) => {
-                tracing::error!("Error generating captcha: {e}");
-                bot.send_message(msg.chat.id, "Что-то пошло не так. Попробуйте ещё раз")
-                    .send()
-                    .await?;
-                return Ok(());
-            }
-        };
+        let (png_bytes, captcha_text, options) =
+            match generate_captcha_and_options(captcha_api_client, 6, 12).await {
+                Ok((i, a, o)) => (i, a, o),
+                Err(e) => {
+                    tracing::error!("Error generating captcha: {e}");
+                    bot.send_message(msg.chat.id, "Что-то пошло не так. Попробуйте ещё раз")
+                        .send()
+                        .await?;
+                    return Ok(());
+                }
+            };
 
         let keyboard = captcha_keyboard_inline(&options);
 

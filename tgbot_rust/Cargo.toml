@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.100"
 axum = { version = "0.8.6", features = ["macros"] }
+base64 = "0.22.1"
 captcha = "1.0.0"
 deadpool-redis = "0.22.0"
 dotenvy = "0.15.7"

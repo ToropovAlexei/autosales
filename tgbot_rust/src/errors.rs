@@ -43,6 +43,8 @@ pub enum AppError {
     IOError(#[from] std::io::Error),
     #[error("Captcha generation error: {0}")]
     CaptchaError(String),
+    #[error("Base64 decode error: {0}")]
+    Base64DecodeError(#[from] base64::DecodeError),
 }
 
 #[derive(Serialize)]
@@ -95,6 +97,9 @@ impl IntoResponse for AppError {
                     }
                     AppError::IOError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string()),
                     AppError::CaptchaError(msg) => {
+                        (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
+                    }
+                    AppError::Base64DecodeError(msg) => {
                         (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
                     }
                 };

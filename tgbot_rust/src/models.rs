@@ -17,3 +17,9 @@ pub struct BackendResponse<T> {
     pub data: Option<T>,
     pub error: Option<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CaptchaResponse {
+    pub image: String,
+    pub solution: String,
+}

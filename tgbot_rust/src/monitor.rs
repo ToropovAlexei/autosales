@@ -2,11 +2,20 @@ use std::sync::Arc;
 
 use tokio_util::sync::CancellationToken;
 
-use crate::{AppState, api::backend_api::BackendApi, bot::start_bot, errors::AppResult};
+use crate::{
+    AppState,
+    api::{backend_api::BackendApi, captcha_api::CaptchaApi},
+    bot::start_bot,
+    errors::AppResult,
+};
 
 pub async fn manage_main_bots(app_state: AppState) -> AppResult<()> {
     let api_client = Arc::new(BackendApi::new(
         &app_state.config.backend_api_url,
+        &app_state.config.service_token,
+    )?);
+    let captcha_api_client = Arc::new(CaptchaApi::new(
+        &app_state.config.captcha_api_url,
         &app_state.config.service_token,
     )?);
 
@@ -18,8 +27,17 @@ pub async fn manage_main_bots(app_state: AppState) -> AppResult<()> {
         let app_state = app_state.clone();
         let api_client = api_client.clone();
         let cancel_token = cancel_token.clone();
+        let captcha_api_client = captcha_api_client.clone();
         tokio::spawn(async move {
-            if let Err(e) = start_bot(app_state, token, api_client, cancel_token).await {
+            if let Err(e) = start_bot(
+                app_state,
+                token,
+                api_client,
+                captcha_api_client,
+                cancel_token,
+            )
+            .await
+            {
                 tracing::error!("Bot with token {token} failed: {e:?}");
             }
         });

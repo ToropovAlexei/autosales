@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use crate::bot::BotState;
+use crate::api::captcha_api::CaptchaApi;
 use crate::bot::keyboards::captcha::captcha_keyboard_inline;
 use crate::bot::keyboards::main_menu::main_menu_inline_keyboard;
-use crate::utils::generate_captcha_and_options;
+use crate::bot::{BotState, generate_captcha_and_options};
 use crate::{api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult};
 use teloxide::Bot;
 use teloxide::payloads::EditMessageMediaSetters;
@@ -17,6 +17,7 @@ pub async fn captcha_answer_handler(
     q: CallbackQuery,
     _username: String,
     api_client: Arc<BackendApi>,
+    captcha_api_client: Arc<CaptchaApi>,
 ) -> AppResult<()> {
     let state = dialogue.get().await?;
     let correct_answer = match &state {
@@ -96,18 +97,18 @@ pub async fn captcha_answer_handler(
             .show_alert(true)
             .await?;
 
-        let (captcha_image, new_correct_answer, options) = match generate_captcha_and_options(6, 12)
-        {
-            Ok((i, a, o)) => (i, a, o),
-            Err(e) => {
-                tracing::error!("Error generating captcha: {e}");
-                bot.answer_callback_query(q.id)
-                    .text("Что-то пошло не так. Попробуйте ещё раз")
-                    .show_alert(true)
-                    .await?;
-                return Ok(());
-            }
-        };
+        let (captcha_image, new_correct_answer, options) =
+            match generate_captcha_and_options(captcha_api_client, 6, 12).await {
+                Ok((i, a, o)) => (i, a, o),
+                Err(e) => {
+                    tracing::error!("Error generating captcha: {e}");
+                    bot.answer_callback_query(q.id)
+                        .text("Что-то пошло не так. Попробуйте ещё раз")
+                        .show_alert(true)
+                        .await?;
+                    return Ok(());
+                }
+            };
         dialogue
             .update(BotState::WaitingForCaptcha {
                 correct_answer: new_correct_answer,

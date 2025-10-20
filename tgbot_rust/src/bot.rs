@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use rand::distr::Alphanumeric;
 use serde::{Deserialize, Serialize};
 use teloxide::{
     Bot,
@@ -12,11 +13,14 @@ use teloxide::{
 
 use crate::{
     AppState,
-    api::backend_api::BackendApi,
+    api::{backend_api::BackendApi, captcha_api::CaptchaApi},
     bot::handlers::{captcha_answer::captcha_answer_handler, start::start_handler},
     errors::AppResult,
     models::DispatchMessagePayload,
 };
+use base64::{Engine as _, engine::general_purpose::STANDARD};
+use rand::Rng;
+use rand::prelude::SliceRandom;
 use teloxide::dispatching::HandlerExt;
 use teloxide::dispatching::UpdateFilterExt;
 use teloxide::payloads::EditMessageTextSetters;
@@ -52,6 +56,7 @@ pub async fn start_bot(
     app_state: AppState,
     token: &str,
     api_client: Arc<BackendApi>,
+    captcha_api_client: Arc<CaptchaApi>,
     cancel_token: CancellationToken,
 ) -> AppResult<()> {
     let bot = Bot::new(token);
@@ -112,7 +117,8 @@ pub async fn start_bot(
         app_state.clone(),
         storage,
         username.clone(),
-        api_client
+        api_client,
+        captcha_api_client
     ])
     .default_handler(|upd| async move {
         tracing::warn!("Unhandled update: {upd:?}");
@@ -140,11 +146,12 @@ async fn command_handler(
     dialogue: MyDialogue,
     username: String,
     api_client: Arc<BackendApi>,
+    captcha_api_client: Arc<CaptchaApi>,
 ) -> AppResult<()> {
     match cmd {
         Command::Start => {
             dialogue.update(BotState::Start).await?;
-            start_handler(bot, dialogue, msg, username, api_client).await
+            start_handler(bot, dialogue, msg, username, api_client, captcha_api_client).await
         }
     }
 }
@@ -239,4 +246,31 @@ async fn handle_msg(bot: Bot, payload: DispatchMessagePayload) -> AppResult<()> 
     }
 
     Ok(())
+}
+
+pub async fn generate_captcha_and_options(
+    captcha_api_client: Arc<CaptchaApi>,
+    chars: u8,
+    answers: u8,
+) -> AppResult<(Vec<u8>, String, Vec<String>)> {
+    let captcha = captcha_api_client.get_captcha().await?;
+    let mut options = vec![captcha.solution.clone()];
+    let mut rng = rand::rng();
+
+    while options.len() < answers as usize {
+        let option: String = (0..chars)
+            .map(|_| {
+                let c = rng.sample(Alphanumeric) as char;
+                c.to_ascii_uppercase()
+            })
+            .collect();
+
+        if !options.contains(&option) {
+            options.push(option);
+        }
+    }
+
+    options.shuffle(&mut rng);
+    let image = STANDARD.decode(&captcha.image)?;
+    Ok((image, captcha.solution, options))
 }
