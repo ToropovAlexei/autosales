@@ -72,18 +72,7 @@ pub async fn start_handler(
         return Ok(());
     }
 
-    let settings = api_client.get_settings().await.unwrap_or_default();
-    let referral_program_enabled = settings
-        .get("referral_program_enabled")
-        .as_ref()
-        .map(|v| {
-            v.as_bool().unwrap_or_else(|| {
-                v.as_str()
-                    .map(|s| s.eq_ignore_ascii_case("true"))
-                    .unwrap_or(false)
-            })
-        })
-        .unwrap_or(false);
+    let referral_program_enabled = api_client.is_referral_program_enabled().await;
 
     bot.send_message(
         msg.chat.id,

@@ -74,4 +74,19 @@ impl BackendApi {
                 })
             })
     }
+
+    pub async fn is_referral_program_enabled(&self) -> bool {
+        self.get_settings()
+            .await
+            .ok()
+            .and_then(|settings| settings.get("referral_program_enabled").cloned())
+            .map(|v| {
+                v.as_bool().unwrap_or_else(|| {
+                    v.as_str()
+                        .map(|s| s.eq_ignore_ascii_case("true"))
+                        .unwrap_or(false)
+                })
+            })
+            .unwrap_or(false)
+    }
 }
