@@ -31,7 +31,27 @@ func (s *SettingService) GetSettings() (map[string]string, error) {
 }
 
 func (s *SettingService) GetPublicSettings() (map[string]string, error) {
-	return s.GetSettings()
+	allSettings, err := s.GetSettings()
+	if err != nil {
+		return nil, err
+	}
+
+	publicSettings := make(map[string]string)
+	publicKeys := []string{
+		"referral_program_enabled",
+		"referral_percentage",
+		"GATEWAY_BONUS_mock_provider",
+		"GATEWAY_BONUS_platform_card",
+		"GATEWAY_BONUS_platform_sbp",
+	}
+
+	for _, key := range publicKeys {
+		if value, ok := allSettings[key]; ok {
+			publicSettings[key] = value
+		}
+	}
+
+	return publicSettings, nil
 }
 
 func (s *SettingService) UpdateSettings(ctx *gin.Context, settingsMap map[string]string) error {

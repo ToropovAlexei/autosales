@@ -35,16 +35,19 @@ async def balance_handler(callback_query: CallbackQuery, api_client: APIClient):
 @router.callback_query(F.data == 'deposit')
 async def deposit_handler(callback_query: CallbackQuery, api_client: APIClient):
     try:
-        response = await api_client.get_payment_gateways()
-        if response.get("success"):
-            gateways = response["data"]
+        gateways_response = await api_client.get_payment_gateways()
+        settings_response = await api_client.get_public_settings()
+
+        if gateways_response.get("success"):
+            gateways = gateways_response["data"]
+            public_settings = settings_response.get("data", {})
             await callback_query.message.edit_text(
                 "💰 Выберите способ пополнения:",
-                reply_markup=inline.payment_gateways_menu(gateways, settings.payment_instructions_url)
+                reply_markup=inline.payment_gateways_menu(gateways, public_settings, settings.payment_instructions_url)
             )
         else:
             await callback_query.message.edit_text(
-                f"Не удалось загрузить способы оплаты: {response.get('error')}",
+                f"Не удалось загрузить способы оплаты: {gateways_response.get('error')}",
                 reply_markup=inline.main_menu(bot_type=settings.bot_type)
             )
     except Exception:

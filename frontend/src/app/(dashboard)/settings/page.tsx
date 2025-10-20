@@ -99,6 +99,51 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      <Card>
+        <CardHeader title="Бонусы платежных систем" />
+        <CardContent>
+          {isSettingsPending ? (
+            <p>Загрузка...</p>
+          ) : (
+            <>
+              <TextField
+                label="Бонус для Mock Provider (%)"
+                type="number"
+                value={Number(settings?.GATEWAY_BONUS_mock_provider || 0)}
+                onChange={(e) =>
+                  optimisticMutation("GATEWAY_BONUS_mock_provider", e.target.value)
+                }
+                fullWidth
+                margin="normal"
+                size="small"
+              />
+              <TextField
+                label="Бонус для Platform (Карта) (%)"
+                type="number"
+                value={Number(settings?.GATEWAY_BONUS_platform_card || 0)}
+                onChange={(e) =>
+                  optimisticMutation("GATEWAY_BONUS_platform_card", e.target.value)
+                }
+                fullWidth
+                margin="normal"
+                size="small"
+              />
+              <TextField
+                label="Бонус для Platform (СБП) (%)"
+                type="number"
+                value={Number(settings?.GATEWAY_BONUS_platform_sbp || 0)}
+                onChange={(e) =>
+                  optimisticMutation("GATEWAY_BONUS_platform_sbp", e.target.value)
+                }
+                fullWidth
+                margin="normal"
+                size="small"
+              />
+            </>
+          )}
+        </CardContent>
+      </Card>
     </PageLayout>
   );
 }

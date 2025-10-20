@@ -13,7 +13,7 @@ import (
 
 const (
 	ProviderName    = "mock_provider"
-	ProviderDisplay = "🔥🔥Тестовый платеж Криптоплатежи(скидка - 5%)🔥🔥"
+	ProviderDisplay = "Тестовый платеж Криптоплатежи"
 )
 
 // MockGatewayAdapter implements the gateways.PaymentGateway interface.

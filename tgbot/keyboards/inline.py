@@ -37,14 +37,39 @@ def balance_menu():
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def payment_gateways_menu(gateways: list, instructions_url: str):
+def payment_gateways_menu(gateways: list, public_settings: dict, instructions_url: str):
     buttons = []
     if instructions_url:
         buttons.append([InlineKeyboardButton(text="ℹ️ Как пополнить баланс?", url=instructions_url)])
-    
+
+    gateways_with_bonuses = []
     for gw in gateways:
+        bonus_key = f"GATEWAY_BONUS_{gw['name']}"
+        bonus_value = float(public_settings.get(bonus_key, "0"))
+        gateways_with_bonuses.append({
+            "name": gw['name'],
+            "display_name": gw['display_name'],
+            "bonus": bonus_value
+        })
+
+    # Sort by bonus descending, then by name ascending
+    gateways_with_bonuses.sort(key=lambda x: (-x['bonus'], x['display_name']))
+
+    for i, gw in enumerate(gateways_with_bonuses):
+        display_name = gw['display_name']
+        if gw['bonus'] > 0:
+            bonus_text = ""
+            if gw['bonus'].is_integer():
+                bonus_text = str(int(gw['bonus']))
+            else:
+                bonus_text = str(gw['bonus'])
+            display_name += f" (+{bonus_text}% бонус)"
+        
+        if i == 0 and gw['bonus'] > 0:
+            display_name = f"🔥🔥 {display_name} 🔥🔥"
+
         buttons.append([InlineKeyboardButton(
-            text=gw['display_name'], 
+            text=display_name, 
             callback_data=PaymentCallback(action="select_gateway", gateway=gw['name']).pack()
         )])
 
