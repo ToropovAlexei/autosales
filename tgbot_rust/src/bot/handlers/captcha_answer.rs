@@ -28,6 +28,7 @@ pub async fn captcha_answer_handler(
     let data = match q.data.as_deref() {
         Some(d) => d,
         None => {
+            tracing::error!("No callback data");
             bot.answer_callback_query(q.id)
                 .text("Что-то пошло не так. Попробуйте ещё раз")
                 .await?;
@@ -36,6 +37,7 @@ pub async fn captcha_answer_handler(
     };
 
     if !data.starts_with("captcha_") {
+        tracing::error!("Invalid callback data: {data}");
         bot.answer_callback_query(q.id)
             .text("Что-то пошло не так. Попробуйте ещё раз")
             .await?;

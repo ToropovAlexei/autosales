@@ -2,15 +2,16 @@ use std::sync::Arc;
 
 use crate::api::captcha_api::CaptchaApi;
 use crate::bot::keyboards::captcha::captcha_keyboard_inline;
+use crate::bot::keyboards::main_menu::main_menu_inline_keyboard;
 use crate::bot::{BotState, generate_captcha_and_options};
 use crate::{
     api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult, models::user::BotUser,
 };
 use teloxide::Bot;
-use teloxide::payloads::SendPhotoSetters;
+use teloxide::payloads::{SendMessageSetters, SendPhotoSetters};
 use teloxide::prelude::Request;
 use teloxide::prelude::Requester;
-use teloxide::types::{InputFile, Message};
+use teloxide::types::{InputFile, Message, ParseMode};
 
 pub async fn start_handler(
     bot: Bot,
@@ -21,7 +22,7 @@ pub async fn start_handler(
     captcha_api_client: Arc<CaptchaApi>,
 ) -> AppResult<()> {
     let user_id = msg.chat.id;
-    let user = match ensure_user(api_client, user_id.0, &username).await {
+    let user = match ensure_user(api_client.clone(), user_id.0, &username).await {
         Ok(res) => res,
         Err(err) => {
             tracing::error!("Error getting user: {user_id}, {err}");
@@ -36,6 +37,7 @@ pub async fn start_handler(
     };
 
     if user.is_blocked {
+        tracing::info!("User is blocked: {user_id}");
         bot.send_message(msg.chat.id, "Ваш аккаунт заблокирован")
             .send()
             .await?;
@@ -70,7 +72,29 @@ pub async fn start_handler(
         return Ok(());
     }
 
-    bot.send_message(msg.chat.id, "Дароу").send().await?;
+    let settings = api_client.get_settings().await.unwrap_or_default();
+    let referral_program_enabled = settings
+        .get("referral_program_enabled")
+        .as_ref()
+        .map(|v| {
+            v.as_bool().unwrap_or_else(|| {
+                v.as_str()
+                    .map(|s| s.eq_ignore_ascii_case("true"))
+                    .unwrap_or(false)
+            })
+        })
+        .unwrap_or(false);
+
+    bot.send_message(
+        msg.chat.id,
+        format!(
+            "С возвращением, {}!",
+            msg.from.map(|user| user.full_name()).unwrap_or_default(),
+        ),
+    )
+    .parse_mode(ParseMode::Html)
+    .reply_markup(main_menu_inline_keyboard(referral_program_enabled))
+    .await?;
 
     Ok(())
 }
