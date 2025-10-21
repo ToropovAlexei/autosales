@@ -43,6 +43,7 @@ func main() {
 		&models.RolePermission{},
 		&models.UserRole{},
 		&models.UserPermission{},
+		&models.Setting{},
 	); migrateErr != nil {
 		log.Fatalf("failed to migrate database: %v", migrateErr)
 	}

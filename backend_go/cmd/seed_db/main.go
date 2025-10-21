@@ -45,6 +45,17 @@ func seedData(db *gorm.DB) {
 	products := createProducts(db, categories, 100)
 	createInitialStock(db, products)
 	createOrdersAndTransactions(db, users, products, 500)
+	createDefaultSettings(db)
+}
+
+func createDefaultSettings(db *gorm.DB) {
+	fmt.Println("Creating default settings...")
+	settings := []models.Setting{
+		{Key: "support_message", Value: "Здравствуйте! Чем могу помочь? Наша служба поддержки работает с 9:00 до 18:00 по будням."},
+	}
+	for _, setting := range settings {
+		db.FirstOrCreate(&setting, models.Setting{Key: setting.Key})
+	}
 }
 
 func dropAllTables(db *gorm.DB) {
@@ -68,7 +79,7 @@ func autoMigrate(db *gorm.DB) {
 		&models.Order{}, &models.Transaction{}, &models.StockMovement{},
 		&models.ReferralBot{}, &models.RefTransaction{}, &models.UserSubscription{},
 		&models.PaymentInvoice{}, &models.Image{}, &models.Role{}, &models.Permission{},
-		&models.RolePermission{}, &models.UserRole{}, &models.UserPermission{},
+		&models.RolePermission{}, &models.UserRole{}, &models.UserPermission{}, &models.Setting{},
 	); err != nil {
 		log.Fatalf("Failed to auto-migrate: %v", err)
 	}

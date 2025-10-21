@@ -12,12 +12,25 @@ class APIClient:
         self.headers = {
             "X-API-KEY": f"{settings.service_token}"
         }
+        self._public_settings = None
 
     async def _request(self, method: str, endpoint: str, **kwargs):
         url = f"{self.base_url}{endpoint}"
         async with aiohttp.ClientSession(headers=self.headers) as session:
             async with session.request(method, url, **kwargs) as response:
                 return await response.json()
+
+    async def load_public_settings(self):
+        self._public_settings = await self._request("GET", "/settings/public")
+
+    async def get_public_settings(self):
+        if not self._public_settings:
+            await self.load_public_settings()
+        return self._public_settings
+
+    async def get_support_message(self):
+        public_settings = await self.get_public_settings()
+        return public_settings.get("support_message", "Что-то пошло не так, попробуйте позже.")
 
     async def register_user(self, telegram_id: int):
         return await self._request("POST", "/users/register", json={"telegram_id": telegram_id, "bot_name": self.bot_username})

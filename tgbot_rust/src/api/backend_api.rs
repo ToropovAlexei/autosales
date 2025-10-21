@@ -4,7 +4,7 @@ use serde_json::json;
 use crate::{
     api::api_client::ApiClient,
     errors::{AppError, AppResult},
-    models::{BackendResponse, user::BotUser},
+    models::{BackendResponse, BalanceResponse, user::BotUser},
 };
 
 pub struct BackendApi {
@@ -50,6 +50,20 @@ impl BackendApi {
             })
     }
 
+    pub async fn get_user_balance(&self, telegram_id: i64, bot_username: &str) -> AppResult<f64> {
+        self.api_client
+            .get::<BackendResponse<BalanceResponse>>(&format!(
+                "users/{telegram_id}/balance?bot_name={bot_username}"
+            ))
+            .await
+            .and_then(|res| {
+                res.data.ok_or_else(|| {
+                    AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
+                })
+            })
+            .map(|res| res.balance)
+    }
+
     pub async fn confirm_user_captcha(&self, telegram_id: i64) -> AppResult<serde_json::Value> {
         self.api_client
             .put_with_body::<BackendResponse<serde_json::Value>, _>(
@@ -88,5 +102,13 @@ impl BackendApi {
                 })
             })
             .unwrap_or(false)
+    }
+
+    pub async fn get_support_msg(&self) -> Option<String> {
+        self.get_settings()
+            .await
+            .ok()
+            .and_then(|settings| settings.get("support_message").cloned())
+            .map(|val| val.to_string())
     }
 }

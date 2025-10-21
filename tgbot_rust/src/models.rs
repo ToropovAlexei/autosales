@@ -23,3 +23,8 @@ pub struct CaptchaResponse {
     pub image: String,
     pub solution: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BalanceResponse {
+    pub balance: f64,
+}

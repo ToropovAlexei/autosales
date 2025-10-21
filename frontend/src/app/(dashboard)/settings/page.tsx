@@ -77,7 +77,9 @@ export default function SettingsPage() {
                   <Switch
                     checked={referralProgramEnabled}
                     onChange={(e) =>
-                      mutate({ referral_program_enabled: String(e.target.checked) })
+                      mutate({
+                        referral_program_enabled: String(e.target.checked),
+                      })
                     }
                   />
                 }
@@ -112,7 +114,10 @@ export default function SettingsPage() {
                 type="number"
                 value={Number(settings?.GATEWAY_BONUS_mock_provider || 0)}
                 onChange={(e) =>
-                  optimisticMutation("GATEWAY_BONUS_mock_provider", e.target.value)
+                  optimisticMutation(
+                    "GATEWAY_BONUS_mock_provider",
+                    e.target.value
+                  )
                 }
                 fullWidth
                 margin="normal"
@@ -123,7 +128,10 @@ export default function SettingsPage() {
                 type="number"
                 value={Number(settings?.GATEWAY_BONUS_platform_card || 0)}
                 onChange={(e) =>
-                  optimisticMutation("GATEWAY_BONUS_platform_card", e.target.value)
+                  optimisticMutation(
+                    "GATEWAY_BONUS_platform_card",
+                    e.target.value
+                  )
                 }
                 fullWidth
                 margin="normal"
@@ -134,7 +142,34 @@ export default function SettingsPage() {
                 type="number"
                 value={Number(settings?.GATEWAY_BONUS_platform_sbp || 0)}
                 onChange={(e) =>
-                  optimisticMutation("GATEWAY_BONUS_platform_sbp", e.target.value)
+                  optimisticMutation(
+                    "GATEWAY_BONUS_platform_sbp",
+                    e.target.value
+                  )
+                }
+                fullWidth
+                margin="normal"
+                size="small"
+              />
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card sx={{ mb: 3 }}>
+        <CardHeader title="Настройки бота" />
+        <CardContent>
+          {isSettingsPending ? (
+            <p>Загрузка...</p>
+          ) : (
+            <>
+              <TextField
+                label="Сообщение поддержки"
+                multiline
+                rows={4}
+                value={settings?.support_message || ""}
+                onChange={(e) =>
+                  optimisticMutation("support_message", e.target.value)
                 }
                 fullWidth
                 margin="normal"

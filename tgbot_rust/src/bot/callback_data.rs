@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use teloxide::types::CallbackQuery;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum CategoryAction {
@@ -39,10 +40,23 @@ impl CallbackData {
     pub fn unpack(s: &str) -> Option<Self> {
         serde_json::from_str(s).ok()
     }
+
+    pub fn from_query(query: &CallbackQuery) -> Option<Self> {
+        query
+            .data
+            .as_ref()
+            .and_then(|d| serde_json::from_str::<Self>(d).ok())
+    }
 }
 
 impl From<CallbackData> for String {
     fn from(value: CallbackData) -> Self {
         value.pack()
+    }
+}
+
+impl From<String> for CallbackData {
+    fn from(value: String) -> Self {
+        CallbackData::unpack(&value).unwrap()
     }
 }

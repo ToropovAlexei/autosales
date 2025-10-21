@@ -163,12 +163,9 @@ async def main_menu_handler(callback_query: CallbackQuery, api_client: APIClient
 
 @router.callback_query(F.data == "support")
 async def support_handler(callback_query: CallbackQuery, api_client: APIClient):
-    seller_info_response = await api_client.get_public_settings()
-    referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
+    support_message = await api_client.get_support_message()
     await callback_query.message.edit_text(
-        f"Для связи с поддержкой, пожалуйста, напишите нам: {settings.support_url}",
-        reply_markup=inline.main_menu(
-            referral_program_enabled=referral_program_enabled,
-            bot_type=settings.bot_type
-        )
+        support_message,
+        reply_markup=back_to_main_menu_keyboard(),
+        parse_mode="HTML"
     )

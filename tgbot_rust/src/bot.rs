@@ -14,7 +14,13 @@ use teloxide::{
 use crate::{
     AppState,
     api::{backend_api::BackendApi, captcha_api::CaptchaApi},
-    bot::handlers::{captcha_answer::captcha_answer_handler, start::start_handler},
+    bot::{
+        callback_data::CallbackData,
+        handlers::{
+            balance::balance_handler, captcha_answer::captcha_answer_handler,
+            main_menu::main_menu_handler, start::start_handler, support::support_handler,
+        },
+    },
     errors::AppResult,
     models::DispatchMessagePayload,
 };
@@ -29,10 +35,10 @@ use teloxide::prelude::Request;
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
+mod callback_data;
 mod handlers;
 mod keyboards;
 mod middlewares;
-mod callback_data;
 
 #[derive(Clone, Serialize, Deserialize, Default)]
 pub enum BotState {
@@ -110,9 +116,44 @@ pub async fn start_bot(
         .enter_dialogue::<CallbackQuery, RedisStorage<Json>, BotState>()
         .endpoint(captcha_answer_handler);
 
+    let balance_branch = Update::filter_callback_query()
+        .filter(|q: CallbackQuery| {
+            q.data
+                .as_ref()
+                .map(|d| d.to_string() == CallbackData::Balance.pack())
+                .unwrap_or(false)
+        })
+        .enter_dialogue::<CallbackQuery, RedisStorage<Json>, BotState>()
+        .endpoint(balance_handler);
+
+    let main_menu_branch = Update::filter_callback_query()
+        .filter(|q: CallbackQuery| {
+            q.data
+                .as_ref()
+                .map(|d| d.to_string() == CallbackData::MainMenu.pack())
+                .unwrap_or(false)
+        })
+        .enter_dialogue::<CallbackQuery, RedisStorage<Json>, BotState>()
+        .endpoint(main_menu_handler);
+
+    let support_branch = Update::filter_callback_query()
+        .filter(|q: CallbackQuery| {
+            q.data
+                .as_ref()
+                .map(|d| d.to_string() == CallbackData::Support.pack())
+                .unwrap_or(false)
+        })
+        .enter_dialogue::<CallbackQuery, RedisStorage<Json>, BotState>()
+        .endpoint(support_handler);
+
     let mut dispatcher = Dispatcher::builder(
         bot.clone(),
-        dptree::entry().branch(handler).branch(captcha_branch),
+        dptree::entry()
+            .branch(handler)
+            .branch(captcha_branch)
+            .branch(balance_branch)
+            .branch(main_menu_branch)
+            .branch(support_branch),
     )
     .dependencies(dptree::deps![
         app_state.clone(),
