@@ -2,30 +2,33 @@ use std::collections::HashMap;
 
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
-use crate::bot::callback_data::{CallbackData, PaymentAction};
+use crate::{
+    bot::callback_data::{CallbackData, PaymentAction},
+    models::PaymentGateway,
+};
 
 pub fn payment_gateways_menu(
-    gateways: Vec<String>,
+    gateways: Vec<PaymentGateway>,
     public_settings: HashMap<String, String>,
-    instructions_url: Option<&str>,
 ) -> InlineKeyboardMarkup {
+    let instructions_url = public_settings
+        .get("instructions_url")
+        .cloned()
+        .unwrap_or_default();
     let mut buttons = Vec::new();
-    if let Ok(url) = reqwest::Url::parse(instructions_url.unwrap_or_default()) {
+    if let Ok(url) = reqwest::Url::parse(&instructions_url) {
         buttons.push([InlineKeyboardButton::url("ℹ️ Как пополнить баланс?", url)]);
     }
 
     let mut gateways_with_bonuses: Vec<(String, String, f64)> = Vec::new();
 
     for gateway in gateways {
-        let gateway_clone = gateway.clone();
+        let gateway_clone = gateway.name.clone();
         let bonus_value = public_settings
-            .get(&format!("GATEWAY_BONUS_{}", gateway))
+            .get(&format!("GATEWAY_BONUS_{}", gateway_clone))
             .and_then(|s| s.parse::<f64>().ok())
             .unwrap_or(0.0);
-        let display_name = public_settings
-            .get(&format!("GATEWAY_DISPLAY_NAME_{}", gateway))
-            .unwrap_or(&gateway_clone);
-        gateways_with_bonuses.push((gateway, display_name.to_string(), bonus_value));
+        gateways_with_bonuses.push((gateway.name, gateway.display_name, bonus_value));
     }
 
     gateways_with_bonuses.sort_by(|a, b| {

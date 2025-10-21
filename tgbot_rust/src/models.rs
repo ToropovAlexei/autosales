@@ -28,3 +28,9 @@ pub struct CaptchaResponse {
 pub struct BalanceResponse {
     pub balance: f64,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PaymentGateway {
+    pub name: String,
+    pub display_name: String,
+}

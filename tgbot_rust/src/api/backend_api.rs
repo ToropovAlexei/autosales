@@ -1,10 +1,12 @@
+use std::collections::HashMap;
+
 use reqwest::header;
 use serde_json::json;
 
 use crate::{
     api::api_client::ApiClient,
     errors::{AppError, AppResult},
-    models::{BackendResponse, BalanceResponse, user::BotUser},
+    models::{BackendResponse, BalanceResponse, PaymentGateway, user::BotUser},
 };
 
 pub struct BackendApi {
@@ -78,15 +80,26 @@ impl BackendApi {
             })
     }
 
-    pub async fn get_settings(&self) -> AppResult<serde_json::Value> {
-        self.api_client
+    pub async fn get_settings(&self) -> AppResult<HashMap<String, String>> {
+        let res = self
+            .api_client
             .get::<BackendResponse<serde_json::Value>>("settings/public")
-            .await
-            .and_then(|res| {
-                res.data.ok_or_else(|| {
-                    AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
-                })
-            })
+            .await?;
+
+        let data = res.data.ok_or_else(|| {
+            AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
+        })?;
+
+        let obj = data.as_object().ok_or_else(|| {
+            AppError::BadRequest("Invalid settings format: expected JSON object".to_string())
+        })?;
+
+        let settings = obj
+            .iter()
+            .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
+            .collect::<HashMap<_, _>>();
+
+        Ok(settings)
     }
 
     pub async fn is_referral_program_enabled(&self) -> bool {
@@ -94,13 +107,7 @@ impl BackendApi {
             .await
             .ok()
             .and_then(|settings| settings.get("referral_program_enabled").cloned())
-            .map(|v| {
-                v.as_bool().unwrap_or_else(|| {
-                    v.as_str()
-                        .map(|s| s.eq_ignore_ascii_case("true"))
-                        .unwrap_or(false)
-                })
-            })
+            .map(|v| v == "true")
             .unwrap_or(false)
     }
 
@@ -110,5 +117,14 @@ impl BackendApi {
             .ok()
             .and_then(|settings| settings.get("support_message").cloned())
             .map(|val| val.to_string())
+    }
+
+    pub async fn get_payment_gateways(&self) -> Vec<PaymentGateway> {
+        self.api_client
+            .get::<BackendResponse<Vec<PaymentGateway>>>(&"gateways")
+            .await
+            .map(|res| res.data)
+            .unwrap_or_default()
+            .unwrap_or_default()
     }
 }
