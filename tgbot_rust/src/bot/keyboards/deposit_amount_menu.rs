@@ -11,9 +11,10 @@ pub fn deposit_amount_menu(gateway: &str) -> InlineKeyboardMarkup {
             vec![InlineKeyboardButton::callback(
                 format!("{amount} ₽"),
                 CallbackData::Payment {
-                    action: PaymentAction::SelectAmount,
-                    gateway: gateway.to_string(),
-                    amount,
+                    action: PaymentAction::SelectAmount {
+                        amount,
+                        gateway: gateway.to_string(),
+                    },
                 },
             )]
         })

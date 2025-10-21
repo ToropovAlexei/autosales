@@ -8,8 +8,8 @@ pub enum CategoryAction {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub enum PaymentAction {
-    SelectGateway,
-    SelectAmount,
+    SelectGateway { gateway: String },
+    SelectAmount { gateway: String, amount: i64 },
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -21,8 +21,6 @@ pub enum CallbackData {
     },
     Payment {
         action: PaymentAction,
-        gateway: String,
-        amount: i64,
     },
     Balance,
     MyOrders,
