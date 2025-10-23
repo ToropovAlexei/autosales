@@ -156,7 +156,7 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card sx={{ mb: 3 }}>
+      <Card sx={{ mt: 3 }}>
         <CardHeader title="Настройки бота" />
         <CardContent>
           {isSettingsPending ? (

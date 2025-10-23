@@ -87,6 +87,13 @@ def deposit_amount_menu(gateway: str):
 
 def categories_menu(categories: list, parent_id: int = 0, products: list = [], category_id: int = 0):
     buttons = []
+    
+    for category in categories:
+        buttons.append([InlineKeyboardButton(
+            text=category['name'], 
+            callback_data=CategoryCallback(action="view", category_id=category['id'], parent_id=parent_id).pack()
+        )])
+    
     for product in products:
         if product.get('provider'):
             buttons.append([InlineKeyboardButton(
@@ -98,12 +105,6 @@ def categories_menu(categories: list, parent_id: int = 0, products: list = [], c
                 text=f"🔹 {product['name']} - {product['price']} ₽", 
                 callback_data=f"product_{product['id']}_{category_id}"
             )])
-
-    for category in categories:
-        buttons.append([InlineKeyboardButton(
-            text=category['name'], 
-            callback_data=CategoryCallback(action="view", category_id=category['id'], parent_id=parent_id).pack()
-        )])
     
     if parent_id == 0:
         buttons.append([InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu")])

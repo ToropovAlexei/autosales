@@ -20,7 +20,11 @@ import { translatePermission, translatePermissionGroup } from "@/lib/permissions
 interface RoleModalProps {
   open: boolean;
   onClose: () => void;
-  onSave: (name: string, permissions: number[]) => void;
+  onSave: (
+    name: string,
+    permissions: number[],
+    initialPermissions: number[]
+  ) => void;
   role?: Role | null;
 }
 
@@ -49,7 +53,8 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
   }, [open, role, rolePermissions]);
 
   const handleSave = () => {
-    onSave(name, selectedPermissions);
+    const initialPermissions = rolePermissions?.data?.map((p) => p.id) || [];
+    onSave(name, selectedPermissions, initialPermissions);
   };
 
   const handlePermissionChange = (permissionId: number) => {

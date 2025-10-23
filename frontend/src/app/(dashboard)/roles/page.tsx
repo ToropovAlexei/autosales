@@ -35,8 +35,16 @@ export default function RolesPage() {
 
   const createMutation = useMutation({
     mutationFn: (params: { name: string; permissions: number[] }) =>
-      dataLayer.create({ url: ENDPOINTS.ROLES, params }),
-    onSuccess: () => {
+      dataLayer.create<{ id: number }>({ url: ENDPOINTS.ROLES, params: { name: params.name } }),
+    onSuccess: async (data, variables) => {
+      const promises = variables.permissions.map((permissionId) =>
+        addPermissionMutation.mutateAsync({
+          role_id: data.id,
+          permissionId,
+        })
+      );
+
+      await Promise.all(promises);
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.ROLES),
       });
@@ -45,26 +53,54 @@ export default function RolesPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({
-      id,
-      name,
-      permissions,
-    }: {
-      id: number;
-      name: string;
-      permissions: number[];
-    }) =>
-      dataLayer.update({
-        url: ENDPOINTS.ROLES,
-        id,
-        params: { name, permissions },
-      }),
-    onSuccess: () => {
+    mutationFn: ({ id, name }: { id: number; name:string }) =>
+      dataLayer.update({ url: ENDPOINTS.ROLES, id, params: { name } }),
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.ROLES),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(`${ENDPOINTS.ROLES}/${variables.id}/permissions`),
+      });
       setIsModalOpen(false);
       setEditingRole(null);
+    },
+  });
+
+  const addPermissionMutation = useMutation({
+    mutationFn: (params: { role_id: number; permissionId: number }) =>
+      dataLayer.create({
+        url: `${ENDPOINTS.ROLES}/${params.role_id}/permissions`,
+        params: { permission_id: params.permissionId },
+      }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(`${ENDPOINTS.ROLES}/${variables.role_id}/permissions`),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.ROLES),
+      });
+    },
+  });
+
+  const removePermissionMutation = useMutation({
+    mutationFn: ({
+      role_id,
+      permissionId,
+    }: {
+      role_id: number;
+      permissionId: number;
+    }) =>
+      dataLayer.delete({
+        url: `${ENDPOINTS.ROLES}/${role_id}/permissions/${permissionId}`,
+      }),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(`${ENDPOINTS.ROLES}/${variables.role_id}/permissions`),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.ROLES),
+      });
     },
   });
 
@@ -95,9 +131,34 @@ export default function RolesPage() {
     setIsModalOpen(false);
   };
 
-  const handleSave = (name: string, permissions: number[]) => {
+  const handleSave = (
+    name: string,
+    permissions: number[],
+    initialPermissions: number[]
+  ) => {
     if (editingRole) {
-      updateMutation.mutate({ id: editingRole.id, name, permissions });
+      if (editingRole.name !== name) {
+        updateMutation.mutate({ id: editingRole.id, name });
+      }
+
+      const toAdd = permissions.filter((p) => !initialPermissions.includes(p));
+      const toRemove = initialPermissions.filter((p) => !permissions.includes(p));
+
+      toAdd.forEach((permissionId) => {
+        addPermissionMutation.mutate({
+          role_id: editingRole.id,
+          permissionId,
+        });
+      });
+
+      toRemove.forEach((permissionId) => {
+        removePermissionMutation.mutate({
+          role_id: editingRole.id,
+          permissionId,
+        });
+      });
+
+      closeModal();
     } else {
       createMutation.mutate({ name, permissions });
     }

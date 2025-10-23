@@ -94,13 +94,14 @@ export const ProductsTable = ({
             onClick={() => onEdit(row)}
             disabled={!!row.provider}
           />,
-          <GridActionsCellItem
-            key="delete"
-            icon={<DeleteIcon />}
-            label="Delete"
-            onClick={() => onDelete(row.id)}
-            disabled={!!row.provider}
-          />,
+          // TODO Soft delete
+          // <GridActionsCellItem
+          //   key="delete"
+          //   icon={<DeleteIcon />}
+          //   label="Delete"
+          //   onClick={() => onDelete(row.id)}
+          //   disabled={!!row.provider}
+          // />,
         ];
       },
     },

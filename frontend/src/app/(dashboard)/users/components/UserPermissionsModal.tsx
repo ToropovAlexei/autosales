@@ -42,11 +42,14 @@ export const UserPermissionsModal = ({
   const { data: allRoles } = useList<Role>({ endpoint: ENDPOINTS.ROLES });
   const { data: allPermissions, isPending: isPermissionsLoading } =
     useList<Permission>({ endpoint: ENDPOINTS.PERMISSIONS });
-  const { data: currentUserPermissions, isPending: isUserPermissionsLoading } =
-    useList<UserPermission>({
-      endpoint: `${ENDPOINTS.USERS}/${user?.id}/permissions`,
-      enabled: !!user,
-    });
+  const {
+    data: currentUserPermissions,
+    isPending: isUserPermissionsLoading,
+    refetch,
+  } = useList<UserPermission>({
+    endpoint: `${ENDPOINTS.USERS}/${user?.id}/permissions`,
+    enabled: !!user,
+  });
 
   useEffect(() => {
     if (user) {
@@ -81,6 +84,9 @@ export const UserPermissionsModal = ({
         url: `${ENDPOINTS.USERS}/${user?.id}/permissions`,
         params: { permission_id: params.permissionId, effect: params.effect },
       }),
+    onSuccess: () => {
+      refetch();
+    },
   });
 
   const removeUserPermissionMutation = useMutation({
@@ -88,6 +94,9 @@ export const UserPermissionsModal = ({
       dataLayer.delete({
         url: `${ENDPOINTS.USERS}/${user?.id}/permissions/${permissionId}`,
       }),
+    onSuccess: () => {
+      refetch();
+    },
   });
 
   const handleSave = async () => {

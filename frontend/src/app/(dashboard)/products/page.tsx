@@ -84,7 +84,7 @@ export default function ProductsPage() {
 
   return (
     <PageLayout title="Товары">
-      <Button variant="contained" onClick={() => openForm()}>
+      <Button variant="contained" onClick={() => openForm()} sx={{ mb: 2 }}>
         Добавить товар
       </Button>
       <ProductsTable
