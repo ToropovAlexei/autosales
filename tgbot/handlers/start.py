@@ -166,6 +166,6 @@ async def support_handler(callback_query: CallbackQuery, api_client: APIClient):
     support_message = await api_client.get_support_message()
     await callback_query.message.edit_text(
         support_message,
-        reply_markup=back_to_main_menu_keyboard(),
+        reply_markup=inline.back_to_main_menu_keyboard(),
         parse_mode="HTML"
     )
