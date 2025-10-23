@@ -18,12 +18,14 @@ import { dataLayer } from "@/lib/dataLayer";
 import { queryKeys } from "@/utils/query";
 import { PageLayout } from "@/components/PageLayout";
 import { CONFIG } from "../../../../config";
+import { ConfirmModal } from "@/components";
 
 export default function CategoriesPage() {
   const queryClient = useQueryClient();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] =
     useState<Partial<ICategory> | null>(null);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
 
   const { data: categories, isPending } = useList<ICategory>({
     endpoint: ENDPOINTS.CATEGORIES,
@@ -94,6 +96,14 @@ export default function CategoriesPage() {
     [categories]
   );
 
+  const handleDelete = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (!selectedCategory?.id) {
+      return;
+    }
+    deleteMutation.mutate(selectedCategory.id);
+  };
+
   const findCategoryById = (
     categories: ICategory[],
     id: number
@@ -132,11 +142,6 @@ export default function CategoriesPage() {
       openDialog({ parent_id: categoryId });
     };
 
-    const handleDelete = (event: React.MouseEvent) => {
-      event.stopPropagation();
-      deleteMutation.mutate(categoryId);
-    };
-
     return (
       <TreeItem
         {...other}
@@ -166,7 +171,12 @@ export default function CategoriesPage() {
               </IconButton>
               <IconButton
                 aria-label="delete"
-                onClick={handleDelete}
+                onClick={() => {
+                  if (category) {
+                    setSelectedCategory(category);
+                  }
+                  setIsConfirmOpen(true);
+                }}
                 size="small"
               >
                 <DeleteIcon />
@@ -182,7 +192,7 @@ export default function CategoriesPage() {
 
   return (
     <PageLayout title="Категории">
-      <Button variant="contained" onClick={() => openDialog()}>
+      <Button variant="contained" onClick={() => openDialog()} sx={{ mb: 2 }}>
         Добавить категорию
       </Button>
       <RichTreeView
@@ -203,6 +213,13 @@ export default function CategoriesPage() {
           defaultValues={selectedCategory || undefined}
         />
       )}
+      <ConfirmModal
+        open={isConfirmOpen}
+        contentText={`Вы уверены, что хотите удалить категорию ${selectedCategory?.name}?`}
+        onClose={() => setIsConfirmOpen(false)}
+        onConfirm={handleDelete}
+        title="Вы уверены?"
+      />
     </PageLayout>
   );
 }
