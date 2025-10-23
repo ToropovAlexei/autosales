@@ -14,12 +14,10 @@ use teloxide::{
 use crate::{
     AppState,
     api::{backend_api::BackendApi, captcha_api::CaptchaApi},
-    bot::{
-        callback_data::CallbackData,
-        handlers::{
-            balance::balance_handler, captcha_answer::captcha_answer_handler,
-            main_menu::main_menu_handler, start::start_handler, support::support_handler,
-        },
+    bot::handlers::{
+        balance::balance_handler, captcha_answer::captcha_answer_handler,
+        deposit_amount::deposit_amount_handler, deposit_gateway::deposit_gateway_handler,
+        main_menu::main_menu_handler, start::start_handler, support::support_handler,
     },
     errors::AppResult,
     models::DispatchMessagePayload,
@@ -35,20 +33,67 @@ use teloxide::prelude::Request;
 use tokio_stream::StreamExt;
 use tokio_util::sync::CancellationToken;
 
-mod callback_data;
 mod handlers;
 mod keyboards;
 mod middlewares;
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum CategoryAction {
+    View,
+    Back,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum PaymentAction {
+    SelectGateway { gateway: String },
+    SelectAmount { gateway: String, amount: i64 },
+}
+
 #[derive(Clone, Serialize, Deserialize, Default)]
 pub enum BotState {
     #[default]
-    Idle,
     Start,
     WaitingForCaptcha {
         correct_answer: String,
     },
     WaitingForReferralBotToken,
+    Category {
+        action: CategoryAction,
+        category_id: i64,
+    },
+    Payment {
+        action: PaymentAction,
+    },
+    Balance,
+    MyOrders,
+    MySubscriptions,
+    Deposit,
+    ReferralProgram,
+    Support,
+    MainMenu,
+}
+
+impl BotState {
+    pub fn pack(&self) -> String {
+        serde_json::to_string(self).expect("Failed to serialize CallbackData")
+    }
+
+    pub fn unpack(s: &str) -> Option<Self> {
+        serde_json::from_str(s).ok()
+    }
+
+    pub fn from_query(query: &CallbackQuery) -> Option<Self> {
+        query
+            .data
+            .as_ref()
+            .and_then(|d| serde_json::from_str::<Self>(d).ok())
+    }
+}
+
+impl From<BotState> for String {
+    fn from(value: BotState) -> Self {
+        value.pack()
+    }
 }
 
 #[derive(Clone, BotCommands)]
@@ -66,6 +111,8 @@ pub async fn start_bot(
     captcha_api_client: Arc<CaptchaApi>,
     cancel_token: CancellationToken,
 ) -> AppResult<()> {
+    use dptree::case;
+
     let bot = Bot::new(token);
     let me = bot.get_me().await?;
     let username = me.user.username.unwrap_or_default();
@@ -106,54 +153,22 @@ pub async fn start_bot(
         )
         .branch(dptree::case![BotState::Start].endpoint(start_handler));
 
-    let captcha_branch = Update::filter_callback_query()
-        .filter(|q: CallbackQuery| {
-            q.data
-                .as_ref()
-                .map(|d| d.starts_with("captcha_"))
-                .unwrap_or(false)
-        })
+    let callback_query_handler = Update::filter_callback_query()
         .enter_dialogue::<CallbackQuery, RedisStorage<Json>, BotState>()
-        .endpoint(captcha_answer_handler);
-
-    let balance_branch = Update::filter_callback_query()
-        .filter(|q: CallbackQuery| {
-            q.data
-                .as_ref()
-                .map(|d| d.to_string() == CallbackData::Balance.pack())
-                .unwrap_or(false)
-        })
-        .enter_dialogue::<CallbackQuery, RedisStorage<Json>, BotState>()
-        .endpoint(balance_handler);
-
-    let main_menu_branch = Update::filter_callback_query()
-        .filter(|q: CallbackQuery| {
-            q.data
-                .as_ref()
-                .map(|d| d.to_string() == CallbackData::MainMenu.pack())
-                .unwrap_or(false)
-        })
-        .enter_dialogue::<CallbackQuery, RedisStorage<Json>, BotState>()
-        .endpoint(main_menu_handler);
-
-    let support_branch = Update::filter_callback_query()
-        .filter(|q: CallbackQuery| {
-            q.data
-                .as_ref()
-                .map(|d| d.to_string() == CallbackData::Support.pack())
-                .unwrap_or(false)
-        })
-        .enter_dialogue::<CallbackQuery, RedisStorage<Json>, BotState>()
-        .endpoint(support_handler);
+        .branch(
+            case![BotState::WaitingForCaptcha { correct_answer }].endpoint(captcha_answer_handler),
+        )
+        .branch(case![BotState::Balance].endpoint(balance_handler))
+        .branch(case![BotState::Deposit].endpoint(deposit_gateway_handler))
+        .branch(case![BotState::Support].endpoint(support_handler))
+        .branch(case![BotState::MainMenu].endpoint(main_menu_handler))
+        .branch(case![BotState::Payment { action }].endpoint(deposit_amount_handler));
 
     let mut dispatcher = Dispatcher::builder(
         bot.clone(),
         dptree::entry()
             .branch(handler)
-            .branch(captcha_branch)
-            .branch(balance_branch)
-            .branch(main_menu_branch)
-            .branch(support_branch),
+            .branch(callback_query_handler),
     )
     .dependencies(dptree::deps![
         app_state.clone(),
@@ -193,7 +208,15 @@ async fn command_handler(
     match cmd {
         Command::Start => {
             dialogue.update(BotState::Start).await?;
-            start_handler(bot, dialogue, msg, username, api_client, captcha_api_client).await
+            start_handler(
+                bot,
+                dialogue,
+                msg,
+                username.clone(),
+                api_client,
+                captcha_api_client,
+            )
+            .await
         }
     }
 }

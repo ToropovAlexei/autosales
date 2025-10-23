@@ -80,7 +80,7 @@ async def navigate_categories(callback_query: CallbackQuery, callback_data: Cate
 
             # Now, decide how to send the message
             if image_id:
-                image_url = f"{settings.api_url.replace('/api', '').rstrip('/')}/images/{image_id}"
+                image_url = f"{settings.api_url.rstrip('/')}/images/{image_id}"
                 try:
                     async with aiohttp.ClientSession() as session:
                         async with session.get(image_url) as resp:

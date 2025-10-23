@@ -1,11 +1,11 @@
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
-use crate::bot::callback_data::CallbackData;
+use crate::bot::BotState;
 
 pub fn back_to_main_menu_inline_keyboard() -> InlineKeyboardMarkup {
     let buttons = vec![[InlineKeyboardButton::callback(
         "⬅️ Главное меню",
-        CallbackData::MainMenu,
+        BotState::MainMenu,
     )]];
     InlineKeyboardMarkup::new(buttons)
 }

@@ -1,44 +1,44 @@
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
-use crate::bot::callback_data::{CallbackData, CategoryAction};
+use crate::bot::{BotState, CategoryAction};
 
 pub fn main_menu_inline_keyboard(show_referral_program: bool) -> InlineKeyboardMarkup {
     let mut keyboard: Vec<Vec<InlineKeyboardButton>> = vec![
         vec![InlineKeyboardButton::callback(
             "🛍️ Каталог",
-            CallbackData::Category {
+            BotState::Category {
                 action: CategoryAction::View,
                 category_id: 0,
             },
         )],
         vec![InlineKeyboardButton::callback(
             "💳 Баланс",
-            CallbackData::Balance,
+            BotState::Balance,
         )],
         vec![InlineKeyboardButton::callback(
             "🧾 Мои заказы",
-            CallbackData::MyOrders,
+            BotState::MyOrders,
         )],
         vec![InlineKeyboardButton::callback(
             "🧾 Мои подписки",
-            CallbackData::MySubscriptions,
+            BotState::MySubscriptions,
         )],
         vec![InlineKeyboardButton::callback(
             "💰 Пополнить баланс",
-            CallbackData::Deposit,
+            BotState::Deposit,
         )],
     ];
 
     if show_referral_program {
         keyboard.push(vec![InlineKeyboardButton::callback(
             "🤝 Реферальный магазин",
-            CallbackData::ReferralProgram,
+            BotState::ReferralProgram,
         )]);
     }
 
     keyboard.push(vec![InlineKeyboardButton::callback(
         "💬 Поддержка",
-        CallbackData::Support,
+        BotState::Support,
     )]);
 
     InlineKeyboardMarkup::new(keyboard)

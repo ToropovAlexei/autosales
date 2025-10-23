@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
 use crate::{
-    bot::callback_data::{CallbackData, PaymentAction},
+    bot::{BotState, PaymentAction},
     models::PaymentGateway,
 };
 
@@ -48,7 +48,7 @@ pub fn payment_gateways_menu(
         }
         buttons.push([InlineKeyboardButton::callback(
             display_name,
-            CallbackData::Payment {
+            BotState::Payment {
                 action: PaymentAction::SelectGateway {
                     gateway: gateway.to_string(),
                 },
@@ -58,7 +58,7 @@ pub fn payment_gateways_menu(
 
     buttons.push([InlineKeyboardButton::callback(
         "⬅️ Назад",
-        CallbackData::MainMenu,
+        BotState::MainMenu,
     )]);
     return InlineKeyboardMarkup::new(buttons);
 }
