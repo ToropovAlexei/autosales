@@ -6,7 +6,7 @@ use serde_json::json;
 use crate::{
     api::api_client::ApiClient,
     errors::{AppError, AppResult},
-    models::{BackendResponse, BalanceResponse, PaymentGateway, user::BotUser},
+    models::{BackendResponse, BalanceResponse, InvoiceResponse, PaymentGateway, user::BotUser},
 };
 
 pub struct BackendApi {
@@ -126,5 +126,23 @@ impl BackendApi {
             .map(|res| res.data)
             .unwrap_or_default()
             .unwrap_or_default()
+    }
+
+    pub async fn create_deposit_invoice(
+        &self,
+        gateway_name: &str,
+        amount: f64,
+        bot_user_id: i64,
+    ) -> AppResult<InvoiceResponse> {
+        self.api_client.post_with_body::<BackendResponse<InvoiceResponse>, _>(
+            "deposit/invoice",
+            &json!({"bot_user_id": bot_user_id, "gateway_name": gateway_name, "amount": amount}),
+        )
+        .await
+        .and_then(|res| {
+            res.data.ok_or_else(|| {
+                AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
+            })
+        })
     }
 }

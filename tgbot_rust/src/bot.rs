@@ -1,37 +1,30 @@
-use std::sync::Arc;
+use std::{result::Result::Ok, sync::Arc};
 
-use rand::distr::Alphanumeric;
+use base64::{Engine as _, engine::general_purpose::STANDARD};
+use rand::{Rng, distr::Alphanumeric, prelude::SliceRandom};
 use serde::{Deserialize, Serialize};
 use teloxide::{
     Bot,
-    dispatching::dialogue::{GetChatId, RedisStorage, serializer::Json},
-    dptree::{self},
+    dispatching::{
+        HandlerExt, UpdateFilterExt,
+        dialogue::{GetChatId, RedisStorage, serializer::Json},
+    },
+    dptree,
     macros::BotCommands,
-    prelude::{Dialogue, Dispatcher, Requester},
+    payloads::{EditMessageTextSetters, SendMessageSetters},
+    prelude::{Dialogue, Dispatcher, Request, Requester},
     types::{CallbackQuery, ChatId, Me, Message, MessageId, ParseMode, Update},
 };
+use tokio_stream::StreamExt;
+use tokio_util::sync::CancellationToken;
 
 use crate::{
     AppState,
     api::{backend_api::BackendApi, captcha_api::CaptchaApi},
-    bot::handlers::{
-        balance::balance_handler, captcha_answer::captcha_answer_handler,
-        deposit_amount::deposit_amount_handler, deposit_gateway::deposit_gateway_handler,
-        main_menu::main_menu_handler, start::start_handler, support::support_handler,
-    },
-    errors::AppResult,
+    bot::handlers::{start::start_handler, support::support_handler},
+    errors::{AppError, AppResult},
     models::DispatchMessagePayload,
 };
-use base64::{Engine as _, engine::general_purpose::STANDARD};
-use rand::Rng;
-use rand::prelude::SliceRandom;
-use teloxide::dispatching::HandlerExt;
-use teloxide::dispatching::UpdateFilterExt;
-use teloxide::payloads::EditMessageTextSetters;
-use teloxide::payloads::SendMessageSetters;
-use teloxide::prelude::Request;
-use tokio_stream::StreamExt;
-use tokio_util::sync::CancellationToken;
 
 mod handlers;
 mod keyboards;
@@ -49,7 +42,14 @@ pub enum PaymentAction {
     SelectAmount { gateway: String, amount: i64 },
 }
 
-#[derive(Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct InvoiceData {
+    pub order_id: String,
+    pub pay_url: Option<String>,
+    pub details: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum BotState {
     #[default]
     Start,
@@ -58,22 +58,59 @@ pub enum BotState {
     },
     WaitingForReferralBotToken,
     Category {
-        action: CategoryAction,
+        parent_id: i64,
         category_id: i64,
     },
-    Payment {
-        action: PaymentAction,
+    DepositSelectGateway,
+    DepositSelectAmount {
+        gateway: String,
+    },
+    DepositConfirm {
+        amount: i64,
+        gateway: String,
+        invoice: Option<InvoiceData>,
     },
     Balance,
     MyOrders,
     MySubscriptions,
-    Deposit,
     ReferralProgram,
     Support,
     MainMenu,
 }
 
 impl BotState {
+    pub fn pack(&self) -> String {
+        serde_json::to_string(self).expect("Failed to serialize BotState")
+    }
+
+    pub fn unpack(s: &str) -> Option<Self> {
+        serde_json::from_str(s).ok()
+    }
+}
+
+impl From<BotState> for String {
+    fn from(value: BotState) -> Self {
+        value.pack()
+    }
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(tag = "t", content = "d")]
+pub enum CallbackData {
+    AnswerCaptcha { answer: String },
+    SelectGateway { gateway: String },
+    SelectAmount { amount: i64 },
+    ToCategory { category_id: i64, parent_id: i64 },
+    ToMainMenu,
+    ToDepositSelectGateway,
+    ToBalance,
+    ToMyOrders,
+    ToMySubscriptions,
+    ToReferralProgram,
+    ToSupport,
+}
+
+impl CallbackData {
     pub fn pack(&self) -> String {
         serde_json::to_string(self).expect("Failed to serialize CallbackData")
     }
@@ -90,9 +127,15 @@ impl BotState {
     }
 }
 
-impl From<BotState> for String {
-    fn from(value: BotState) -> Self {
+impl From<CallbackData> for String {
+    fn from(value: CallbackData) -> Self {
         value.pack()
+    }
+}
+
+impl From<String> for CallbackData {
+    fn from(value: String) -> Self {
+        CallbackData::unpack(&value).unwrap()
     }
 }
 
@@ -150,19 +193,111 @@ pub async fn start_bot(
             dptree::entry()
                 .filter_command::<Command>()
                 .endpoint(command_handler),
-        )
-        .branch(dptree::case![BotState::Start].endpoint(start_handler));
+        );
+
+    let callback_router = dptree::entry().endpoint(
+        async move |dialogue: MyDialogue,
+                    q: CallbackQuery,
+                    bot: Bot,
+                    username: String,
+                    api_client: Arc<BackendApi>|
+                    -> AppResult<()> {
+            // Парсим callback data
+            let data = match CallbackData::from_query(&q) {
+                Some(data) => data,
+                None => return Ok(()),
+            };
+
+            // Обрабатываем варианты
+            match data {
+                CallbackData::AnswerCaptcha { answer } => {
+                    dialogue
+                        .update(BotState::WaitingForCaptcha {
+                            correct_answer: answer,
+                        })
+                        .await
+                        .map_err(AppError::from)?;
+                }
+                CallbackData::SelectGateway { gateway } => {
+                    dialogue
+                        .update(BotState::DepositSelectAmount { gateway })
+                        .await
+                        .map_err(AppError::from)?;
+                }
+                CallbackData::SelectAmount { amount } => {
+                    dialogue
+                        .update(BotState::DepositConfirm {
+                            amount,
+                            gateway: String::new(),
+                            invoice: None,
+                        })
+                        .await
+                        .map_err(AppError::from)?;
+                }
+                CallbackData::ToMainMenu => {
+                    dialogue
+                        .update(BotState::MainMenu)
+                        .await
+                        .map_err(AppError::from)?;
+                }
+                CallbackData::ToDepositSelectGateway => {
+                    dialogue
+                        .update(BotState::DepositSelectGateway)
+                        .await
+                        .map_err(AppError::from)?;
+                }
+                CallbackData::ToBalance => {
+                    dialogue
+                        .update(BotState::Balance)
+                        .await
+                        .map_err(AppError::from)?;
+                }
+                CallbackData::ToMyOrders => {
+                    dialogue
+                        .update(BotState::MyOrders)
+                        .await
+                        .map_err(AppError::from)?;
+                }
+                CallbackData::ToMySubscriptions => {
+                    dialogue
+                        .update(BotState::MySubscriptions)
+                        .await
+                        .map_err(AppError::from)?;
+                }
+                CallbackData::ToReferralProgram => {
+                    dialogue
+                        .update(BotState::ReferralProgram)
+                        .await
+                        .map_err(AppError::from)?;
+                }
+                CallbackData::ToSupport => {
+                    dialogue
+                        .update(BotState::Support)
+                        .await
+                        .map_err(AppError::from)?;
+                    support_handler(bot, dialogue, q, username, api_client).await?;
+                }
+                CallbackData::ToCategory {
+                    parent_id,
+                    category_id,
+                } => {
+                    dialogue
+                        .update(BotState::Category {
+                            parent_id,
+                            category_id,
+                        })
+                        .await
+                        .map_err(AppError::from)?;
+                }
+            }
+
+            Ok(())
+        },
+    );
 
     let callback_query_handler = Update::filter_callback_query()
         .enter_dialogue::<CallbackQuery, RedisStorage<Json>, BotState>()
-        .branch(
-            case![BotState::WaitingForCaptcha { correct_answer }].endpoint(captcha_answer_handler),
-        )
-        .branch(case![BotState::Balance].endpoint(balance_handler))
-        .branch(case![BotState::Deposit].endpoint(deposit_gateway_handler))
-        .branch(case![BotState::Support].endpoint(support_handler))
-        .branch(case![BotState::MainMenu].endpoint(main_menu_handler))
-        .branch(case![BotState::Payment { action }].endpoint(deposit_amount_handler));
+        .branch(callback_router);
 
     let mut dispatcher = Dispatcher::builder(
         bot.clone(),

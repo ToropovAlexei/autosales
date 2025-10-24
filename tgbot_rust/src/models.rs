@@ -34,3 +34,11 @@ pub struct PaymentGateway {
     pub name: String,
     pub display_name: String,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct InvoiceResponse {
+    pub pay_url: Option<String>,
+    pub gateway_invoice_id: String,
+    pub order_id: String,
+    pub details: Option<serde_json::Value>,
+}

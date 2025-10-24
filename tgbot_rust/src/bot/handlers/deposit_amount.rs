@@ -9,9 +9,7 @@ use teloxide::{
 
 use crate::{
     api::backend_api::BackendApi,
-    bot::{
-        BotState, MyDialogue, PaymentAction, keyboards::deposit_amount_menu::deposit_amount_menu,
-    },
+    bot::{BotState, MyDialogue, keyboards::deposit_amount_menu::deposit_amount_menu},
     errors::AppResult,
 };
 use teloxide::dispatching::dialogue::GetChatId;
@@ -23,6 +21,7 @@ pub async fn deposit_amount_handler(
     q: CallbackQuery,
     _username: String,
     _api_client: Arc<BackendApi>,
+    _bot_state: BotState,
 ) -> AppResult<()> {
     let chat_id = match q.chat_id() {
         Some(chat_id) => chat_id,
@@ -43,37 +42,8 @@ pub async fn deposit_amount_handler(
         }
     };
 
-    let gateway = match BotState::from_query(&q) {
-        Some(data) => match data {
-            BotState::Payment { action } => match action {
-                PaymentAction::SelectGateway { gateway } => gateway,
-                _ => {
-                    tracing::error!("Invalid bot state");
-                    bot.send_message(chat_id, "Что-то пошло не так. Попробуйте ещё раз")
-                        .send()
-                        .await?;
-                    return Ok(());
-                }
-            },
-            _ => {
-                tracing::error!("Invalid bot state");
-                bot.send_message(chat_id, "Что-то пошло не так. Попробуйте ещё раз")
-                    .send()
-                    .await?;
-                return Ok(());
-            }
-        },
-        None => {
-            tracing::error!("No callback data");
-            bot.send_message(chat_id, "Что-то пошло не так. Попробуйте ещё раз")
-                .send()
-                .await?;
-            return Ok(());
-        }
-    };
-
     bot.edit_message_text(chat_id, message_id, "Выберите сумму для пополнения:")
-        .reply_markup(deposit_amount_menu(&gateway))
+        .reply_markup(deposit_amount_menu())
         .parse_mode(ParseMode::Html)
         .send()
         .await?;

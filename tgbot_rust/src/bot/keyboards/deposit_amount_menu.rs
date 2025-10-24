@@ -1,8 +1,8 @@
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
-use crate::bot::{BotState, PaymentAction};
+use crate::bot::CallbackData;
 
-pub fn deposit_amount_menu(gateway: &str) -> InlineKeyboardMarkup {
+pub fn deposit_amount_menu() -> InlineKeyboardMarkup {
     let amounts = [100, 500, 1000];
 
     let keyboard: Vec<Vec<InlineKeyboardButton>> = amounts
@@ -10,12 +10,7 @@ pub fn deposit_amount_menu(gateway: &str) -> InlineKeyboardMarkup {
         .map(|&amount| {
             vec![InlineKeyboardButton::callback(
                 format!("{amount} ₽"),
-                BotState::Payment {
-                    action: PaymentAction::SelectAmount {
-                        amount,
-                        gateway: gateway.to_string(),
-                    },
-                },
+                CallbackData::SelectAmount { amount },
             )]
         })
         .collect();
