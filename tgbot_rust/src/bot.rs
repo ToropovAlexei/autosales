@@ -21,7 +21,15 @@ use tokio_util::sync::CancellationToken;
 use crate::{
     AppState,
     api::{backend_api::BackendApi, captcha_api::CaptchaApi},
-    bot::handlers::{start::start_handler, support::support_handler},
+    bot::handlers::{
+        balance::balance_handler,
+        deposit_amount::{self, deposit_amount_handler},
+        deposit_confirm::deposit_confirm_handler,
+        deposit_gateway::deposit_gateway_handler,
+        main_menu::main_menu_handler,
+        start::start_handler,
+        support::support_handler,
+    },
     errors::{AppError, AppResult},
     models::DispatchMessagePayload,
 };
@@ -154,8 +162,6 @@ pub async fn start_bot(
     captcha_api_client: Arc<CaptchaApi>,
     cancel_token: CancellationToken,
 ) -> AppResult<()> {
-    use dptree::case;
-
     let bot = Bot::new(token);
     let me = bot.get_me().await?;
     let username = me.user.username.unwrap_or_default();
@@ -200,15 +206,14 @@ pub async fn start_bot(
                     q: CallbackQuery,
                     bot: Bot,
                     username: String,
-                    api_client: Arc<BackendApi>|
+                    api_client: Arc<BackendApi>,
+                    bot_state: BotState|
                     -> AppResult<()> {
-            // Парсим callback data
             let data = match CallbackData::from_query(&q) {
                 Some(data) => data,
                 None => return Ok(()),
             };
 
-            // Обрабатываем варианты
             match data {
                 CallbackData::AnswerCaptcha { answer } => {
                     dialogue
@@ -223,34 +228,45 @@ pub async fn start_bot(
                         .update(BotState::DepositSelectAmount { gateway })
                         .await
                         .map_err(AppError::from)?;
+                    deposit_amount_handler(bot, dialogue, q, username, api_client, bot_state)
+                        .await?;
                 }
                 CallbackData::SelectAmount { amount } => {
+                    let gateway = match &bot_state {
+                        BotState::DepositSelectAmount { gateway } => gateway.clone(),
+                        _ => return Ok(()),
+                    };
+                    let new_state = BotState::DepositConfirm {
+                        gateway,
+                        amount,
+                        invoice: None,
+                    };
                     dialogue
-                        .update(BotState::DepositConfirm {
-                            amount,
-                            gateway: String::new(),
-                            invoice: None,
-                        })
+                        .update(new_state.clone())
                         .await
                         .map_err(AppError::from)?;
+                    deposit_confirm_handler(bot, q, dialogue, api_client, new_state).await?;
                 }
                 CallbackData::ToMainMenu => {
                     dialogue
                         .update(BotState::MainMenu)
                         .await
                         .map_err(AppError::from)?;
+                    main_menu_handler(bot, dialogue, q, username, api_client).await?;
                 }
                 CallbackData::ToDepositSelectGateway => {
                     dialogue
                         .update(BotState::DepositSelectGateway)
                         .await
                         .map_err(AppError::from)?;
+                    deposit_gateway_handler(bot, dialogue, q, username.clone(), api_client).await?;
                 }
                 CallbackData::ToBalance => {
                     dialogue
                         .update(BotState::Balance)
                         .await
                         .map_err(AppError::from)?;
+                    balance_handler(bot, dialogue, q, username, api_client).await?;
                 }
                 CallbackData::ToMyOrders => {
                     dialogue

@@ -3,24 +3,49 @@ use std::sync::Arc;
 use crate::api::backend_api::BackendApi;
 use crate::bot::{BotState, InvoiceData, MyDialogue};
 use crate::errors::AppResult;
+use teloxide::dispatching::dialogue::GetChatId;
 use teloxide::prelude::*;
-use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, ParseMode};
+use teloxide::types::{
+    InlineKeyboardButton, InlineKeyboardMarkup, MaybeInaccessibleMessage, ParseMode,
+};
 use url::Url;
 
 pub async fn deposit_confirm_handler(
     bot: Bot,
-    msg: Message,
+    q: CallbackQuery,
     dialogue: MyDialogue,
     api_client: Arc<BackendApi>,
     bot_state: BotState,
 ) -> AppResult<()> {
+    let chat_id = match q.chat_id() {
+        Some(chat_id) => chat_id,
+        None => {
+            tracing::error!("No chat id found");
+            return Ok(());
+        }
+    };
+    let message_id = match &q.message {
+        Some(MaybeInaccessibleMessage::Regular(msg)) => msg.id,
+        Some(MaybeInaccessibleMessage::Inaccessible(_)) => {
+            tracing::error!("Inaccessible message found");
+            return Ok(());
+        }
+        None => {
+            tracing::error!("No message found");
+            return Ok(());
+        }
+    };
+
     let (gateway, amount, invoice_data) = match bot_state {
         BotState::DepositConfirm {
             gateway,
             amount,
             invoice,
         } => (gateway, amount, invoice),
-        _ => return Ok(()),
+        _ => {
+            tracing::error!("Expected DepositConfirm bot state");
+            return Ok(());
+        }
     };
     let telegram_id = dialogue.chat_id().0;
     let response = match api_client
@@ -29,10 +54,11 @@ pub async fn deposit_confirm_handler(
     {
         Ok(res) => res,
         Err(err) => {
+            tracing::error!("Error creating invoice: {err}");
             bot.edit_message_text(
                 ChatId(telegram_id),
-                msg.id,
-                format!("Не удалось создать счет: {}", err),
+                message_id,
+                "Что-то пошло не так. Попробуйте ещё раз.",
             )
             .send()
             .await?;
@@ -86,7 +112,7 @@ pub async fn deposit_confirm_handler(
     }
     keyboard.push(vec![InlineKeyboardButton::callback("⬅️ Назад", "deposit")]);
 
-    bot.edit_message_text(msg.chat.id, msg.id, text)
+    bot.edit_message_text(chat_id, message_id, text)
         .reply_markup(InlineKeyboardMarkup::new(keyboard))
         .parse_mode(ParseMode::Html)
         .send()
