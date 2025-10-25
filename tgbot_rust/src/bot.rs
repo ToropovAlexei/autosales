@@ -315,7 +315,7 @@ pub async fn start_bot<'a>(
                 async move |update: Update, api_client: Arc<BackendApi>, me: Me| {
                     let chat_id = match update.chat() {
                         Some(chat) => chat.id,
-                        None => return true,
+                        None => return false,
                     };
                     match api_client
                         .get_user(chat_id.0, &me.user.username.unwrap_or_default())
