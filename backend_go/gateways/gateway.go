@@ -14,7 +14,7 @@ type InvoiceCreationRequest struct {
 // Invoice represents the response from a payment gateway after creating an invoice.
 type Invoice struct {
 	GatewayInvoiceID string      `json:"gateway_invoice_id"` // The ID of the invoice in the gateway's system
-	PayURL           string      `json:"pay_url"`            // The URL the user should be redirected to for payment
+	PayURL           *string     `json:"pay_url,omitempty"`  // The URL the user should be redirected to for payment
 	Details          interface{} `json:"details,omitempty"`  // For providers that return structured data instead of a URL
 }
 

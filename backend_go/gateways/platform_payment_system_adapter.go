@@ -40,7 +40,7 @@ func (a *platformPaymentSystemAdapter) CreateInvoice(req *InvoiceCreationRequest
 
 	return &Invoice{
 		GatewayInvoiceID: resp.Data.DataRequisite.ObjectToken,
-		PayURL:           "", // No payment URL for this provider
+		PayURL:           nil, // No payment URL for this provider
 		Details:          resp.Data.DataRequisite,
 	}, nil
 }

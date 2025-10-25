@@ -8,9 +8,9 @@ import (
 )
 
 type SettingService struct {
-	repo             repositories.SettingRepository
-	userRepository   repositories.UserRepository
-	auditLogService  AuditLogService
+	repo            repositories.SettingRepository
+	userRepository  repositories.UserRepository
+	auditLogService AuditLogService
 }
 
 func NewSettingService(repo repositories.SettingRepository, userRepository repositories.UserRepository, auditLogService AuditLogService) *SettingService {
@@ -44,6 +44,7 @@ func (s *SettingService) GetPublicSettings() (map[string]string, error) {
 		"GATEWAY_BONUS_platform_card",
 		"GATEWAY_BONUS_platform_sbp",
 		"support_message",
+		"welcome_message",
 	}
 
 	for _, key := range publicKeys {

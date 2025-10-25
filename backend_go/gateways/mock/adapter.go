@@ -67,7 +67,7 @@ func (a *MockGatewayAdapter) CreateInvoice(req *gateways.InvoiceCreationRequest)
 
 	return &gateways.Invoice{
 		GatewayInvoiceID: respData.InvoiceID,
-		PayURL:           respData.PayURL,
+		PayURL:           &respData.PayURL,
 	}, nil
 }
 

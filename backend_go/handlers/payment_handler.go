@@ -45,7 +45,7 @@ func (h *PaymentHandler) GetGatewaysHandler(c *gin.Context) {
 type createInvoicePayload struct {
 	GatewayName string  `json:"gateway_name" binding:"required"`
 	Amount      float64 `json:"amount" binding:"required,gt=0"`
-	BotUserID   uint    `json:"bot_user_id" binding:"required"`
+	TelegramID  int64   `json:"telegram_id" binding:"required"`
 }
 
 // @Summary      Create Payment Invoice
@@ -66,7 +66,7 @@ func (h *PaymentHandler) CreateInvoiceHandler(c *gin.Context) {
 		return
 	}
 
-	invoice, err := h.paymentService.CreateInvoice(json.BotUserID, json.GatewayName, json.Amount)
+	invoice, err := h.paymentService.CreateInvoice(json.TelegramID, json.GatewayName, json.Amount)
 	if err != nil {
 		c.Error(err)
 		return
