@@ -119,6 +119,14 @@ impl BackendApi {
             .map(|val| val.to_string())
     }
 
+    pub async fn get_welcome_msg(&self) -> Option<String> {
+        self.get_settings()
+            .await
+            .ok()
+            .and_then(|settings| settings.get("welcome_message").cloned())
+            .map(|val| val.to_string())
+    }
+
     pub async fn get_payment_gateways(&self) -> Vec<PaymentGateway> {
         self.api_client
             .get::<BackendResponse<Vec<PaymentGateway>>>(&"gateways")
@@ -132,11 +140,11 @@ impl BackendApi {
         &self,
         gateway_name: &str,
         amount: f64,
-        bot_user_id: i64,
+        telegram_id: i64,
     ) -> AppResult<InvoiceResponse> {
         self.api_client.post_with_body::<BackendResponse<InvoiceResponse>, _>(
             "deposit/invoice",
-            &json!({"bot_user_id": bot_user_id, "gateway_name": gateway_name, "amount": amount}),
+            &json!({"telegram_id": telegram_id, "gateway_name": gateway_name, "amount": amount}),
         )
         .await
         .and_then(|res| {

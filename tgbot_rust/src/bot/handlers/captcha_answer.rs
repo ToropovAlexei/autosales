@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::api::captcha_api::CaptchaApi;
 use crate::bot::keyboards::captcha::captcha_keyboard_inline;
 use crate::bot::keyboards::main_menu::main_menu_inline_keyboard;
-use crate::bot::{BotState, generate_captcha_and_options};
+use crate::bot::{BotState, CallbackData, generate_captcha_and_options};
 use crate::{api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult};
 use teloxide::Bot;
 use teloxide::payloads::EditMessageMediaSetters;
@@ -25,8 +25,17 @@ pub async fn captcha_answer_handler(
         _ => return Ok(()),
     };
 
-    let data = match q.data.as_deref() {
-        Some(d) => d,
+    let user_answer = match CallbackData::from_query(&q) {
+        Some(d) => match d {
+            CallbackData::AnswerCaptcha { answer } => answer,
+            _ => {
+                tracing::error!("Invalid callback data");
+                bot.answer_callback_query(q.id)
+                    .text("Что-то пошло не так. Попробуйте ещё раз")
+                    .await?;
+                return Ok(());
+            }
+        },
         None => {
             tracing::error!("No callback data");
             bot.answer_callback_query(q.id)
@@ -36,17 +45,7 @@ pub async fn captcha_answer_handler(
         }
     };
 
-    if !data.starts_with("captcha_") {
-        tracing::error!("Invalid callback data: {data}");
-        bot.answer_callback_query(q.id)
-            .text("Что-то пошло не так. Попробуйте ещё раз")
-            .await?;
-        return Ok(());
-    }
-
-    let answer = data.trim_start_matches("captcha_");
-
-    if answer.to_string() == correct_answer {
+    if user_answer == correct_answer {
         if let Err(e) = api_client.confirm_user_captcha(dialogue.chat_id().0).await {
             tracing::error!("Error confirming user captcha: {e}");
             bot.answer_callback_query(q.id)
@@ -63,22 +62,18 @@ pub async fn captcha_answer_handler(
             // ...
 
             let referral_program_enabled = api_client.is_referral_program_enabled().await;
+            let welcome_msg = match api_client.get_welcome_msg().await {
+                Some(msg) => msg.replace("{username}", &q.from.full_name()),
+                None => {
+                    tracing::error!("No welcome message found");
+                    return Ok(());
+                }
+            };
 
-            bot.send_message(
-                msg.chat().id,
-                format!(
-                    "Добро пожаловать, {}!\n\n\
-                    Я - ваш личный помощник для покупок. Здесь вы можете:\n\
-                    - 🛍️ Смотреть каталог товаров\n\
-                    - 💰 Пополнять баланс\n\
-                    - 💳 Проверять свой счет\n\n\
-                    Выберите действие в меню ниже:",
-                    q.from.full_name(),
-                ),
-            )
-            .parse_mode(ParseMode::Html)
-            .reply_markup(main_menu_inline_keyboard(referral_program_enabled))
-            .await?;
+            bot.send_message(msg.chat().id, welcome_msg)
+                .parse_mode(ParseMode::Html)
+                .reply_markup(main_menu_inline_keyboard(referral_program_enabled))
+                .await?;
         }
 
         dialogue.exit().await?;

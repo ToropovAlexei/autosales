@@ -22,13 +22,10 @@ use crate::{
     AppState,
     api::{backend_api::BackendApi, captcha_api::CaptchaApi},
     bot::handlers::{
-        balance::balance_handler,
-        deposit_amount::{self, deposit_amount_handler},
-        deposit_confirm::deposit_confirm_handler,
-        deposit_gateway::deposit_gateway_handler,
-        main_menu::main_menu_handler,
-        start::start_handler,
-        support::support_handler,
+        balance::balance_handler, captcha_answer::captcha_answer_handler,
+        deposit_amount::deposit_amount_handler, deposit_confirm::deposit_confirm_handler,
+        deposit_gateway::deposit_gateway_handler, main_menu::main_menu_handler,
+        start::start_handler, support::support_handler,
     },
     errors::{AppError, AppResult},
     models::DispatchMessagePayload,
@@ -207,7 +204,8 @@ pub async fn start_bot(
                     bot: Bot,
                     username: String,
                     api_client: Arc<BackendApi>,
-                    bot_state: BotState|
+                    bot_state: BotState,
+                    captcha_api_client: Arc<CaptchaApi>|
                     -> AppResult<()> {
             let data = match CallbackData::from_query(&q) {
                 Some(data) => data,
@@ -215,13 +213,16 @@ pub async fn start_bot(
             };
 
             match data {
-                CallbackData::AnswerCaptcha { answer } => {
-                    dialogue
-                        .update(BotState::WaitingForCaptcha {
-                            correct_answer: answer,
-                        })
-                        .await
-                        .map_err(AppError::from)?;
+                CallbackData::AnswerCaptcha { .. } => {
+                    captcha_answer_handler(
+                        bot,
+                        dialogue,
+                        q,
+                        username,
+                        api_client,
+                        captcha_api_client,
+                    )
+                    .await?;
                 }
                 CallbackData::SelectGateway { gateway } => {
                     dialogue
