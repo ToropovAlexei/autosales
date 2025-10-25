@@ -72,9 +72,9 @@ class APIClient:
     async def get_payment_gateways(self):
         return await self._request("GET", "/gateways")
 
-    async def create_deposit_invoice(self, bot_user_id: int, gateway_name: str, amount: float):
+    async def create_deposit_invoice(self, telegram_id: int, gateway_name: str, amount: float):
         return await self._request("POST", "/deposit/invoice", json={
-            "bot_user_id": bot_user_id,
+            "telegram_id": telegram_id,
             "gateway_name": gateway_name,
             "amount": amount
         })

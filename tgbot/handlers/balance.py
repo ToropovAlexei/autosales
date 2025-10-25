@@ -66,18 +66,12 @@ async def select_gateway_handler(callback_query: CallbackQuery, callback_data: P
 @router.callback_query(PaymentCallback.filter(F.action == 'select_amount'))
 async def select_amount_handler(callback_query: CallbackQuery, callback_data: PaymentCallback, api_client: APIClient):
     try:
-        # We need the internal bot_user_id, not the telegram_id
-        user_response = await api_client.get_user(callback_query.from_user.id)
-        if not user_response.get("success"):
-            await callback_query.message.edit_text("Ошибка: не удалось найти вашего пользователя в системе.")
-            await callback_query.answer()
-            return
-        
-        bot_user_id = user_response["data"]["id"]
+        # Use telegram_id directly
+        telegram_id = callback_query.from_user.id
         amount = callback_data.amount
         gateway = callback_data.gateway
 
-        response = await api_client.create_deposit_invoice(bot_user_id, gateway, amount)
+        response = await api_client.create_deposit_invoice(telegram_id, gateway, amount)
 
         if response.get("success"):
             invoice_data = response["data"]
