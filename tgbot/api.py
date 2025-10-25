@@ -26,11 +26,15 @@ class APIClient:
     async def get_public_settings(self):
         if not self._public_settings:
             await self.load_public_settings()
-        return self._public_settings
+        return self._public_settings.get("data", {})
 
     async def get_support_message(self):
         public_settings = await self.get_public_settings()
         return public_settings.get("support_message", "Что-то пошло не так, попробуйте позже.")
+
+    async def get_welcome_message(self):
+        public_settings = await self.get_public_settings()
+        return public_settings.get("welcome_message", "Привет! Я бот магазина. Используйте меню ниже для навигации.")
 
     async def register_user(self, telegram_id: int):
         return await self._request("POST", "/users/register", json={"telegram_id": telegram_id, "bot_name": self.bot_username})
@@ -86,8 +90,6 @@ class APIClient:
     async def get_referral_bots(self):
         return await self._request("GET", "/referrals")
 
-    async def get_public_settings(self):
-        return await self._request("GET", "/settings/public")
 
     async def create_referral_bot(self, owner_telegram_id: int, bot_token: str):
         return await self._request("POST", "/referrals", json={"owner_id": owner_telegram_id, "bot_token": bot_token})

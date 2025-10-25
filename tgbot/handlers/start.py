@@ -78,8 +78,10 @@ async def start_handler(message: Message, state: FSMContext, api_client: APIClie
                 seller_info_response = await api_client.get_public_settings()
                 referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False) == 'true'
 
+                welcome_message = await api_client.get_welcome_message()
+                welcome_message = welcome_message.replace("{username}", hbold(message.from_user.full_name))
                 await message.answer(
-                    f"С возвращением, {hbold(message.from_user.full_name)}!",
+                    welcome_message,
                     reply_markup=inline.main_menu(
                         referral_program_enabled=referral_program_enabled,
                         bot_type=settings.bot_type
@@ -118,13 +120,10 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
         seller_info_response = await api_client.get_public_settings()
         referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
 
+        welcome_message = await api_client.get_welcome_message()
+        welcome_message = welcome_message.replace("{username}", hbold(callback_query.from_user.full_name))
         await callback_query.message.answer(
-            f"Добро пожаловать, {hbold(callback_query.from_user.full_name)}!\n\n"
-            f"Я - ваш личный помощник для покупок. Здесь вы можете:\n"
-            f"- 🛍️ Смотреть каталог товаров\n"
-            f"- 💰 Пополнять баланс\n"
-            f"- 💳 Проверять свой счет\n\n"
-            f"Выберите действие в меню ниже:",
+            welcome_message,
             reply_markup=inline.main_menu(
                 referral_program_enabled=referral_program_enabled,
                 bot_type=settings.bot_type
