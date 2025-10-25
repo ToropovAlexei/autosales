@@ -33,6 +33,8 @@ export interface IProduct {
   subscription_period_days: number;
   provider?: string;
   external_id?: string;
+  image_id?: string;
+  image_url?: string;
 }
 
 export interface IFilter {

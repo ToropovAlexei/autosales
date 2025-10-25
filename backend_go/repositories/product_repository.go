@@ -34,7 +34,7 @@ func (r *gormProductRepository) WithTx(tx *gorm.DB) ProductRepository {
 
 func (r *gormProductRepository) GetProducts(filters []models.Filter) ([]models.Product, error) {
 	var products []models.Product
-	db := r.db.Model(&models.Product{}).Where("visible = ?", true)
+	db := r.db.Model(&models.Product{}).Preload("Image").Where("visible = ?", true)
 	db = ApplyFilters[models.Product](db, filters)
 	if err := db.Find(&products).Error; err != nil {
 		return nil, err
@@ -44,7 +44,7 @@ func (r *gormProductRepository) GetProducts(filters []models.Filter) ([]models.P
 
 func (r *gormProductRepository) GetProductByID(id uint) (*models.Product, error) {
 	var product models.Product
-	if err := r.db.First(&product, id).Error; err != nil {
+	if err := r.db.Preload("Image").First(&product, id).Error; err != nil {
 		return nil, err
 	}
 	return &product, nil

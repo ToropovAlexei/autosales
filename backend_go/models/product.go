@@ -1,6 +1,10 @@
 package models
 
-import "database/sql"
+import (
+	"database/sql"
+
+	"github.com/google/uuid"
+)
 
 type Product struct {
 	ID                     uint           `gorm:"primaryKey" json:"id"`
@@ -8,6 +12,8 @@ type Product struct {
 	Price                  float64        `json:"price"`
 	CategoryID             uint           `json:"category_id"`
 	Category               Category       `gorm:"foreignKey:CategoryID" json:"category"`
+	ImageID                *uuid.UUID     `gorm:"type:uuid" json:"image_id"`
+	Image                  *Image         `gorm:"foreignKey:ImageID" json:"image"`
 	Type                   string         `gorm:"default:'item'" json:"type"`
 	SubscriptionPeriodDays int            `gorm:"default:0" json:"subscription_period_days"`
 	Details                sql.NullString `gorm:"type:jsonb" json:"details"`
@@ -21,6 +27,7 @@ type ProductResponse struct {
 	Name                   string  `json:"name"`
 	Price                  float64 `json:"price"`
 	CategoryID             uint    `json:"category_id"`
+	ImageUrl               string  `json:"image_url"`
 	Stock                  int     `json:"stock"`
 	Type                   string  `json:"type"`
 	SubscriptionPeriodDays int     `json:"subscription_period_days"`

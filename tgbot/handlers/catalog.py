@@ -195,12 +195,45 @@ async def product_handler(callback_query: CallbackQuery, api_client: APIClient):
             products = response["data"]
             product = next((p for p in products if p.get('id') == product_id), None)
             if product:
-                await callback_query.message.edit_text(
+                caption = (
                     f"{hbold(product['name'])}\n\n"
-                    f"{hitalic('Цена:')} {product['price']} ₽",
-                    reply_markup=product_card(product),
-                    parse_mode="HTML"
+                    f"{hitalic('Цена:')} {product['price']} ₽"
                 )
+                reply_markup = product_card(product)
+
+                if product.get('image_url'):
+                    image_url = f"{settings.api_url.rstrip('/')}/images/{product['image_url']}"
+                    try:
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(image_url) as resp:
+                                if resp.status == 200:
+                                    image_bytes = await resp.read()
+                                    await callback_query.message.answer_photo(
+                                        photo=BufferedInputFile(image_bytes, filename="image.jpg"),
+                                        caption=caption,
+                                        reply_markup=reply_markup,
+                                        parse_mode="HTML"
+                                    )
+                                    await callback_query.message.delete()
+                                else:
+                                    await callback_query.message.edit_text(
+                                        caption,
+                                        reply_markup=reply_markup,
+                                        parse_mode="HTML"
+                                    )
+                    except Exception as e:
+                        logging.exception(f"Error sending photo for product {product_id}: {e}")
+                        await callback_query.message.edit_text(
+                            caption,
+                            reply_markup=reply_markup,
+                            parse_mode="HTML"
+                        )
+                else:
+                    await callback_query.message.edit_text(
+                        caption,
+                        reply_markup=reply_markup,
+                        parse_mode="HTML"
+                    )
             else:
                 await callback_query.message.edit_text("Товар не найден.")
         else:
@@ -228,13 +261,46 @@ async def external_product_handler(callback_query: CallbackQuery, api_client: AP
             if product:
                 # Assuming external products are always subscriptions
                 description = f"Подписка на {product.get('subscription_period_days', 30)} дней"
-                await callback_query.message.edit_text(
+                caption = (
                     f"{hbold(product['name'])}\n\n"
                     f"{hitalic(description)}\n\n"
-                    f"{hitalic('Цена:')} {product['price']} ₽",
-                    reply_markup=product_card(product),
-                    parse_mode="HTML"
+                    f"{hitalic('Цена:')} {product['price']} ₽"
                 )
+                reply_markup = product_card(product)
+
+                if product.get('image_url'):
+                    image_url = f"{settings.api_url.rstrip('/')}/images/{product['image_url']}"
+                    try:
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(image_url) as resp:
+                                if resp.status == 200:
+                                    image_bytes = await resp.read()
+                                    await callback_query.message.answer_photo(
+                                        photo=BufferedInputFile(image_bytes, filename="image.jpg"),
+                                        caption=caption,
+                                        reply_markup=reply_markup,
+                                        parse_mode="HTML"
+                                    )
+                                    await callback_query.message.delete()
+                                else:
+                                    await callback_query.message.edit_text(
+                                        caption,
+                                        reply_markup=reply_markup,
+                                        parse_mode="HTML"
+                                    )
+                    except Exception as e:
+                        logging.exception(f"Error sending photo for external product {external_id}: {e}")
+                        await callback_query.message.edit_text(
+                            caption,
+                            reply_markup=reply_markup,
+                            parse_mode="HTML"
+                        )
+                else:
+                    await callback_query.message.edit_text(
+                        caption,
+                        reply_markup=reply_markup,
+                        parse_mode="HTML"
+                    )
             else:
                 await callback_query.message.edit_text("Товар не найден.")
         else:

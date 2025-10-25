@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 type ProductHandler struct {
@@ -64,14 +65,15 @@ func (h *ProductHandler) GetProductsHandler(c *gin.Context) {
 }
 
 type productCreatePayload struct {
-	Name                   string  `json:"name" binding:"required"`
-	CategoryID             uint    `json:"category_id" binding:"required"`
-	Price                  float64 `json:"price" binding:"gte=0"`
-	InitialStock           int     `json:"initial_stock" binding:"gte=0"`
-	Type                   string  `json:"type" binding:"oneof=item subscription"`
-	SubscriptionPeriodDays int     `json:"subscription_period_days" binding:"gte=0"`
-	FulfillmentType        string  `json:"fulfillment_type"`
-	FulfillmentContent     string  `json:"fulfillment_content"`
+	Name                   string     `json:"name" binding:"required"`
+	CategoryID             uint       `json:"category_id" binding:"required"`
+	Price                  float64    `json:"price" binding:"gte=0"`
+	InitialStock           int        `json:"initial_stock" binding:"gte=0"`
+	ImageID                *uuid.UUID `json:"image_id"`
+	Type                   string     `json:"type" binding:"oneof=item subscription"`
+	SubscriptionPeriodDays int        `json:"subscription_period_days" binding:"gte=0"`
+	FulfillmentType        string     `json:"fulfillment_type"`
+	FulfillmentContent     string     `json:"fulfillment_content"`
 }
 
 // @Summary      Create a product
@@ -92,7 +94,7 @@ func (h *ProductHandler) CreateProductHandler(c *gin.Context) {
 		return
 	}
 
-	product, err := h.productService.CreateProduct(c, json.Name, json.CategoryID, json.Price, json.InitialStock, json.Type, json.SubscriptionPeriodDays, json.FulfillmentType, json.FulfillmentContent)
+	product, err := h.productService.CreateProduct(c, json.Name, json.CategoryID, json.Price, json.InitialStock, json.Type, json.SubscriptionPeriodDays, json.FulfillmentType, json.FulfillmentContent, json.ImageID)
 	if err != nil {
 		c.Error(err)
 		return

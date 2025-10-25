@@ -6,11 +6,13 @@ import {
   GridActionsCellItem,
   GridPaginationModel,
   GridFilterModel,
+  GridSortModel,
 } from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
 import { IProduct } from "@/types";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import { CONFIG } from "../../../../../config";
 
 interface ProductsTableProps {
   products: IProduct[];
@@ -45,6 +47,19 @@ export const ProductsTable = ({
 }: ProductsTableProps) => {
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", width: 90, filterable: false }, // Not reliable for sorting/filtering
+    {
+      field: "image_url",
+      headerName: "Изображение",
+      width: 120,
+      renderCell: ({ row }) =>
+        row.image_url ? (
+          <img
+            src={`${CONFIG.IMAGES_URL}/${row.image_url}`}
+            alt={row.name}
+            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+          />
+        ) : null,
+    },
     { field: "name", headerName: "Название", width: 250, flex: 1 },
     {
       field: "type",

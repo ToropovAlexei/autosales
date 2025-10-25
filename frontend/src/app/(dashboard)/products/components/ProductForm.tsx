@@ -9,14 +9,22 @@ import {
   Button,
 } from "@mui/material";
 import { ICategory, IProduct } from "@/types";
-import { InputText, InputSelect, InputNumber } from "@/components/form";
 import { useState } from "react";
-import { ConfirmModal } from "@/components";
+import {
+  ConfirmModal,
+  SelectImage,
+  InputText,
+  InputSelect,
+  InputNumber,
+} from "@/components";
+import { CONFIG } from "../../../../../config";
+import classes from "./styles.module.css";
 
 interface ProductFormData {
   name: string;
   category_id: number;
   price: number;
+  image_id?: string;
   initial_stock?: number;
   stock?: number;
   type: "item" | "subscription";
@@ -61,6 +69,7 @@ export const ProductForm = ({
     open: boolean;
     data: ProductFormData | null;
   }>({ open: false, data: null });
+  const [isImageSelectorOpen, setIsImageSelectorOpen] = useState(false);
 
   const form = useForm<ProductFormData>({
     defaultValues: {
@@ -69,16 +78,23 @@ export const ProductForm = ({
       price: defaultValues?.price || 0,
       type: defaultValues?.type || "item",
       stock: defaultValues?.stock || 0,
+      image_id: defaultValues?.image_url ? defaultValues.image_url.split('/').pop() : undefined,
       initial_stock: !isEditMode ? 0 : undefined,
       subscription_period_days: defaultValues?.subscription_period_days || 30,
       fulfillment_type: defaultValues?.fulfillment_type || "none",
       fulfillment_content: defaultValues?.fulfillment_content || "",
     },
   });
-  const { handleSubmit, watch } = form;
+  const { handleSubmit, watch, setValue } = form;
 
   const productType = watch("type");
   const fulfillmentType = watch("fulfillment_type");
+  const imageId = watch("image_id");
+
+  const handleImageSelect = (image: { ID: string }) => {
+    setValue("image_id", image.ID);
+    setIsImageSelectorOpen(false);
+  };
 
   const proceedToConfirm = (data: ProductFormData) => {
     const payload: Partial<IProduct> = {
@@ -87,6 +103,7 @@ export const ProductForm = ({
       category_id: data.category_id,
       price: data.price,
       type: data.type,
+      image_id: data.image_id,
     };
 
     if (data.type === "item") {
@@ -195,6 +212,22 @@ export const ProductForm = ({
                   rows={4}
                 />
               )}
+              <div className={classes.selectImg}>
+                <Button
+                  variant="outlined"
+                  onClick={() => setIsImageSelectorOpen(true)}
+                >
+                  Выбрать изображение
+                </Button>
+                {imageId && (
+                  <img
+                    className={classes.img}
+                    src={`${CONFIG.IMAGES_URL}/${imageId}`}
+                    alt="Preview"
+                    width="30%"
+                  />
+                )}
+              </div>
             </DialogContent>
             <DialogActions>
               <Button onClick={onClose}>Отмена</Button>
@@ -213,6 +246,11 @@ export const ProductForm = ({
         title="Подтверждение"
         contentText="Вы уверены, что хотите разместить товар в категории, у которой есть подкатегории?"
         confirmBtnText="Да, уверен"
+      />
+      <SelectImage
+        open={isImageSelectorOpen}
+        onClose={() => setIsImageSelectorOpen(false)}
+        onSelect={handleImageSelect}
       />
     </>
   );

@@ -1,0 +1,11 @@
+.selectImg {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.img {
+    max-width: 100px;
+    max-height: 100px;
+    object-fit: contain;
+}

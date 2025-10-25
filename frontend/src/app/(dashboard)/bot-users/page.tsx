@@ -24,7 +24,7 @@ export default function BotUsersPage() {
     mutationFn: (user: BotUser) =>
       dataLayer.update({
         url: ENDPOINTS.TOGGLE_BLOCK,
-        meta: { ":id": user.telegram_id },
+        meta: { ":id": user.id },
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({

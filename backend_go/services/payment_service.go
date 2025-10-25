@@ -1,6 +1,7 @@
 package services
 
 import (
+	"errors"
 	"fmt"
 	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/config"
@@ -17,7 +18,7 @@ import (
 
 // CreateInvoiceResponse is a custom response that includes both external gateway data and our internal OrderID
 type CreateInvoiceResponse struct {
-	PayURL           string      `json:"pay_url"`
+	PayURL           *string     `json:"pay_url,omitempty"`
 	GatewayInvoiceID string      `json:"gateway_invoice_id"`
 	OrderID          string      `json:"order_id"` // Our internal ID
 	Details          interface{} `json:"details,omitempty"`
@@ -25,7 +26,7 @@ type CreateInvoiceResponse struct {
 
 type PaymentService interface {
 	GetAvailableGateways() []gateways.PaymentGateway
-	CreateInvoice(userID uint, gatewayName string, amount float64) (*CreateInvoiceResponse, error)
+	CreateInvoice(telegramID int64, gatewayName string, amount float64) (*CreateInvoiceResponse, error)
 	SetInvoiceMessageID(orderID string, messageID int64) error
 	HandleWebhook(gatewayName string, r *http.Request) error
 	NotifyUnfinishedPayments() error
@@ -60,7 +61,7 @@ func (s *paymentService) GetAvailableGateways() []gateways.PaymentGateway {
 	return s.registry.GetAllProviders()
 }
 
-func (s *paymentService) CreateInvoice(botUserID uint, gatewayName string, amount float64) (*CreateInvoiceResponse, error) {
+func (s *paymentService) CreateInvoice(telegramID int64, gatewayName string, amount float64) (*CreateInvoiceResponse, error) {
 	if gatewayName == "" {
 		settings, err := s.settingService.GetSettings()
 		if err != nil {
@@ -79,11 +80,19 @@ func (s *paymentService) CreateInvoice(botUserID uint, gatewayName string, amoun
 		return nil, apperrors.New(http.StatusBadRequest, "Invalid payment gateway", err)
 	}
 
+	botUser, err := s.botUserRepo.FindByTelegramID(telegramID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.New(http.StatusNotFound, "Bot user not found", err)
+		}
+		return nil, apperrors.New(http.StatusInternalServerError, "Failed to find bot user", err)
+	}
+
 	orderID := uuid.New().String()
 
 	invoiceReq := &gateways.InvoiceCreationRequest{
 		Amount:  amount,
-		UserID:  botUserID,
+		UserID:  botUser.ID,
 		OrderID: orderID,
 	}
 
@@ -93,7 +102,7 @@ func (s *paymentService) CreateInvoice(botUserID uint, gatewayName string, amoun
 	}
 
 	dbInvoice := &models.PaymentInvoice{
-		BotUserID:        botUserID,
+		BotUserID:        botUser.ID,
 		Amount:           amount,
 		Status:           models.InvoiceStatusPending,
 		Gateway:          gatewayName,

@@ -15,25 +15,27 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // ProductUpdatePayload is the DTO for partial product updates.
 type ProductUpdatePayload struct {
-	Name                   *string  `json:"name"`
-	CategoryID             *uint    `json:"category_id"`
-	Price                  *float64 `json:"price" binding:"omitempty,gte=0"`
-	Type                   *string  `json:"type" binding:"omitempty,oneof=item subscription"`
-	SubscriptionPeriodDays *int     `json:"subscription_period_days" binding:"omitempty,gte=0"`
-	Stock                  *int     `json:"stock" binding:"omitempty,gte=0"`
-	FulfillmentType        *string  `json:"fulfillment_type"`
-	FulfillmentContent     *string  `json:"fulfillment_content"`
+	Name                   *string    `json:"name"`
+	CategoryID             *uint      `json:"category_id"`
+	Price                  *float64   `json:"price" binding:"omitempty,gte=0"`
+	ImageID                *uuid.UUID `json:"image_id"`
+	Type                   *string    `json:"type" binding:"omitempty,oneof=item subscription"`
+	SubscriptionPeriodDays *int       `json:"subscription_period_days" binding:"omitempty,gte=0"`
+	Stock                  *int       `json:"stock" binding:"omitempty,gte=0"`
+	FulfillmentType        *string    `json:"fulfillment_type"`
+	FulfillmentContent     *string    `json:"fulfillment_content"`
 }
 
 type ProductService interface {
 	GetProducts(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.ProductResponse], error)
 	GetProductsForBot(categoryID uint) ([]models.ProductResponse, error)
 	GetProduct(id uint) (*models.ProductResponse, error)
-	CreateProduct(ctx *gin.Context, name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int, fulfillmentType string, fulfillmentContent string) (*models.ProductResponse, error)
+	CreateProduct(ctx *gin.Context, name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int, fulfillmentType string, fulfillmentContent string, imageID *uuid.UUID) (*models.ProductResponse, error)
 	UpdateProduct(ctx *gin.Context, id uint, payload ProductUpdatePayload) (*models.ProductResponse, error)
 	DeleteProduct(ctx *gin.Context, id uint) error
 	CreateStockMovement(ctx *gin.Context, productID uint, movementType models.StockMovementType, quantity int, description string, orderID *uint) (*models.StockMovement, error)
@@ -72,6 +74,10 @@ func (s *productService) GetProductsForBot(categoryID uint) ([]models.ProductRes
 		if err != nil {
 			return nil, err
 		}
+		var imageUrl string
+		if p.ImageID != nil {
+			imageUrl = p.ImageID.String()
+		}
 		allProducts = append(allProducts, models.ProductResponse{
 			ID:                     p.ID,
 			Name:                   p.Name,
@@ -83,6 +89,7 @@ func (s *productService) GetProductsForBot(categoryID uint) ([]models.ProductRes
 			Visible:                p.Visible,
 			FulfillmentType:        p.FulfillmentType,
 			FulfillmentContent:     p.FulfillmentContent,
+			ImageUrl:               imageUrl,
 		})
 	}
 
@@ -142,6 +149,10 @@ func (s *productService) GetProducts(page models.Page, filters []models.Filter) 
 		} else {
 			stock = -1
 		}
+		var imageUrl string
+		if p.ImageID != nil {
+			imageUrl = p.ImageID.String()
+		}
 		allProducts = append(allProducts, models.ProductResponse{
 			ID:                     p.ID,
 			Name:                   p.Name,
@@ -153,9 +164,9 @@ func (s *productService) GetProducts(page models.Page, filters []models.Filter) 
 			Visible:                p.Visible,
 			FulfillmentType:        p.FulfillmentType,
 			FulfillmentContent:     p.FulfillmentContent,
+			ImageUrl:               imageUrl,
 		})
 	}
-
 	// 2. Get and filter external products
 	providers := s.providerRegistry.GetAllProviders()
 	for _, provider := range providers {
@@ -412,6 +423,11 @@ func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
 		stock = -1
 	}
 
+	var imageUrl string
+	if product.ImageID != nil {
+		imageUrl = product.ImageID.String()
+	}
+
 	return &models.ProductResponse{
 		ID:                     product.ID,
 		Name:                   product.Name,
@@ -420,10 +436,11 @@ func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
 		Stock:                  stock,
 		Type:                   product.Type,
 		SubscriptionPeriodDays: product.SubscriptionPeriodDays,
+		ImageUrl:               imageUrl,
 	}, nil
 }
 
-func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int, fulfillmentType string, fulfillmentContent string) (*models.ProductResponse, error) {
+func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int, fulfillmentType string, fulfillmentContent string, imageID *uuid.UUID) (*models.ProductResponse, error) {
 	_, err := s.productRepo.FindCategoryByID(categoryID)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Resource: "Category", ID: categoryID}
@@ -461,6 +478,11 @@ func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID
 		stock = -1
 	}
 
+	var imageUrl string
+	if product.ImageID != nil {
+		imageUrl = product.ImageID.String()
+	}
+
 	response := &models.ProductResponse{
 		ID:                     product.ID,
 		Name:                   product.Name,
@@ -469,6 +491,7 @@ func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID
 		Stock:                  stock,
 		Type:                   product.Type,
 		SubscriptionPeriodDays: product.SubscriptionPeriodDays,
+		ImageUrl:               imageUrl,
 	}
 
 	s.auditLogService.Log(ctx, "PRODUCT_CREATE", "Product", product.ID, map[string]interface{}{"after": response})
@@ -582,6 +605,9 @@ func (s *productService) UpdateProduct(ctx *gin.Context, id uint, payload Produc
 	}
 	if payload.FulfillmentContent != nil {
 		updateMap["fulfillment_content"] = *payload.FulfillmentContent
+	}
+	if payload.ImageID != nil {
+		updateMap["image_id"] = *payload.ImageID
 	}
 
 	if len(updateMap) > 0 {
