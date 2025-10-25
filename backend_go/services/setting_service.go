@@ -45,6 +45,8 @@ func (s *SettingService) GetPublicSettings() (map[string]string, error) {
 		"GATEWAY_BONUS_platform_sbp",
 		"support_message",
 		"welcome_message",
+		"new_user_welcome_message",
+		"returning_user_welcome_message",
 	}
 
 	for _, key := range publicKeys {

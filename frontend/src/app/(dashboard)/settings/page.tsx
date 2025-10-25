@@ -164,12 +164,27 @@ export default function SettingsPage() {
           ) : (
             <>
               <TextField
-                label="Приветственное сообщение (используйте {username} для замены имени)"
+                label="Приветственное сообщение для новых пользователей (используйте {username} для замены имени)"
                 multiline
                 minRows={4}
-                value={settings?.welcome_message || ""}
+                value={settings?.new_user_welcome_message || ""}
                 onChange={(e) =>
-                  optimisticMutation("welcome_message", e.target.value)
+                  optimisticMutation("new_user_welcome_message", e.target.value)
+                }
+                fullWidth
+                margin="normal"
+                size="small"
+              />
+              <TextField
+                label="Приветственное сообщение для вернувшихся пользователей (используйте {username} для замены имени)"
+                multiline
+                minRows={4}
+                value={settings?.returning_user_welcome_message || ""}
+                onChange={(e) =>
+                  optimisticMutation(
+                    "returning_user_welcome_message",
+                    e.target.value
+                  )
                 }
                 fullWidth
                 margin="normal"

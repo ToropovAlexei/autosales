@@ -52,12 +52,13 @@ func createDefaultSettings(db *gorm.DB) {
 	fmt.Println("Creating default settings...")
 	settings := []models.Setting{
 		{Key: "support_message", Value: "Здравствуйте! Чем могу помочь? Наша служба поддержки работает с 9:00 до 18:00 по будням."},
-		{Key: "welcome_message", Value: `Добро пожаловать, {username}!
+		{Key: "new_user_welcome_message", Value: `Добро пожаловать, {username}!
                     Я - ваш личный помощник для покупок. Здесь вы можете:
                     - 🛍️ Смотреть каталог товаров
                     - 💰 Пополнять баланс
                     - 💳 Проверять свой счет
                     Выберите действие в меню ниже:`},
+		{Key: "returning_user_welcome_message", Value: `Добро пожаловать, {username}! Чем могу помочь?`},
 	}
 	for _, setting := range settings {
 		db.FirstOrCreate(&setting, models.Setting{Key: setting.Key})

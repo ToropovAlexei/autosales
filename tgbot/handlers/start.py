@@ -78,7 +78,7 @@ async def start_handler(message: Message, state: FSMContext, api_client: APIClie
                 seller_info_response = await api_client.get_public_settings()
                 referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False) == 'true'
 
-                welcome_message = await api_client.get_welcome_message()
+                welcome_message = await api_client.get_returning_user_welcome_message()
                 welcome_message = welcome_message.replace("{username}", hbold(message.from_user.full_name))
                 await message.answer(
                     welcome_message,
@@ -120,7 +120,7 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
         seller_info_response = await api_client.get_public_settings()
         referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
 
-        welcome_message = await api_client.get_welcome_message()
+        welcome_message = await api_client.get_new_user_welcome_message()
         welcome_message = welcome_message.replace("{username}", hbold(callback_query.from_user.full_name))
         await callback_query.message.answer(
             welcome_message,
