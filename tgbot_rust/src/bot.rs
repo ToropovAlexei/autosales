@@ -25,8 +25,8 @@ use crate::{
         handlers::{
             balance::balance_handler, captcha_answer::captcha_answer_handler,
             deposit_amount::deposit_amount_handler, deposit_confirm::deposit_confirm_handler,
-            deposit_gateway::deposit_gateway_handler, main_menu::main_menu_handler,
-            start::start_handler, support::support_handler,
+            deposit_gateway::deposit_gateway_handler, fallback_bot_msg::fallback_bot_msg,
+            main_menu::main_menu_handler, start::start_handler, support::support_handler,
         },
         keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard,
     },
@@ -155,9 +155,10 @@ pub enum Command {
 
 type MyDialogue = Dialogue<BotState, RedisStorage<Json>>;
 
-pub async fn start_bot(
+pub async fn start_bot<'a>(
     app_state: AppState,
     token: &str,
+    fallback_bot_username: &'a str,
     api_client: Arc<BackendApi>,
     captcha_api_client: Arc<CaptchaApi>,
     cancel_token: CancellationToken,
@@ -180,20 +181,6 @@ pub async fn start_bot(
     ));
 
     let handler = Update::filter_message()
-        .filter_async(
-            async move |msg: Message, api_client: Arc<BackendApi>, me: Me| match msg.chat_id() {
-                Some(telegram_id) => {
-                    match api_client
-                        .get_user(telegram_id.0, &me.user.username.unwrap_or_default())
-                        .await
-                    {
-                        Ok(user) => !user.is_blocked,
-                        Err(_) => true,
-                    }
-                }
-                None => true,
-            },
-        )
         .enter_dialogue::<Message, RedisStorage<Json>, BotState>()
         .branch(
             dptree::entry()
@@ -319,9 +306,38 @@ pub async fn start_bot(
         .enter_dialogue::<CallbackQuery, RedisStorage<Json>, BotState>()
         .branch(callback_router);
 
+    let fallback_bot_username = Arc::new(fallback_bot_username.to_string());
+
     let mut dispatcher = Dispatcher::builder(
         bot.clone(),
         dptree::entry()
+            .filter_async(
+                async move |update: Update, api_client: Arc<BackendApi>, me: Me| {
+                    let chat_id = match update.chat() {
+                        Some(chat) => chat.id,
+                        None => return true,
+                    };
+                    match api_client
+                        .get_user(chat_id.0, &me.user.username.unwrap_or_default())
+                        .await
+                    {
+                        Ok(user) => !user.is_blocked,
+                        Err(_) => true,
+                    }
+                },
+            )
+            .inspect_async(
+                async |bot: Bot, update: Update, fallback_bot_username: String| {
+                    let chat_id = match update.chat() {
+                        Some(chat) => chat.id,
+                        None => return,
+                    };
+
+                    if let Err(err) = fallback_bot_msg(bot, chat_id, fallback_bot_username).await {
+                        tracing::error!("Failed to send fallback bot message: {}", err);
+                    }
+                },
+            )
             .branch(handler)
             .branch(callback_query_handler),
     )
@@ -330,7 +346,8 @@ pub async fn start_bot(
         storage,
         username.clone(),
         api_client,
-        captcha_api_client
+        captcha_api_client,
+        fallback_bot_username
     ])
     .default_handler(|upd| async move {
         tracing::warn!("Unhandled update: {upd:?}");

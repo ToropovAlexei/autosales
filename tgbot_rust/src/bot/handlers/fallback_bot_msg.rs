@@ -1,0 +1,34 @@
+use crate::errors::AppResult;
+use teloxide::prelude::*;
+
+pub async fn fallback_bot_msg(
+    bot: Bot,
+    chat_id: ChatId,
+    fallback_bot_username: String,
+) -> AppResult<()> {
+    let new_text: String = format!("🤖 Наш резервный бот: @{fallback_bot_username}");
+    let chat = bot.get_chat(chat_id).await?;
+    if let Some(pinned) = chat.pinned_message {
+        if let Some(text) = &pinned.text() {
+            if text == &new_text {
+                return Ok(());
+            }
+        }
+    }
+
+    if let Err(err) = bot.unpin_all_chat_messages(chat_id).await {
+        tracing::warn!("Failed to unpin all messages: {:?}", err);
+    }
+
+    let sent = bot.send_message(chat_id, new_text).await?;
+
+    if let Err(err) = bot
+        .pin_chat_message(chat_id, sent.id)
+        .disable_notification(true)
+        .await
+    {
+        tracing::warn!("Failed to pin message: {:?}", err);
+    }
+
+    Ok(())
+}

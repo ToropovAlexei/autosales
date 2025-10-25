@@ -32,6 +32,7 @@ pub async fn manage_main_bots(app_state: AppState) -> AppResult<()> {
             if let Err(e) = start_bot(
                 app_state,
                 token,
+                "fallback_bot_username",
                 api_client,
                 captcha_api_client,
                 cancel_token,
