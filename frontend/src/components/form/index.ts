@@ -3,3 +3,4 @@ export * from "./InputPassword";
 export * from "./InputDate";
 export * from "./InputSelect";
 export * from "./InputNumber";
+export * from "./InputSwitch";
