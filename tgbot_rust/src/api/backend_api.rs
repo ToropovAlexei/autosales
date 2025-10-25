@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use reqwest::header;
 use serde_json::json;
+use teloxide::types::MessageId;
 
 use crate::{
     api::api_client::ApiClient,
@@ -152,5 +153,23 @@ impl BackendApi {
                 AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
             })
         })
+    }
+
+    pub async fn set_invoice_message_id(
+        &self,
+        order_id: &str,
+        message_id: MessageId,
+    ) -> AppResult<serde_json::Value> {
+        self.api_client
+            .patch_with_body::<BackendResponse<serde_json::Value>, _>(
+                &format!("invoices/{order_id}/message-id"),
+                &json!({"message_id": message_id.0}),
+            )
+            .await
+            .and_then(|res| {
+                res.data.ok_or_else(|| {
+                    AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
+                })
+            })
     }
 }

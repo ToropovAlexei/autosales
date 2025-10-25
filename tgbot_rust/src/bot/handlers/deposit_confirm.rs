@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::api::backend_api::BackendApi;
-use crate::bot::{BotState, InvoiceData, MyDialogue};
+use crate::bot::{BotState, CallbackData, InvoiceData, MyDialogue};
 use crate::errors::AppResult;
 use teloxide::dispatching::dialogue::GetChatId;
 use teloxide::prelude::*;
@@ -110,12 +110,20 @@ pub async fn deposit_confirm_handler(
             keyboard.push(vec![InlineKeyboardButton::url("Оплатить", pay_url)]);
         }
     }
-    keyboard.push(vec![InlineKeyboardButton::callback("⬅️ Назад", "deposit")]);
+    keyboard.push(vec![InlineKeyboardButton::callback(
+        "⬅️ Назад",
+        CallbackData::ToMainMenu,
+    )]);
 
-    bot.edit_message_text(chat_id, message_id, text)
+    let sent_msg = bot
+        .edit_message_text(chat_id, message_id, text)
         .reply_markup(InlineKeyboardMarkup::new(keyboard))
         .parse_mode(ParseMode::Html)
         .send()
+        .await?;
+
+    api_client
+        .set_invoice_message_id(&invoice_data.order_id, sent_msg.id)
         .await?;
 
     Ok(())

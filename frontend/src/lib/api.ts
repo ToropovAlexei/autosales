@@ -10,6 +10,7 @@ const getAuthToken = () => {
 
 export const newApi = ky.extend({
   prefixUrl: CONFIG.API_URL,
+  timeout: 30000,
   hooks: {
     beforeRequest: [
       (request) => {

@@ -58,6 +58,16 @@ impl ApiClient {
         Self::parse_response(response).await
     }
 
+    pub async fn patch_with_body<T, B>(&self, endpoint: &str, body: &B) -> AppResult<T>
+    where
+        T: DeserializeOwned + Send + 'static,
+        B: Serialize + ?Sized,
+    {
+        let url = self.base_url.join(endpoint)?;
+        let response = self.client.patch(url).json(body).send().await?;
+        Self::parse_response(response).await
+    }
+
     async fn parse_response<T>(response: Response) -> AppResult<T>
     where
         T: DeserializeOwned,

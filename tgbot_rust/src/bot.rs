@@ -21,11 +21,14 @@ use tokio_util::sync::CancellationToken;
 use crate::{
     AppState,
     api::{backend_api::BackendApi, captcha_api::CaptchaApi},
-    bot::handlers::{
-        balance::balance_handler, captcha_answer::captcha_answer_handler,
-        deposit_amount::deposit_amount_handler, deposit_confirm::deposit_confirm_handler,
-        deposit_gateway::deposit_gateway_handler, main_menu::main_menu_handler,
-        start::start_handler, support::support_handler,
+    bot::{
+        handlers::{
+            balance::balance_handler, captcha_answer::captcha_answer_handler,
+            deposit_amount::deposit_amount_handler, deposit_confirm::deposit_confirm_handler,
+            deposit_gateway::deposit_gateway_handler, main_menu::main_menu_handler,
+            start::start_handler, support::support_handler,
+        },
+        keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard,
     },
     errors::{AppError, AppResult},
     models::DispatchMessagePayload,
@@ -420,6 +423,7 @@ async fn handle_msg(bot: Bot, payload: DispatchMessagePayload) -> AppResult<()> 
         match bot
             .edit_message_text(chat_id, MessageId(msg_id), text.clone())
             .parse_mode(parse_mode.clone())
+            .reply_markup(back_to_main_menu_inline_keyboard())
             .send()
             .await
         {
@@ -433,6 +437,7 @@ async fn handle_msg(bot: Bot, payload: DispatchMessagePayload) -> AppResult<()> 
                 if let Err(e) = bot
                     .send_message(chat_id, text)
                     .parse_mode(parse_mode)
+                    .reply_markup(back_to_main_menu_inline_keyboard())
                     .send()
                     .await
                 {
@@ -450,6 +455,7 @@ async fn handle_msg(bot: Bot, payload: DispatchMessagePayload) -> AppResult<()> 
     if let Err(e) = bot
         .send_message(chat_id, text)
         .parse_mode(parse_mode)
+        .reply_markup(back_to_main_menu_inline_keyboard())
         .send()
         .await
     {
