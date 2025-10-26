@@ -4,7 +4,7 @@ import { useOne } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { PageLayout } from "@/components/PageLayout";
 import { ReferralProgramForm } from "./components/ReferralProgramForm";
-import { PaymentBonusesForm } from "./components/PaymentBonusesForm";
+import { PaymentDiscountsForm } from "./components/PaymentDiscountsForm";
 import { BotSettingsForm } from "./components/BotSettingsForm";
 import { Stack } from "@mui/material";
 
@@ -29,7 +29,7 @@ export default function SettingsPage() {
           isSettingsPending={isSettingsPending}
           refetchSettings={refetch}
         />
-        <PaymentBonusesForm
+        <PaymentDiscountsForm
           settings={settings}
           isSettingsPending={isSettingsPending}
           refetchSettings={refetch}

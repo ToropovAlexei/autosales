@@ -24,6 +24,7 @@ type PaymentInvoice struct {
 	BotUserID uint    `gorm:"index"`
 	BotUser   BotUser `gorm:"foreignKey:BotUserID"`
 
+	OriginalAmount      float64
 	Amount              float64
 	Status              InvoiceStatus `gorm:"index"`
 	Gateway             string        `gorm:"index"`

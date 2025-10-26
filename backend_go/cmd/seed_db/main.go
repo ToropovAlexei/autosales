@@ -74,6 +74,7 @@ func dropAllTables(db *gorm.DB) {
 		&models.PaymentInvoice{}, &models.Image{}, &models.UserPermission{},
 		&models.UserRole{}, &models.RolePermission{}, &models.Permission{}, &models.Role{},
 		&models.ActiveToken{},
+		&models.Setting{},
 	}
 	if err := db.Migrator().DropTable(tables...); err != nil {
 		log.Fatalf("Failed to drop tables: %v", err)

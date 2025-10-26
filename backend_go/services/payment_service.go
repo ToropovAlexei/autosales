@@ -90,8 +90,25 @@ func (s *paymentService) CreateInvoice(telegramID int64, gatewayName string, amo
 
 	orderID := uuid.New().String()
 
+	// --- Gateway Discount Logic ---
+	allSettings, err := s.settingService.GetSettings()
+	if err != nil {
+		slog.Error("could not retrieve settings to check for gateway discount", "error", err)
+	}
+
+	discountKey := "GATEWAY_DISCOUNT_" + gatewayName
+	discountPercentageStr, hasDiscount := allSettings[discountKey]
+
+	invoiceAmount := amount
+	if hasDiscount && err == nil {
+		if discountPercentage, parseErr := strconv.ParseFloat(discountPercentageStr, 64); parseErr == nil && discountPercentage > 0 {
+			invoiceAmount = amount * (1 - discountPercentage/100.0)
+		}
+	}
+	// --- End Gateway Discount Logic ---
+
 	invoiceReq := &gateways.InvoiceCreationRequest{
-		Amount:  amount,
+		Amount:  invoiceAmount,
 		UserID:  botUser.ID,
 		OrderID: orderID,
 	}
@@ -103,7 +120,8 @@ func (s *paymentService) CreateInvoice(telegramID int64, gatewayName string, amo
 
 	dbInvoice := &models.PaymentInvoice{
 		BotUserID:        botUser.ID,
-		Amount:           amount,
+		OriginalAmount:   amount,
+		Amount:           invoiceAmount,
 		Status:           models.InvoiceStatusPending,
 		Gateway:          gatewayName,
 		GatewayInvoiceID: externalInvoice.GatewayInvoiceID,
@@ -166,34 +184,31 @@ func (s *paymentService) processCompletedInvoice(tx *gorm.DB, orderID string) er
 		gatewayName = gateway.GetDisplayName()
 	}
 
-	// --- Gateway Bonus Logic ---
+	// --- Gateway Discount Logic ---
 	allSettings, err := s.settingService.GetSettings()
 	if err != nil {
-		slog.Error("could not retrieve settings to check for gateway bonus", "error", err)
+		slog.Error("could not retrieve settings to check for gateway discount", "error", err)
 	}
 
-	bonusKey := "GATEWAY_BONUS_" + invoice.Gateway
-	bonusPercentageStr, hasBonus := allSettings[bonusKey]
+	discountKey := "GATEWAY_DISCOUNT_" + invoice.Gateway
+	discountPercentageStr, hasDiscount := allSettings[discountKey]
 
-	totalAmount := invoice.Amount
-	notificationMessage := fmt.Sprintf("✅ Ваш баланс успешно пополнен на %.2f ₽.", totalAmount)
+	depositAmount := invoice.OriginalAmount
+	notificationMessage := fmt.Sprintf("✅ Ваш баланс успешно пополнен на %.2f ₽.", depositAmount)
 	description := fmt.Sprintf("Пополнение баланса через %s (Счет: %s)", gatewayName, invoice.GatewayInvoiceID)
 
-	if hasBonus && err == nil {
-		if bonusPercentage, parseErr := strconv.ParseFloat(bonusPercentageStr, 64); parseErr == nil && bonusPercentage > 0 {
-			bonusAmount := invoice.Amount * (bonusPercentage / 100.0)
-			totalAmount = invoice.Amount + bonusAmount
-
-			description = fmt.Sprintf("Пополнение через %s (Счет: %s). Начислен бонус %.2f%% (%.2f ₽).", gatewayName, invoice.GatewayInvoiceID, bonusPercentage, bonusAmount)
-			notificationMessage = fmt.Sprintf("✅ Ваш баланс пополнен на %.2f ₽ (включая бонус %.2f ₽).", totalAmount, bonusAmount)
+	if hasDiscount && err == nil {
+		if discountPercentage, parseErr := strconv.ParseFloat(discountPercentageStr, 64); parseErr == nil && discountPercentage > 0 {
+			description = fmt.Sprintf("Пополнение через %s (Счет: %s). Скидка %.2f%%.", gatewayName, invoice.GatewayInvoiceID, discountPercentage)
+			notificationMessage = fmt.Sprintf("✅ Ваш баланс пополнен на %.2f ₽ (с учетом скидки %.2f%%).", depositAmount, discountPercentage)
 		}
 	}
-	// --- End Gateway Bonus Logic ---
+	// --- End Gateway Discount Logic ---
 
 	depositTx := &models.Transaction{
 		UserID:      invoice.BotUserID,
 		Type:        models.Deposit,
-		Amount:      totalAmount,
+		Amount:      depositAmount,
 		Description: description,
 	}
 
@@ -201,7 +216,7 @@ func (s *paymentService) processCompletedInvoice(tx *gorm.DB, orderID string) er
 		return fmt.Errorf("failed to create deposit transaction: %w", err)
 	}
 
-	if err := s.botUserRepo.WithTx(tx).UpdateBalance(invoice.BotUserID, totalAmount); err != nil {
+	if err := s.botUserRepo.WithTx(tx).UpdateBalance(invoice.BotUserID, depositAmount); err != nil {
 		return fmt.Errorf("failed to update user balance: %w", err)
 	}
 

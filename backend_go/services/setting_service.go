@@ -40,9 +40,9 @@ func (s *SettingService) GetPublicSettings() (map[string]string, error) {
 	publicKeys := []string{
 		"referral_program_enabled",
 		"referral_percentage",
-		"GATEWAY_BONUS_mock_provider",
-		"GATEWAY_BONUS_platform_card",
-		"GATEWAY_BONUS_platform_sbp",
+		"GATEWAY_DISCOUNT_mock_provider",
+		"GATEWAY_DISCOUNT_platform_card",
+		"GATEWAY_DISCOUNT_platform_sbp",
 		"support_message",
 		"welcome_message",
 		"new_user_welcome_message",

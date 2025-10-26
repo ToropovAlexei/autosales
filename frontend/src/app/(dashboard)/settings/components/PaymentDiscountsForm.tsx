@@ -10,35 +10,35 @@ import { queryKeys } from "@/utils/query";
 import { useEffect } from "react";
 import { InputNumber } from "@/components";
 
-interface PaymentBonusesFormData {
-  GATEWAY_BONUS_mock_provider: number;
-  GATEWAY_BONUS_platform_card: number;
-  GATEWAY_BONUS_platform_sbp: number;
+interface PaymentDiscountsFormData {
+  GATEWAY_DISCOUNT_mock_provider: number;
+  GATEWAY_DISCOUNT_platform_card: number;
+  GATEWAY_DISCOUNT_platform_sbp: number;
 }
 
-interface PaymentBonusesFormProps {
+interface PaymentDiscountsFormProps {
   settings: { [key: string]: string } | undefined;
   isSettingsPending: boolean;
   refetchSettings: () => void;
 }
 
-export const PaymentBonusesForm = ({
+export const PaymentDiscountsForm = ({
   settings,
   isSettingsPending,
   refetchSettings,
-}: PaymentBonusesFormProps) => {
+}: PaymentDiscountsFormProps) => {
   const queryClient = useQueryClient();
 
-  const form = useForm<PaymentBonusesFormData>({
+  const form = useForm<PaymentDiscountsFormData>({
     defaultValues: {
-      GATEWAY_BONUS_mock_provider: Number(
-        settings?.GATEWAY_BONUS_mock_provider || 0
+      GATEWAY_DISCOUNT_mock_provider: Number(
+        settings?.GATEWAY_DISCOUNT_mock_provider || 0
       ),
-      GATEWAY_BONUS_platform_card: Number(
-        settings?.GATEWAY_BONUS_platform_card || 0
+      GATEWAY_DISCOUNT_platform_card: Number(
+        settings?.GATEWAY_DISCOUNT_platform_card || 0
       ),
-      GATEWAY_BONUS_platform_sbp: Number(
-        settings?.GATEWAY_BONUS_platform_sbp || 0
+      GATEWAY_DISCOUNT_platform_sbp: Number(
+        settings?.GATEWAY_DISCOUNT_platform_sbp || 0
       ),
     },
   });
@@ -47,32 +47,32 @@ export const PaymentBonusesForm = ({
   useEffect(() => {
     if (settings) {
       reset({
-        GATEWAY_BONUS_mock_provider: Number(
-          settings.GATEWAY_BONUS_mock_provider || 0
+        GATEWAY_DISCOUNT_mock_provider: Number(
+          settings.GATEWAY_DISCOUNT_mock_provider || 0
         ),
-        GATEWAY_BONUS_platform_card: Number(
-          settings.GATEWAY_BONUS_platform_card || 0
+        GATEWAY_DISCOUNT_platform_card: Number(
+          settings.GATEWAY_DISCOUNT_platform_card || 0
         ),
-        GATEWAY_BONUS_platform_sbp: Number(
-          settings.GATEWAY_BONUS_platform_sbp || 0
+        GATEWAY_DISCOUNT_platform_sbp: Number(
+          settings.GATEWAY_DISCOUNT_platform_sbp || 0
         ),
       });
     }
   }, [settings, reset]);
 
   const { mutate, isPending } = useMutation({
-    mutationFn: async (data: PaymentBonusesFormData) => {
+    mutationFn: async (data: PaymentDiscountsFormData) => {
       return dataLayer.update({
         url: ENDPOINTS.ADMIN_SETTINGS,
         params: {
-          GATEWAY_BONUS_mock_provider: String(data.GATEWAY_BONUS_mock_provider),
-          GATEWAY_BONUS_platform_card: String(data.GATEWAY_BONUS_platform_card),
-          GATEWAY_BONUS_platform_sbp: String(data.GATEWAY_BONUS_platform_sbp),
+          GATEWAY_DISCOUNT_mock_provider: String(data.GATEWAY_DISCOUNT_mock_provider),
+          GATEWAY_DISCOUNT_platform_card: String(data.GATEWAY_DISCOUNT_platform_card),
+          GATEWAY_DISCOUNT_platform_sbp: String(data.GATEWAY_DISCOUNT_platform_sbp),
         },
       });
     },
     onSuccess: () => {
-      toast.success("Настройки бонусов платежных систем сохранены");
+      toast.success("Настройки скидок платежных систем сохранены");
       queryClient.invalidateQueries({
         queryKey: queryKeys.one(ENDPOINTS.ADMIN_SETTINGS),
       });
@@ -81,13 +81,13 @@ export const PaymentBonusesForm = ({
     onError: () => toast.error("Ошибка сохранения настроек"),
   });
 
-  const onSubmit = (data: PaymentBonusesFormData) => {
+  const onSubmit = (data: PaymentDiscountsFormData) => {
     mutate(data);
   };
 
   return (
     <Card>
-      <CardHeader title="Бонусы платежных систем" />
+      <CardHeader title="Скидки платежных систем" />
       <CardContent>
         {isSettingsPending ? (
           <p>Загрузка...</p>
@@ -95,18 +95,18 @@ export const PaymentBonusesForm = ({
           <FormProvider {...form}>
             <Stack component="form" onSubmit={handleSubmit(onSubmit)} gap={2}>
               <InputNumber
-                name="GATEWAY_BONUS_mock_provider"
-                label="Бонус для Mock Provider (%)"
+                name="GATEWAY_DISCOUNT_mock_provider"
+                label="Скидка для Mock Provider (%)"
                 disabled={isPending}
               />
               <InputNumber
-                name="GATEWAY_BONUS_platform_card"
-                label="Бонус для Platform (Карта) (%)"
+                name="GATEWAY_DISCOUNT_platform_card"
+                label="Скидка для Platform (Карта) (%)"
                 disabled={isPending}
               />
               <InputNumber
-                name="GATEWAY_BONUS_platform_sbp"
-                label="Бонус для Platform (СБП) (%)"
+                name="GATEWAY_DISCOUNT_platform_sbp"
+                label="Скидка для Platform (СБП) (%)"
                 disabled={isPending}
               />
               <Button

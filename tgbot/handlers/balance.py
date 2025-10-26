@@ -40,10 +40,9 @@ async def deposit_handler(callback_query: CallbackQuery, api_client: APIClient):
 
         if gateways_response.get("success"):
             gateways = gateways_response["data"]
-            public_settings = settings_response.get("data", {})
             await callback_query.message.edit_text(
                 "💰 Выберите способ пополнения:",
-                reply_markup=inline.payment_gateways_menu(gateways, public_settings, settings.payment_instructions_url)
+                reply_markup=inline.payment_gateways_menu(gateways, settings_response, settings.payment_instructions_url)
             )
         else:
             await callback_query.message.edit_text(
