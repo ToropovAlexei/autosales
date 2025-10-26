@@ -11,6 +11,7 @@ func RegisterAuthRoutes(router *gin.Engine, authHandler *handlers.AuthHandler, a
 	auth := router.Group("/api/auth")
 	{
 		auth.POST("/login", authHandler.LoginHandler)
+		auth.POST("/verify-2fa", authHandler.Verify2FAHandler)
 		auth.POST("/logout", authMiddleware.RequireAuth, authHandler.LogoutHandler)
 	}
 }

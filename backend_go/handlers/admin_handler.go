@@ -118,11 +118,11 @@ func (h *AdminHandler) CreateUserHandler(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userService.CreateUser(c, json.Email, json.Password, json.RoleID)
+	response, err := h.userService.CreateUser(c, json.Email, json.Password, json.RoleID)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	responses.SuccessResponse(c, http.StatusCreated, user)
+	responses.SuccessResponse(c, http.StatusCreated, response)
 }

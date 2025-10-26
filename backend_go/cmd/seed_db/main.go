@@ -10,6 +10,7 @@ import (
 	"frbktg/backend_go/config"
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/models"
+	"frbktg/backend_go/services"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -28,18 +29,23 @@ func main() {
 		log.Fatalf("could not initialize database: %v", err)
 	}
 
+	twoFAService, err := services.NewTwoFAService(appSettings.TFASecretKey)
+	if err != nil {
+		log.Fatalf("could not create 2FA service: %v", err)
+	}
+
 	fmt.Println("Starting to seed the database...")
-	seedData(db)
+	seedData(db, twoFAService)
 	fmt.Println("Database seeding completed successfully!")
 }
 
-func seedData(db *gorm.DB) {
+func seedData(db *gorm.DB, twoFAService services.TwoFAService) {
 	dropAllTables(db)
 	autoMigrate(db)
 	permissions := createRbacData(db)
-	adminUser := createAdmin(db)
+	adminUser := createAdmin(db, twoFAService)
 	assignAdminRole(db, adminUser)
-	createTestUsers(db, permissions)
+	createTestUsers(db, permissions, twoFAService)
 	users := createBotUsers(db, 50)
 	categories := createCategories(db)
 	products := createProducts(db, categories, 100)
@@ -74,6 +80,7 @@ func dropAllTables(db *gorm.DB) {
 		&models.PaymentInvoice{}, &models.Image{}, &models.UserPermission{},
 		&models.UserRole{}, &models.RolePermission{}, &models.Permission{}, &models.Role{},
 		&models.ActiveToken{},
+		&models.TemporaryToken{},
 		&models.Setting{},
 	}
 	if err := db.Migrator().DropTable(tables...); err != nil {
@@ -90,6 +97,7 @@ func autoMigrate(db *gorm.DB) {
 		&models.PaymentInvoice{}, &models.Image{}, &models.Role{}, &models.Permission{},
 		&models.RolePermission{}, &models.UserRole{}, &models.UserPermission{}, &models.Setting{},
 		&models.ActiveToken{},
+		&models.TemporaryToken{},
 	); err != nil {
 		log.Fatalf("Failed to auto-migrate: %v", err)
 	}
@@ -125,15 +133,23 @@ func createRbacData(db *gorm.DB) map[string]models.Permission {
 	return permissionsMap
 }
 
-func createAdmin(db *gorm.DB) models.User {
+func createAdmin(db *gorm.DB, twoFAService services.TwoFAService) models.User {
 	fmt.Println("Creating admin user...")
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
+
+	secret, _ := twoFAService.GenerateSecret("test@example.com")
+	encryptedSecret, _ := twoFAService.EncryptSecret(secret)
+
 	admin := models.User{
 		Email:          "test@example.com",
 		HashedPassword: string(hashedPassword),
 		IsActive:       true,
+		TwoFASecret:    &encryptedSecret,
 	}
 	db.FirstOrCreate(&admin, models.User{Email: admin.Email})
+
+	fmt.Printf("Admin user created: test@example.com, 2FA Secret: %s\n", secret)
+
 	return admin
 }
 
@@ -147,17 +163,22 @@ func assignAdminRole(db *gorm.DB, user models.User) {
 	}
 }
 
-func createTestUsers(db *gorm.DB, permissions map[string]models.Permission) {
+func createTestUsers(db *gorm.DB, permissions map[string]models.Permission, twoFAService services.TwoFAService) {
 	fmt.Println("Creating test users...")
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
 
 	// admin@gmail.com user with admin role
-	admin2 := models.User{Email: "admin@gmail.com", HashedPassword: string(hashedPassword), IsActive: true}
+	secretAdmin, _ := twoFAService.GenerateSecret("admin@gmail.com")
+	encryptedSecretAdmin, _ := twoFAService.EncryptSecret(secretAdmin)
+	admin2 := models.User{Email: "admin@gmail.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretAdmin}
 	db.FirstOrCreate(&admin2, models.User{Email: admin2.Email})
 	assignAdminRole(db, admin2)
+	fmt.Printf("User created: admin@gmail.com, 2FA Secret: %s\n", secretAdmin)
 
 	// Accountant
-	accountant := models.User{Email: "accountant@example.com", HashedPassword: string(hashedPassword), IsActive: true}
+	secretAccountant, _ := twoFAService.GenerateSecret("accountant@example.com")
+	encryptedSecretAccountant, _ := twoFAService.EncryptSecret(secretAccountant)
+	accountant := models.User{Email: "accountant@example.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretAccountant}
 	db.FirstOrCreate(&accountant, models.User{Email: accountant.Email})
 	var accountantRole models.Role
 	db.First(&accountantRole, "name = ?", "бухгалтер")
@@ -166,9 +187,12 @@ func createTestUsers(db *gorm.DB, permissions map[string]models.Permission) {
 		db.Create(&models.RolePermission{RoleID: accountantRole.ID, PermissionID: permissions["transactions:read"].ID})
 		db.Create(&models.RolePermission{RoleID: accountantRole.ID, PermissionID: permissions["balance:read"].ID})
 	}
+	fmt.Printf("User created: accountant@example.com, 2FA Secret: %s\n", secretAccountant)
 
 	// Manager
-	manager := models.User{Email: "manager@example.com", HashedPassword: string(hashedPassword), IsActive: true}
+	secretManager, _ := twoFAService.GenerateSecret("manager@example.com")
+	encryptedSecretManager, _ := twoFAService.EncryptSecret(secretManager)
+	manager := models.User{Email: "manager@example.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretManager}
 	db.FirstOrCreate(&manager, models.User{Email: manager.Email})
 	var managerRole models.Role
 	db.First(&managerRole, "name = ?", "менеджер")
@@ -183,9 +207,12 @@ func createTestUsers(db *gorm.DB, permissions map[string]models.Permission) {
 			db.Create(&models.RolePermission{RoleID: managerRole.ID, PermissionID: permissions[pName].ID})
 		}
 	}
+	fmt.Printf("User created: manager@example.com, 2FA Secret: %s\n", secretManager)
 
 	// Godlike user
-	godlikeUser := models.User{Email: "god@example.com", HashedPassword: string(hashedPassword), IsActive: true}
+	secretGod, _ := twoFAService.GenerateSecret("god@example.com")
+	encryptedSecretGod, _ := twoFAService.EncryptSecret(secretGod)
+	godlikeUser := models.User{Email: "god@example.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretGod}
 	db.FirstOrCreate(&godlikeUser, models.User{Email: godlikeUser.Email})
 	godlikeRole := models.Role{Name: "godlike", IsSuper: false}
 	db.FirstOrCreate(&godlikeRole, models.Role{Name: godlikeRole.Name})
@@ -193,6 +220,7 @@ func createTestUsers(db *gorm.DB, permissions map[string]models.Permission) {
 	for _, p := range permissions {
 		db.Create(&models.RolePermission{RoleID: godlikeRole.ID, PermissionID: p.ID})
 	}
+	fmt.Printf("User created: god@example.com, 2FA Secret: %s\n", secretGod)
 }
 
 func createBotUsers(db *gorm.DB, count int) []models.BotUser {

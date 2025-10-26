@@ -16,6 +16,7 @@ type Settings struct {
 	DatabaseName               string   `mapstructure:"DATABASE_NAME"`
 	CorsOrigins                []string `mapstructure:"CORS_ORIGINS"`
 	SecretKey                  string   `mapstructure:"SECRET_KEY"`
+	TFASecretKey               string   `mapstructure:"TFA_SECRET_KEY"`
 	Algorithm                  string   `mapstructure:"ALGORITHM"`
 	AccessTokenExpireMinutes   int      `mapstructure:"ACCESS_TOKEN_EXPIRE_MINUTES"`
 	ServiceAPIKey              string   `mapstructure:"SERVICE_API_KEY"`

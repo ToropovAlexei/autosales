@@ -10,6 +10,21 @@ import (
 	"gorm.io/gorm"
 )
 
+func dropAllTables(db *gorm.DB) {
+	tables := []interface{}{
+		&models.UserSubscription{}, &models.RefTransaction{}, &models.ReferralBot{},
+		&models.StockMovement{}, &models.Order{}, &models.Transaction{},
+		&models.Product{}, &models.Category{}, &models.BotUser{}, &models.User{},
+		&models.PaymentInvoice{}, &models.Image{}, &models.UserPermission{},
+		&models.UserRole{}, &models.RolePermission{}, &models.Permission{}, &models.Role{},
+		&models.ActiveToken{},
+		&models.TemporaryToken{},
+	}
+	if err := db.Migrator().DropTable(tables...); err != nil {
+		log.Fatalf("Failed to drop tables: %v", err)
+	}
+}
+
 func main() {
 	appSettings, err := config.LoadConfig(".env")
 	if err != nil {
@@ -44,34 +59,11 @@ func main() {
 		&models.UserRole{},
 		&models.UserPermission{},
 		&models.Setting{},
+		&models.ActiveToken{},
+		&models.TemporaryToken{},
 	); migrateErr != nil {
 		log.Fatalf("failed to migrate database: %v", migrateErr)
 	}
 
 	fmt.Println("Database initialization completed successfully!")
-}
-
-func dropAllTables(db *gorm.DB) {
-	tables := []interface{}{
-		&models.UserSubscription{},
-		&models.RefTransaction{},
-		&models.ReferralBot{},
-		&models.StockMovement{},
-		&models.Order{},
-		&models.Transaction{},
-		&models.Product{},
-		&models.Category{},
-		&models.BotUser{},
-		&models.User{},
-		&models.PaymentInvoice{},
-		&models.Image{},
-		&models.UserPermission{},
-		&models.UserRole{},
-		&models.RolePermission{},
-		&models.Permission{},
-		&models.Role{},
-	}
-	if err := db.Migrator().DropTable(tables...); err != nil {
-		log.Fatalf("Failed to drop tables: %v", err)
-	}
 }

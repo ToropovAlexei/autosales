@@ -26,6 +26,7 @@ type Container struct {
 	ProviderRegistry       *external_providers.ProviderRegistry
 	PaymentGatewayRegistry *gateways.ProviderRegistry
 	TokenService           services.TokenService
+	TwoFAService           services.TwoFAService
 	AuthService            services.AuthService
 	UserService            services.UserService
 	ProductService         services.ProductService
@@ -44,6 +45,7 @@ type Container struct {
 	RoleService            services.RoleService
 	AuditLogService        services.AuditLogService
 	UserRepo               repositories.UserRepository
+	TemporaryTokenRepo     repositories.TemporaryTokenRepository
 	AuthHandler            *handlers.AuthHandler
 	UserHandler            *handlers.UserHandler
 	ProductHandler         *handlers.ProductHandler
@@ -127,12 +129,18 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	roleRepo := repositories.NewRoleRepository(db)
 	auditLogRepo := repositories.NewAuditLogRepository(db)
 	activeTokenRepo := repositories.NewActiveTokenRepository(db)
+	temporaryTokenRepo := repositories.NewTemporaryTokenRepository(db)
+
+	twoFAService, err := services.NewTwoFAService(appSettings.TFASecretKey)
+	if err != nil {
+		return nil, err
+	}
 
 	tokenService := services.NewTokenService(appSettings.SecretKey, appSettings.AccessTokenExpireMinutes, activeTokenRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
 	settingService := services.NewSettingService(*settingRepo, userRepo, auditLogService)
-	authService := services.NewAuthService(userRepo, tokenService, activeTokenRepo, appSettings)
-	userService := services.NewUserService(userRepo, botUserRepo, userSubscriptionRepo, orderRepo, auditLogService)
+	authService := services.NewAuthService(userRepo, tokenService, twoFAService, activeTokenRepo, temporaryTokenRepo, appSettings)
+	userService := services.NewUserService(userRepo, botUserRepo, userSubscriptionRepo, orderRepo, auditLogService, twoFAService)
 	productService := services.NewProductService(productRepo, categoryRepo, providerRegistry, auditLogService)
 	categoryService := services.NewCategoryService(categoryRepo, productService, auditLogService)
 	referralService := services.NewReferralService(userRepo, botUserRepo, referralRepo, transactionRepo, *settingService)
@@ -178,6 +186,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 		ProviderRegistry:       providerRegistry,
 		PaymentGatewayRegistry: paymentGatewayRegistry,
 		TokenService:           tokenService,
+		TwoFAService:           twoFAService,
 		AuthService:            authService,
 		UserService:            userService,
 		ProductService:         productService,
@@ -196,6 +205,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 		RoleService:            roleService,
 		AuditLogService:        auditLogService,
 		UserRepo:               userRepo,
+		TemporaryTokenRepo:     temporaryTokenRepo,
 		AuthHandler:            authHandler,
 		UserHandler:            userHandler,
 		ProductHandler:         productHandler,

@@ -27,6 +27,8 @@ export default function UsersPage() {
   const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [tfaSecret, setTfaSecret] = useState<string | null>(null);
+  const [tfaQrCode, setTfaQrCode] = useState<string | null>(null);
   const canCreate = useCan("users:create");
   const queryClient = useQueryClient();
 
@@ -46,16 +48,19 @@ export default function UsersPage() {
 
   const closeUserModal = () => {
     setIsUserModalOpen(false);
+    setTfaSecret(null);
+    setTfaQrCode(null);
   };
 
   const createMutation = useMutation({
     mutationFn: (params: any) =>
-      dataLayer.create({ url: ENDPOINTS.USERS, params }),
-    onSuccess: () => {
+      dataLayer.create<{ data: { user: User; two_fa_secret: string; qr_code: string } }>({ url: ENDPOINTS.USERS, params }),
+    onSuccess: (response) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.USERS),
       });
-      closeUserModal();
+      setTfaSecret(response.data.two_fa_secret);
+      setTfaQrCode(response.data.qr_code);
     },
     onError: (error) => toast.error(error.message),
   });
@@ -89,6 +94,8 @@ export default function UsersPage() {
           open={isUserModalOpen}
           onClose={closeUserModal}
           onSave={createMutation.mutate}
+          tfaSecret={tfaSecret}
+          tfaQrCode={tfaQrCode}
         />
       )}
     </PageLayout>

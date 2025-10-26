@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/base64"
 	"errors"
 	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
@@ -17,7 +18,7 @@ type UserService interface {
 	GetMe(user models.User) *models.UserResponse
 	GetMeByEmail(email string) (*models.User, error)
 	GetUsers(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.User], error)
-	CreateUser(ctx *gin.Context, email, password string, roleID uint) (*models.User, error)
+	CreateUser(ctx *gin.Context, email, password string, roleID uint) (*models.CreateUserResponse, error)
 	UpdateReferralSettings(ctx *gin.Context, user *models.User, enabled bool, percentage float64) error
 	RegisterBotUser(telegramID int64, botName string) (*models.BotUser, float64, bool, bool, error)
 	GetBotUser(id uint) (*models.BotUser, float64, error)
@@ -37,15 +38,17 @@ type userService struct {
 	userSubscriptionRepo repositories.UserSubscriptionRepository
 	orderRepo            repositories.OrderRepository
 	auditLogService      AuditLogService
+	twoFAService         TwoFAService
 }
 
-func NewUserService(userRepo repositories.UserRepository, botUserRepo repositories.BotUserRepository, userSubscriptionRepo repositories.UserSubscriptionRepository, orderRepo repositories.OrderRepository, auditLogService AuditLogService) UserService {
+func NewUserService(userRepo repositories.UserRepository, botUserRepo repositories.BotUserRepository, userSubscriptionRepo repositories.UserSubscriptionRepository, orderRepo repositories.OrderRepository, auditLogService AuditLogService, twoFAService TwoFAService) UserService {
 	return &userService{
 		userRepo:             userRepo,
 		botUserRepo:          botUserRepo,
 		userSubscriptionRepo: userSubscriptionRepo,
 		orderRepo:            orderRepo,
 		auditLogService:      auditLogService,
+		twoFAService:         twoFAService,
 	}
 }
 
@@ -220,8 +223,18 @@ func (s *userService) UpdateUserCaptchaStatusByTelegramID(telegramID int64, hasP
 	return s.botUserRepo.UpdateCaptchaStatus(user, hasPassed)
 }
 
-func (s *userService) CreateUser(ctx *gin.Context, email, password string, roleID uint) (*models.User, error) {
+func (s *userService) CreateUser(ctx *gin.Context, email, password string, roleID uint) (*models.CreateUserResponse, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, err
+	}
+
+	secret, err := s.twoFAService.GenerateSecret(email)
+	if err != nil {
+		return nil, err
+	}
+
+	encryptedSecret, err := s.twoFAService.EncryptSecret(secret)
 	if err != nil {
 		return nil, err
 	}
@@ -230,6 +243,7 @@ func (s *userService) CreateUser(ctx *gin.Context, email, password string, roleI
 		Email:          email,
 		HashedPassword: string(hashedPassword),
 		IsActive:       true,
+		TwoFASecret:    &encryptedSecret,
 	}
 
 	if err := s.userRepo.Create(user); err != nil {
@@ -241,7 +255,20 @@ func (s *userService) CreateUser(ctx *gin.Context, email, password string, roleI
 		return nil, err
 	}
 
+	qrCode, err := s.twoFAService.GenerateQRCode(email, secret)
+	if err != nil {
+		return nil, err
+	}
+
 	s.auditLogService.Log(ctx, "USER_CREATE", "User", user.ID, map[string]interface{}{"after": user})
 
-	return user, nil
+	return &models.CreateUserResponse{
+		User: models.UserResponse{
+			ID:       user.ID,
+			Email:    user.Email,
+			IsActive: user.IsActive,
+		},
+		TwoFASecret: secret,
+		QRCode:    base64.StdEncoding.EncodeToString(qrCode),
+	}, nil
 }
