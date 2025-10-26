@@ -57,12 +57,9 @@ pub async fn captcha_answer_handler(
 
         if let Some(msg) = q.message.clone() {
             bot.delete_message(msg.chat().id, msg.id()).await.ok();
-            // Тут можно вызвать функцию для обновления pinned message и отправки приветствия
-            // update_pinned_message(&bot, &msg).await?;
-            // ...
 
             let referral_program_enabled = api_client.is_referral_program_enabled().await;
-            let welcome_msg = match api_client.get_welcome_msg().await {
+            let welcome_msg = match api_client.get_new_user_welcome_msg().await {
                 Some(msg) => msg.replace("{username}", &q.from.full_name()),
                 None => {
                     tracing::error!("No welcome message found");

@@ -44,10 +44,7 @@ pub async fn support_handler(
         Some(msg) => msg,
         None => {
             tracing::error!("No support message found");
-            bot.send_message(chat_id, "Что-то пошло не так. Попробуйте ещё раз")
-                .send()
-                .await?;
-            return Ok(());
+            "Что-то пошло не так. Попробуйте ещё раз".to_string()
         }
     };
     let is_referral_program_enabled = api_client.is_referral_program_enabled().await;

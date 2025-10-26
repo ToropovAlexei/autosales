@@ -9,7 +9,13 @@ use teloxide::{
 
 use crate::{
     api::backend_api::BackendApi,
-    bot::{MyDialogue, keyboards::payment_gateways_menu::payment_gateways_menu},
+    bot::{
+        MyDialogue,
+        keyboards::{
+            back_to_main_menu::back_to_main_menu_inline_keyboard,
+            payment_gateways_menu::payment_gateways_menu,
+        },
+    },
     errors::AppResult,
 };
 use teloxide::dispatching::dialogue::GetChatId;
@@ -46,9 +52,14 @@ pub async fn deposit_gateway_handler(
         Ok(settings) => settings,
         Err(err) => {
             tracing::error!("Error getting settings: {err}");
-            bot.send_message(chat_id, "Что-то пошло не так. Попробуйте ещё раз")
-                .send()
-                .await?;
+            bot.edit_message_text(
+                chat_id,
+                message_id,
+                "Что-то пошло не так. Попробуйте ещё раз",
+            )
+            .reply_markup(back_to_main_menu_inline_keyboard())
+            .send()
+            .await?;
             return Ok(());
         }
     };

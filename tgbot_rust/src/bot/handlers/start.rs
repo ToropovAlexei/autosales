@@ -71,17 +71,24 @@ pub async fn start_handler(
     }
 
     let referral_program_enabled = api_client.is_referral_program_enabled().await;
-
-    bot.send_message(
-        msg.chat.id,
-        format!(
-            "С возвращением, {}!",
-            msg.from.map(|user| user.full_name()).unwrap_or_default(),
+    let welcome_message = match api_client.get_returning_user_welcome_msg().await {
+        Some(m) => m.replace(
+            "{username}",
+            msg.from
+                .map(|user| user.full_name())
+                .unwrap_or_default()
+                .as_str(),
         ),
-    )
-    .parse_mode(ParseMode::Html)
-    .reply_markup(main_menu_inline_keyboard(referral_program_enabled))
-    .await?;
+        None => {
+            tracing::error!("No returning user welcome message found");
+            "Что-то пошло не так. Попробуйте ещё раз".to_string()
+        }
+    };
+
+    bot.send_message(msg.chat.id, welcome_message)
+        .parse_mode(ParseMode::Html)
+        .reply_markup(main_menu_inline_keyboard(referral_program_enabled))
+        .await?;
 
     Ok(())
 }

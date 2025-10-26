@@ -7,7 +7,9 @@ use teloxide::types::MessageId;
 use crate::{
     api::api_client::ApiClient,
     errors::{AppError, AppResult},
-    models::{BackendResponse, BalanceResponse, InvoiceResponse, PaymentGateway, user::BotUser},
+    models::{
+        BackendResponse, BalanceResponse, InvoiceResponse, PaymentGateway, UserOrder, user::BotUser,
+    },
 };
 
 pub struct BackendApi {
@@ -120,11 +122,19 @@ impl BackendApi {
             .map(|val| val.to_string())
     }
 
-    pub async fn get_welcome_msg(&self) -> Option<String> {
+    pub async fn get_new_user_welcome_msg(&self) -> Option<String> {
         self.get_settings()
             .await
             .ok()
-            .and_then(|settings| settings.get("welcome_message").cloned())
+            .and_then(|settings| settings.get("new_user_welcome_message").cloned())
+            .map(|val| val.to_string())
+    }
+
+    pub async fn get_returning_user_welcome_msg(&self) -> Option<String> {
+        self.get_settings()
+            .await
+            .ok()
+            .and_then(|settings| settings.get("returning_user_welcome_message").cloned())
             .map(|val| val.to_string())
     }
 
@@ -165,6 +175,17 @@ impl BackendApi {
                 &format!("invoices/{order_id}/message-id"),
                 &json!({"message_id": message_id.0}),
             )
+            .await
+            .and_then(|res| {
+                res.data.ok_or_else(|| {
+                    AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
+                })
+            })
+    }
+
+    pub async fn get_user_orders(&self, telegram_id: i64) -> AppResult<Vec<UserOrder>> {
+        self.api_client
+            .get::<BackendResponse<Vec<UserOrder>>>(&format!("users/{telegram_id}/orders"))
             .await
             .and_then(|res| {
                 res.data.ok_or_else(|| {

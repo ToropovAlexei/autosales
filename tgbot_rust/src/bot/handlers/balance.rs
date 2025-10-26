@@ -46,9 +46,10 @@ pub async fn balance_handler(
         }
         Err(err) => {
             tracing::error!("Error getting balance: {err}");
-            bot.send_message(
+            bot.edit_message_text(
                 chat_id,
-                "Произошла непредвиденная ошибка. Попробуйте позже.",
+                message_id,
+                "Ошибка получения баланса. Попробуйте позже.",
             )
             .send()
             .await?;

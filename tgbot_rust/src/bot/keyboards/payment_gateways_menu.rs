@@ -22,7 +22,7 @@ pub fn payment_gateways_menu(
     for gateway in gateways {
         let gateway_clone = gateway.name.clone();
         let bonus_value = public_settings
-            .get(&format!("GATEWAY_BONUS_{}", gateway_clone))
+            .get(&format!("GATEWAY_DISCOUNT_{}", gateway_clone))
             .and_then(|s| s.parse::<f64>().ok())
             .unwrap_or(0.0);
         gateways_with_bonuses.push((gateway.name, gateway.display_name, bonus_value));
@@ -36,7 +36,7 @@ pub fn payment_gateways_menu(
 
     for (index, (gateway, display_name, bonus_value)) in gateways_with_bonuses.iter().enumerate() {
         let mut display_name = if bonus_value > &0.0 {
-            format!("{} (+{}% бонус)", display_name, bonus_value)
+            format!("{} (+{}% скидка)", display_name, bonus_value)
         } else {
             display_name.to_string()
         };

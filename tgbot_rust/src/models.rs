@@ -42,3 +42,12 @@ pub struct InvoiceResponse {
     pub order_id: String,
     pub details: Option<serde_json::Value>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserOrder {
+    pub id: i64,
+    pub product_name: String,
+    pub amount: f64,
+    pub created_at: chrono::DateTime<chrono::Utc>,
+    pub fulfilled_content: Option<String>,
+}

@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use crate::api::backend_api::BackendApi;
+use crate::bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard;
 use crate::bot::{BotState, CallbackData, InvoiceData, MyDialogue};
 use crate::errors::AppResult;
 use teloxide::dispatching::dialogue::GetChatId;
@@ -60,6 +61,7 @@ pub async fn deposit_confirm_handler(
                 message_id,
                 "Что-то пошло не так. Попробуйте ещё раз.",
             )
+            .reply_markup(back_to_main_menu_inline_keyboard())
             .send()
             .await?;
 
