@@ -8,7 +8,7 @@ import (
 
 type StockRepository interface {
 	WithTx(tx *gorm.DB) StockRepository
-	GetStockMovements() ([]models.StockMovement, error)
+	GetStockMovements(filters []models.Filter) ([]models.StockMovement, error)
 }
 
 type gormStockRepository struct {
@@ -23,9 +23,11 @@ func (r *gormStockRepository) WithTx(tx *gorm.DB) StockRepository {
 	return &gormStockRepository{db: tx}
 }
 
-func (r *gormStockRepository) GetStockMovements() ([]models.StockMovement, error) {
+func (r *gormStockRepository) GetStockMovements(filters []models.Filter) ([]models.StockMovement, error) {
 	var movements []models.StockMovement
-	if err := r.db.Order("created_at desc").Find(&movements).Error; err != nil {
+	db := r.db.Model(&models.StockMovement{})
+	db = ApplyFilters[models.StockMovement](db, filters)
+	if err := db.Order("created_at desc").Find(&movements).Error; err != nil {
 		return nil, err
 	}
 	return movements, nil

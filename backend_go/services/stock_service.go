@@ -6,7 +6,7 @@ import (
 )
 
 type StockService interface {
-	GetStockMovements() ([]models.StockMovementResponse, error)
+	GetStockMovements(filters []models.Filter) ([]models.StockMovementResponse, error)
 }
 
 type stockService struct {
@@ -17,8 +17,8 @@ func NewStockService(stockRepo repositories.StockRepository) StockService {
 	return &stockService{stockRepo: stockRepo}
 }
 
-func (s *stockService) GetStockMovements() ([]models.StockMovementResponse, error) {
-	movements, err := s.stockRepo.GetStockMovements()
+func (s *stockService) GetStockMovements(filters []models.Filter) ([]models.StockMovementResponse, error) {
+	movements, err := s.stockRepo.GetStockMovements(filters)
 	if err != nil {
 		return nil, err
 	}

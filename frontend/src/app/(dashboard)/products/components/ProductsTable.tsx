@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   DataGrid,
   GridColDef,
@@ -12,7 +13,9 @@ import { ruRU } from "@mui/x-data-grid/locales";
 import { IProduct } from "@/types";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import HistoryIcon from "@mui/icons-material/History";
 import { CONFIG } from "../../../../../config";
+import { StockMovementHistoryModal } from "./StockMovementHistoryModal";
 
 interface ProductsTableProps {
   products: IProduct[];
@@ -45,6 +48,9 @@ export const ProductsTable = ({
   onSortModelChange,
   categories,
 }: ProductsTableProps) => {
+  const [isStockHistoryModalOpen, setIsStockHistoryModalOpen] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", width: 90, filterable: false }, // Not reliable for sorting/filtering
     {
@@ -109,6 +115,16 @@ export const ProductsTable = ({
             onClick={() => onEdit(row)}
             disabled={!!row.provider}
           />,
+          <GridActionsCellItem
+            key="stockHistory"
+            icon={<HistoryIcon />}
+            label="История склада"
+            onClick={() => {
+              setSelectedProductId(row.id);
+              setIsStockHistoryModalOpen(true);
+            }}
+            showInMenu
+          />,
           // TODO Soft delete
           // <GridActionsCellItem
           //   key="delete"
@@ -169,6 +185,12 @@ export const ProductsTable = ({
             },
           },
         }}
+      />
+
+      <StockMovementHistoryModal
+        open={isStockHistoryModalOpen}
+        onClose={() => setIsStockHistoryModalOpen(false)}
+        productId={selectedProductId}
       />
     </div>
   );

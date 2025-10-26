@@ -48,3 +48,13 @@ export interface IFilter {
     value: any;
   }[];
 }
+
+export interface IStockMovement {
+  id: number;
+  product_id: number;
+  type: "initial" | "sale" | "restock" | "return" | "adjustment";
+  quantity: number;
+  created_at: string;
+  description: string;
+  order_id?: number;
+}

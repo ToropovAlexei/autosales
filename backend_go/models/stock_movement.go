@@ -17,7 +17,7 @@ const (
 type StockMovement struct {
 	ID          uint `gorm:"primaryKey"`
 	OrderID     *uint
-	ProductID   uint
+	ProductID   uint              `gorm:"column:product_id"`
 	Type        StockMovementType `gorm:"not null"`
 	Quantity    int               `gorm:"not null"`
 	CreatedAt   time.Time         `gorm:"not null"`
