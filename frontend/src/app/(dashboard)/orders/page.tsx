@@ -1,30 +1,36 @@
 "use client";
 
-import { useList } from "@/hooks";
+import { useDataGrid } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { OrdersTable } from "./components/OrdersTable";
 import { PageLayout } from "@/components/PageLayout";
 
-interface Order {
-  id: number;
-  user_id: number;
-  product_id: number;
-  quantity: number;
-  amount: number;
-  status: string;
-  created_at: string;
-  user_telegram_id: number;
-  product_name: string;
-}
-
 export default function OrdersPage() {
-  const { data: orders, isFetching } = useList<Order>({
-    endpoint: ENDPOINTS.ORDERS,
-  });
+  const {
+    rows: orders,
+    rowCount,
+    loading: isFetching,
+    paginationModel,
+    onPaginationModelChange,
+    filterModel,
+    onFilterModelChange,
+    sortModel,
+    onSortModelChange,
+  } = useDataGrid(ENDPOINTS.ORDERS);
 
   return (
     <PageLayout title="Заказы">
-      <OrdersTable orders={orders?.data || []} loading={isFetching} />
+      <OrdersTable
+        orders={orders}
+        loading={isFetching}
+        rowCount={rowCount}
+        paginationModel={paginationModel}
+        onPaginationModelChange={onPaginationModelChange}
+        filterModel={filterModel}
+        onFilterModelChange={onFilterModelChange}
+        sortModel={sortModel}
+        onSortModelChange={onSortModelChange}
+      />
     </PageLayout>
   );
 }

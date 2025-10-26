@@ -8,7 +8,7 @@ import (
 
 type AdminRepository interface {
 	WithTx(tx *gorm.DB) AdminRepository
-	GetActiveBotUsers() ([]models.BotUser, error)
+	GetActiveBotUsers(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.BotUser], error)
 	GetBotUserByID(id uint) (*models.BotUser, error)
 }
 
@@ -24,12 +24,16 @@ func (r *gormAdminRepository) WithTx(tx *gorm.DB) AdminRepository {
 	return &gormAdminRepository{db: tx}
 }
 
-func (r *gormAdminRepository) GetActiveBotUsers() ([]models.BotUser, error) {
-	var botUsers []models.BotUser
-	if err := r.db.Find(&botUsers).Error; err != nil {
+func (r *gormAdminRepository) GetActiveBotUsers(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.BotUser], error) {
+	db := r.db.Model(&models.BotUser{})
+	db = ApplyFilters[models.BotUser](db, filters)
+
+	paginatedResult, err := ApplyPagination[models.BotUser](db, page)
+	if err != nil {
 		return nil, err
 	}
-	return botUsers, nil
+
+	return paginatedResult, nil
 }
 
 func (r *gormAdminRepository) GetBotUserByID(id uint) (*models.BotUser, error) {

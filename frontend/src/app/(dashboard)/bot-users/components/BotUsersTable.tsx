@@ -1,6 +1,11 @@
-"use client";
-
-import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridActionsCellItem,
+  GridFilterModel,
+  GridPaginationModel,
+  GridSortModel,
+} from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
 import BlockIcon from "@mui/icons-material/Block";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
@@ -11,20 +16,35 @@ interface BotUsersTableProps {
   users: BotUser[];
   onToggleBlock: (user: BotUser) => void;
   loading: boolean;
+  rowCount: number;
+  paginationModel: GridPaginationModel;
+  onPaginationModelChange: (model: GridPaginationModel) => void;
+  filterModel: GridFilterModel;
+  onFilterModelChange: (model: GridFilterModel) => void;
+  sortModel: GridSortModel;
+  onSortModelChange: (model: GridSortModel) => void;
 }
 
 export const BotUsersTable = ({
   users,
   onToggleBlock,
   loading,
+  rowCount,
+  paginationModel,
+  onPaginationModelChange,
+  filterModel,
+  onFilterModelChange,
+  sortModel,
+  onSortModelChange,
 }: BotUsersTableProps) => {
   const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 60 },
-    { field: "telegram_id", headerName: "Telegram ID", width: 150 },
+    { field: "id", headerName: "ID", width: 60, sortable: false },
+    { field: "telegram_id", headerName: "Telegram ID", width: 150, sortable: false },
     {
       field: "is_blocked",
       headerName: "Статус",
       width: 120,
+      sortable: false,
       renderCell: (params) =>
         params.value ? (
           <Chip label="Заблокирован" color="error" size="small" />
@@ -37,16 +57,19 @@ export const BotUsersTable = ({
       headerName: "Баланс",
       width: 150,
       renderCell: (params) => `${params.value} ₽`,
+      sortable: false,
     },
     {
       field: "registered_with_bot",
       headerName: "Бот регистрации",
       flex: 1,
+      sortable: false,
     },
     {
       field: "last_seen_with_bot",
       headerName: "Последний бот",
       flex: 1,
+      sortable: false,
     },
     {
       field: "created_at",
@@ -54,6 +77,7 @@ export const BotUsersTable = ({
       width: 200,
       type: "dateTime",
       valueGetter: (value) => new Date(value),
+      sortable: false,
     },
     {
       field: "last_seen_at",
@@ -61,6 +85,7 @@ export const BotUsersTable = ({
       width: 200,
       type: "dateTime",
       valueGetter: (value) => new Date(value),
+      sortable: false,
     },
     {
       field: "actions",
@@ -68,6 +93,7 @@ export const BotUsersTable = ({
       headerName: "Действия",
       width: 100,
       cellClassName: "actions",
+      sortable: false,
       getActions: ({ row }) => {
         return [
           <GridActionsCellItem
@@ -88,13 +114,16 @@ export const BotUsersTable = ({
         columns={columns}
         density="compact"
         loading={loading}
-        initialState={{
-          pagination: {
-            paginationModel: {
-              pageSize: 25,
-            },
-          },
-        }}
+        rowCount={rowCount}
+        paginationModel={paginationModel}
+        onPaginationModelChange={onPaginationModelChange}
+        filterModel={filterModel}
+        onFilterModelChange={onFilterModelChange}
+        sortingMode="server"
+        sortModel={sortModel}
+        onSortModelChange={onSortModelChange}
+        paginationMode="server"
+        filterMode="server"
         localeText={ruRU.components.MuiDataGrid.defaultProps.localeText}
         slotProps={{
           filterPanel: {

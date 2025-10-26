@@ -30,13 +30,14 @@ export const UsersTable = ({
   const canConfigure = useCan("rbac:manage");
 
   const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 90 },
-    { field: "email", headerName: "Email", flex: 1 },
+    { field: "id", headerName: "ID", width: 90, sortable: false },
+    { field: "email", headerName: "Email", flex: 1, sortable: false },
     {
       field: "roles",
       headerName: "Роли",
       flex: 1,
       valueGetter: (value) => value?.map((role: any) => role.name).join(", "),
+      sortable: false,
     },
     {
       field: "actions",
@@ -44,6 +45,7 @@ export const UsersTable = ({
       headerName: "Действия",
       width: 100,
       cellClassName: "actions",
+      sortable: false,
       getActions: ({ row }) => {
         if (canConfigure) {
           return [

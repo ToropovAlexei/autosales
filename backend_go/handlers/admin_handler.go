@@ -22,7 +22,21 @@ func NewAdminHandler(adminService services.AdminService, userService services.Us
 }
 
 func (h *AdminHandler) GetBotUsers(c *gin.Context) {
-	users, err := h.adminService.GetBotUsersWithBalance()
+	var page models.Page
+	if err := c.ShouldBindQuery(&page); err != nil {
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
+		return
+	}
+
+	var filters []models.Filter
+	if filtersJSON := c.Query("filters"); filtersJSON != "" {
+		if err := json.Unmarshal([]byte(filtersJSON), &filters); err != nil {
+			c.Error(&apperrors.ErrValidation{Message: "Invalid filters format"})
+			return
+		}
+	}
+
+	users, err := h.adminService.GetBotUsersWithBalance(page, filters)
 	if err != nil {
 		c.Error(err)
 		return

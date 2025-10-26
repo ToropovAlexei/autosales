@@ -1,8 +1,6 @@
 "use client";
 
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { useList } from "@/hooks";
+import { useDataGrid } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { ConfirmModal } from "@/components";
 import { queryKeys } from "@/utils/query";
@@ -10,15 +8,25 @@ import { dataLayer } from "@/lib/dataLayer";
 import { BotUsersTable } from "./components/BotUsersTable";
 import { PageLayout } from "@/components/PageLayout";
 import { BotUser } from "@/types/common";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 
 export default function BotUsersPage() {
   const queryClient = useQueryClient();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<BotUser | null>(null);
 
-  const { data: botUsers, isFetching } = useList<BotUser>({
-    endpoint: ENDPOINTS.BOT_USERS,
-  });
+  const {
+    rows: botUsers,
+    rowCount,
+    loading: isFetching,
+    paginationModel,
+    onPaginationModelChange,
+    filterModel,
+    onFilterModelChange,
+    sortModel,
+    onSortModelChange,
+  } = useDataGrid(ENDPOINTS.BOT_USERS);
 
   const toggleBlockMutation = useMutation({
     mutationFn: (user: BotUser) =>
@@ -57,9 +65,16 @@ export default function BotUsersPage() {
   return (
     <PageLayout title="Пользователи бота">
       <BotUsersTable
-        users={botUsers?.data || []}
+        users={botUsers}
         onToggleBlock={openConfirmDialog}
         loading={isFetching}
+        rowCount={rowCount}
+        paginationModel={paginationModel}
+        onPaginationModelChange={onPaginationModelChange}
+        filterModel={filterModel}
+        onFilterModelChange={onFilterModelChange}
+        sortModel={sortModel}
+        onSortModelChange={onSortModelChange}
       />
 
       <ConfirmModal

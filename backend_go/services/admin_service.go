@@ -6,7 +6,7 @@ import (
 )
 
 type AdminService interface {
-	GetBotUsersWithBalance() ([]models.BotUserResponse, error)
+	GetBotUsersWithBalance(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.BotUserResponse], error)
 }
 
 type adminService struct {
@@ -18,14 +18,14 @@ func NewAdminService(adminRepo repositories.AdminRepository, botUserRepo reposit
 	return &adminService{adminRepo: adminRepo, botUserRepo: botUserRepo}
 }
 
-func (s *adminService) GetBotUsersWithBalance() ([]models.BotUserResponse, error) {
-	botUsers, err := s.adminRepo.GetActiveBotUsers()
+func (s *adminService) GetBotUsersWithBalance(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.BotUserResponse], error) {
+	paginatedUsers, err := s.adminRepo.GetActiveBotUsers(page, filters)
 	if err != nil {
 		return nil, err
 	}
 
 	var response []models.BotUserResponse
-	for _, u := range botUsers {
+	for _, u := range paginatedUsers.Data {
 		balance, err := s.botUserRepo.GetUserBalance(u.ID)
 		if err != nil {
 			// Depending on requirements, you might want to log this error but continue
@@ -45,5 +45,8 @@ func (s *adminService) GetBotUsersWithBalance() ([]models.BotUserResponse, error
 		})
 	}
 
-	return response, nil
+	return &models.PaginatedResult[models.BotUserResponse]{
+		Data:  response,
+		Total: paginatedUsers.Total,
+	}, nil
 }

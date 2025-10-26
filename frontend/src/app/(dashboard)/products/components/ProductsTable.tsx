@@ -52,11 +52,12 @@ export const ProductsTable = ({
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
 
   const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 90, filterable: false }, // Not reliable for sorting/filtering
+    { field: "id", headerName: "ID", width: 90, filterable: false, sortable: false }, // Not reliable for sorting/filtering
     {
       field: "image_url",
       headerName: "Изображение",
       width: 120,
+      sortable: false,
       renderCell: ({ row }) =>
         row.image_url ? (
           <img
@@ -66,11 +67,12 @@ export const ProductsTable = ({
           />
         ) : null,
     },
-    { field: "name", headerName: "Название", width: 250, flex: 1 },
+    { field: "name", headerName: "Название", width: 250, flex: 1, sortable: false },
     {
       field: "type",
       headerName: "Тип",
       width: 200,
+      sortable: false,
       valueGetter: (value, row) => {
         return row.provider
           ? `Внешний (${row.provider})`
@@ -90,8 +92,9 @@ export const ProductsTable = ({
       flex: 1,
       type: "singleSelect",
       valueOptions: categories.map((c) => ({ value: c.id, label: c.name })),
+      sortable: false,
     },
-    { field: "price", headerName: "Цена", type: "number", width: 110 },
+    { field: "price", headerName: "Цена", type: "number", width: 110, sortable: false },
     {
       field: "stock",
       headerName: "Остаток",
@@ -99,6 +102,7 @@ export const ProductsTable = ({
       width: 110,
       valueGetter: (value, row) => (row.type === "subscription" ? "∞" : value),
       filterable: false, // Stock is calculated and not a direct DB field
+      sortable: false,
     },
     {
       field: "actions",
@@ -106,6 +110,7 @@ export const ProductsTable = ({
       headerName: "Действия",
       width: 100,
       cellClassName: "actions",
+      sortable: false,
       getActions: ({ row }) => {
         return [
           <GridActionsCellItem

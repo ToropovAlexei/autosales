@@ -29,9 +29,9 @@ export const AuditLogTable = ({
   onFilterModelChange,
 }: AuditLogTableProps) => {
   const columns: GridColDef[] = [
-    { field: "id", headerName: "Id", width: 90 },
-    { field: "user_email", headerName: "Email", width: 250, flex: 1 },
-    { field: "action", headerName: "Действие", width: 200, flex: 1 },
+    { field: "id", headerName: "Id", width: 90, sortable: false },
+    { field: "user_email", headerName: "Email", width: 250, flex: 1, sortable: false },
+    { field: "action", headerName: "Действие", width: 200, flex: 1, sortable: false },
     {
       field: "target",
       headerName: "Сущность",
@@ -39,6 +39,7 @@ export const AuditLogTable = ({
       valueGetter: (value, row) => `${row.target_type} (${row.target_id})`,
       flex: 1,
       filterable: false,
+      sortable: false,
     },
     {
       field: "changes",
@@ -46,14 +47,16 @@ export const AuditLogTable = ({
       width: 200,
       flex: 1,
       valueGetter: (value, row) => JSON.stringify(row.changes),
+      sortable: false,
     },
-    { field: "status", headerName: "Статус", width: 110 },
+    { field: "status", headerName: "Статус", width: 110, sortable: false },
     {
       field: "created_at",
       headerName: "Дата создания",
       width: 200,
       valueGetter: (value) => new Date(value).toLocaleString(),
       filterOperator: "onOrAfter",
+      sortable: false,
     },
   ];
 
