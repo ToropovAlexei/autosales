@@ -201,6 +201,10 @@ func (s *paymentService) processCompletedInvoice(tx *gorm.DB, orderID string) er
 		return fmt.Errorf("failed to create deposit transaction: %w", err)
 	}
 
+	if err := s.botUserRepo.WithTx(tx).UpdateBalance(invoice.BotUserID, totalAmount); err != nil {
+		return fmt.Errorf("failed to update user balance: %w", err)
+	}
+
 	user, err := s.botUserRepo.WithTx(tx).FindByID(invoice.BotUserID)
 	if err != nil {
 		slog.Error("could not find user to notify about payment", "userID", invoice.BotUserID, "error", err)

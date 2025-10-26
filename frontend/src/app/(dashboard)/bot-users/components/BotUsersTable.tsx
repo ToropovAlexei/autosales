@@ -39,7 +39,12 @@ export const BotUsersTable = ({
 }: BotUsersTableProps) => {
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", width: 60, sortable: false },
-    { field: "telegram_id", headerName: "Telegram ID", width: 150, sortable: false },
+    {
+      field: "telegram_id",
+      headerName: "Telegram ID",
+      width: 150,
+      sortable: false,
+    },
     {
       field: "is_blocked",
       headerName: "Статус",
@@ -55,6 +60,7 @@ export const BotUsersTable = ({
     {
       field: "balance",
       headerName: "Баланс",
+      type: "number",
       width: 150,
       renderCell: (params) => `${params.value} ₽`,
       sortable: false,

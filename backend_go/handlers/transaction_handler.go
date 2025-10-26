@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"encoding/json"
+	"frbktg/backend_go/apperrors"
+	"frbktg/backend_go/models"
 	"frbktg/backend_go/responses"
 	"frbktg/backend_go/services"
 	"net/http"
@@ -17,7 +20,21 @@ func NewTransactionHandler(transactionService services.TransactionService) *Tran
 }
 
 func (h *TransactionHandler) GetAllTransactionsHandler(c *gin.Context) {
-	transactions, err := h.transactionService.GetAll()
+	var page models.Page
+	if err := c.ShouldBindQuery(&page); err != nil {
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
+		return
+	}
+
+	var filters []models.Filter
+	if filtersJSON := c.Query("filters"); filtersJSON != "" {
+		if err := json.Unmarshal([]byte(filtersJSON), &filters); err != nil {
+			c.Error(&apperrors.ErrValidation{Message: "Invalid filters format"})
+			return
+		}
+	}
+
+	transactions, err := h.transactionService.GetAll(page, filters)
 	if err != nil {
 		c.Error(err)
 		return

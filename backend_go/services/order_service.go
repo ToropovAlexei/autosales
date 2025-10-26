@@ -412,6 +412,10 @@ func (s *orderService) CancelOrder(orderID uint) error {
 			return apperrors.New(500, "Failed to create transaction", err)
 		}
 
+		if err := s.botUserRepo.WithTx(tx).UpdateBalance(order.UserID, order.Amount); err != nil {
+			return apperrors.New(500, "Failed to update user balance", err)
+		}
+
 		order.Status = "cancelled"
 		if err := s.orderRepo.WithTx(tx).UpdateOrder(order); err != nil {
 			return apperrors.New(500, "Failed to update order", err)
@@ -476,6 +480,10 @@ func (s *orderService) RenewSubscription(subscriptionID uint) error {
 			return err
 		}
 
+		if err := s.botUserRepo.WithTx(tx).UpdateBalance(user.ID, -product.Price); err != nil {
+			return err
+		}
+
 		subscription.ExpiresAt = subscription.ExpiresAt.AddDate(0, 0, product.SubscriptionPeriodDays)
 		subscription.OrderID = order.ID
 		return s.userSubscriptionRepo.WithTx(tx).UpdateSubscription(subscription)
@@ -501,6 +509,10 @@ func (s *orderService) createOrderTransactionsAndMovements(
 		return err
 	}
 
+	if err := s.botUserRepo.WithTx(tx).UpdateBalance(user.ID, -orderAmount); err != nil {
+		return err
+	}
+
 	if product.Type == "item" {
 		saleMovement := &models.StockMovement{
 			OrderID:     &order.ID,
@@ -523,3 +535,4 @@ func (s *orderService) createOrderTransactionsAndMovements(
 
 	return nil
 }
+

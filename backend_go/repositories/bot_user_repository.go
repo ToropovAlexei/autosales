@@ -1,7 +1,6 @@
 package repositories
 
 import (
-	"database/sql"
 	"errors"
 	"frbktg/backend_go/models"
 
@@ -15,6 +14,7 @@ type BotUserRepository interface {
 	Create(user *models.BotUser) error
 	Update(user *models.BotUser) error
 	UpdateCaptchaStatus(user *models.BotUser, hasPassed bool) error
+	UpdateBalance(userID uint, amount float64) error
 	GetUserBalance(userID uint) (float64, error)
 	GetUserTransactions(userID uint) ([]models.Transaction, error)
 }
@@ -60,18 +60,19 @@ func (r *gormBotUserRepository) UpdateCaptchaStatus(user *models.BotUser, hasPas
 	return r.db.Save(user).Error
 }
 
+func (r *gormBotUserRepository) UpdateBalance(userID uint, amount float64) error {
+	return r.db.Model(&models.BotUser{}).Where("id = ?", userID).Update("balance", gorm.Expr("balance + ?", amount)).Error
+}
+
 func (r *gormBotUserRepository) GetUserBalance(userID uint) (float64, error) {
-	var balance sql.NullFloat64
-	if err := r.db.Model(&models.Transaction{}).Where("user_id = ?", userID).Select("sum(amount)").
-		Row().Scan(&balance); err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+	var user models.BotUser
+	if err := r.db.Model(&models.BotUser{}).Where("id = ?", userID).Select("balance").First(&user).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return 0, nil // Return 0 if user not found, consistent with old logic
+		}
 		return 0, err
 	}
-
-	if balance.Valid {
-		return balance.Float64, nil
-	}
-
-	return 0.0, nil
+	return user.Balance, nil
 }
 
 func (r *gormBotUserRepository) GetUserTransactions(userID uint) ([]models.Transaction, error) {

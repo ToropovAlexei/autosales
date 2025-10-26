@@ -6,7 +6,7 @@ import (
 )
 
 type TransactionService interface {
-	GetAll() ([]models.TransactionResponse, error)
+	GetAll(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.TransactionResponse], error)
 }
 
 type transactionService struct {
@@ -17,14 +17,14 @@ func NewTransactionService(transactionRepo repositories.TransactionRepository) T
 	return &transactionService{transactionRepo: transactionRepo}
 }
 
-func (s *transactionService) GetAll() ([]models.TransactionResponse, error) {
-	transactions, err := s.transactionRepo.GetAll()
+func (s *transactionService) GetAll(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.TransactionResponse], error) {
+	paginatedTransactions, err := s.transactionRepo.GetAll(page, filters)
 	if err != nil {
 		return nil, err
 	}
 
 	var response []models.TransactionResponse
-	for _, t := range transactions {
+	for _, t := range paginatedTransactions.Data {
 		response = append(response, models.TransactionResponse{
 			ID:          t.ID,
 			UserID:      t.UserID,
@@ -36,5 +36,8 @@ func (s *transactionService) GetAll() ([]models.TransactionResponse, error) {
 		})
 	}
 
-	return response, nil
+	return &models.PaginatedResult[models.TransactionResponse]{
+		Data:  response,
+		Total: paginatedTransactions.Total,
+	}, nil
 }

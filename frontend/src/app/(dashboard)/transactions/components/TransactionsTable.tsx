@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   DataGrid,
@@ -6,8 +6,8 @@ import {
   GridFilterModel,
   GridPaginationModel,
   GridSortModel,
-} from '@mui/x-data-grid';
-import { ruRU } from '@mui/x-data-grid/locales';
+} from "@mui/x-data-grid";
+import { ruRU } from "@mui/x-data-grid/locales";
 
 interface Transaction {
   id: number;
@@ -43,23 +43,55 @@ export const TransactionsTable = ({
   onSortModelChange,
 }: TransactionsTableProps) => {
   const columns: GridColDef[] = [
-    { field: 'id', headerName: 'ID', width: 90, sortable: false },
-    { field: 'user_id', headerName: 'ID Пользователя', width: 150, sortable: false },
-    { field: 'order_id', headerName: 'ID Заказа', width: 120, valueGetter: (value) => value ?? 'N/A', sortable: false },
-    { field: 'type', headerName: 'Тип', width: 120, sortable: false },
-    { field: 'amount', headerName: 'Сумма', width: 120, sortable: false },
     {
-      field: 'created_at',
-      headerName: 'Дата',
+      field: "id",
+      headerName: "ID",
+      width: 90,
+      sortable: false,
+      type: "number",
+    },
+    {
+      field: "user_id",
+      headerName: "ID Пользователя",
+      width: 150,
+      sortable: false,
+      type: "number",
+    },
+    {
+      field: "order_id",
+      headerName: "ID Заказа",
+      width: 120,
+      valueGetter: (value) => value ?? "N/A",
+      sortable: false,
+      type: "number",
+    },
+    { field: "type", headerName: "Тип", width: 120, sortable: false },
+    {
+      field: "amount",
+      headerName: "Сумма",
+      width: 120,
+      sortable: false,
+      type: "number",
+    },
+    {
+      field: "created_at",
+      type: "dateTime",
+      headerName: "Дата",
       width: 200,
-      renderCell: (params) => new Date(params.value).toLocaleString(),
+      valueGetter: (value) => new Date(value),
       sortable: false,
     },
-    { field: 'description', headerName: 'Описание', flex: 1, valueGetter: (value) => value ?? 'N/A', sortable: false },
+    {
+      field: "description",
+      headerName: "Описание",
+      flex: 1,
+      valueGetter: (value) => value ?? "N/A",
+      sortable: false,
+    },
   ];
 
   return (
-    <div style={{ width: '100%' }}>
+    <div style={{ width: "100%" }}>
       <DataGrid
         rows={transactions}
         columns={columns}
@@ -80,23 +112,23 @@ export const TransactionsTable = ({
           filterPanel: {
             filterFormProps: {
               logicOperatorInputProps: {
-                variant: 'outlined',
-                size: 'small',
+                variant: "outlined",
+                size: "small",
               },
               columnInputProps: {
-                variant: 'outlined',
-                size: 'small',
-                sx: { mt: 'auto' },
+                variant: "outlined",
+                size: "small",
+                sx: { mt: "auto" },
               },
               operatorInputProps: {
-                variant: 'outlined',
-                size: 'small',
-                sx: { mt: 'auto' },
+                variant: "outlined",
+                size: "small",
+                sx: { mt: "auto" },
               },
               valueInputProps: {
                 InputComponentProps: {
-                  variant: 'outlined',
-                  size: 'small',
+                  variant: "outlined",
+                  size: "small",
                 },
               },
             },

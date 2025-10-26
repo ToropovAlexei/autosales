@@ -12,7 +12,7 @@ type TransactionRepository interface {
 	WithTx(tx *gorm.DB) TransactionRepository
 	CreateTransaction(transaction *models.Transaction) error
 	CreateRefTransaction(refTransaction *models.RefTransaction) error
-	GetAll() ([]models.Transaction, error)
+	GetAll(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.Transaction], error)
 }
 
 type gormTransactionRepository struct {
@@ -35,10 +35,14 @@ func (r *gormTransactionRepository) CreateRefTransaction(refTransaction *models.
 	return r.db.Create(refTransaction).Error
 }
 
-func (r *gormTransactionRepository) GetAll() ([]models.Transaction, error) {
-	var transactions []models.Transaction
-	if err := r.db.Order("created_at desc").Find(&transactions).Error; err != nil {
+func (r *gormTransactionRepository) GetAll(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.Transaction], error) {
+	db := r.db.Model(&models.Transaction{})
+	db = ApplyFilters[models.Transaction](db, filters)
+
+	paginatedResult, err := ApplyPagination[models.Transaction](db, page)
+	if err != nil {
 		return nil, err
 	}
-	return transactions, nil
+
+	return paginatedResult, nil
 }

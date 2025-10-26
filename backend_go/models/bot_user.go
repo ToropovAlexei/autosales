@@ -3,12 +3,13 @@ package models
 import "time"
 
 type BotUser struct {
-	ID                uint   `gorm:"primaryKey"`
-	TelegramID        int64  `gorm:"uniqueIndex"`
-	IsBlocked         bool   `gorm:"default:false" json:"is_blocked"`
-	HasPassedCaptcha  bool   `gorm:"default:false"`
-	RegisteredWithBot string `gorm:"size:255"`
-	LastSeenWithBot   string `gorm:"size:255"`
+	ID                uint    `gorm:"primaryKey"`
+	TelegramID        int64   `gorm:"uniqueIndex"`
+	Balance           float64 `gorm:"default:0"`
+	IsBlocked         bool    `gorm:"default:false" json:"is_blocked"`
+	HasPassedCaptcha  bool    `gorm:"default:false"`
+	RegisteredWithBot string  `gorm:"size:255"`
+	LastSeenWithBot   string  `gorm:"size:255"`
 	LastSeenAt        time.Time
 	CreatedAt         time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
 }

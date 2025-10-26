@@ -73,6 +73,7 @@ func dropAllTables(db *gorm.DB) {
 		&models.Product{}, &models.Category{}, &models.BotUser{}, &models.User{},
 		&models.PaymentInvoice{}, &models.Image{}, &models.UserPermission{},
 		&models.UserRole{}, &models.RolePermission{}, &models.Permission{}, &models.Role{},
+		&models.ActiveToken{},
 	}
 	if err := db.Migrator().DropTable(tables...); err != nil {
 		log.Fatalf("Failed to drop tables: %v", err)
@@ -87,6 +88,7 @@ func autoMigrate(db *gorm.DB) {
 		&models.ReferralBot{}, &models.RefTransaction{}, &models.UserSubscription{},
 		&models.PaymentInvoice{}, &models.Image{}, &models.Role{}, &models.Permission{},
 		&models.RolePermission{}, &models.UserRole{}, &models.UserPermission{}, &models.Setting{},
+		&models.ActiveToken{},
 	); err != nil {
 		log.Fatalf("Failed to auto-migrate: %v", err)
 	}
@@ -360,4 +362,9 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 	}
 	db.Create(&allPurchaseTransactions)
 	db.Create(&allStockMovements)
+
+	fmt.Println("Phase 3: Updating user balances.")
+	for userID, balance := range userBalances {
+		db.Model(&models.BotUser{}).Where("id = ?", userID).Update("balance", balance)
+	}
 }
