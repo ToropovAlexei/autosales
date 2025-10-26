@@ -9,6 +9,7 @@ import (
 	"frbktg/backend_go/gateways"
 	"frbktg/backend_go/gateways/mock"
 	"frbktg/backend_go/handlers"
+	"frbktg/backend_go/middleware"
 	"frbktg/backend_go/repositories"
 	"frbktg/backend_go/services"
 	"frbktg/backend_go/workers"
@@ -59,6 +60,7 @@ type Container struct {
 	SettingHandler         *handlers.SettingHandler
 	RoleHandler            *handlers.RoleHandler
 	AuditLogHandler        *handlers.AuditLogHandler
+	AuthMiddleware         *middleware.AuthMiddleware
 	SubscriptionWorker     *workers.SubscriptionWorker
 	PaymentWorker          *workers.PaymentWorker
 }
@@ -107,7 +109,6 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	)
 	paymentGatewayRegistry.RegisterProvider(platformSbpAdapter)
 
-	// Init repositories
 	userRepo := repositories.NewUserRepository(db)
 	botUserRepo := repositories.NewBotUserRepository(db)
 	productRepo := repositories.NewProductRepository(db)
@@ -125,12 +126,12 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	settingRepo := repositories.NewSettingRepository(db)
 	roleRepo := repositories.NewRoleRepository(db)
 	auditLogRepo := repositories.NewAuditLogRepository(db)
+	activeTokenRepo := repositories.NewActiveTokenRepository(db)
 
-	// Init services
-	tokenService := services.NewTokenService(appSettings.SecretKey, appSettings.AccessTokenExpireMinutes)
+	tokenService := services.NewTokenService(appSettings.SecretKey, appSettings.AccessTokenExpireMinutes, activeTokenRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
 	settingService := services.NewSettingService(*settingRepo, userRepo, auditLogService)
-	authService := services.NewAuthService(userRepo, tokenService, appSettings)
+	authService := services.NewAuthService(userRepo, tokenService, activeTokenRepo, appSettings)
 	userService := services.NewUserService(userRepo, botUserRepo, userSubscriptionRepo, orderRepo, auditLogService)
 	productService := services.NewProductService(productRepo, categoryRepo, providerRegistry, auditLogService)
 	categoryService := services.NewCategoryService(categoryRepo, productService, auditLogService)
@@ -167,6 +168,8 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	settingHandler := handlers.NewSettingHandler(settingService)
 	roleHandler := handlers.NewRoleHandler(roleService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
+
+	authMiddleware := middleware.NewAuthMiddleware(tokenService, userService)
 
 	return &Container{
 		DB:                     db,
@@ -209,6 +212,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 		SettingHandler:         settingHandler,
 		RoleHandler:            roleHandler,
 		AuditLogHandler:        auditLogHandler,
+		AuthMiddleware:         authMiddleware,
 		SubscriptionWorker:     subscriptionWorker,
 		PaymentWorker:          paymentWorker,
 	}, nil

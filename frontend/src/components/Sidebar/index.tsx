@@ -1,8 +1,10 @@
-import { Drawer, Box } from "@mui/material";
+import { Drawer, Box, Button } from "@mui/material";
 import classes from "./styles.module.css";
 import { MenuContent } from "@/components/MenuContent";
+import { useLogout } from "@/hooks";
 
 export const Sidebar = () => {
+  const logout = useLogout();
   return (
     <Drawer variant="permanent" className={classes.drawer}>
       <Box
@@ -16,6 +18,9 @@ export const Sidebar = () => {
         }}
       >
         <MenuContent />
+        <Button sx={{ mt: "auto" }} onClick={logout}>
+          Выход
+        </Button>
       </Box>
     </Drawer>
   );

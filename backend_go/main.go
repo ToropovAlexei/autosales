@@ -74,7 +74,7 @@ func main() {
 	container.StartWorkers()
 
 	// Run migrations
-	if err := container.DB.AutoMigrate(&models.Product{}, &models.Order{}, &models.Setting{}, &models.AuditLog{}); err != nil {
+	if err := container.DB.AutoMigrate(&models.Product{}, &models.Order{}, &models.Setting{}, &models.AuditLog{}, &models.ActiveToken{}); err != nil {
 		log.Fatal().Err(err).Msg("failed to migrate database")
 	}
 
@@ -87,9 +87,9 @@ func main() {
 
 	// Используем стандартный Recovery middleware и наши кастомные
 	r.Use(gin.Recovery())
-	r.Use(middleware.LogContext())   // Добавляет контекст в логгер
+	r.Use(middleware.LogContext())                              // Добавляет контекст в логгер
 	r.Use(middleware.ServicesMiddleware(container.RoleService)) // Inject services into context
-	r.Use(middleware.ErrorHandler()) // Должен быть после LogContext
+	r.Use(middleware.ErrorHandler())                            // Должен быть после LogContext
 
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowOrigins = appSettings.CorsOrigins
@@ -98,25 +98,23 @@ func main() {
 	corsConfig.AddAllowHeaders("*")
 	r.Use(cors.New(corsConfig))
 
-	authMiddleware := middleware.NewAuthMiddleware(container.TokenService, container.UserService)
-
 	// Register all routes
-	routers.RegisterAuthRoutes(r, container.AuthHandler)
-	routers.RegisterCategoryRoutes(r, container.CategoryHandler, authMiddleware)
-	routers.RegisterProductRoutes(r, container.ProductHandler, authMiddleware)
-	routers.RegisterUserRoutes(r, container.UserHandler, authMiddleware)
-	routers.RegisterBalanceRoutes(r, container.BalanceHandler, authMiddleware)
-	routers.RegisterOrderRoutes(r, container.OrderHandler, authMiddleware)
-	routers.RegisterAdminRoutes(r, container.AdminHandler, container.PaymentHandler, authMiddleware)
-	routers.RegisterTransactionRoutes(r, container.TransactionHandler, authMiddleware)
-	routers.RegisterStockRoutes(r, container.StockHandler, authMiddleware)
-	routers.RegisterDashboardRoutes(r, container.DashboardHandler, authMiddleware)
-	routers.RegisterReferralRoutes(r, container.ReferralHandler, authMiddleware, appSettings)
-	routers.RegisterPaymentRoutes(r, container.PaymentHandler, authMiddleware)
-	routers.RegisterImageRoutes(r, container.ImageHandler, authMiddleware)
-	routers.RegisterSettingRoutes(r, container.SettingHandler, authMiddleware)
-	routers.RegisterRoleRoutes(r, container.RoleHandler, authMiddleware)
-	routers.RegisterAdminUserRoutes(r, container.RoleHandler, container.AdminHandler, authMiddleware)
+	routers.RegisterAuthRoutes(r, container.AuthHandler, container.AuthMiddleware)
+	routers.RegisterCategoryRoutes(r, container.CategoryHandler, container.AuthMiddleware)
+	routers.RegisterProductRoutes(r, container.ProductHandler, container.AuthMiddleware)
+	routers.RegisterUserRoutes(r, container.UserHandler, container.AuthMiddleware)
+	routers.RegisterBalanceRoutes(r, container.BalanceHandler, container.AuthMiddleware)
+	routers.RegisterOrderRoutes(r, container.OrderHandler, container.AuthMiddleware)
+	routers.RegisterAdminRoutes(r, container.AdminHandler, container.PaymentHandler, container.AuthMiddleware)
+	routers.RegisterTransactionRoutes(r, container.TransactionHandler, container.AuthMiddleware)
+	routers.RegisterStockRoutes(r, container.StockHandler, container.AuthMiddleware)
+	routers.RegisterDashboardRoutes(r, container.DashboardHandler, container.AuthMiddleware)
+	routers.RegisterReferralRoutes(r, container.ReferralHandler, container.AuthMiddleware, appSettings)
+	routers.RegisterPaymentRoutes(r, container.PaymentHandler, container.AuthMiddleware)
+	routers.RegisterImageRoutes(r, container.ImageHandler, container.AuthMiddleware)
+	routers.RegisterSettingRoutes(r, container.SettingHandler, container.AuthMiddleware)
+	routers.RegisterRoleRoutes(r, container.RoleHandler, container.AuthMiddleware)
+	routers.RegisterAdminUserRoutes(r, container.RoleHandler, container.AdminHandler, container.AuthMiddleware)
 	routers.RegisterBotRoutes(r, container.ProductHandler, appSettings)
 	routers.SetupAuditLogRoutes(r.Group("/api"), container)
 
