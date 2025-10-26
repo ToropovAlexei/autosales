@@ -6,7 +6,7 @@ import (
 )
 
 type StockService interface {
-	GetStockMovements(filters []models.Filter) ([]models.StockMovementResponse, error)
+	GetStockMovements(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.StockMovementResponse], error)
 }
 
 type stockService struct {
@@ -17,14 +17,14 @@ func NewStockService(stockRepo repositories.StockRepository) StockService {
 	return &stockService{stockRepo: stockRepo}
 }
 
-func (s *stockService) GetStockMovements(filters []models.Filter) ([]models.StockMovementResponse, error) {
-	movements, err := s.stockRepo.GetStockMovements(filters)
+func (s *stockService) GetStockMovements(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.StockMovementResponse], error) {
+	paginatedMovements, err := s.stockRepo.GetStockMovements(page, filters)
 	if err != nil {
 		return nil, err
 	}
 
 	var response []models.StockMovementResponse
-	for _, m := range movements {
+	for _, m := range paginatedMovements.Data {
 		response = append(response, models.StockMovementResponse{
 			ID:          m.ID,
 			ProductID:   m.ProductID,
@@ -36,5 +36,8 @@ func (s *stockService) GetStockMovements(filters []models.Filter) ([]models.Stoc
 		})
 	}
 
-	return response, nil
+	return &models.PaginatedResult[models.StockMovementResponse]{
+		Data:  response,
+		Total: paginatedMovements.Total,
+	}, nil
 }
