@@ -7,7 +7,7 @@ use teloxide::{
     Bot,
     dispatching::{
         HandlerExt, UpdateFilterExt,
-        dialogue::{GetChatId, RedisStorage, serializer::Json},
+        dialogue::{RedisStorage, serializer::Json},
     },
     dptree,
     macros::BotCommands,
@@ -26,7 +26,8 @@ use crate::{
             balance::balance_handler, captcha_answer::captcha_answer_handler,
             deposit_amount::deposit_amount_handler, deposit_confirm::deposit_confirm_handler,
             deposit_gateway::deposit_gateway_handler, fallback_bot_msg::fallback_bot_msg,
-            main_menu::main_menu_handler, my_orders::my_orders_handler, start::start_handler,
+            main_menu::main_menu_handler, my_orders::my_orders_handler,
+            my_subscriptions::my_subscriptions_handler, start::start_handler,
             support::support_handler,
         },
         keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard,
@@ -272,6 +273,7 @@ pub async fn start_bot<'a>(
                         .update(BotState::MySubscriptions)
                         .await
                         .map_err(AppError::from)?;
+                    my_subscriptions_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToReferralProgram => {
                     dialogue

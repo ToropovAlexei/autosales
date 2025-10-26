@@ -51,3 +51,15 @@ pub struct UserOrder {
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub fulfilled_content: Option<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Product {
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct UserSubscription {
+    pub product: Product,
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+    pub details: Option<serde_json::Value>,
+}

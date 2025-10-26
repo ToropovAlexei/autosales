@@ -24,7 +24,7 @@ async def my_subscriptions_handler(callback_query: CallbackQuery, api_client: AP
 
             response_text = f"{hbold('🧾 Ваши подписки:')}\n\n"
             for sub in subscriptions:
-                product_name = sub.get('Product', {}).get('name', 'Неизвестный продукт')
+                product_name = sub.get('product', {}).get('name', 'Неизвестный продукт')
                 expires_at_str = sub.get('expires_at', '')
                 
                 try:

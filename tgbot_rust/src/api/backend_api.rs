@@ -8,7 +8,8 @@ use crate::{
     api::api_client::ApiClient,
     errors::{AppError, AppResult},
     models::{
-        BackendResponse, BalanceResponse, InvoiceResponse, PaymentGateway, UserOrder, user::BotUser,
+        BackendResponse, BalanceResponse, InvoiceResponse, PaymentGateway, UserOrder,
+        UserSubscription, user::BotUser,
     },
 };
 
@@ -186,6 +187,22 @@ impl BackendApi {
     pub async fn get_user_orders(&self, telegram_id: i64) -> AppResult<Vec<UserOrder>> {
         self.api_client
             .get::<BackendResponse<Vec<UserOrder>>>(&format!("users/{telegram_id}/orders"))
+            .await
+            .and_then(|res| {
+                res.data.ok_or_else(|| {
+                    AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
+                })
+            })
+    }
+
+    pub async fn get_user_subscriptions(
+        &self,
+        telegram_id: i64,
+    ) -> AppResult<Vec<UserSubscription>> {
+        self.api_client
+            .get::<BackendResponse<Vec<UserSubscription>>>(&format!(
+                "users/{telegram_id}/subscriptions"
+            ))
             .await
             .and_then(|res| {
                 res.data.ok_or_else(|| {

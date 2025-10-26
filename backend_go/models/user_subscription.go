@@ -11,7 +11,7 @@ type UserSubscription struct {
 	BotUserID     uint           `gorm:"index" json:"bot_user_id"`
 	BotUser       BotUser        `gorm:"foreignKey:BotUserID" json:"bot_user"`
 	ProductID     uint           `gorm:"index" json:"product_id"`
-	Product       Product        `gorm:"foreignKey:ProductID" json:"Product"`
+	Product       Product        `gorm:"foreignKey:ProductID" json:"product"`
 	OrderID       uint           `gorm:"index" json:"order_id"`
 	Order         Order          `gorm:"foreignKey:OrderID" json:"order"`
 	ExpiresAt     time.Time      `gorm:"index" json:"expires_at"`
