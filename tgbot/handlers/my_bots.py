@@ -65,7 +65,7 @@ async def show_my_bots(query: CallbackQuery, api_client: APIClient):
         )
     else:
         seller_info_response = await api_client.get_public_settings()
-        referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
+        referral_program_enabled = seller_info_response.get("referral_program_enabled", False)
         await query.message.edit_text("Не удалось получить список ваших ботов. Попробуйте позже.", reply_markup=inline.main_menu(
             referral_program_enabled=referral_program_enabled,
             bot_type=settings.bot_type
@@ -147,14 +147,8 @@ async def stats_handler(callback_query: CallbackQuery, api_client: APIClient):
 @router.callback_query(BotCallback.filter(F.action == "add"))
 async def add_bot_handler(callback_query: CallbackQuery, state: FSMContext, api_client: APIClient):
     seller_info_response = await api_client.get_public_settings()
-    if not seller_info_response.get("success"):
-        await callback_query.message.edit_text(
-            "Не удалось загрузить информацию о реферальной программе. Попробуйте позже.",
-            reply_markup=inline.main_menu(bot_type=settings.bot_type)
-        )
-        return
 
-    referral_percentage = seller_info_response.get("data", {}).get("referral_percentage", 0)
+    referral_percentage = seller_info_response.get("referral_percentage", 0)
 
     await callback_query.message.edit_text(
         f"Вы можете создать свой собственный магазин-бот и получать {hbold(f'{referral_percentage}%')} с каждой продажи!\n\n" 

@@ -76,7 +76,7 @@ async def start_handler(message: Message, state: FSMContext, api_client: APIClie
             else:
                 await update_pinned_message(message)
                 seller_info_response = await api_client.get_public_settings()
-                referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False) == 'true'
+                referral_program_enabled = seller_info_response.get("referral_program_enabled", False) == 'true'
 
                 welcome_message = await api_client.get_returning_user_welcome_message()
                 welcome_message = welcome_message.replace("{username}", hbold(message.from_user.full_name))
@@ -118,7 +118,7 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
         await callback_query.message.delete()
         await update_pinned_message(callback_query.message)
         seller_info_response = await api_client.get_public_settings()
-        referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
+        referral_program_enabled = seller_info_response.get("referral_program_enabled", False)
 
         welcome_message = await api_client.get_new_user_welcome_message()
         welcome_message = welcome_message.replace("{username}", hbold(callback_query.from_user.full_name))
@@ -143,7 +143,7 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
 @router.callback_query(F.data == "main_menu")
 async def main_menu_handler(callback_query: CallbackQuery, api_client: APIClient):
     seller_info_response = await api_client.get_public_settings()
-    referral_program_enabled = seller_info_response.get("data", {}).get("referral_program_enabled", False)
+    referral_program_enabled = seller_info_response.get("referral_program_enabled", False)
     reply_markup = inline.main_menu(
         referral_program_enabled=referral_program_enabled,
         bot_type=settings.bot_type
