@@ -14,7 +14,7 @@ type OrderRepository interface {
 	CreateOrder(order *models.Order) error
 	GetOrderForUpdate(orderID uint) (*models.Order, error)
 	UpdateOrder(order *models.Order) error
-	GetOrders() ([]models.OrderResponse, error)
+	GetOrders(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.OrderResponse], error)
 	FindOrdersByBotUserID(botUserID uint) ([]models.Order, error)
 }
 
@@ -46,17 +46,20 @@ func (r *gormOrderRepository) UpdateOrder(order *models.Order) error {
 	return r.db.Save(order).Error
 }
 
-func (r *gormOrderRepository) GetOrders() ([]models.OrderResponse, error) {
-	var response []models.OrderResponse
-	if err := r.db.Table("orders").
+func (r *gormOrderRepository) GetOrders(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.OrderResponse], error) {
+	db := r.db.Table("orders").
 		Select("orders.*, bot_users.telegram_id as user_telegram_id, products.name as product_name").
 		Joins("join bot_users on bot_users.id = orders.user_id").
-		Joins("join products on products.id = orders.product_id").
-		Order("orders.created_at desc").
-		Scan(&response).Error; err != nil {
+		Joins("join products on products.id = orders.product_id")
+
+	db = ApplyFilters[models.OrderResponse](db, filters)
+
+	paginatedResult, err := ApplyPagination[models.OrderResponse](db, page)
+	if err != nil {
 		return nil, err
 	}
-	return response, nil
+
+	return paginatedResult, nil
 }
 
 func (r *gormOrderRepository) FindOrdersByBotUserID(botUserID uint) ([]models.Order, error) {

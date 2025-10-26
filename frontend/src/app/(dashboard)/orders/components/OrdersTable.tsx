@@ -43,21 +43,43 @@ export const OrdersTable = ({
   onSortModelChange,
 }: OrdersTableProps) => {
   const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 90, sortable: false },
+    {
+      field: "id",
+      headerName: "ID",
+      width: 90,
+      sortable: false,
+      type: "number",
+    },
+    {
+      field: "user_id",
+      headerName: "User ID",
+      flex: 1,
+      sortable: false,
+      type: "number",
+    },
     {
       field: "user_telegram_id",
       headerName: "Telegram ID",
       flex: 1,
       sortable: false,
+      filterable: false,
+      type: "number",
     },
     { field: "product_name", headerName: "Товар", flex: 1, sortable: false },
-    { field: "quantity", headerName: "Количество", width: 120, sortable: false },
+    {
+      field: "quantity",
+      headerName: "Количество",
+      width: 120,
+      sortable: false,
+      type: "number",
+    },
     {
       field: "amount",
       headerName: "Сумма",
       width: 120,
       renderCell: (params) => `${params.value} ₽`,
       sortable: false,
+      type: "number",
     },
     { field: "status", headerName: "Статус", flex: 1, sortable: false },
     {

@@ -28,7 +28,7 @@ type BuyRequest struct {
 }
 
 type OrderService interface {
-	GetOrders() ([]models.OrderResponse, error)
+	GetOrders(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.OrderResponse], error)
 	BuyFromBalance(req BuyRequest) (*BuyResponse, error)
 	CancelOrder(orderID uint) error
 	RenewSubscription(subscriptionID uint) error
@@ -70,8 +70,8 @@ func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, produc
 	}
 }
 
-func (s *orderService) GetOrders() ([]models.OrderResponse, error) {
-	return s.orderRepo.GetOrders()
+func (s *orderService) GetOrders(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.OrderResponse], error) {
+	return s.orderRepo.GetOrders(page, filters)
 }
 
 func (s *orderService) BuyFromBalance(req BuyRequest) (*BuyResponse, error) {
@@ -535,4 +535,3 @@ func (s *orderService) createOrderTransactionsAndMovements(
 
 	return nil
 }
-

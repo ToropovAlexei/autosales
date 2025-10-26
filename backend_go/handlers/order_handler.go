@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"encoding/json"
 	"frbktg/backend_go/apperrors"
+	"frbktg/backend_go/models"
 	"frbktg/backend_go/responses"
 	"frbktg/backend_go/services"
 	"net/http"
@@ -27,7 +29,21 @@ func NewOrderHandler(orderService services.OrderService) *OrderHandler {
 // @Router       /orders [get]
 // @Security     ApiKeyAuth
 func (h *OrderHandler) GetOrdersHandler(c *gin.Context) {
-	orders, err := h.orderService.GetOrders()
+	var page models.Page
+	if err := c.ShouldBindQuery(&page); err != nil {
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
+		return
+	}
+
+	var filters []models.Filter
+	if filtersJSON := c.Query("filters"); filtersJSON != "" {
+		if err := json.Unmarshal([]byte(filtersJSON), &filters); err != nil {
+			c.Error(&apperrors.ErrValidation{Message: "Invalid filters format"})
+			return
+		}
+	}
+
+	orders, err := h.orderService.GetOrders(page, filters)
 	if err != nil {
 		c.Error(err)
 		return
