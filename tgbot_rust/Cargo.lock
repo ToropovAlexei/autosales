@@ -1966,6 +1966,7 @@ dependencies = [
  "anyhow",
  "axum",
  "base64",
+ "bytes",
  "chrono",
  "deadpool-redis 0.22.0",
  "dotenvy",

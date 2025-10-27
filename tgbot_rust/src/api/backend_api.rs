@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use bytes::Bytes;
 use reqwest::header;
 use serde_json::json;
 use teloxide::types::MessageId;
@@ -8,8 +9,8 @@ use crate::{
     api::api_client::ApiClient,
     errors::{AppError, AppResult},
     models::{
-        BackendResponse, BalanceResponse, InvoiceResponse, PaymentGateway, UserOrder,
-        UserSubscription, user::BotUser,
+        BackendResponse, BalanceResponse, Category, InvoiceResponse, PaymentGateway, Product,
+        UserOrder, UserSubscription, user::BotUser,
     },
 };
 
@@ -209,5 +210,33 @@ impl BackendApi {
                     AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
                 })
             })
+    }
+
+    pub async fn get_categories(&self) -> AppResult<Vec<Category>> {
+        self.api_client
+            .get::<BackendResponse<Vec<Category>>>(&"categories")
+            .await
+            .and_then(|res| {
+                res.data.ok_or_else(|| {
+                    AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
+                })
+            })
+    }
+
+    pub async fn get_products(&self, category_id: i64) -> AppResult<Vec<Product>> {
+        self.api_client
+            .get::<BackendResponse<Vec<Product>>>(&format!(
+                "bot/products?category_id={category_id}"
+            ))
+            .await
+            .and_then(|res| {
+                res.data.ok_or_else(|| {
+                    AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
+                })
+            })
+    }
+
+    pub async fn get_image_bytes(&self, id: &str) -> AppResult<Bytes> {
+        self.api_client.get_bytes(&format!("images/{id}")).await
     }
 }

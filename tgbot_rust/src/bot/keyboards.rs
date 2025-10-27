@@ -4,3 +4,4 @@ pub mod back_to_main_menu;
 pub mod balance_menu;
 pub mod deposit_amount_menu;
 pub mod payment_gateways_menu;
+pub mod catalog_menu;

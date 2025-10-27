@@ -11,7 +11,7 @@ use crate::{
 
 pub async fn manage_main_bots(app_state: AppState) -> AppResult<()> {
     let api_client = Arc::new(BackendApi::new(
-        &app_state.config.backend_api_url,
+        &app_state.config.backend_api_url.clone(),
         &app_state.config.service_token,
     )?);
     let captcha_api_client = Arc::new(CaptchaApi::new(
@@ -28,11 +28,12 @@ pub async fn manage_main_bots(app_state: AppState) -> AppResult<()> {
         let api_client = api_client.clone();
         let cancel_token = cancel_token.clone();
         let captcha_api_client = captcha_api_client.clone();
+        let backend_api_url = app_state.config.backend_api_url.clone();
         tokio::spawn(async move {
             if let Err(e) = start_bot(
                 app_state,
                 token,
-                "fallback_bot_username",
+                "fallback_bot_username".to_string(),
                 api_client,
                 captcha_api_client,
                 cancel_token,

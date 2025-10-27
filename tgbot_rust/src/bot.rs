@@ -24,11 +24,11 @@ use crate::{
     bot::{
         handlers::{
             balance::balance_handler, captcha_answer::captcha_answer_handler,
-            deposit_amount::deposit_amount_handler, deposit_confirm::deposit_confirm_handler,
-            deposit_gateway::deposit_gateway_handler, fallback_bot_msg::fallback_bot_msg,
-            main_menu::main_menu_handler, my_orders::my_orders_handler,
-            my_subscriptions::my_subscriptions_handler, start::start_handler,
-            support::support_handler,
+            catalog::catalog_handler, deposit_amount::deposit_amount_handler,
+            deposit_confirm::deposit_confirm_handler, deposit_gateway::deposit_gateway_handler,
+            fallback_bot_msg::fallback_bot_msg, main_menu::main_menu_handler,
+            my_orders::my_orders_handler, my_subscriptions::my_subscriptions_handler,
+            start::start_handler, support::support_handler,
         },
         keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard,
     },
@@ -59,6 +59,12 @@ pub struct InvoiceData {
     pub details: Option<serde_json::Value>,
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub enum ProductVariant {
+    Product { id: i64 },
+    ExternalProduct { id: String, provider: String },
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum BotState {
     #[default]
@@ -68,7 +74,6 @@ pub enum BotState {
     },
     WaitingForReferralBotToken,
     Category {
-        parent_id: i64,
         category_id: i64,
     },
     DepositSelectGateway,
@@ -86,6 +91,9 @@ pub enum BotState {
     ReferralProgram,
     Support,
     MainMenu,
+    Product {
+        product: ProductVariant,
+    },
 }
 
 impl BotState {
@@ -104,13 +112,19 @@ impl From<BotState> for String {
     }
 }
 
+#[derive(Clone)]
+pub struct ImagesUrl(String);
+
+#[derive(Clone)]
+pub struct BotUsername(String);
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "t", content = "d")]
 pub enum CallbackData {
     AnswerCaptcha { answer: String },
     SelectGateway { gateway: String },
     SelectAmount { amount: i64 },
-    ToCategory { category_id: i64, parent_id: i64 },
+    ToCategory { category_id: i64 },
     ToMainMenu,
     ToDepositSelectGateway,
     ToBalance,
@@ -118,6 +132,7 @@ pub enum CallbackData {
     ToMySubscriptions,
     ToReferralProgram,
     ToSupport,
+    ToProduct { product: ProductVariant },
 }
 
 impl CallbackData {
@@ -157,10 +172,10 @@ pub enum Command {
 
 type MyDialogue = Dialogue<BotState, RedisStorage<Json>>;
 
-pub async fn start_bot<'a>(
+pub async fn start_bot(
     app_state: AppState,
     token: &str,
-    fallback_bot_username: &'a str,
+    fallback_bot_username: String,
     api_client: Arc<BackendApi>,
     captcha_api_client: Arc<CaptchaApi>,
     cancel_token: CancellationToken,
@@ -288,17 +303,19 @@ pub async fn start_bot<'a>(
                         .map_err(AppError::from)?;
                     support_handler(bot, dialogue, q, username, api_client).await?;
                 }
-                CallbackData::ToCategory {
-                    parent_id,
-                    category_id,
-                } => {
+                CallbackData::ToCategory { category_id } => {
                     dialogue
-                        .update(BotState::Category {
-                            parent_id,
-                            category_id,
-                        })
+                        .update(BotState::Category { category_id })
                         .await
                         .map_err(AppError::from)?;
+                    catalog_handler(bot, dialogue, q, username, api_client, category_id).await?;
+                }
+                CallbackData::ToProduct { product } => {
+                    dialogue
+                        .update(BotState::Product { product })
+                        .await
+                        .map_err(AppError::from)?;
+                    // product_handler(bot, dialogue, q, username, api_client, product).await?;
                 }
             }
 
@@ -309,8 +326,6 @@ pub async fn start_bot<'a>(
     let callback_query_handler = Update::filter_callback_query()
         .enter_dialogue::<CallbackQuery, RedisStorage<Json>, BotState>()
         .branch(callback_router);
-
-    let fallback_bot_username = Arc::new(fallback_bot_username.to_string());
 
     let mut dispatcher = Dispatcher::builder(
         bot.clone(),
@@ -331,7 +346,7 @@ pub async fn start_bot<'a>(
                 },
             )
             .inspect_async(
-                async |bot: Bot, update: Update, fallback_bot_username: String| {
+                async |bot: Bot, update: Update, fallback_bot_username: BotUsername| {
                     let chat_id = match update.chat() {
                         Some(chat) => chat.id,
                         None => return,
@@ -351,7 +366,7 @@ pub async fn start_bot<'a>(
         username.clone(),
         api_client,
         captcha_api_client,
-        fallback_bot_username
+        BotUsername(fallback_bot_username)
     ])
     .default_handler(|upd| async move {
         tracing::warn!("Unhandled update: {upd:?}");

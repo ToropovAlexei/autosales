@@ -54,7 +54,20 @@ pub struct UserOrder {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Product {
+    pub id: i64,
     pub name: String,
+    pub price: f64,
+    pub category_id: i64,
+    pub image_url: Option<String>,
+    pub stock: i64,
+    #[serde(rename = "type")]
+    pub type_: String,
+    pub subscription_period_days: i64,
+    pub provider: Option<String>,
+    pub external_id: Option<String>,
+    pub visible: bool,
+    pub fulfillment_type: Option<String>,
+    pub fulfillment_content: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -62,4 +75,13 @@ pub struct UserSubscription {
     pub product: Product,
     pub expires_at: chrono::DateTime<chrono::Utc>,
     pub details: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Category {
+    pub id: i64,
+    pub name: String,
+    pub parent_id: Option<i64>,
+    pub image_id: Option<String>,
+    pub sub_categories: Option<Vec<Category>>,
 }

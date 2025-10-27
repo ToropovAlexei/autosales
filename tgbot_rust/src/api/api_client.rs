@@ -1,4 +1,5 @@
 use axum::http::HeaderMap;
+use bytes::Bytes;
 use reqwest::{Client, Method, RequestBuilder, Response, Url};
 use serde::{Serialize, de::DeserializeOwned};
 
@@ -27,6 +28,12 @@ impl ApiClient {
         let url = self.base_url.join(endpoint)?;
         let response = self.client.get(url).send().await?;
         Self::parse_response(response).await
+    }
+
+    pub async fn get_bytes(&self, endpoint: &str) -> AppResult<Bytes> {
+        let url = self.base_url.join(endpoint)?;
+        let response = self.client.get(url).send().await?;
+        response.bytes().await.map_err(Into::into)
     }
 
     pub async fn post_with_body<T, B>(&self, endpoint: &str, body: &B) -> AppResult<T>

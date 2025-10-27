@@ -1,12 +1,12 @@
-use crate::errors::AppResult;
+use crate::{bot::BotUsername, errors::AppResult};
 use teloxide::prelude::*;
 
 pub async fn fallback_bot_msg(
     bot: Bot,
     chat_id: ChatId,
-    fallback_bot_username: String,
+    fallback_bot_username: BotUsername,
 ) -> AppResult<()> {
-    let new_text: String = format!("🤖 Наш резервный бот: @{fallback_bot_username}");
+    let new_text: String = format!("🤖 Наш резервный бот: @{}", fallback_bot_username.0);
     let chat = bot.get_chat(chat_id).await?;
     if let Some(pinned) = chat.pinned_message {
         if let Some(text) = &pinned.text() {
