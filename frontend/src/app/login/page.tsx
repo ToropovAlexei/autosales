@@ -71,7 +71,7 @@ export default function LoginPage() {
           )}
         >
           <CardHeader
-            title={tfaRequired ? "Two-Factor Authentication" : "Вход"}
+            title={tfaRequired ? "Двухфакторная аутентификация" : "Вход"}
             subheader={
               tfaRequired
                 ? "Введите код из вашего приложения для аутентификации."
@@ -85,7 +85,8 @@ export default function LoginPage() {
                   <InputText
                     name="email"
                     type="email"
-                    placeholder="m@example.com"
+                    label="Email"
+                    placeholder="mail@example.com"
                     required
                   />
                   <InputPassword name="password" />
@@ -98,7 +99,12 @@ export default function LoginPage() {
                 </>
               ) : (
                 <>
-                  <InputText name="code" placeholder="123456" required />
+                  <InputText
+                    name="code"
+                    placeholder="123456"
+                    required
+                    label="Код"
+                  />
                   {tfaError && (
                     <Typography color="error">Неверный код</Typography>
                   )}
