@@ -43,6 +43,7 @@ export const ProductCSVUploadModal = ({
       return dataLayer.create<{
         created: number | null;
         failed: number;
+        skipped: number;
         errors: string[] | null;
       }>({
         url: ENDPOINTS.PRODUCTS_UPLOAD_CSV,
@@ -126,6 +127,7 @@ export const ProductCSVUploadModal = ({
           >
             <AlertTitle>Результат загрузки</AlertTitle>
             <Typography>Успешно создано: {data.created}</Typography>
+            <Typography>Пропущено: {data.skipped}</Typography>
             <Typography>Ошибок: {data.failed}</Typography>
             {(data.errors?.length || 0) > 0 && (
               <ul>

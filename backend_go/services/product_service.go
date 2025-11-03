@@ -663,7 +663,7 @@ func (s *productService) UploadProductsCSV(ctx *gin.Context, file io.Reader) (ma
 		return nil, &apperrors.ErrValidation{Message: "Failed to parse CSV file"}
 	}
 
-	var createdCount, errorCount int
+	var createdCount, errorCount, skippedCount int
 	var errors []string
 
 	// Skip header row
@@ -694,6 +694,17 @@ func (s *productService) UploadProductsCSV(ctx *gin.Context, file io.Reader) (ma
 			continue
 		}
 
+		existingProduct, err := s.productRepo.FindByName(name)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("Row %d: error checking for existing product '%s': %v", i+1, name, err))
+			errorCount++
+			continue
+		}
+		if existingProduct != nil {
+			skippedCount++
+			continue
+		}
+
 		category, err := s.categoryRepo.FindOrCreateByPath(strings.Split(categoryPath, "->"))
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("Row %d: failed to find or create category '%s': %v", i+1, categoryPath, err))
@@ -714,6 +725,7 @@ func (s *productService) UploadProductsCSV(ctx *gin.Context, file io.Reader) (ma
 	result := map[string]interface{}{
 		"created": createdCount,
 		"failed":  errorCount,
+		"skipped": skippedCount,
 		"errors":  errors,
 	}
 
