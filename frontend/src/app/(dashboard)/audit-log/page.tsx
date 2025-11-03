@@ -5,6 +5,8 @@ import { ENDPOINTS } from "@/constants";
 import { PageLayout } from "@/components/PageLayout";
 import { AuditLogTable } from "./components/AuditLogTable";
 
+import { IAuditLog } from "@/types";
+
 export default function AuditLogPage() {
   const {
     rows,
@@ -14,7 +16,7 @@ export default function AuditLogPage() {
     onPaginationModelChange,
     filterModel,
     onFilterModelChange,
-  } = useDataGrid(ENDPOINTS.AUDIT_LOGS);
+  } = useDataGrid<IAuditLog>(ENDPOINTS.AUDIT_LOGS);
 
   return (
     <PageLayout title="Журнал аудита">

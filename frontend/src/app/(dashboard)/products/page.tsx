@@ -9,6 +9,7 @@ import { flattenCategoriesForSelect, findCategoryNameById } from "@/lib/utils";
 import { Button } from "@mui/material";
 import { ProductForm } from "./components/ProductForm";
 import { ProductsTable } from "./components/ProductsTable";
+import { ProductCSVUploadModal } from "./components/ProductCSVUploadModal";
 import { dataLayer } from "@/lib/dataLayer";
 import { queryKeys } from "@/utils/query";
 import { PageLayout } from "@/components/PageLayout";
@@ -17,6 +18,7 @@ export default function ProductsPage() {
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null);
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const {
     rows: products,
     rowCount,
@@ -84,8 +86,11 @@ export default function ProductsPage() {
 
   return (
     <PageLayout title="Товары">
-      <Button variant="contained" onClick={() => openForm()} sx={{ mb: 2 }}>
+      <Button variant="contained" onClick={() => openForm()} sx={{ mb: 2, mr: 2 }}>
         Добавить товар
+      </Button>
+      <Button variant="outlined" onClick={() => setIsUploadModalOpen(true)} sx={{ mb: 2 }}>
+        Загрузить CSV
       </Button>
       <ProductsTable
         products={products}
@@ -118,6 +123,11 @@ export default function ProductsPage() {
           allCategories={categories?.data || []}
         />
       )}
+
+      <ProductCSVUploadModal
+        open={isUploadModalOpen}
+        onClose={() => setIsUploadModalOpen(false)}
+      />
     </PageLayout>
   );
 }

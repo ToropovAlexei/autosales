@@ -8,6 +8,8 @@ export interface IFilter {
     op: string;
     value: any;
   }[];
+  start_date?: string;
+  end_date?: string;
 }
 
 export type FalsyValues = false | null | 0 | "" | undefined;

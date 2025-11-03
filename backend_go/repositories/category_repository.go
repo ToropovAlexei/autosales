@@ -81,18 +81,31 @@ func (r *gormCategoryRepository) Delete(category *models.Category) error {
 }
 
 func (r *gormCategoryRepository) FindOrCreateByPath(path []string) (*models.Category, error) {
-	var parentID *uint
 	var currentCategory *models.Category
+	var parentID *uint
 
 	for _, name := range path {
-		var category models.Category
-		query := models.Category{Name: name, ParentID: parentID}
-
-		if err := r.db.Where(query).FirstOrCreate(&category).Error; err != nil {
-			return nil, err
+		foundCategory, err := r.FindByNameAndParent(name, parentID)
+		if err != nil {
+			if err == gorm.ErrRecordNotFound {
+				// Category not found, create it
+				newCategory := &models.Category{
+					Name:     name,
+					ParentID: parentID,
+				}
+				if err := r.Create(newCategory); err != nil {
+					return nil, err
+				}
+				currentCategory = newCategory
+			} else {
+				// Other error
+				return nil, err
+			}
+		} else {
+			// Category found
+			currentCategory = foundCategory
 		}
 
-		currentCategory = &category
 		parentID = &currentCategory.ID
 	}
 

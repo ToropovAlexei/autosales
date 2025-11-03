@@ -55,7 +55,6 @@ export const AuditLogTable = ({
       headerName: "Дата создания",
       width: 200,
       valueGetter: (value) => new Date(value).toLocaleString(),
-      filterOperator: "onOrAfter",
       sortable: false,
     },
   ];

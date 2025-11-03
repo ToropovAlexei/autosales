@@ -26,7 +26,7 @@ export default function BotUsersPage() {
     onFilterModelChange,
     sortModel,
     onSortModelChange,
-  } = useDataGrid(ENDPOINTS.BOT_USERS);
+  } = useDataGrid<BotUser>(ENDPOINTS.BOT_USERS);
 
   const toggleBlockMutation = useMutation({
     mutationFn: (user: BotUser) =>

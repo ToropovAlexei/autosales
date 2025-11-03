@@ -24,5 +24,6 @@ func RegisterProductRoutes(router *gin.Engine, productHandler *handlers.ProductH
 		products.PATCH("/:id", middleware.PermissionMiddleware("products:update"), productHandler.UpdateProductHandler)
 		products.DELETE("/:id", middleware.PermissionMiddleware("products:delete"), productHandler.DeleteProductHandler)
 		products.POST("/:id/stock/movements", middleware.PermissionMiddleware("stock:update"), productHandler.CreateStockMovementHandler)
+		products.POST("/upload", middleware.PermissionMiddleware("products:create"), productHandler.UploadProductsCSVHandler)
 	}
 }

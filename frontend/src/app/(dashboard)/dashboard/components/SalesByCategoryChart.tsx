@@ -47,7 +47,7 @@ export const SalesByCategoryChart = ({ data }: SalesByCategoryChartProps) => {
               innerRadius: 75,
               outerRadius: 100,
               paddingAngle: 0,
-              highlightScope: { faded: 'global', highlighted: 'item' },
+              highlightScope: { fade: 'global', highlight: 'item' },
             },
           ]}
           height={260}

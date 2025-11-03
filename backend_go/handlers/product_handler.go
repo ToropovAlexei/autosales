@@ -250,3 +250,19 @@ func (h *ProductHandler) GetProductsForBotHandler(c *gin.Context) {
 
 	responses.SuccessResponse(c, http.StatusOK, products)
 }
+
+func (h *ProductHandler) UploadProductsCSVHandler(c *gin.Context) {
+	file, _, err := c.Request.FormFile("file")
+	if err != nil {
+		c.Error(&apperrors.ErrValidation{Message: "File is not present"})
+		return
+	}
+	defer file.Close()
+
+	result, err := h.productService.UploadProductsCSV(c, file)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+	responses.SuccessResponse(c, http.StatusCreated, result)
+}

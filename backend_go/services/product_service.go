@@ -2,11 +2,13 @@ package services
 
 import (
 	"database/sql"
+	"encoding/csv"
 	"fmt"
 	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/external_providers"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
+	"io"
 	"log/slog"
 	"reflect"
 	"sort"
@@ -35,11 +37,13 @@ type ProductService interface {
 	GetProducts(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.ProductResponse], error)
 	GetProductsForBot(categoryID uint) ([]models.ProductResponse, error)
 	GetProduct(id uint) (*models.ProductResponse, error)
+	GetProductForBot(id uint) (*models.ProductResponse, error)
 	CreateProduct(ctx *gin.Context, name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int, fulfillmentType string, fulfillmentContent string, imageID *uuid.UUID) (*models.ProductResponse, error)
 	UpdateProduct(ctx *gin.Context, id uint, payload ProductUpdatePayload) (*models.ProductResponse, error)
 	DeleteProduct(ctx *gin.Context, id uint) error
 	CreateStockMovement(ctx *gin.Context, productID uint, movementType models.StockMovementType, quantity int, description string, orderID *uint) (*models.StockMovement, error)
 	SyncExternalProductsAndCategories() error
+	UploadProductsCSV(ctx *gin.Context, file io.Reader) (map[string]interface{}, error)
 }
 
 type productService struct {
@@ -68,7 +72,7 @@ func (s *productService) GetProductsForBot(categoryID uint) ([]models.ProductRes
 		return nil, err
 	}
 
-	var allProducts []models.ProductResponse
+	allProducts := make([]models.ProductResponse, 0)
 	for _, p := range internalProducts {
 		stock, err := s.productRepo.GetStockForProduct(p.ID)
 		if err != nil {
@@ -281,7 +285,7 @@ func (s *productService) filterExternalProducts(products []external_providers.Pr
 		return products
 	}
 
-	var filtered []external_providers.ProviderProduct
+	filtered := make([]external_providers.ProviderProduct, 0)
 	for _, p := range products {
 		matches := true
 		for _, f := range filters {
@@ -438,6 +442,10 @@ func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
 		SubscriptionPeriodDays: product.SubscriptionPeriodDays,
 		ImageUrl:               imageUrl,
 	}, nil
+}
+
+func (s *productService) GetProductForBot(id uint) (*models.ProductResponse, error) {
+	return s.GetProduct(id)
 }
 
 func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int, fulfillmentType string, fulfillmentContent string, imageID *uuid.UUID) (*models.ProductResponse, error) {
@@ -645,4 +653,69 @@ func (s *productService) SyncExternalProductsAndCategories() error {
 		}
 	}
 	return nil
+}
+
+func (s *productService) UploadProductsCSV(ctx *gin.Context, file io.Reader) (map[string]interface{}, error) {
+	reader := csv.NewReader(file)
+	reader.LazyQuotes = true
+	records, err := reader.ReadAll()
+	if err != nil {
+		return nil, &apperrors.ErrValidation{Message: "Failed to parse CSV file"}
+	}
+
+	var createdCount, errorCount int
+	var errors []string
+
+	// Skip header row
+	for i, record := range records {
+		if i == 0 {
+			continue
+		}
+
+		if len(record) < 4 {
+			errors = append(errors, fmt.Sprintf("Row %d: not enough columns", i+1))
+			errorCount++
+			continue
+		}
+
+		name := record[0]
+		categoryPath := record[1]
+		price, err := strconv.ParseFloat(record[2], 64)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("Row %d: invalid price '%s'", i+1, record[2]))
+			errorCount++
+			continue
+		}
+
+		initialStock, err := strconv.Atoi(record[3])
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("Row %d: invalid initial stock '%s'", i+1, record[3]))
+			errorCount++
+			continue
+		}
+
+		category, err := s.categoryRepo.FindOrCreateByPath(strings.Split(categoryPath, "->"))
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("Row %d: failed to find or create category '%s': %v", i+1, categoryPath, err))
+			errorCount++
+			continue
+		}
+
+		_, err = s.CreateProduct(ctx, name, category.ID, price, initialStock, "item", 0, "", "", nil)
+		if err != nil {
+			errors = append(errors, fmt.Sprintf("Row %d: failed to create product '%s': %v", i+1, name, err))
+			errorCount++
+			continue
+		}
+
+		createdCount++
+	}
+
+	result := map[string]interface{}{
+		"created": createdCount,
+		"failed":  errorCount,
+		"errors":  errors,
+	}
+
+	return result, nil
 }

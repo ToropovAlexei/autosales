@@ -6,7 +6,7 @@ import {
   GridSortModel,
 } from "@mui/x-data-grid";
 
-export const useDataGrid = (endpoint: string) => {
+export const useDataGrid = <T>(endpoint: string) => {
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
     pageSize: 10,
@@ -22,7 +22,7 @@ export const useDataGrid = (endpoint: string) => {
     .filter((item) => item.value !== undefined && item.value !== "")
     .map(({ field, operator: op, value }) => ({ field, op, value }));
 
-  const { data, isFetching, error } = useList({
+  const { data, isFetching, error } = useList<T>({
     endpoint,
     filter: {
       page: paginationModel.page + 1, // MUI is 0-indexed, backend is 1-indexed

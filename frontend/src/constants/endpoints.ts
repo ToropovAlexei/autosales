@@ -24,6 +24,7 @@ export const ENDPOINTS = {
   USERS: "admin/users",
   USER_ROLES: "admin/users/:id/roles",
   AUDIT_LOGS: "admin/audit-logs",
+  PRODUCTS_UPLOAD_CSV: "products/upload",
 };
 
 export const ENDPOINT_UPDATE_PUT_EXCEPTIONS = new Set<string>([

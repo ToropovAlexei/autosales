@@ -27,7 +27,7 @@ type ProductResponse struct {
 	Name                   string  `json:"name"`
 	Price                  float64 `json:"price"`
 	CategoryID             uint    `json:"category_id"`
-	ImageUrl               string  `json:"image_url"`
+	ImageUrl               string  `json:"image_url,omitempty"`
 	Stock                  int     `json:"stock"`
 	Type                   string  `json:"type"`
 	SubscriptionPeriodDays int     `json:"subscription_period_days"`
