@@ -59,6 +59,7 @@ pub struct Product {
     pub price: f64,
     pub category_id: i64,
     pub image_url: Option<String>,
+    pub image_id: Option<String>,
     pub stock: i64,
     #[serde(rename = "type")]
     pub type_: String,
@@ -84,4 +85,12 @@ pub struct Category {
     pub parent_id: Option<i64>,
     pub image_id: Option<String>,
     pub sub_categories: Option<Vec<Category>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BuyResponse {
+    pub balance: f64,
+    pub product_name: String,
+    pub product_price: f64,
+    pub fulfilled_content: Option<String>,
 }

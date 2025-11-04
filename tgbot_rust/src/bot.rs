@@ -23,12 +23,12 @@ use crate::{
     api::{backend_api::BackendApi, captcha_api::CaptchaApi},
     bot::{
         handlers::{
-            balance::balance_handler, captcha_answer::captcha_answer_handler,
+            balance::balance_handler, buy::buy_handler, captcha_answer::captcha_answer_handler,
             catalog::catalog_handler, deposit_amount::deposit_amount_handler,
             deposit_confirm::deposit_confirm_handler, deposit_gateway::deposit_gateway_handler,
             fallback_bot_msg::fallback_bot_msg, main_menu::main_menu_handler,
             my_orders::my_orders_handler, my_subscriptions::my_subscriptions_handler,
-            start::start_handler, support::support_handler,
+            product::product_handler, start::start_handler, support::support_handler,
         },
         keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard,
     },
@@ -59,12 +59,6 @@ pub struct InvoiceData {
     pub details: Option<serde_json::Value>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub enum ProductVariant {
-    Product { id: i64 },
-    ExternalProduct { id: String, provider: String },
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum BotState {
     #[default]
@@ -92,7 +86,7 @@ pub enum BotState {
     Support,
     MainMenu,
     Product {
-        product: ProductVariant,
+        id: i64,
     },
 }
 
@@ -118,6 +112,12 @@ pub struct ImagesUrl(String);
 #[derive(Clone)]
 pub struct BotUsername(String);
 
+impl std::fmt::Display for BotUsername {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "t", content = "d")]
 pub enum CallbackData {
@@ -132,7 +132,8 @@ pub enum CallbackData {
     ToMySubscriptions,
     ToReferralProgram,
     ToSupport,
-    ToProduct { product: ProductVariant },
+    ToProduct { id: i64 },
+    Buy { id: i64 },
 }
 
 impl CallbackData {
@@ -310,12 +311,15 @@ pub async fn start_bot(
                         .map_err(AppError::from)?;
                     catalog_handler(bot, dialogue, q, username, api_client, category_id).await?;
                 }
-                CallbackData::ToProduct { product } => {
+                CallbackData::ToProduct { id } => {
                     dialogue
-                        .update(BotState::Product { product })
+                        .update(BotState::Product { id })
                         .await
                         .map_err(AppError::from)?;
-                    // product_handler(bot, dialogue, q, username, api_client, product).await?;
+                    product_handler(bot, q, api_client, id).await?;
+                }
+                CallbackData::Buy { id } => {
+                    buy_handler(bot, q, api_client, id, BotUsername(username)).await?;
                 }
             }
 

@@ -7,10 +7,11 @@ use teloxide::types::MessageId;
 
 use crate::{
     api::api_client::ApiClient,
+    bot::BotUsername,
     errors::{AppError, AppResult},
     models::{
-        BackendResponse, BalanceResponse, Category, InvoiceResponse, PaymentGateway, Product,
-        UserOrder, UserSubscription, user::BotUser,
+        BackendResponse, BalanceResponse, BuyResponse, Category, InvoiceResponse, PaymentGateway,
+        Product, UserOrder, UserSubscription, user::BotUser,
     },
 };
 
@@ -236,7 +237,40 @@ impl BackendApi {
             })
     }
 
+    pub async fn get_product(&self, product_id: i64) -> AppResult<Product> {
+        self.api_client
+            .get::<BackendResponse<Product>>(&format!("bot/products/{product_id}"))
+            .await
+            .and_then(|res| {
+                res.data.ok_or_else(|| {
+                    AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
+                })
+            })
+    }
+
     pub async fn get_image_bytes(&self, id: &str) -> AppResult<Bytes> {
         self.api_client.get_bytes(&format!("images/{id}")).await
+    }
+
+    pub async fn buy_product(
+        &self,
+        telegram_id: i64,
+        product_id: i64,
+        bot_username: BotUsername,
+    ) -> AppResult<BuyResponse> {
+        self.api_client
+            .post_with_body::<BackendResponse<BuyResponse>, _>(
+                &format!("buy/product?bot_name={bot_username}"),
+                &json!({
+                    "telegram_id": telegram_id,
+                    "product_id": product_id,
+                }),
+            )
+            .await
+            .and_then(|res| {
+                res.data.ok_or_else(|| {
+                    AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
+                })
+            })
     }
 }

@@ -10,3 +10,5 @@ pub mod my_orders;
 pub mod my_subscriptions;
 pub mod start;
 pub mod support;
+pub mod product;
+pub mod buy;
