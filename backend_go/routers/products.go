@@ -1,13 +1,14 @@
 package routers
 
 import (
+	"frbktg/backend_go/config"
 	"frbktg/backend_go/handlers"
 	"frbktg/backend_go/middleware"
 
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterProductRoutes(router *gin.Engine, productHandler *handlers.ProductHandler, authMiddleware *middleware.AuthMiddleware) {
+func RegisterProductRoutes(router *gin.Engine, productHandler *handlers.ProductHandler, authMiddleware *middleware.AuthMiddleware, appSettings *config.Config) {
 	products := router.Group("/api/products")
 
 	// Группа для роутов, доступных и для пользователей, и для сервисов
@@ -25,5 +26,12 @@ func RegisterProductRoutes(router *gin.Engine, productHandler *handlers.ProductH
 		products.DELETE("/:id", middleware.PermissionMiddleware("products:delete"), productHandler.DeleteProductHandler)
 		products.POST("/:id/stock/movements", middleware.PermissionMiddleware("stock:update"), productHandler.CreateStockMovementHandler)
 		products.POST("/upload", middleware.PermissionMiddleware("products:create"), productHandler.UploadProductsCSVHandler)
+	}
+
+	botRoutes := router.Group("/api/bot")
+	botRoutes.Use(middleware.ServiceTokenMiddleware(appSettings))
+	{
+		botRoutes.GET("/products", productHandler.GetProductsForBotHandler)
+		botRoutes.GET("/products/:id", productHandler.GetProductForBotHandler)
 	}
 }

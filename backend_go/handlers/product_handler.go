@@ -266,3 +266,19 @@ func (h *ProductHandler) UploadProductsCSVHandler(c *gin.Context) {
 	}
 	responses.SuccessResponse(c, http.StatusCreated, result)
 }
+
+func (h *ProductHandler) GetProductForBotHandler(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.Error(&apperrors.ErrValidation{Message: "Invalid product ID"})
+		return
+	}
+
+	product, err := h.productService.GetProduct(uint(id))
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, product)
+}
