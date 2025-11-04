@@ -8,23 +8,16 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterReferralRoutes(router *gin.Engine, referralHandler *handlers.ReferralHandler, authMiddleware *middleware.AuthMiddleware, appSettings config.Settings) {
-	serviceReferrals := router.Group("/api/referrals")
+func RegisterStatsRoutes(router *gin.Engine, statsHandler *handlers.StatsHandler, authMiddleware *middleware.AuthMiddleware, appSettings *config.Config) {
+	serviceReferrals := router.Group("/api/stats")
 	serviceReferrals.Use(middleware.ServiceTokenMiddleware(appSettings))
 	{
-		serviceReferrals.POST("", referralHandler.CreateReferralBotHandler)
-		serviceReferrals.GET("", referralHandler.GetReferralBotsHandler)
-		serviceReferrals.GET("/user/:telegram_id", referralHandler.GetReferralBotsByTelegramIDHandler)
-		serviceReferrals.GET("/stats/:telegram_id", referralHandler.GetReferralStatsHandler)
-		serviceReferrals.PUT("/:id/set-primary", referralHandler.ServiceSetPrimaryBotHandler)
-		serviceReferrals.DELETE("/:id", referralHandler.ServiceDeleteReferralBotHandler)
+		serviceReferrals.GET("/referral/:telegram_id", statsHandler.GetReferralStatsHandler)
 	}
 
-	adminReferrals := router.Group("/api/referrals")
+	adminReferrals := router.Group("/api/stats")
 	adminReferrals.Use(authMiddleware.RequireAuth)
 	{
-		adminReferrals.GET("/admin-list", middleware.PermissionMiddleware("referrals:read"), referralHandler.GetAllReferralBotsAdminHandler)
-		adminReferrals.PUT("/:id/status", middleware.PermissionMiddleware("referrals:update"), referralHandler.UpdateReferralBotStatusHandler)
-		adminReferrals.PUT("/:id/percentage", middleware.PermissionMiddleware("referrals:update"), referralHandler.UpdateReferralBotPercentageHandler)
+		adminReferrals.GET("/referral/admin-list", middleware.PermissionMiddleware("referrals:read"), statsHandler.GetReferralStatsHandler)
 	}
 }

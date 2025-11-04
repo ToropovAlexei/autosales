@@ -8,10 +8,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterBotRoutes(router *gin.Engine, productHandler *handlers.ProductHandler, appSettings config.Settings) {
-	bot := router.Group("/api/bot")
-	bot.Use(middleware.ServiceTokenMiddleware(appSettings)) // Use service-level authentication
+func RegisterBotRoutes(router *gin.Engine, botHandler *handlers.BotHandler, authMiddleware *middleware.AuthMiddleware, appSettings *config.Config) {
+	serviceBots := router.Group("/api/bots")
+	serviceBots.Use(middleware.ServiceTokenMiddleware(appSettings))
 	{
-		bot.GET("/products", productHandler.GetProductsForBotHandler)
+		serviceBots.POST("/referral", botHandler.CreateReferralBotHandler)
+		serviceBots.GET("", botHandler.GetAllBotsAdminHandler)
+		serviceBots.GET("/main", botHandler.GetMainBotsHandler)
+	}
+
+	adminBots := router.Group("/api/bots")
+	adminBots.Use(authMiddleware.RequireAuth)
+	{
+		// adminBots.GET("", middleware.PermissionMiddleware("bots:read"), botHandler.GetAllBotsAdminHandler)
+		// adminBots.PUT("/:id/status", middleware.PermissionMiddleware("bots:update"), botHandler.UpdateBotStatusHandler)
+		// adminBots.PUT("/:id/percentage", middleware.PermissionMiddleware("bots:update"), botHandler.UpdateBotPercentageHandler)
 	}
 }

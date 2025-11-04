@@ -1,9 +1,7 @@
 package services
 
 import (
-	"database/sql"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/external_providers"
@@ -19,12 +17,10 @@ const percentDenominator = 100
 
 // BuyRequest defines the parameters for buying a product.
 type BuyRequest struct {
-	UserID            int64   `json:"user_id"`
-	ProductID         *uint   `json:"product_id"`
-	Provider          *string `json:"provider"`
-	ExternalProductID *string `json:"external_product_id"`
-	Quantity          int     `json:"quantity"`
-	ReferralBotID     *uint   `json:"referral_bot_id"`
+	UserID    int64 `json:"user_id"`
+	ProductID uint  `json:"product_id"`
+	Quantity  int   `json:"quantity"`
+	BotID     uint  `json:"bot_id"`
 }
 
 type OrderService interface {
@@ -51,11 +47,12 @@ type orderService struct {
 	userSubscriptionRepo repositories.UserSubscriptionRepository
 	categoryRepo         repositories.CategoryRepository
 	referralService      ReferralService
+	botService           BotService
 	providerRegistry     *external_providers.ProviderRegistry
 	webhookService       WebhookService
 }
 
-func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, productRepo repositories.ProductRepository, botUserRepo repositories.BotUserRepository, transactionRepo repositories.TransactionRepository, userSubscriptionRepo repositories.UserSubscriptionRepository, categoryRepo repositories.CategoryRepository, referralService ReferralService, providerRegistry *external_providers.ProviderRegistry, webhookService WebhookService) OrderService {
+func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, productRepo repositories.ProductRepository, botUserRepo repositories.BotUserRepository, transactionRepo repositories.TransactionRepository, userSubscriptionRepo repositories.UserSubscriptionRepository, categoryRepo repositories.CategoryRepository, referralService ReferralService, botService BotService, providerRegistry *external_providers.ProviderRegistry, webhookService WebhookService) OrderService {
 	return &orderService{
 		db:                   db,
 		orderRepo:            orderRepo,
@@ -65,6 +62,7 @@ func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, produc
 		userSubscriptionRepo: userSubscriptionRepo,
 		categoryRepo:         categoryRepo,
 		referralService:      referralService,
+		botService:           botService,
 		providerRegistry:     providerRegistry,
 		webhookService:       webhookService,
 	}
@@ -83,238 +81,111 @@ func (s *orderService) BuyFromBalance(req BuyRequest) (*BuyResponse, error) {
 			return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "BotUser", ID: uint(req.UserID)}
 		}
 
-		var errPurchase error
-		if req.ProductID != nil {
-			response, errPurchase = s.handleInternalProductPurchase(tx, user, req)
-		} else {
-			response, errPurchase = s.handleExternalProductPurchase(tx, user, req)
+		product, err := s.productRepo.WithTx(tx).GetProductByID(req.ProductID)
+		if err != nil {
+			return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "Product", ID: req.ProductID}
 		}
-		return errPurchase
+
+		if product.Type == "item" {
+			stock, err := s.productRepo.WithTx(tx).GetStockForProduct(product.ID)
+			if err != nil {
+				return apperrors.New(500, "Failed to get stock for product", err)
+			}
+			if (stock - req.Quantity) < 0 {
+				return &apperrors.ErrOutOfStock{Base: apperrors.New(400, "", nil), ProductName: product.Name}
+			}
+		} else if product.Type == "subscription" {
+			if req.Quantity != 1 {
+				return &apperrors.ErrValidation{Message: "quantity for subscription must be 1"}
+			}
+		}
+
+		balance, err := s.botUserRepo.WithTx(tx).GetUserBalance(user.ID)
+		if err != nil {
+			return apperrors.New(500, "Failed to get user balance", err)
+		}
+
+		orderAmount := product.Price * float64(req.Quantity)
+		if balance < orderAmount {
+			return apperrors.ErrInsufficientBalance
+		}
+
+
+
+		order := &models.Order{
+			UserID:    user.ID,
+			ProductID: product.ID,
+			Quantity:  req.Quantity,
+			Amount:    orderAmount,
+			Status:    "success",
+			BotID:     req.BotID,
+			CreatedAt: time.Now().UTC(),
+		}
+
+		if err := s.orderRepo.WithTx(tx).CreateOrder(order); err != nil {
+			return apperrors.New(500, "Failed to create order", err)
+		}
+
+		if product.Type == "subscription" {
+			var provisionedID string
+			var provisionResult *external_providers.ProvisioningResult
+
+			if product.ProviderName != nil && *product.ProviderName != "" {
+				provider, err := s.providerRegistry.GetProvider(*product.ProviderName)
+				if err != nil {
+					return &apperrors.ErrValidation{Message: err.Error()}
+				}
+
+				if subProvider, ok := provider.(external_providers.SubscriptionProvider); ok {
+					provisionResult, err = subProvider.ProvisionSubscription(*product.ExternalID, *user, 30*24*time.Hour) // Assuming 30 days
+					if err != nil {
+						return apperrors.New(500, "failed to provision external subscription", err)
+					}
+					provisionedID = provisionResult.ProvisionedID
+				} else {
+					return apperrors.New(501, fmt.Sprintf("provider %s does not support the required provisioning interface", *product.ProviderName), nil)
+				}
+			}
+
+			if err := s.handleSubscriptionPurchase(tx, user.ID, product, order.ID, provisionedID, provisionResult.Details); err != nil {
+				return err
+			}
+		}
+
+		if err := s.createOrderTransactionsAndMovements(tx, user, product, *order, orderAmount); err != nil {
+			return err
+		}
+
+		// --- Fulfillment Logic ---
+		if product.FulfillmentType != "none" && product.FulfillmentContent != "" {
+			order.FulfilledContent = product.FulfillmentContent
+			if err := s.orderRepo.WithTx(tx).UpdateOrder(order); err != nil {
+				// Log the error but don't fail the transaction
+				slog.Error("failed to update order with fulfilled content", "order_id", order.ID, "error", err)
+			}
+		}
+		// --- End Fulfillment Logic ---
+
+		newBalance := balance - orderAmount
+		response = &BuyResponse{
+			Order: models.OrderSlimResponse{
+				ID:        order.ID,
+				UserID:    order.UserID,
+				ProductID: order.ProductID,
+				Quantity:  order.Quantity,
+				Amount:    order.Amount,
+				Status:    order.Status,
+				CreatedAt: order.CreatedAt,
+			},
+			ProductName:      product.Name,
+			ProductPrice:     product.Price,
+			Balance:          newBalance,
+			FulfilledContent: order.FulfilledContent,
+		}
+		return nil
 	})
 
 	return response, err
-}
-
-func (s *orderService) handleInternalProductPurchase(tx *gorm.DB, user *models.BotUser, req BuyRequest) (*BuyResponse, error) {
-	product, err := s.productRepo.WithTx(tx).GetProductByID(*req.ProductID)
-	if err != nil {
-		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "Product", ID: *req.ProductID}
-	}
-
-	if product.Type == "item" {
-		stock, err := s.productRepo.WithTx(tx).GetStockForProduct(product.ID)
-		if err != nil {
-			return nil, apperrors.New(500, "Failed to get stock for product", err)
-		}
-		if (stock - req.Quantity) < 0 {
-			return nil, &apperrors.ErrOutOfStock{Base: apperrors.New(400, "", nil), ProductName: product.Name}
-		}
-	} else if product.Type == "subscription" {
-		if req.Quantity != 1 {
-			return nil, &apperrors.ErrValidation{Message: "quantity for subscription must be 1"}
-		}
-	}
-
-	balance, err := s.botUserRepo.WithTx(tx).GetUserBalance(user.ID)
-	if err != nil {
-		return nil, apperrors.New(500, "Failed to get user balance", err)
-	}
-
-	orderAmount := product.Price * float64(req.Quantity)
-	if balance < orderAmount {
-		return nil, apperrors.ErrInsufficientBalance
-	}
-
-	order := &models.Order{
-		UserID:        user.ID,
-		ProductID:     product.ID,
-		Quantity:      req.Quantity,
-		Amount:        orderAmount,
-		Status:        "success",
-		ReferralBotID: req.ReferralBotID,
-		CreatedAt:     time.Now().UTC(),
-	}
-
-	if err := s.orderRepo.WithTx(tx).CreateOrder(order); err != nil {
-		return nil, apperrors.New(500, "Failed to create order", err)
-	}
-
-	if product.Type == "subscription" {
-		if err := s.handleSubscriptionPurchase(tx, user.ID, product, order.ID, "", nil); err != nil {
-			return nil, err
-		}
-	}
-
-	if err := s.createOrderTransactionsAndMovements(tx, user, product, *order, orderAmount); err != nil {
-		return nil, err
-	}
-
-	// --- Fulfillment Logic ---
-	if product.FulfillmentType != "none" && product.FulfillmentContent != "" {
-		order.FulfilledContent = product.FulfillmentContent
-		if err := s.orderRepo.WithTx(tx).UpdateOrder(order); err != nil {
-			// Log the error but don't fail the transaction
-			slog.Error("failed to update order with fulfilled content", "order_id", order.ID, "error", err)
-		}
-	}
-	// --- End Fulfillment Logic ---
-
-	newBalance := balance - orderAmount
-	return &BuyResponse{
-		Order: models.OrderSlimResponse{
-			ID:        order.ID,
-			UserID:    order.UserID,
-			ProductID: order.ProductID,
-			Quantity:  order.Quantity,
-			Amount:    order.Amount,
-			Status:    order.Status,
-			CreatedAt: order.CreatedAt,
-		},
-		ProductName:      product.Name,
-		ProductPrice:     product.Price,
-		Balance:          newBalance,
-		FulfilledContent: order.FulfilledContent,
-	}, nil
-}
-
-func (s *orderService) handleExternalProductPurchase(tx *gorm.DB, user *models.BotUser, req BuyRequest) (*BuyResponse, error) {
-	provider, err := s.providerRegistry.GetProvider(*req.Provider)
-	if err != nil {
-		return nil, &apperrors.ErrValidation{Message: err.Error()}
-	}
-
-	// Get product details from provider to verify and get price
-	extProducts, err := provider.GetProducts()
-	if err != nil {
-		return nil, apperrors.New(500, fmt.Sprintf("failed to get products from provider %s", *req.Provider), err)
-	}
-
-	var product *external_providers.ProviderProduct
-	for _, p := range extProducts {
-		if p.ExternalID == *req.ExternalProductID {
-			product = &p
-			break
-		}
-	}
-
-	if product == nil {
-		return nil, &apperrors.ErrNotFound{Resource: "External Product", ID: 0} // ID is not applicable here
-	}
-
-	// Check provider type and provision accordingly
-	var provisionedID string
-	var provisionResult *external_providers.ProvisioningResult
-	if subProvider, ok := provider.(external_providers.SubscriptionProvider); ok {
-		// It's a subscription provider
-		provisionResult, err = subProvider.ProvisionSubscription(*req.ExternalProductID, *user, 30*24*time.Hour) // Assuming 30 days
-		if err != nil {
-			return nil, apperrors.New(500, "failed to provision external subscription", err)
-		}
-		provisionedID = provisionResult.ProvisionedID
-	} else {
-		// Here we would handle other provider types like ItemProvider
-		return nil, apperrors.New(501, fmt.Sprintf("provider %s does not support the required provisioning interface", *req.Provider), nil)
-	}
-
-	var balance float64
-	balance, err = s.botUserRepo.WithTx(tx).GetUserBalance(user.ID)
-	if err != nil {
-		return nil, apperrors.New(500, "Failed to get user balance", err)
-	}
-
-	orderAmount := product.Price * float64(req.Quantity)
-	if balance < orderAmount {
-		return nil, apperrors.ErrInsufficientBalance
-	}
-
-	// Check if a placeholder product already exists, if not create one.
-	placeholderName := fmt.Sprintf("%s (%s)", product.Name, *req.Provider)
-	placeholderProduct, err := s.productRepo.WithTx(tx).FindByName(placeholderName)
-	if err != nil {
-		// This is a real error, not just not found
-		return nil, apperrors.New(500, "failed to find placeholder product by name", err)
-	}
-
-	if placeholderProduct == nil {
-		// Find or create the category path
-		var parentID *uint
-		var categoryID uint
-		for _, categoryName := range product.Category {
-			category, err := s.categoryRepo.WithTx(tx).FindByNameAndParent(categoryName, parentID)
-			if err != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
-					category = &models.Category{Name: categoryName, ParentID: parentID}
-					if err := s.categoryRepo.WithTx(tx).Create(category); err != nil {
-						return nil, apperrors.New(500, "failed to create category", err)
-					}
-				} else {
-					return nil, apperrors.New(500, "failed to find category", err)
-				}
-			}
-			parentID = &category.ID
-			categoryID = category.ID
-		}
-
-		// Create a local product placeholder for the external product
-		newPlaceholder := &models.Product{
-			Name:                   placeholderName,
-			Price:                  product.Price,
-			Type:                   "subscription",
-			CategoryID:             categoryID,
-			Details:                sql.NullString{String: "{}", Valid: true},
-			SubscriptionPeriodDays: 30, // Or get from product if available
-			Visible:                false,
-		}
-		if err := s.productRepo.WithTx(tx).CreateProduct(newPlaceholder); err != nil {
-			return nil, apperrors.New(500, "failed to create placeholder product", err)
-		}
-		placeholderProduct = newPlaceholder
-	} else {
-		if placeholderProduct.Visible {
-			if err := s.productRepo.WithTx(tx).UpdateProduct(placeholderProduct, map[string]interface{}{"visible": false}); err != nil {
-				return nil, apperrors.New(500, "failed to update placeholder product visibility", err)
-			}
-			placeholderProduct.Visible = false // Update in memory as well
-		}
-	}
-
-	order := &models.Order{
-		UserID:        user.ID,
-		ProductID:     placeholderProduct.ID, // Link to the placeholder
-		Quantity:      req.Quantity,
-		Amount:        orderAmount,
-		Status:        "success",
-		ReferralBotID: req.ReferralBotID,
-		CreatedAt:     time.Now().UTC(),
-	}
-
-	if err := s.orderRepo.WithTx(tx).CreateOrder(order); err != nil {
-		return nil, apperrors.New(500, "Failed to create order for external product", err)
-	}
-
-	if err := s.handleSubscriptionPurchase(tx, user.ID, placeholderProduct, order.ID, provisionedID, provisionResult.Details); err != nil {
-		return nil, err
-	}
-
-	if err := s.createOrderTransactionsAndMovements(tx, user, placeholderProduct, *order, orderAmount); err != nil {
-		return nil, err
-	}
-
-	newBalance := balance - orderAmount
-	return &BuyResponse{
-		Order: models.OrderSlimResponse{
-			ID:        order.ID,
-			UserID:    order.UserID,
-			ProductID: order.ProductID,
-			Quantity:  order.Quantity,
-			Amount:    order.Amount,
-			Status:    order.Status,
-			CreatedAt: order.CreatedAt,
-		},
-		ProductName:  product.Name,
-		ProductPrice: product.Price,
-		Balance:      newBalance,
-	}, nil
 }
 
 func (s *orderService) handleSubscriptionPurchase(tx *gorm.DB, botUserID uint, product *models.Product, orderID uint, provisionedID string, details map[string]interface{}) error {
@@ -527,10 +398,8 @@ func (s *orderService) createOrderTransactionsAndMovements(
 		}
 	}
 
-	if order.ReferralBotID != nil {
-		if err := s.referralService.ProcessReferral(tx, *order.ReferralBotID, order, orderAmount); err != nil {
-			return err
-		}
+	if err := s.referralService.ProcessReferral(tx, order.BotID, order, orderAmount); err != nil {
+		return err
 	}
 
 	return nil

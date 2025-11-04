@@ -18,7 +18,7 @@ type webhookService struct {
 	httpClient    *http.Client
 }
 
-func NewWebhookService(cfg config.Settings) WebhookService {
+func NewWebhookService(cfg *config.Config) WebhookService {
 	return &webhookService{
 		dispatcherURL: cfg.BotDispatcherWebhookURL,
 		serviceAPIKey: cfg.ServiceAPIKey,

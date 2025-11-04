@@ -27,10 +27,10 @@ type ImageService interface {
 type imageService struct {
 	db        *gorm.DB
 	imageRepo repositories.ImageRepository
-	cfg       config.Settings
+	cfg       *config.Config
 }
 
-func NewImageService(db *gorm.DB, imageRepo repositories.ImageRepository, cfg config.Settings) ImageService {
+func NewImageService(db *gorm.DB, imageRepo repositories.ImageRepository, cfg *config.Config) ImageService {
 	// Ensure the upload directory exists
 	if err := os.MkdirAll(cfg.ImageUploadPath, os.ModePerm); err != nil {
 		panic(fmt.Sprintf("failed to create image upload directory: %v", err))

@@ -10,6 +10,7 @@ import (
 type ProductRepository interface {
 	WithTx(tx *gorm.DB) ProductRepository
 	GetProducts(filters []models.Filter) ([]models.Product, error)
+	GetExternalProducts() ([]models.Product, error)
 	GetProductByID(id uint) (*models.Product, error)
 	FindByName(name string) (*models.Product, error)
 	CreateProduct(product *models.Product) error
@@ -37,6 +38,14 @@ func (r *gormProductRepository) GetProducts(filters []models.Filter) ([]models.P
 	db := r.db.Model(&models.Product{}).Preload("Image").Where("visible = ?", true)
 	db = ApplyFilters[models.Product](db, filters)
 	if err := db.Find(&products).Error; err != nil {
+		return nil, err
+	}
+	return products, nil
+}
+
+func (r *gormProductRepository) GetExternalProducts() ([]models.Product, error) {
+	var products []models.Product
+	if err := r.db.Where("provider_name IS NOT NULL").Find(&products).Error; err != nil {
 		return nil, err
 	}
 	return products, nil

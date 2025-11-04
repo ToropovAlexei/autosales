@@ -16,7 +16,7 @@ import (
 func setupAuthServiceTest() (*authService, *mocks.MockUserRepository, *serviceMocks.MockTokenService) {
 	userRepo := new(mocks.MockUserRepository)
 	tokenService := new(serviceMocks.MockTokenService)
-	appSettings := config.Settings{SecretKey: "test-secret", AccessTokenExpireMinutes: 15}
+	appSettings := config.Config{SecretKey: "test-secret", AccessTokenExpireMinutes: 15}
 
 	sut := NewAuthService(userRepo, tokenService, appSettings).(*authService)
 	return sut, userRepo, tokenService

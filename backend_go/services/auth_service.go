@@ -23,10 +23,10 @@ type authService struct {
 	twoFAService       TwoFAService
 	activeTokenRepo    repositories.ActiveTokenRepository
 	temporaryTokenRepo repositories.TemporaryTokenRepository
-	appSettings        config.Settings
+	appSettings        *config.Config
 }
 
-func NewAuthService(userRepo repositories.UserRepository, tokenService TokenService, twoFAService TwoFAService, activeTokenRepo repositories.ActiveTokenRepository, temporaryTokenRepo repositories.TemporaryTokenRepository, appSettings config.Settings) AuthService {
+func NewAuthService(userRepo repositories.UserRepository, tokenService TokenService, twoFAService TwoFAService, activeTokenRepo repositories.ActiveTokenRepository, temporaryTokenRepo repositories.TemporaryTokenRepository, appSettings *config.Config) AuthService {
 	return &authService{
 		userRepo:           userRepo,
 		tokenService:       tokenService,

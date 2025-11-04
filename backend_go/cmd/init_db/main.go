@@ -12,7 +12,7 @@ import (
 
 func dropAllTables(db *gorm.DB) {
 	tables := []interface{}{
-		&models.UserSubscription{}, &models.RefTransaction{}, &models.ReferralBot{},
+		&models.UserSubscription{}, &models.RefTransaction{}, &models.Bot{},
 		&models.StockMovement{}, &models.Order{}, &models.Transaction{},
 		&models.Product{}, &models.Category{}, &models.BotUser{}, &models.User{},
 		&models.PaymentInvoice{}, &models.Image{}, &models.UserPermission{},
@@ -48,7 +48,7 @@ func main() {
 		&models.Transaction{},
 		&models.Order{},
 		&models.StockMovement{},
-		&models.ReferralBot{},
+		&models.Bot{},
 		&models.RefTransaction{},
 		&models.UserSubscription{},
 		&models.PaymentInvoice{},

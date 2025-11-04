@@ -30,7 +30,7 @@ type twoFAService struct {
 func NewTwoFAService(secretKey string) (TwoFAService, error) {
 	key := []byte(secretKey)
 	if len(key) != 32 {
-		return nil, errors.New("secret key must be 32 bytes")
+		return nil, errors.New("secret key must be 32 bytes, got " + fmt.Sprint(len(key)))
 	}
 	return &twoFAService{secretKey: key}, nil
 }

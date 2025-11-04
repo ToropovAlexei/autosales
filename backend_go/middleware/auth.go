@@ -62,7 +62,7 @@ func (m *AuthMiddleware) RequireAuth(c *gin.Context) {
 	}
 }
 
-func ServiceTokenMiddleware(appSettings config.Settings) gin.HandlerFunc {
+func ServiceTokenMiddleware(appSettings *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		apiKey := c.GetHeader("X-API-KEY")
 		if apiKey == "" {

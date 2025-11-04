@@ -74,7 +74,7 @@ func main() {
 	container.StartWorkers()
 
 	// Run migrations
-	if err := container.DB.AutoMigrate(&models.Product{}, &models.Order{}, &models.Setting{}, &models.AuditLog{}, &models.ActiveToken{}, &models.BotUser{}, &models.PaymentInvoice{}, &models.User{}, &models.TemporaryToken{}); err != nil {
+	if err := container.DB.AutoMigrate(&models.Product{}, &models.Order{}, &models.Setting{}, &models.AuditLog{}, &models.ActiveToken{}, &models.BotUser{}, &models.PaymentInvoice{}, &models.User{}, &models.TemporaryToken{}, &models.Bot{}, &models.RefTransaction{}); err != nil {
 		log.Fatal().Err(err).Msg("failed to migrate database")
 	}
 
@@ -109,13 +109,9 @@ func main() {
 	routers.RegisterTransactionRoutes(r, container.TransactionHandler, container.AuthMiddleware)
 	routers.RegisterStockRoutes(r, container.StockHandler, container.AuthMiddleware)
 	routers.RegisterDashboardRoutes(r, container.DashboardHandler, container.AuthMiddleware)
-	routers.RegisterReferralRoutes(r, container.ReferralHandler, container.AuthMiddleware, appSettings)
-	routers.RegisterPaymentRoutes(r, container.PaymentHandler, container.AuthMiddleware)
-	routers.RegisterImageRoutes(r, container.ImageHandler, container.AuthMiddleware)
+	routers.RegisterStatsRoutes(r, container.StatsHandler, container.AuthMiddleware, appSettings)
+	routers.RegisterBotRoutes(r, container.BotHandler, container.AuthMiddleware, appSettings)
 	routers.RegisterSettingRoutes(r, container.SettingHandler, container.AuthMiddleware)
-	routers.RegisterRoleRoutes(r, container.RoleHandler, container.AuthMiddleware)
-	routers.RegisterAdminUserRoutes(r, container.RoleHandler, container.AdminHandler, container.AuthMiddleware)
-	routers.RegisterBotRoutes(r, container.ProductHandler, appSettings)
 	routers.SetupAuditLogRoutes(r.Group("/api"), container)
 
 	// Swagger route

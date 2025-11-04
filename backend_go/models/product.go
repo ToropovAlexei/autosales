@@ -20,6 +20,8 @@ type Product struct {
 	Visible                bool           `gorm:"default:true" json:"visible"`
 	FulfillmentType        string         `gorm:"default:'none'" json:"fulfillment_type"` // none, text, image_url
 	FulfillmentContent     string         `gorm:"type:text" json:"fulfillment_content"`   // The content to be delivered
+	ProviderName           *string        `gorm:"index" json:"provider_name"`
+	ExternalID             *string        `gorm:"index" json:"external_id"`
 }
 
 type ProductResponse struct {
@@ -27,7 +29,7 @@ type ProductResponse struct {
 	Name                   string  `json:"name"`
 	Price                  float64 `json:"price"`
 	CategoryID             uint    `json:"category_id"`
-	ImageUrl               string  `json:"image_url,omitempty"`
+	ImageID                string  `json:"image_id,omitempty"`
 	Stock                  int     `json:"stock"`
 	Type                   string  `json:"type"`
 	SubscriptionPeriodDays int     `json:"subscription_period_days"`

@@ -16,7 +16,7 @@ import (
 // Если сервисный ключ есть и он валиден, запрос пропускается.
 // Если его нет, проверяется JWT токен.
 // Если ни один из методов аутентификации не проходит, возвращается ошибка 401.
-func AuthOrServiceTokenMiddleware(appSettings config.Settings, tokenService services.TokenService, userRepo repositories.UserRepository) gin.HandlerFunc {
+func AuthOrServiceTokenMiddleware(appSettings *config.Config, tokenService services.TokenService, userRepo repositories.UserRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 1. Проверяем сервисный ключ
 		apiKey := c.GetHeader("X-API-KEY")

@@ -14,10 +14,11 @@ import (
 
 type OrderHandler struct {
 	orderService services.OrderService
+	botService   services.BotService
 }
 
-func NewOrderHandler(orderService services.OrderService) *OrderHandler {
-	return &OrderHandler{orderService: orderService}
+func NewOrderHandler(orderService services.OrderService, botService services.BotService) *OrderHandler {
+	return &OrderHandler{orderService: orderService, botService: botService}
 }
 
 // @Summary      List Orders
@@ -52,12 +53,9 @@ func (h *OrderHandler) GetOrdersHandler(c *gin.Context) {
 }
 
 type BuyPayload struct {
-	UserID            int64   `json:"user_id" binding:"required"`
-	ProductID         *uint   `json:"product_id"`
-	Provider          *string `json:"provider"`
-	ExternalProductID *string `json:"external_product_id"`
-	Quantity          int     `json:"quantity" binding:"required,gt=0"`
-	ReferralBotID     *uint   `json:"referral_bot_id"`
+	UserID    int64 `json:"user_id" binding:"required"`
+	ProductID uint  `json:"product_id" binding:"required"`
+	Quantity  int   `json:"quantity" binding:"required,gt=0"`
 }
 
 // @Summary      Buy a Product
@@ -65,6 +63,7 @@ type BuyPayload struct {
 // @Tags         Orders
 // @Accept       json
 // @Produce      json
+// @Param        bot_name query string false "Name of the referral bot"
 // @Param        purchase body BuyPayload true "Purchase data"
 // @Success      200 {object} responses.ResponseSchema[services.BuyResponse]
 // @Failure      400 {object} responses.ErrorResponseSchema
@@ -80,19 +79,20 @@ func (h *OrderHandler) BuyFromBalanceHandler(c *gin.Context) {
 		return
 	}
 
-	// Basic validation
-	if json.ProductID == nil && (json.Provider == nil || json.ExternalProductID == nil) {
-		c.Error(&apperrors.ErrValidation{Message: "either product_id or both provider and external_product_id are required"})
-		return
+	botName := c.Query("bot_name")
+	var botID uint
+	if botName != "" {
+		bot, err := h.botService.FindBotByName(botName)
+		if err == nil && bot != nil {
+			botID = bot.ID
+		}
 	}
 
 	buyRequest := services.BuyRequest{
-		UserID:            json.UserID,
-		ProductID:         json.ProductID,
-		Provider:          json.Provider,
-		ExternalProductID: json.ExternalProductID,
-		Quantity:          json.Quantity,
-		ReferralBotID:     json.ReferralBotID,
+		UserID:    json.UserID,
+		ProductID: json.ProductID,
+		Quantity:  json.Quantity,
+		BotID:     botID,
 	}
 
 	buyResponse, err := h.orderService.BuyFromBalance(buyRequest)

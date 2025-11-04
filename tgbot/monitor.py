@@ -125,19 +125,19 @@ def get_bot_info(token: str) -> (dict | None, bool, bool):
 
 # --- Referral Bot Logic ---
 
-def get_all_referral_bots_from_api(session: requests.Session) -> list:
-    url = f"{API_URL}/referrals"
+def get_all_bots_from_api(session: requests.Session, bot_type: str) -> list:
+    url = f"{API_URL}/bots?type={bot_type}"
     try:
         response = session.get(url)
         response.raise_for_status()
         data = response.json()
         return data.get("data", []) if data.get("success") else []
     except requests.exceptions.RequestException as e:
-        logging.error(f"Failed to get all referral bots from API: {e}")
+        logging.error(f"Failed to get all {bot_type} bots from API: {e}")
         return []
 
 def set_bot_status_api(session: requests.Session, bot_id: int, is_active: bool):
-    url = f"{API_URL}/referrals/{bot_id}/status"
+    url = f"{API_URL}/bots/{bot_id}/status"
     try:
         response = session.put(url, json={"is_active": is_active})
         response.raise_for_status()
@@ -151,7 +151,7 @@ async def manage_referral_bots():
     session = requests_session()
     while True:
         try:
-            api_bots = get_all_referral_bots_from_api(session) or []
+            api_bots = get_all_bots_from_api(session, "referral") or []
             bots_by_owner = {}
             for bot in api_bots:
                 if not bot.get("is_active"):
@@ -231,33 +231,27 @@ async def manage_referral_bots():
 
 # --- Main Bot Logic ---
 
-def _load_clean_tokens(file_path: Path) -> list[str]:
-    if not file_path.exists(): return []
+def get_main_bots_from_api(session: requests.Session) -> list:
+    url = f"{API_URL}/bots/main"
     try:
-        with open(file_path, "r") as f: return [line.strip() for line in f if line.strip()]
-    except IOError as e:
-        logging.error(f"Error reading {file_path}: {e}")
+        response = session.get(url)
+        response.raise_for_status()
+        data = response.json()
+        return data.get("data", []) if data.get("success") else []
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Failed to get main bots from API: {e}")
         return []
 
-def mark_main_token_as_unavailable(token: str):
-    logging.warning(f"Marking main bot token ...{token[-4:]} as unavailable.")
+def create_main_bot_in_api(session: requests.Session, token: str, username: str) -> bool:
+    url = f"{API_URL}/bots/main"
     try:
-        # Cleanly write to unavailable tokens file
-        unavailable_tokens = _load_clean_tokens(UNAVAILABLE_TOKENS_FILE)
-        if token not in unavailable_tokens:
-            unavailable_tokens.append(token)
-            with open(UNAVAILABLE_TOKENS_FILE, "w") as f:
-                f.write("\n".join(unavailable_tokens) + "\n")
-
-        # Cleanly remove from main tokens file
-        current_tokens = _load_clean_tokens(TOKENS_FILE)
-        if token in current_tokens:
-            current_tokens.remove(token)
-            with open(TOKENS_FILE, "w") as f:
-                if current_tokens:
-                    f.write("\n".join(current_tokens) + "\n")
-    except IOError as e:
-        logging.error(f"Error updating main token files: {e}")
+        response = session.post(url, json={"token": token, "username": username})
+        response.raise_for_status()
+        logging.info(f"Successfully created main bot @{username} via API.")
+        return True
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Failed to create main bot @{username} via API: {e}")
+        return False
 
 async def request_new_main_bot_token() -> bool:
     if not API_ID or not API_HASH or API_ID == "YOUR_API_ID" or API_HASH == "YOUR_API_HASH":
@@ -295,13 +289,8 @@ async def request_new_main_bot_token() -> bool:
                         if token_match:
                             new_token = token_match.group(1).strip()
                             logging.info(f"Successfully created a new bot with token ...{new_token[-4:]}")
-                            # Cleanly add the new token
-                            current_tokens = _load_clean_tokens(TOKENS_FILE)
-                            if new_token not in current_tokens:
-                                current_tokens.append(new_token)
-                                with open(TOKENS_FILE, "w") as f:
-                                    f.write("\n".join(current_tokens) + "\n")
-                            return True
+                            session = requests_session()
+                            return create_main_bot_in_api(session, new_token, bot_username)
                         else:
                             logging.error("Could not parse the new bot token.")
                             return False
@@ -318,22 +307,23 @@ async def request_new_main_bot_token() -> bool:
 async def manage_main_bots():
     logging.info("Starting main bot management task...")
     bot_process = None
+    session = requests_session()
     try:
         while True:
-            all_tokens = _load_clean_tokens(TOKENS_FILE)
+            all_bots = get_main_bots_from_api(session)
             healthy_bots = deque()
-            logging.info(f"Found {len(all_tokens)} main tokens. Checking for healthy bots...")
-            for token in all_tokens:
-                info, is_invalid, _ = get_bot_info(token)
-                if info: 
-                    healthy_bots.append({'token': token, 'info': info})
+            logging.info(f"Found {len(all_bots)} main bots. Checking for healthy bots...")
+            for bot in all_bots:
+                info, is_invalid, _ = get_bot_info(bot['token'])
+                if info:
+                    healthy_bots.append({'token': bot['token'], 'info': info, 'id': bot['id']})
                 elif is_invalid:
-                    mark_main_token_as_unavailable(token)
-            
+                    set_bot_status_api(session, bot['id'], False)
+
             if not healthy_bots:
                 logging.warning("No healthy main bots found. Requesting a new one.")
                 success = await request_new_main_bot_token()
-                if not success: 
+                if not success:
                     logging.error("Failed to create a new main bot. Will retry in 5 minutes.")
                     await asyncio.sleep(300)
                 continue
@@ -341,6 +331,7 @@ async def manage_main_bots():
             active_bot = healthy_bots.popleft()
             active_token = active_bot['token']
             active_bot_info = active_bot['info']
+            active_bot_id = active_bot['id']
             logging.info(f"Assigning ACTIVE main bot: @{active_bot_info['username']} (...{active_token[-4:]})")
 
             env = os.environ.copy()
@@ -356,13 +347,12 @@ async def manage_main_bots():
                 logging.warning("Only one healthy main bot found. No fallback will be assigned.")
                 if "FALLBACK_BOT_USERNAME" in env:
                     del env["FALLBACK_BOT_USERNAME"]
-            
+
             bot_process = subprocess.Popen(BOT_COMMAND, env=env, cwd=str(Path(__file__).parent))
             await asyncio.sleep(STARTUP_WAIT_TIME)
 
             if bot_process.poll() is not None:
                 logging.error(f"Main bot @{active_bot_info['username']} terminated on startup. This is likely a code issue, not a token problem. Will retry after interval.")
-                # Не помечаем токен как невалидный, так как это, скорее всего, ошибка в коде
                 continue
 
             logging.info(f"Successfully started and monitoring main bot @{active_bot_info['username']}.")
@@ -372,11 +362,11 @@ async def manage_main_bots():
                 if is_invalid:
                     logging.warning(f"Main bot @{active_bot_info['username']} is not healthy. Killing process.")
                     bot_process.kill()
-                    mark_main_token_as_unavailable(active_token)
+                    set_bot_status_api(session, active_bot_id, False)
                     break
                 if bot_process.poll() is not None:
                     logging.error(f"Main bot @{active_bot_info['username']} has terminated unexpectedly.")
-                    mark_main_token_as_unavailable(active_token)
+                    set_bot_status_api(session, active_bot_id, False)
                     break
                 await asyncio.sleep(HEALTH_CHECK_INTERVAL)
     finally:

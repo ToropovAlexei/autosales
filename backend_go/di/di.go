@@ -20,55 +20,58 @@ import (
 
 // Container holds all the dependencies of the application.
 type Container struct {
-	DB                     *gorm.DB
-	AppSettings            config.Settings
-	Logger                 *slog.Logger
-	ProviderRegistry       *external_providers.ProviderRegistry
+	DB *gorm.DB
+	AppSettings *config.Config
+	Logger *slog.Logger
+	ProviderRegistry *external_providers.ProviderRegistry
 	PaymentGatewayRegistry *gateways.ProviderRegistry
-	TokenService           services.TokenService
-	TwoFAService           services.TwoFAService
-	AuthService            services.AuthService
-	UserService            services.UserService
-	ProductService         services.ProductService
-	CategoryService        services.CategoryService
-	ReferralService        services.ReferralService
-	OrderService           services.OrderService
-	TransactionService     services.TransactionService
-	DashboardService       services.DashboardService
-	BalanceService         services.BalanceService
-	StockService           services.StockService
-	AdminService           services.AdminService
-	PaymentService         services.PaymentService
-	WebhookService         services.WebhookService
-	ImageService           services.ImageService
-	SettingService         services.SettingService
-	RoleService            services.RoleService
-	AuditLogService        services.AuditLogService
-	UserRepo               repositories.UserRepository
-	TemporaryTokenRepo     repositories.TemporaryTokenRepository
-	AuthHandler            *handlers.AuthHandler
-	UserHandler            *handlers.UserHandler
-	ProductHandler         *handlers.ProductHandler
-	CategoryHandler        *handlers.CategoryHandler
-	OrderHandler           *handlers.OrderHandler
-	TransactionHandler     *handlers.TransactionHandler
-	ReferralHandler        *handlers.ReferralHandler
-	DashboardHandler       *handlers.DashboardHandler
-	BalanceHandler         *handlers.BalanceHandler
-	StockHandler           *handlers.StockHandler
-	AdminHandler           *handlers.AdminHandler
-	PaymentHandler         *handlers.PaymentHandler
-	ImageHandler           *handlers.ImageHandler
-	SettingHandler         *handlers.SettingHandler
-	RoleHandler            *handlers.RoleHandler
-	AuditLogHandler        *handlers.AuditLogHandler
-	AuthMiddleware         *middleware.AuthMiddleware
-	SubscriptionWorker     *workers.SubscriptionWorker
-	PaymentWorker          *workers.PaymentWorker
+	TokenService services.TokenService
+	TwoFAService services.TwoFAService
+	AuthService services.AuthService
+	UserService services.UserService
+	ProductService services.ProductService
+	CategoryService services.CategoryService
+	ReferralService services.ReferralService
+	BotService services.BotService
+	OrderService services.OrderService
+	TransactionService services.TransactionService
+	DashboardService services.DashboardService
+	BalanceService services.BalanceService
+	StockService services.StockService
+	AdminService services.AdminService
+	PaymentService services.PaymentService
+	WebhookService services.WebhookService
+	ImageService services.ImageService
+	SettingService services.SettingService
+	RoleService services.RoleService
+	AuditLogService services.AuditLogService
+	UserRepo repositories.UserRepository
+	TemporaryTokenRepo repositories.TemporaryTokenRepository
+	AuthHandler *handlers.AuthHandler
+	UserHandler *handlers.UserHandler
+	ProductHandler *handlers.ProductHandler
+	CategoryHandler *handlers.CategoryHandler
+	OrderHandler *handlers.OrderHandler
+	TransactionHandler *handlers.TransactionHandler
+	StatsHandler *handlers.StatsHandler
+	BotHandler *handlers.BotHandler
+	DashboardHandler *handlers.DashboardHandler
+	BalanceHandler *handlers.BalanceHandler
+	StockHandler *handlers.StockHandler
+	AdminHandler *handlers.AdminHandler
+	PaymentHandler *handlers.PaymentHandler
+	ImageHandler *handlers.ImageHandler
+	SettingHandler *handlers.SettingHandler
+	RoleHandler *handlers.RoleHandler
+	AuditLogHandler *handlers.AuditLogHandler
+	AuthMiddleware *middleware.AuthMiddleware
+	SubscriptionWorker *workers.SubscriptionWorker
+	PaymentWorker *workers.PaymentWorker
+	ProductSyncWorker *workers.ProductSyncWorker
 }
 
 // NewContainer creates a new dependency container.
-func NewContainer(appSettings config.Settings) (*Container, error) {
+func NewContainer(appSettings *config.Config) (*Container, error) {
 	db, err := db.InitDB(appSettings)
 	if err != nil {
 		return nil, err
@@ -117,7 +120,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	categoryRepo := repositories.NewCategoryRepository(db)
 	orderRepo := repositories.NewOrderRepository(db)
 	transactionRepo := repositories.NewTransactionRepository(db)
-	referralRepo := repositories.NewReferralRepository(db)
+	statsRepo := repositories.NewStatsRepository(db)
 	dashboardRepo := repositories.NewDashboardRepository(db)
 	balanceRepo := repositories.NewBalanceRepository(db)
 	stockRepo := repositories.NewStockRepository(db)
@@ -130,6 +133,7 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	auditLogRepo := repositories.NewAuditLogRepository(db)
 	activeTokenRepo := repositories.NewActiveTokenRepository(db)
 	temporaryTokenRepo := repositories.NewTemporaryTokenRepository(db)
+	botRepo := repositories.NewBotRepository(db)
 
 	twoFAService, err := services.NewTwoFAService(appSettings.TFASecretKey)
 	if err != nil {
@@ -143,14 +147,15 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	userService := services.NewUserService(userRepo, botUserRepo, userSubscriptionRepo, orderRepo, auditLogService, twoFAService)
 	productService := services.NewProductService(productRepo, categoryRepo, providerRegistry, auditLogService)
 	categoryService := services.NewCategoryService(categoryRepo, productService, auditLogService)
-	referralService := services.NewReferralService(userRepo, botUserRepo, referralRepo, transactionRepo, *settingService)
+	referralService := services.NewReferralService(botRepo, botUserRepo, statsRepo, transactionRepo, *settingService)
+	botService := services.NewBotService(botRepo, botUserRepo, *settingService)
 	transactionService := services.NewTransactionService(transactionRepo)
 	dashboardService := services.NewDashboardService(dashboardRepo)
 	balanceService := services.NewBalanceService(balanceRepo, botUserRepo)
 	stockService := services.NewStockService(stockRepo)
 	adminService := services.NewAdminService(adminRepo, botUserRepo)
 	webhookService := services.NewWebhookService(appSettings)
-	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, userSubscriptionRepo, categoryRepo, referralService, providerRegistry, webhookService)
+	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, userSubscriptionRepo, categoryRepo, referralService, botService, providerRegistry, webhookService)
 	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo, botUserRepo, webhookService, settingService, appSettings)
 	imageService := services.NewImageService(db, imageRepo, appSettings)
 	roleService := services.NewRoleService(roleRepo, auditLogService)
@@ -158,15 +163,17 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	// Init workers
 	subscriptionWorker := workers.NewSubscriptionWorker(orderService, userSubscriptionRepo, logger)
 	paymentWorker := workers.NewPaymentWorker(paymentService, logger)
+	productSyncWorker := workers.NewProductSyncWorker(productRepo, categoryRepo, providerRegistry)
 
 	// Init handlers
 	authHandler := handlers.NewAuthHandler(authService)
 	userHandler := handlers.NewUserHandler(userService, roleService)
 	productHandler := handlers.NewProductHandler(productService)
 	categoryHandler := handlers.NewCategoryHandler(categoryService)
-	orderHandler := handlers.NewOrderHandler(orderService)
+	orderHandler := handlers.NewOrderHandler(orderService, botService)
 	transactionHandler := handlers.NewTransactionHandler(transactionService)
-	referralHandler := handlers.NewReferralHandler(referralService)
+	statsHandler := handlers.NewStatsHandler(referralService)
+	botHandler := handlers.NewBotHandler(botService)
 	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
 	balanceHandler := handlers.NewBalanceHandler(balanceService)
 	stockHandler := handlers.NewStockHandler(stockService)
@@ -180,51 +187,54 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 	authMiddleware := middleware.NewAuthMiddleware(tokenService, userService)
 
 	return &Container{
-		DB:                     db,
-		AppSettings:            appSettings,
-		Logger:                 logger,
-		ProviderRegistry:       providerRegistry,
+		DB: db,
+		AppSettings: appSettings,
+		Logger: logger,
+		ProviderRegistry: providerRegistry,
 		PaymentGatewayRegistry: paymentGatewayRegistry,
-		TokenService:           tokenService,
-		TwoFAService:           twoFAService,
-		AuthService:            authService,
-		UserService:            userService,
-		ProductService:         productService,
-		CategoryService:        categoryService,
-		ReferralService:        referralService,
-		OrderService:           orderService,
-		TransactionService:     transactionService,
-		DashboardService:       dashboardService,
-		BalanceService:         balanceService,
-		StockService:           stockService,
-		AdminService:           adminService,
-		PaymentService:         paymentService,
-		WebhookService:         webhookService,
-		ImageService:           imageService,
-		SettingService:         *settingService,
-		RoleService:            roleService,
-		AuditLogService:        auditLogService,
-		UserRepo:               userRepo,
-		TemporaryTokenRepo:     temporaryTokenRepo,
-		AuthHandler:            authHandler,
-		UserHandler:            userHandler,
-		ProductHandler:         productHandler,
-		CategoryHandler:        categoryHandler,
-		OrderHandler:           orderHandler,
-		TransactionHandler:     transactionHandler,
-		ReferralHandler:        referralHandler,
-		DashboardHandler:       dashboardHandler,
-		BalanceHandler:         balanceHandler,
-		StockHandler:           stockHandler,
-		AdminHandler:           adminHandler,
-		PaymentHandler:         paymentHandler,
-		ImageHandler:           imageHandler,
-		SettingHandler:         settingHandler,
-		RoleHandler:            roleHandler,
-		AuditLogHandler:        auditLogHandler,
-		AuthMiddleware:         authMiddleware,
-		SubscriptionWorker:     subscriptionWorker,
-		PaymentWorker:          paymentWorker,
+		TokenService: tokenService,
+		TwoFAService: twoFAService,
+		AuthService: authService,
+		UserService: userService,
+		ProductService: productService,
+		CategoryService: categoryService,
+		ReferralService: referralService,
+		BotService: botService,
+		OrderService: orderService,
+		TransactionService: transactionService,
+		DashboardService: dashboardService,
+		BalanceService: balanceService,
+		StockService: stockService,
+		AdminService: adminService,
+		PaymentService: paymentService,
+		WebhookService: webhookService,
+		ImageService: imageService,
+		SettingService: *settingService,
+		RoleService: roleService,
+		AuditLogService: auditLogService,
+		UserRepo: userRepo,
+		TemporaryTokenRepo: temporaryTokenRepo,
+		AuthHandler: authHandler,
+		UserHandler: userHandler,
+		ProductHandler: productHandler,
+		CategoryHandler: categoryHandler,
+		OrderHandler: orderHandler,
+		TransactionHandler: transactionHandler,
+		StatsHandler: statsHandler,
+		BotHandler: botHandler,
+		DashboardHandler: dashboardHandler,
+		BalanceHandler: balanceHandler,
+		StockHandler: stockHandler,
+		AdminHandler: adminHandler,
+		PaymentHandler: paymentHandler,
+		ImageHandler: imageHandler,
+		SettingHandler: settingHandler,
+		RoleHandler: roleHandler,
+		AuditLogHandler: auditLogHandler,
+		AuthMiddleware: authMiddleware,
+		SubscriptionWorker: subscriptionWorker,
+		PaymentWorker: paymentWorker,
+		ProductSyncWorker: productSyncWorker,
 	}, nil
 }
 
@@ -232,4 +242,5 @@ func NewContainer(appSettings config.Settings) (*Container, error) {
 func (c *Container) StartWorkers() {
 	c.SubscriptionWorker.Start()
 	c.PaymentWorker.Start()
+	c.ProductSyncWorker.Start()
 }

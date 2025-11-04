@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-type Settings struct {
+type Config struct {
 	DatabaseHost               string   `mapstructure:"DATABASE_HOST"`
 	DatabasePort               string   `mapstructure:"DATABASE_PORT"`
 	DatabaseUser               string   `mapstructure:"DATABASE_USER"`
@@ -25,6 +25,11 @@ type Settings struct {
 	BotDispatcherWebhookURL    string   `mapstructure:"BOT_DISPATCHER_WEBHOOK_URL"`
 	PaymentNotificationMinutes int      `mapstructure:"PAYMENT_NOTIFICATION_MINUTES"`
 	ImageUploadPath             string `mapstructure:"IMAGE_UPLOAD_PATH"`
+	MainBotTokens              string   `mapstructure:"MAIN_BOT_TOKENS"`
+	MainBotName               string `mapstructure:"MAIN_BOT_NAME"`
+	MainBotToken              string `mapstructure:"MAIN_BOT_TOKEN"`
+	FallbackBotName           string `mapstructure:"FALLBACK_BOT_NAME"`
+	FallbackBotToken          string `mapstructure:"FALLBACK_BOT_TOKEN"`
 
 	PlatformPaymentSystemBaseURL  string `mapstructure:"PLATFORM_PAYMENT_SYSTEM_BASE_URL"`
 	PlatformPaymentSystemLogin    string `mapstructure:"PLATFORM_PAYMENT_SYSTEM_LOGIN"`
@@ -32,15 +37,15 @@ type Settings struct {
 	PlatformPaymentSystem2FAKey   string `mapstructure:"PLATFORM_PAYMENT_SYSTEM_2FA_KEY"`
 }
 
-func (s *Settings) GetDBConnStr() string {
+func (s *Config) GetDBConnStr() string {
 	return fmt.Sprintf(
 		"host=%s user=%s password=%s dbname=%s port=%s sslmode=disable",
 		s.DatabaseHost, s.DatabaseUser, s.DatabasePassword, s.DatabaseName, s.DatabasePort,
 	)
 }
 
-func LoadConfig(path string) (Settings, error) {
-	var appSettings Settings
+func LoadConfig(path string) (*Config, error) {
+	var appSettings Config
 
 	viper.SetConfigFile(path)
 	viper.SetConfigType("env")
@@ -49,21 +54,21 @@ func LoadConfig(path string) (Settings, error) {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
-		return appSettings, err
+		return &appSettings, err
 	}
 
 	if err := viper.Unmarshal(&appSettings); err != nil {
-		return appSettings, err
+		return &appSettings, err
 	}
 
 	corsOriginsStr := viper.GetString("CORS_ORIGINS")
 	if corsOriginsStr != "" {
 		var corsOrigins []string
 		if err := json.Unmarshal([]byte(corsOriginsStr), &corsOrigins); err != nil {
-			return appSettings, err
+			return &appSettings, err
 		}
 		appSettings.CorsOrigins = corsOrigins
 	}
 
-	return appSettings, nil
+	return &appSettings, nil
 }

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"log/slog"
 	"math/rand"
 	"time"
 
@@ -34,14 +35,19 @@ func main() {
 		log.Fatalf("could not create 2FA service: %v", err)
 	}
 
+	logger := slog.Default()
+
+	logger.Info("Loaded appSettings", "settings", appSettings)
+
 	fmt.Println("Starting to seed the database...")
-	seedData(db, twoFAService)
+	seedData(db, twoFAService, appSettings, logger)
 	fmt.Println("Database seeding completed successfully!")
 }
 
-func seedData(db *gorm.DB, twoFAService services.TwoFAService) {
+func seedData(db *gorm.DB, twoFAService services.TwoFAService, appSettings *config.Config, logger *slog.Logger) {
 	dropAllTables(db)
 	autoMigrate(db)
+	createMainBots(db, appSettings, logger)
 	permissions := createRbacData(db)
 	adminUser := createAdmin(db, twoFAService)
 	assignAdminRole(db, adminUser)
@@ -52,6 +58,32 @@ func seedData(db *gorm.DB, twoFAService services.TwoFAService) {
 	createInitialStock(db, products)
 	createOrdersAndTransactions(db, users, products, 500)
 	createDefaultSettings(db)
+}
+
+func createMainBots(db *gorm.DB, appSettings *config.Config, logger *slog.Logger) {
+	logger.Info("Creating main and fallback bots...")
+
+	if appSettings.MainBotToken != "" {
+		bot := models.Bot{
+			Token:     appSettings.MainBotToken,
+			Username:  appSettings.MainBotName,
+			Type:      "main",
+			IsPrimary: true,
+		}
+		db.FirstOrCreate(&bot, models.Bot{Token: bot.Token})
+		logger.Info("Created main bot", "username", bot.Username)
+	}
+
+	if appSettings.FallbackBotToken != "" {
+		bot := models.Bot{
+			Token:     appSettings.FallbackBotToken,
+			Username:  appSettings.FallbackBotName,
+			Type:      "main",
+			IsPrimary: false,
+		}
+		db.FirstOrCreate(&bot, models.Bot{Token: bot.Token})
+		logger.Info("Created fallback bot", "username", bot.Username)
+	}
 }
 
 func createDefaultSettings(db *gorm.DB) {
@@ -71,10 +103,12 @@ func createDefaultSettings(db *gorm.DB) {
 	}
 }
 
+
+
 func dropAllTables(db *gorm.DB) {
 	fmt.Println("Dropping all tables...")
 	tables := []interface{}{
-		&models.UserSubscription{}, &models.RefTransaction{}, &models.ReferralBot{},
+		&models.UserSubscription{}, &models.RefTransaction{}, &models.Bot{},
 		&models.StockMovement{}, &models.Order{}, &models.Transaction{},
 		&models.Product{}, &models.Category{}, &models.BotUser{}, &models.User{},
 		&models.PaymentInvoice{}, &models.Image{}, &models.UserPermission{},
@@ -93,7 +127,7 @@ func autoMigrate(db *gorm.DB) {
 	if err := db.AutoMigrate(
 		&models.User{}, &models.BotUser{}, &models.Category{}, &models.Product{},
 		&models.Order{}, &models.Transaction{}, &models.StockMovement{},
-		&models.ReferralBot{}, &models.RefTransaction{}, &models.UserSubscription{},
+		&models.Bot{}, &models.RefTransaction{}, &models.UserSubscription{},
 		&models.PaymentInvoice{}, &models.Image{}, &models.Role{}, &models.Permission{},
 		&models.RolePermission{}, &models.UserRole{}, &models.UserPermission{}, &models.Setting{},
 		&models.ActiveToken{},

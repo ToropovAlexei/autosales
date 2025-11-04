@@ -66,13 +66,6 @@ func buildCategoryTree(categories []models.Category) []models.CategoryResponse {
 }
 
 func (s *categoryService) GetAll() ([]models.CategoryResponse, error) {
-	// Sync external products and categories first to ensure the category list is up-to-date.
-	if err := s.productService.SyncExternalProductsAndCategories(); err != nil {
-		// We can log this error but we don't want to fail the whole request
-		// as the user can still see the internal categories.
-		// slog.Error("failed to sync external products for categories", "error", err)
-	}
-
 	categories, err := s.categoryRepo.GetAll()
 	if err != nil {
 		return nil, apperrors.New(500, "Failed to get all categories", err)

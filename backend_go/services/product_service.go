@@ -42,7 +42,6 @@ type ProductService interface {
 	UpdateProduct(ctx *gin.Context, id uint, payload ProductUpdatePayload) (*models.ProductResponse, error)
 	DeleteProduct(ctx *gin.Context, id uint) error
 	CreateStockMovement(ctx *gin.Context, productID uint, movementType models.StockMovementType, quantity int, description string, orderID *uint) (*models.StockMovement, error)
-	SyncExternalProductsAndCategories() error
 	UploadProductsCSV(ctx *gin.Context, file io.Reader) (map[string]interface{}, error)
 }
 
@@ -58,31 +57,39 @@ func NewProductService(productRepo repositories.ProductRepository, categoryRepo 
 }
 
 func (s *productService) GetProductsForBot(categoryID uint) ([]models.ProductResponse, error) {
-	if err := s.SyncExternalProductsAndCategories(); err != nil {
-		slog.Error("failed to sync external products and categories", "error", err)
-	}
-
 	var filters []models.Filter
 	if categoryID != 0 {
 		filters = append(filters, models.Filter{Field: "category_id", Operator: "=", Value: categoryID})
 	}
 
-	internalProducts, err := s.productRepo.GetProducts(filters)
+	products, err := s.productRepo.GetProducts(filters)
 	if err != nil {
 		return nil, err
 	}
 
-	allProducts := make([]models.ProductResponse, 0)
-	for _, p := range internalProducts {
+	var response = make([]models.ProductResponse, 0)
+	for _, p := range products {
 		stock, err := s.productRepo.GetStockForProduct(p.ID)
 		if err != nil {
 			return nil, err
 		}
-		var imageUrl string
-		if p.ImageID != nil {
-			imageUrl = p.ImageID.String()
+
+		providerName := ""
+		if p.ProviderName != nil {
+			providerName = *p.ProviderName
 		}
-		allProducts = append(allProducts, models.ProductResponse{
+
+		externalID := ""
+		if p.ExternalID != nil {
+			externalID = *p.ExternalID
+		}
+
+		var imageIDStr string
+		if p.ImageID != nil {
+			imageIDStr = p.ImageID.String()
+		}
+
+		response = append(response, models.ProductResponse{
 			ID:                     p.ID,
 			Name:                   p.Name,
 			Price:                  p.Price,
@@ -93,57 +100,23 @@ func (s *productService) GetProductsForBot(categoryID uint) ([]models.ProductRes
 			Visible:                p.Visible,
 			FulfillmentType:        p.FulfillmentType,
 			FulfillmentContent:     p.FulfillmentContent,
-			ImageUrl:               imageUrl,
+			ImageID:                imageIDStr,
+			Provider:               providerName,
+			ExternalID:             externalID,
 		})
 	}
 
-	providers := s.providerRegistry.GetAllProviders()
-	for _, provider := range providers {
-		externalProducts, err := provider.GetProducts()
-		if err != nil {
-			slog.Error("failed to get products from provider", "provider", provider.GetName(), "error", err)
-			continue
-		}
-		filteredExternal := s.filterExternalProducts(externalProducts, filters)
-
-		for _, p := range filteredExternal {
-			var pCategoryID uint
-			if len(p.Category) > 0 {
-				category, err := s.categoryRepo.FindOrCreateByPath(p.Category)
-				if err == nil && category != nil {
-					pCategoryID = category.ID
-				}
-			}
-			allProducts = append(allProducts, models.ProductResponse{
-				Name:                   p.Name,
-				Price:                  p.Price,
-				CategoryID:             pCategoryID,
-				Stock:                  -1, // External products are subscriptions, stock is not applicable
-				Type:                   "subscription",
-				SubscriptionPeriodDays: 30, // Assuming a default, this could be part of the external product data
-				Provider:               provider.GetName(),
-				ExternalID:             p.ExternalID,
-				Visible:                true, // Assuming external are always visible
-			})
-		}
-	}
-
-	return allProducts, nil
+	return response, nil
 }
 
 func (s *productService) GetProducts(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.ProductResponse], error) {
-	if err := s.SyncExternalProductsAndCategories(); err != nil {
-		slog.Error("failed to sync external products and categories", "error", err)
-	}
-
-	// 1. Get filtered internal products (without pagination)
-	internalProducts, err := s.productRepo.GetProducts(filters)
+	products, err := s.productRepo.GetProducts(filters)
 	if err != nil {
 		return nil, err
 	}
 
 	var allProducts []models.ProductResponse
-	for _, p := range internalProducts {
+	for _, p := range products {
 		stock := 0
 		if p.Type == "item" {
 			stock, err = s.productRepo.GetStockForProduct(p.ID)
@@ -153,10 +126,22 @@ func (s *productService) GetProducts(page models.Page, filters []models.Filter) 
 		} else {
 			stock = -1
 		}
-		var imageUrl string
-		if p.ImageID != nil {
-			imageUrl = p.ImageID.String()
+
+		providerName := ""
+		if p.ProviderName != nil {
+			providerName = *p.ProviderName
 		}
+
+		externalID := ""
+		if p.ExternalID != nil {
+			externalID = *p.ExternalID
+		}
+
+		var imageIDStr string
+		if p.ImageID != nil {
+			imageIDStr = p.ImageID.String()
+		}
+
 		allProducts = append(allProducts, models.ProductResponse{
 			ID:                     p.ID,
 			Name:                   p.Name,
@@ -168,41 +153,10 @@ func (s *productService) GetProducts(page models.Page, filters []models.Filter) 
 			Visible:                p.Visible,
 			FulfillmentType:        p.FulfillmentType,
 			FulfillmentContent:     p.FulfillmentContent,
-			ImageUrl:               imageUrl,
+			ImageID:                imageIDStr,
+			Provider:               providerName,
+			ExternalID:             externalID,
 		})
-	}
-	// 2. Get and filter external products
-	providers := s.providerRegistry.GetAllProviders()
-	for _, provider := range providers {
-		externalProducts, err := provider.GetProducts()
-		if err != nil {
-			slog.Error("failed to get products from provider", "provider", provider.GetName(), "error", err)
-			continue
-		}
-
-		// In-memory filtering for external products
-		filteredExternal := s.filterExternalProducts(externalProducts, filters)
-
-		for _, p := range filteredExternal {
-			var categoryID uint
-			if len(p.Category) > 0 {
-				category, err := s.categoryRepo.FindOrCreateByPath(p.Category)
-				if err == nil && category != nil {
-					categoryID = category.ID
-				}
-			}
-			allProducts = append(allProducts, models.ProductResponse{
-				Name:                   p.Name,
-				Price:                  p.Price,
-				CategoryID:             categoryID,
-				Stock:                  -1, // External products are subscriptions, stock is not applicable
-				Type:                   "subscription",
-				SubscriptionPeriodDays: 30, // Assuming a default, this could be part of the external product data
-				Provider:               provider.GetName(),
-				ExternalID:             p.ExternalID,
-				Visible:                true, // Assuming external are always visible
-			})
-		}
 	}
 
 	// 3. Sort the combined list
@@ -279,138 +233,6 @@ func (s *productService) GetProducts(page models.Page, filters []models.Filter) 
 	}, nil
 }
 
-// filterExternalProducts applies filters to a slice of external products in memory.
-func (s *productService) filterExternalProducts(products []external_providers.ProviderProduct, filters []models.Filter) []external_providers.ProviderProduct {
-	if len(filters) == 0 {
-		return products
-	}
-
-	filtered := make([]external_providers.ProviderProduct, 0)
-	for _, p := range products {
-		matches := true
-		for _, f := range filters {
-			var categoryID uint
-			if len(p.Category) > 0 {
-				category, err := s.categoryRepo.FindOrCreateByPath(p.Category)
-				if err == nil && category != nil {
-					categoryID = category.ID
-				}
-			}
-
-			val := reflect.ValueOf(p)
-			fieldVal := val.FieldByNameFunc(func(s string) bool { return strings.EqualFold(s, f.Field) })
-
-			if f.Field == "category_id" {
-				var filterCatID uint
-				switch v := f.Value.(type) {
-				case float64:
-					filterCatID = uint(v)
-				case uint:
-					filterCatID = v
-				default:
-					matches = false
-					break
-				}
-
-				if categoryID != filterCatID {
-					matches = false
-				}
-				continue
-			}
-
-			if !fieldVal.IsValid() {
-				matches = false
-				break
-			}
-
-			if !matchFilter(fieldVal, f) {
-				matches = false
-				break
-			}
-		}
-		if matches {
-			filtered = append(filtered, p)
-		}
-	}
-	return filtered
-}
-
-// matchFilter compares a reflected value with a filter.
-func matchFilter(value reflect.Value, filter models.Filter) bool {
-	op := strings.ToLower(filter.Operator)
-
-	switch value.Kind() {
-	case reflect.String:
-		filterValue, ok := filter.Value.(string)
-		if !ok {
-			return false
-		}
-		switch op {
-		case "contains":
-			return strings.Contains(strings.ToLower(value.String()), strings.ToLower(filterValue))
-		case "=":
-			return strings.EqualFold(value.String(), filterValue)
-		default:
-			return false
-		}
-	case reflect.Float64:
-		filterValue, err := strconv.ParseFloat(fmt.Sprintf("%v", filter.Value), 64)
-		if err != nil {
-			return false
-		}
-		switch op {
-		case "=":
-			return value.Float() == filterValue
-		case ">":
-			return value.Float() > filterValue
-		case "<":
-			return value.Float() < filterValue
-		case ">=":
-			return value.Float() >= filterValue
-		case "<=":
-			return value.Float() <= filterValue
-		default:
-			return false
-		}
-	case reflect.Uint, reflect.Uint64:
-		// This handles category_id
-		filterValue, ok := filter.Value.(float64) // JSON numbers are float64
-		if !ok {
-			return false
-		}
-		switch op {
-		case "=":
-			return value.Uint() == uint64(filterValue)
-		// "in" operator for category_id
-		case "in":
-			filterValues, ok := filter.Value.([]interface{})
-			if !ok {
-				return false
-			}
-			for _, v := range filterValues {
-				valFloat, ok := v.(float64)
-				if ok && value.Uint() == uint64(valFloat) {
-					return true
-				}
-			}
-			return false
-		default:
-			return false
-		}
-	case reflect.Bool:
-		filterValue, ok := filter.Value.(bool)
-		if !ok {
-			return false
-		}
-		if op == "=" {
-			return value.Bool() == filterValue
-		}
-		return false
-	default:
-		return false
-	}
-}
-
 func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
 	product, err := s.productRepo.GetProductByID(id)
 	if err != nil {
@@ -427,9 +249,9 @@ func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
 		stock = -1
 	}
 
-	var imageUrl string
+	var imageIDStr string
 	if product.ImageID != nil {
-		imageUrl = product.ImageID.String()
+		imageIDStr = product.ImageID.String()
 	}
 
 	return &models.ProductResponse{
@@ -440,7 +262,7 @@ func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
 		Stock:                  stock,
 		Type:                   product.Type,
 		SubscriptionPeriodDays: product.SubscriptionPeriodDays,
-		ImageUrl:               imageUrl,
+		ImageID:                imageIDStr,
 	}, nil
 }
 
@@ -486,11 +308,6 @@ func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID
 		stock = -1
 	}
 
-	var imageUrl string
-	if product.ImageID != nil {
-		imageUrl = product.ImageID.String()
-	}
-
 	response := &models.ProductResponse{
 		ID:                     product.ID,
 		Name:                   product.Name,
@@ -499,7 +316,7 @@ func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID
 		Stock:                  stock,
 		Type:                   product.Type,
 		SubscriptionPeriodDays: product.SubscriptionPeriodDays,
-		ImageUrl:               imageUrl,
+		ImageID:                product.ImageID.String(),
 	}
 
 	s.auditLogService.Log(ctx, "PRODUCT_CREATE", "Product", product.ID, map[string]interface{}{"after": response})

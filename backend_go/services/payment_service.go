@@ -41,10 +41,10 @@ type paymentService struct {
 	botUserRepo     repositories.BotUserRepository
 	webhookService  WebhookService
 	settingService  *SettingService
-	config          config.Settings
+	config          *config.Config
 }
 
-func NewPaymentService(db *gorm.DB, registry *gateways.ProviderRegistry, invoiceRepo repositories.PaymentInvoiceRepository, transactionRepo repositories.TransactionRepository, botUserRepo repositories.BotUserRepository, webhookService WebhookService, settingService *SettingService, config config.Settings) PaymentService {
+func NewPaymentService(db *gorm.DB, registry *gateways.ProviderRegistry, invoiceRepo repositories.PaymentInvoiceRepository, transactionRepo repositories.TransactionRepository, botUserRepo repositories.BotUserRepository, webhookService WebhookService, settingService *SettingService, config *config.Config) PaymentService {
 	return &paymentService{
 		db:              db,
 		registry:        registry,

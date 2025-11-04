@@ -10,7 +10,7 @@ type Order struct {
 	Quantity      int       `gorm:"default:1" json:"quantity"`
 	Amount        float64   `json:"amount"`
 	Status        string    `json:"status"`
-	ReferralBotID *uint     `gorm:"index" json:"referral_bot_id"`
+	BotID         uint      `gorm:"index" json:"bot_id"`
 	FulfilledContent string   `gorm:"type:text" json:"fulfilled_content"`
 	CreatedAt     time.Time `gorm:"not null;default:now()" json:"created_at"`
 }
