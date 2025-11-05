@@ -109,8 +109,9 @@ func main() {
 	routers.RegisterTransactionRoutes(r, container.TransactionHandler, container.AuthMiddleware)
 	routers.RegisterStockRoutes(r, container.StockHandler, container.AuthMiddleware)
 	routers.RegisterDashboardRoutes(r, container.DashboardHandler, container.AuthMiddleware)
+	routers.RegisterPaymentRoutes(r, container.PaymentHandler, container.AuthMiddleware)
 	routers.RegisterStatsRoutes(r, container.StatsHandler, container.AuthMiddleware, appSettings)
-	routers.RegisterBotRoutes(r, container.BotHandler, container.AuthMiddleware, appSettings)
+	routers.RegisterBotRoutes(r, container.BotHandler, container.ProductHandler, container.AuthMiddleware, appSettings)
 	routers.RegisterSettingRoutes(r, container.SettingHandler, container.AuthMiddleware)
 	routers.SetupAuditLogRoutes(r.Group("/api"), container)
 

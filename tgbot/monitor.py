@@ -58,7 +58,11 @@ async def handle_dispatch_message(request: web.Request):
         bot_name = data.get("bot_name")
         telegram_id = data.get("telegram_id")
         message = data.get("message")
-        message_to_edit = data.get("message_to_edit") # Can be None
+        message_to_edit = data.get("message_to_edit")
+        message_to_delete = data.get("message_to_delete")
+        inline_keyboard = data.get("inline_keyboard")
+        
+        logging.info(f"Received dispatch message for bot '{bot_name}' with data: {data}")
 
         if not all([bot_name, telegram_id, message]):
             return web.Response(status=400, text="Bad Request: missing fields")
@@ -69,7 +73,9 @@ async def handle_dispatch_message(request: web.Request):
         payload_to_redis = {
             "telegram_id": telegram_id, 
             "message": message,
-            "message_to_edit": message_to_edit
+            "message_to_edit": message_to_edit,
+            "message_to_delete": message_to_delete,
+            "inline_keyboard": inline_keyboard
         }
         payload = json.dumps(payload_to_redis)
 

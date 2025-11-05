@@ -31,6 +31,8 @@ type PaymentService interface {
 	HandleWebhook(gatewayName string, r *http.Request) error
 	NotifyUnfinishedPayments() error
 	PollPendingPayments() error
+	ConfirmExternalPayment(orderID string) error
+	CancelExternalPayment(orderID string) error
 }
 
 type paymentService struct {
@@ -55,6 +57,52 @@ func NewPaymentService(db *gorm.DB, registry *gateways.ProviderRegistry, invoice
 		settingService:  settingService,
 		config:          config,
 	}
+}
+
+func (s *paymentService) ConfirmExternalPayment(orderID string) error {
+	invoice, err := s.invoiceRepo.FindByOrderID(orderID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Resource: "PaymentInvoice", IDString: orderID}
+	}
+
+	if invoice.Gateway != "platform_card" && invoice.Gateway != "platform_sbp" {
+		return apperrors.New(http.StatusBadRequest, "operation not supported for this gateway", nil)
+	}
+
+	gateway, err := s.registry.GetProvider(invoice.Gateway)
+	if err != nil {
+		return apperrors.New(http.StatusInternalServerError, "gateway not found", err)
+	}
+
+	ppsAdapter, ok := gateway.(*gateways.PlatformPaymentSystemAdapter)
+	if !ok {
+		return apperrors.New(http.StatusInternalServerError, "invalid gateway adapter type", nil)
+	}
+
+	return ppsAdapter.ConfirmPayment(invoice.GatewayInvoiceID)
+}
+
+func (s *paymentService) CancelExternalPayment(orderID string) error {
+	invoice, err := s.invoiceRepo.FindByOrderID(orderID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Resource: "PaymentInvoice", IDString: orderID}
+	}
+
+	if invoice.Gateway != "platform_card" && invoice.Gateway != "platform_sbp" {
+		return apperrors.New(http.StatusBadRequest, "operation not supported for this gateway", nil)
+	}
+
+	gateway, err := s.registry.GetProvider(invoice.Gateway)
+	if err != nil {
+		return apperrors.New(http.StatusInternalServerError, "gateway not found", err)
+	}
+
+	ppsAdapter, ok := gateway.(*gateways.PlatformPaymentSystemAdapter)
+	if !ok {
+		return apperrors.New(http.StatusInternalServerError, "invalid gateway adapter type", nil)
+	}
+
+	return ppsAdapter.CancelPayment(invoice.GatewayInvoiceID)
 }
 
 func (s *paymentService) GetAvailableGateways() []gateways.PaymentGateway {
@@ -226,7 +274,7 @@ func (s *paymentService) processCompletedInvoice(tx *gorm.DB, orderID string) er
 	} else {
 		go func() {
 			// We pass nil for messageToEdit and the original message ID to messageToDelete to trigger a delete-and-send-new action in the bot.
-			if err := s.webhookService.SendNotification(user.LastSeenWithBot, user.TelegramID, notificationMessage, nil, invoice.BotMessageID); err != nil {
+			if err := s.webhookService.SendNotification(user.LastSeenWithBot, user.TelegramID, notificationMessage, nil, invoice.BotMessageID, nil); err != nil {
 				slog.Error("failed to send payment notification webhook", "userID", user.ID, "error", err)
 			}
 		}()
@@ -329,6 +377,16 @@ func (s *paymentService) NotifyUnfinishedPayments() error {
 				invoiceCopy.Amount,
 			)
 
+			var keyboard [][]InlineKeyboardButton
+			if invoiceCopy.Gateway == "platform_card" || invoiceCopy.Gateway == "platform_sbp" {
+				keyboard = [][]InlineKeyboardButton{
+					{
+						{Text: "Я все оплатил", CallbackData: fmt.Sprintf("payment_confirm:%s", invoiceCopy.OrderID)},
+						{Text: "Отменить платеж", CallbackData: fmt.Sprintf("payment_cancel:%s", invoiceCopy.OrderID)},
+					},
+				}
+			}
+
 			// Send notification
 			err := s.webhookService.SendNotification(
 				invoiceCopy.BotUser.LastSeenWithBot,
@@ -336,6 +394,7 @@ func (s *paymentService) NotifyUnfinishedPayments() error {
 				message,
 				nil, // No message to edit
 				nil, // No message to delete
+				keyboard,
 			)
 			if err != nil {
 				slog.Error("failed to send payment notification", "invoice_id", invoiceCopy.ID, "error", err)

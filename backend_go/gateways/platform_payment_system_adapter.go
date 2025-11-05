@@ -6,8 +6,7 @@ import (
 	"net/http"
 )
 
-// platformPaymentSystemAdapter implements the PaymentGateway interface for a specific payment method.
-type platformPaymentSystemAdapter struct {
+type PlatformPaymentSystemAdapter struct {
 	client      *platform_payment_system.Client
 	name        string
 	displayName string
@@ -16,7 +15,7 @@ type platformPaymentSystemAdapter struct {
 
 // NewPlatformPaymentSystemAdapter creates a new adapter for the platform payment system.
 func NewPlatformPaymentSystemAdapter(client *platform_payment_system.Client, name, displayName string, idPayMethod int) PaymentGateway {
-	return &platformPaymentSystemAdapter{
+	return &PlatformPaymentSystemAdapter{
 		client:      client,
 		name:        name,
 		displayName: displayName,
@@ -24,15 +23,15 @@ func NewPlatformPaymentSystemAdapter(client *platform_payment_system.Client, nam
 	}
 }
 
-func (a *platformPaymentSystemAdapter) GetName() string {
+func (a *PlatformPaymentSystemAdapter) GetName() string {
 	return a.name
 }
 
-func (a *platformPaymentSystemAdapter) GetDisplayName() string {
+func (a *PlatformPaymentSystemAdapter) GetDisplayName() string {
 	return a.displayName
 }
 
-func (a *platformPaymentSystemAdapter) CreateInvoice(req *InvoiceCreationRequest) (*Invoice, error) {
+func (a *PlatformPaymentSystemAdapter) CreateInvoice(req *InvoiceCreationRequest) (*Invoice, error) {
 	resp, err := a.client.OrderInitialized(int(req.Amount), a.idPayMethod)
 	if err != nil {
 		return nil, err
@@ -45,12 +44,12 @@ func (a *platformPaymentSystemAdapter) CreateInvoice(req *InvoiceCreationRequest
 	}, nil
 }
 
-func (a *platformPaymentSystemAdapter) HandleWebhook(r *http.Request) (*WebhookResult, error) {
+func (a *PlatformPaymentSystemAdapter) HandleWebhook(r *http.Request) (*WebhookResult, error) {
 	// This provider does not use webhooks. Status polling will be handled by a worker.
 	return nil, nil
 }
 
-func (a *platformPaymentSystemAdapter) GetInvoiceStatus(gatewayInvoiceID string) (*StatusResult, error) {
+func (a *PlatformPaymentSystemAdapter) GetInvoiceStatus(gatewayInvoiceID string) (*StatusResult, error) {
 	resp, err := a.client.OrderGetStatus(gatewayInvoiceID)
 	if err != nil {
 		return nil, err
@@ -71,4 +70,12 @@ func (a *platformPaymentSystemAdapter) GetInvoiceStatus(gatewayInvoiceID string)
 		Status:           internalStatus,
 		GatewayInvoiceID: gatewayInvoiceID,
 	}, nil
+}
+
+func (a *PlatformPaymentSystemAdapter) ConfirmPayment(gatewayInvoiceID string) error {
+	return a.client.MerchProcess(gatewayInvoiceID)
+}
+
+func (a *PlatformPaymentSystemAdapter) CancelPayment(gatewayInvoiceID string) error {
+	return a.client.OrderCancel(gatewayInvoiceID)
 }

@@ -7,8 +7,10 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.redis import RedisStorage
 import redis.asyncio as redis
 
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
 from config import settings
-from handlers import start, balance, catalog, buy, referral, my_bots, my_subscriptions, my_orders
+from handlers import start, balance, catalog, buy, referral, my_bots, my_subscriptions, my_orders, payment
 from api import APIClient
 from logging_config import setup_logging
 from middleware.block_check import BlockCheckMiddleware
@@ -31,6 +33,15 @@ async def redis_listener(bot: Bot, redis_client: redis.Redis, bot_username: str)
             text = message_data.get('message')
             message_to_edit = message_data.get('message_to_edit')
             message_to_delete = message_data.get('message_to_delete')
+            inline_keyboard_data = message_data.get('inline_keyboard')
+
+            reply_markup = None
+            if inline_keyboard_data:
+                buttons = [
+                    [InlineKeyboardButton(text=button['text'], callback_data=button['callback_data']) for button in row]
+                    for row in inline_keyboard_data
+                ]
+                reply_markup = InlineKeyboardMarkup(inline_keyboard=buttons)
 
             if message_to_delete:
                 try:
@@ -46,14 +57,14 @@ async def redis_listener(bot: Bot, redis_client: redis.Redis, bot_username: str)
                             chat_id=telegram_id, 
                             message_id=message_to_edit, 
                             text=text, 
-                            reply_markup=None
+                            reply_markup=reply_markup
                         )
                         logging.info(f"Edited message {message_to_edit} for user {telegram_id}")
                     except Exception as e:
                         logging.warning(f"Could not edit message {message_to_edit}, sending new one. Error: {e}")
-                        await bot.send_message(chat_id=telegram_id, text=text)
+                        await bot.send_message(chat_id=telegram_id, text=text, reply_markup=reply_markup)
                 else:
-                    await bot.send_message(chat_id=telegram_id, text=text)
+                    await bot.send_message(chat_id=telegram_id, text=text, reply_markup=reply_markup)
                     logging.info(f"Sent notification to user {telegram_id}")
 
         except asyncio.CancelledError:
@@ -89,6 +100,7 @@ async def main():
     dp.include_router(my_bots.router)
     dp.include_router(my_subscriptions.router)
     dp.include_router(my_orders.router)
+    dp.include_router(payment.router)
 
     await bot.delete_webhook(drop_pending_updates=True)
     

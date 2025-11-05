@@ -27,11 +27,4 @@ func RegisterProductRoutes(router *gin.Engine, productHandler *handlers.ProductH
 		products.POST("/:id/stock/movements", middleware.PermissionMiddleware("stock:update"), productHandler.CreateStockMovementHandler)
 		products.POST("/upload", middleware.PermissionMiddleware("products:create"), productHandler.UploadProductsCSVHandler)
 	}
-
-	botRoutes := router.Group("/api/bot")
-	botRoutes.Use(middleware.ServiceTokenMiddleware(appSettings))
-	{
-		botRoutes.GET("/products", productHandler.GetProductsForBotHandler)
-		botRoutes.GET("/products/:id", productHandler.GetProductForBotHandler)
-	}
 }

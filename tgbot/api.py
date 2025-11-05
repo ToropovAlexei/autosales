@@ -122,3 +122,9 @@ class APIClient:
 
     async def set_invoice_message_id(self, order_id: str, message_id: int):
         return await self._request("PATCH", f"/invoices/{order_id}/message-id", json={"message_id": message_id})
+
+    async def confirm_payment(self, order_id: str):
+        return await self._request("POST", f"/bot/invoices/{order_id}/confirm")
+
+    async def cancel_payment(self, order_id: str):
+        return await self._request("POST", f"/bot/invoices/{order_id}/cancel")

@@ -173,7 +173,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	orderHandler := handlers.NewOrderHandler(orderService, botService)
 	transactionHandler := handlers.NewTransactionHandler(transactionService)
 	statsHandler := handlers.NewStatsHandler(referralService)
-	botHandler := handlers.NewBotHandler(botService)
+	botHandler := handlers.NewBotHandler(botService, paymentService)
 	dashboardHandler := handlers.NewDashboardHandler(dashboardService)
 	balanceHandler := handlers.NewBalanceHandler(balanceService)
 	stockHandler := handlers.NewStockHandler(stockService)

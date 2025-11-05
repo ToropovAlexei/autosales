@@ -10,11 +10,12 @@ import (
 )
 
 type BotHandler struct {
-	botService services.BotService
+	botService     services.BotService
+	paymentService services.PaymentService
 }
 
-func NewBotHandler(botService services.BotService) *BotHandler {
-	return &BotHandler{botService: botService}
+func NewBotHandler(botService services.BotService, paymentService services.PaymentService) *BotHandler {
+	return &BotHandler{botService: botService, paymentService: paymentService}
 }
 
 type referralBotCreatePayload struct {
@@ -57,4 +58,34 @@ func (h *BotHandler) GetMainBotsHandler(c *gin.Context) {
 	}
 
 	responses.SuccessResponse(c, http.StatusOK, bots)
+}
+
+func (h *BotHandler) ConfirmPayment(c *gin.Context) {
+	orderID := c.Param("order_id")
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "order_id is required"})
+		return
+	}
+
+	if err := h.paymentService.ConfirmExternalPayment(orderID); err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "payment confirmed"})
+}
+
+func (h *BotHandler) CancelPayment(c *gin.Context) {
+	orderID := c.Param("order_id")
+	if orderID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "order_id is required"})
+		return
+	}
+
+	if err := h.paymentService.CancelExternalPayment(orderID); err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "payment cancelled"})
 }

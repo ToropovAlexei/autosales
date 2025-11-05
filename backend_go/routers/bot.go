@@ -8,20 +8,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterBotRoutes(router *gin.Engine, botHandler *handlers.BotHandler, authMiddleware *middleware.AuthMiddleware, appSettings *config.Config) {
-	serviceBots := router.Group("/api/bots")
-	serviceBots.Use(middleware.ServiceTokenMiddleware(appSettings))
+func RegisterBotRoutes(router *gin.Engine, botHandler *handlers.BotHandler, productHandler *handlers.ProductHandler, authMiddleware *middleware.AuthMiddleware, appSettings *config.Config) {
+	botRoutes := router.Group("/api/bot")
+	botRoutes.Use(middleware.ServiceTokenMiddleware(appSettings))
 	{
-		serviceBots.POST("/referral", botHandler.CreateReferralBotHandler)
-		serviceBots.GET("", botHandler.GetAllBotsAdminHandler)
-		serviceBots.GET("/main", botHandler.GetMainBotsHandler)
+		botRoutes.GET("/products", productHandler.GetProductsForBotHandler)
+		botRoutes.GET("/products/:id", productHandler.GetProductForBotHandler)
+		botRoutes.POST("/invoices/:order_id/confirm", botHandler.ConfirmPayment)
+		botRoutes.POST("/invoices/:order_id/cancel", botHandler.CancelPayment)
 	}
 
-	adminBots := router.Group("/api/bots")
-	adminBots.Use(authMiddleware.RequireAuth)
+	botsRoutes := router.Group("/api/bots")
+	botsRoutes.Use(middleware.ServiceTokenMiddleware(appSettings))
 	{
-		// adminBots.GET("", middleware.PermissionMiddleware("bots:read"), botHandler.GetAllBotsAdminHandler)
-		// adminBots.PUT("/:id/status", middleware.PermissionMiddleware("bots:update"), botHandler.UpdateBotStatusHandler)
-		// adminBots.PUT("/:id/percentage", middleware.PermissionMiddleware("bots:update"), botHandler.UpdateBotPercentageHandler)
+		botsRoutes.GET("", botHandler.GetAllBotsAdminHandler)
+		botsRoutes.GET("/main", botHandler.GetMainBotsHandler)
 	}
 }

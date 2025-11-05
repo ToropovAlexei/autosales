@@ -270,6 +270,8 @@ func (c *Client) doRequest(endpoint string, data url.Values, responseContainer i
 
 	fullURL := base.ResolveReference(endpointURL).String()
 
+	slog.Info("sending request to payment provider", "url", fullURL, "data", data)
+
 	req, err := http.NewRequest("POST", fullURL, strings.NewReader(data.Encode()))
 	if err != nil {
 		return fmt.Errorf("failed to create request for %s: %w", fullURL, err)
@@ -278,6 +280,7 @@ func (c *Client) doRequest(endpoint string, data url.Values, responseContainer i
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		slog.Error("payment provider request failed", "url", fullURL, "error", err)
 		return fmt.Errorf("failed to perform request for %s: %w", fullURL, err)
 	}
 	defer resp.Body.Close()
@@ -288,8 +291,11 @@ func (c *Client) doRequest(endpoint string, data url.Values, responseContainer i
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		slog.Error("payment provider request returned non-OK status", "url", fullURL, "status", resp.StatusCode, "body", string(body))
 		return fmt.Errorf("request for %s returned non-OK status: %d. Body: %s", fullURL, resp.StatusCode, string(body))
 	}
+
+	slog.Info("payment provider request successful", "url", fullURL, "status", resp.StatusCode)
 
 	if responseContainer != nil {
 		if err := json.Unmarshal(body, responseContainer); err != nil {
@@ -301,6 +307,7 @@ func (c *Client) doRequest(endpoint string, data url.Values, responseContainer i
 	var genericResp GenericResponse
 	if err := json.Unmarshal(body, &genericResp); err == nil {
 		if genericResp.Response != "success" {
+			slog.Error("payment provider API call was not successful", "url", fullURL, "message", genericResp.Message)
 			return fmt.Errorf("API call to %s was not successful: %s", fullURL, genericResp.Message)
 		}
 	}
