@@ -116,6 +116,7 @@ func main() {
 	routers.RegisterImageRoutes(r, container.ImageHandler, container.AuthMiddleware)
 	routers.RegisterRoleRoutes(r, container.RoleHandler, container.AuthMiddleware)
 	routers.RegisterAdminUserRoutes(r, container.RoleHandler, container.AdminHandler, container.AuthMiddleware)
+	routers.RegisterAdminReferralRoutes(r, container.BotHandler, container.AuthMiddleware)
 	routers.SetupAuditLogRoutes(r.Group("/api"), container)
 
 	// Swagger route

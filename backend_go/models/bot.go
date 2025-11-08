@@ -15,10 +15,15 @@ type Bot struct {
 }
 
 type BotResponse struct {
-	ID        uint   `json:"id"`
-	Token     string `json:"token"`
-	Username  string `json:"username"`
-	IsPrimary bool   `json:"is_primary"`
-	IsActive  bool   `json:"is_active"`
-	OwnerID   *uint  `json:"owner_id"`
+	ID                 uint    `json:"id"`
+	Token              string  `json:"token"`
+	Username           string  `json:"username"`
+	Type               string  `json:"type"`
+	IsPrimary          bool    `json:"is_primary"`
+	IsActive           bool    `json:"is_active"`
+	OwnerID            *uint   `json:"owner_id"`
+	OwnerTelegramID    int64   `json:"owner_telegram_id,omitempty"`
+	Turnover           float64 `json:"turnover"`
+	Accruals           float64 `json:"accruals"`
+	ReferralPercentage float64 `json:"referral_percentage"`
 }

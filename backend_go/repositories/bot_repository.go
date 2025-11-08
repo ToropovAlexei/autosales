@@ -14,6 +14,9 @@ type BotRepository interface {
 	CountByOwnerID(ownerID uint) (int64, error)
 	FindByToken(token string) (*models.Bot, error)
 	GetAll(botType string) ([]models.Bot, error)
+	Delete(botID uint) error
+	Update(bot *models.Bot, column string, value interface{}) error
+	SetPrimary(bot *models.Bot) error
 	WithTx(tx *gorm.DB) BotRepository
 }
 
@@ -72,7 +75,7 @@ func (r *gormBotRepository) CountByOwnerID(ownerID uint) (int64, error) {
 }
 
 func (r *gormBotRepository) GetAll(botType string) ([]models.Bot, error) {
-	var bots []models.Bot
+	bots := make([]models.Bot, 0)
 	db := r.db
 	if botType != "" {
 		db = db.Where("type = ?", botType)
@@ -81,4 +84,21 @@ func (r *gormBotRepository) GetAll(botType string) ([]models.Bot, error) {
 		return nil, err
 	}
 	return bots, nil
+}
+
+func (r *gormBotRepository) Delete(botID uint) error {
+	return r.db.Delete(&models.Bot{}, botID).Error
+}
+
+func (r *gormBotRepository) Update(bot *models.Bot, column string, value interface{}) error {
+	return r.db.Model(bot).Update(column, value).Error
+}
+
+func (r *gormBotRepository) SetPrimary(bot *models.Bot) error {
+	return r.db.Transaction(func(tx *gorm.DB) error {
+		if err := tx.Model(&models.Bot{}).Where("is_primary = ?", true).Update("is_primary", false).Error; err != nil {
+			return err
+		}
+		return tx.Model(bot).Update("is_primary", true).Error
+	})
 }

@@ -17,7 +17,7 @@ func ApplyPagination[T any](db *gorm.DB, page models.Page) (*models.PaginatedRes
 	offset := (page.Page - 1) * page.PageSize
 	order := fmt.Sprintf("%s %s", page.OrderBy, page.Order)
 
-	var data []T
+	data := make([]T, 0)
 	if err := db.Order(order).Limit(page.PageSize).Offset(offset).Find(&data).Error; err != nil {
 		return nil, err
 	}

@@ -41,7 +41,7 @@ func (r *gormRoleRepository) CreateRole(role *models.Role) error {
 }
 
 func (r *gormRoleRepository) GetRoles() ([]models.Role, error) {
-	var roles []models.Role
+	roles := make([]models.Role, 0)
 	err := r.db.Find(&roles).Error
 	return roles, err
 }
@@ -65,7 +65,7 @@ func (r *gormRoleRepository) CreatePermission(permission *models.Permission) err
 }
 
 func (r *gormRoleRepository) GetPermissions() ([]models.Permission, error) {
-	var permissions []models.Permission
+	permissions := make([]models.Permission, 0)
 	err := r.db.Find(&permissions).Error
 	return permissions, err
 }
@@ -81,7 +81,7 @@ func (r *gormRoleRepository) RemovePermissionFromRole(roleID, permissionID uint)
 }
 
 func (r *gormRoleRepository) GetRolePermissions(roleID uint) ([]models.Permission, error) {
-	var permissions []models.Permission
+	permissions := make([]models.Permission, 0)
 	err := r.db.Table("permissions").
 		Joins("join role_permissions on permissions.id = role_permissions.permission_id").
 		Where("role_permissions.role_id = ?", roleID).Find(&permissions).Error
@@ -98,7 +98,7 @@ func (r *gormRoleRepository) SetUserRole(userID, roleID uint) error {
 }
 
 func (r *gormRoleRepository) GetUserRoles(userID uint) ([]models.Role, error) {
-	var roles []models.Role
+	roles := make([]models.Role, 0)
 	err := r.db.Table("roles").
 		Joins("join user_roles on roles.id = user_roles.role_id").
 		Where("user_roles.user_id = ?", userID).Find(&roles).Error
@@ -115,7 +115,7 @@ func (r *gormRoleRepository) RemoveUserPermission(userID, permissionID uint) err
 }
 
 func (r *gormRoleRepository) GetUserPermissions(userID uint) ([]models.UserPermission, error) {
-	var userPermissions []models.UserPermission
+	userPermissions := make([]models.UserPermission, 0)
 	err := r.db.Where("user_id = ?", userID).Find(&userPermissions).Error
 	return userPermissions, err
 }

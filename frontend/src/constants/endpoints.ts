@@ -4,6 +4,7 @@ export const ENDPOINTS = {
   ADMIN_SETTINGS: "admin/settings",
   REFERRALS: "referrals",
   REFERRAL_BOTS_ADMIN: "referrals/admin-list",
+  ADMIN_REFERRAL_BOTS: "admin/referral-bots",
   CATEGORIES: "categories",
   PRODUCTS: "products",
   TRANSACTIONS: "transactions",

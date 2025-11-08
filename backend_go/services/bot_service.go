@@ -50,16 +50,21 @@ type BotService interface {
 	CreateReferralBot(ownerTelegramID int64, botToken string) (*models.Bot, error)
 	GetAllBots(botType string) ([]models.BotResponse, error)
 	GetMainBots() ([]models.BotResponse, error)
+	DeleteBot(botID uint) error
+	UpdateBotStatus(botID uint, isActive bool) error
+	SetPrimaryBot(botID uint) error
+	UpdateBotReferralPercentage(botID uint, percentage float64) error
 }
 
 type botService struct {
 	botRepo        repositories.BotRepository
 	botUserRepo    repositories.BotUserRepository
+	statsRepo      repositories.StatsRepository
 	settingService SettingService
 }
 
-func NewBotService(botRepo repositories.BotRepository, botUserRepo repositories.BotUserRepository, settingService SettingService) BotService {
-	return &botService{botRepo: botRepo, botUserRepo: botUserRepo, settingService: settingService}
+func NewBotService(botRepo repositories.BotRepository, botUserRepo repositories.BotUserRepository, statsRepo repositories.StatsRepository, settingService SettingService) BotService {
+	return &botService{botRepo: botRepo, botUserRepo: botUserRepo, statsRepo: statsRepo, settingService: settingService}
 }
 
 func (s *botService) FindBotByName(name string) (*models.Bot, error) {
@@ -133,7 +138,7 @@ func (s *botService) GetAllBots(botType string) ([]models.BotResponse, error) {
 		return nil, err
 	}
 
-	var botResponses []models.BotResponse
+	botResponses := make([]models.BotResponse, 0)
 	for _, bot := range bots {
 		botResponses = append(botResponses, s.toBotResponse(bot))
 	}
@@ -147,7 +152,7 @@ func (s *botService) GetMainBots() ([]models.BotResponse, error) {
 		return nil, err
 	}
 
-	var botResponses []models.BotResponse
+	botResponses := make([]models.BotResponse, 0)
 	for _, bot := range bots {
 		botResponses = append(botResponses, s.toBotResponse(bot))
 	}
@@ -155,13 +160,60 @@ func (s *botService) GetMainBots() ([]models.BotResponse, error) {
 	return botResponses, nil
 }
 
-func (s *botService) toBotResponse(bot models.Bot) models.BotResponse {
-	return models.BotResponse{
-		ID:        bot.ID,
-		Token:     bot.Token,
-		Username:  bot.Username,
-		IsPrimary: bot.IsPrimary,
-		IsActive:  bot.IsActive,
-		OwnerID:   bot.OwnerID,
+func (s *botService) DeleteBot(botID uint) error {
+	_, err := s.botRepo.FindByID(botID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Resource: "Bot", ID: botID}
 	}
+	return s.botRepo.Delete(botID)
+}
+
+func (s *botService) UpdateBotStatus(botID uint, isActive bool) error {
+	bot, err := s.botRepo.FindByID(botID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Resource: "Bot", ID: botID}
+	}
+	return s.botRepo.Update(bot, "is_active", isActive)
+}
+
+func (s *botService) SetPrimaryBot(botID uint) error {
+	bot, err := s.botRepo.FindByID(botID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Resource: "Bot", ID: botID}
+	}
+	return s.botRepo.SetPrimary(bot)
+}
+
+func (s *botService) UpdateBotReferralPercentage(botID uint, percentage float64) error {
+	bot, err := s.botRepo.FindByID(botID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Resource: "Bot", ID: botID}
+	}
+	return s.botRepo.Update(bot, "referral_percentage", percentage)
+}
+
+func (s *botService) toBotResponse(bot models.Bot) models.BotResponse {
+	resp := models.BotResponse{
+		ID:                 bot.ID,
+		Token:              bot.Token,
+		Username:           bot.Username,
+		Type:               bot.Type,
+		IsPrimary:          bot.IsPrimary,
+		IsActive:           bot.IsActive,
+		OwnerID:            bot.OwnerID,
+		ReferralPercentage: bot.ReferralPercentage,
+	}
+
+	if bot.OwnerID != nil {
+		owner, err := s.botUserRepo.FindByID(*bot.OwnerID)
+		if err == nil && owner != nil {
+			resp.OwnerTelegramID = owner.TelegramID
+			turnover, _ := s.statsRepo.GetReferralTurnover(*bot.OwnerID)
+			accruals, _ := s.statsRepo.GetReferralAccruals(*bot.OwnerID)
+			resp.Turnover = turnover
+			resp.Accruals = accruals
+		}
+	}
+
+	return resp
 }

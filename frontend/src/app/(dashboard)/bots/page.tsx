@@ -5,15 +5,16 @@ import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { dataLayer } from "@/lib/dataLayer";
 import { queryKeys } from "@/utils/query";
-import { ReferralBotCard } from "./components/ReferralBotCard";
+import { BotCard } from "./components/BotCard";
 import classes from "./styles.module.css";
 import { PageLayout } from "@/components/PageLayout";
 
-interface ReferralBot {
+interface Bot {
   id: number;
   owner_telegram_id: number;
   bot_token: string;
   created_at: string;
+  type: "main" | "referral";
   is_active: boolean;
   is_primary: boolean;
   turnover: number;
@@ -21,10 +22,10 @@ interface ReferralBot {
   referral_percentage: number;
 }
 
-export default function ReferralBotsPage() {
+export default function BotsPage() {
   const queryClient = useQueryClient();
 
-  const { data: referralBots } = useList<ReferralBot>({
+  const { data: bots } = useList<Bot>({
     endpoint: ENDPOINTS.ADMIN_REFERRAL_BOTS,
   });
 
@@ -83,10 +84,10 @@ export default function ReferralBotsPage() {
   });
 
   return (
-    <PageLayout title="Управление реферальными ботами">
+    <PageLayout title="Управление ботами">
       <div className={classes.grid}>
-        {referralBots?.data?.map((bot: ReferralBot) => (
-          <ReferralBotCard
+        {bots?.data?.map((bot: Bot) => (
+          <BotCard
             key={bot.id}
             bot={bot}
             onUpdateStatus={updateStatusMutation.mutate}

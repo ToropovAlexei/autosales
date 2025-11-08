@@ -55,9 +55,9 @@ export const MENU_ITEMS = [
     permission: "stock:read",
   },
   {
-    label: "Реферальные боты",
+    label: "Боты",
     Icon: SmartToyIcon,
-    path: "/referral-bots",
+    path: "/bots",
     permission: "referrals:read",
   },
   {

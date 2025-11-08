@@ -9,6 +9,8 @@ import (
 type StatsRepository interface {
 	WithTx(tx *gorm.DB) StatsRepository
 	GetReferralStats(ownerID uint) (map[uint]models.ReferralBotStats, error)
+	GetReferralTurnover(ownerID uint) (float64, error)
+	GetReferralAccruals(ownerID uint) (float64, error)
 }
 
 type gormStatsRepository struct {
@@ -41,4 +43,25 @@ func (r *gormStatsRepository) GetReferralStats(ownerID uint) (map[uint]models.Re
 	}
 
 	return statsMap, nil
+}
+
+func (r *gormStatsRepository) GetReferralTurnover(ownerID uint) (float64, error) {
+	var turnover float64
+	err := r.db.Table("orders").
+		Joins("join bots on orders.bot_id = bots.id").
+		Where("bots.owner_id = ?", ownerID).
+		Select("COALESCE(SUM(orders.amount), 0)").
+		Row().
+		Scan(&turnover)
+	return turnover, err
+}
+
+func (r *gormStatsRepository) GetReferralAccruals(ownerID uint) (float64, error) {
+	var accruals float64
+	err := r.db.Table("ref_transactions").
+		Where("ref_owner_id = ?", ownerID).
+		Select("COALESCE(SUM(ref_transactions.ref_share), 0)").
+		Row().
+		Scan(&accruals)
+	return accruals, err
 }

@@ -148,7 +148,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	productService := services.NewProductService(productRepo, categoryRepo, providerRegistry, auditLogService)
 	categoryService := services.NewCategoryService(categoryRepo, productService, auditLogService)
 	referralService := services.NewReferralService(botRepo, botUserRepo, statsRepo, transactionRepo, *settingService)
-	botService := services.NewBotService(botRepo, botUserRepo, *settingService)
+	botService := services.NewBotService(botRepo, botUserRepo, statsRepo, *settingService)
 	transactionService := services.NewTransactionService(transactionRepo)
 	dashboardService := services.NewDashboardService(dashboardRepo)
 	balanceService := services.NewBalanceService(balanceRepo, botUserRepo)
