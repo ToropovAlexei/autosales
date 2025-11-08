@@ -247,7 +247,7 @@ export const ProductForm = ({
                   variant="outlined"
                   onClick={() => setIsImageSelectorOpen(true)}
                 >
-                  Выбрать изображение
+                  Выбрать изображение для товара
                 </Button>
                 {imageId && (
                   <img
