@@ -15,6 +15,7 @@ type OrderRepository interface {
 	GetOrderForUpdate(orderID uint) (*models.Order, error)
 	UpdateOrder(order *models.Order) error
 	GetOrders(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.OrderResponse], error)
+	GetOrderByID(orderID uint) (*models.Order, error)
 	FindOrdersByBotUserID(botUserID uint) ([]models.Order, error)
 }
 
@@ -44,6 +45,14 @@ func (r *gormOrderRepository) GetOrderForUpdate(orderID uint) (*models.Order, er
 
 func (r *gormOrderRepository) UpdateOrder(order *models.Order) error {
 	return r.db.Save(order).Error
+}
+
+func (r *gormOrderRepository) GetOrderByID(orderID uint) (*models.Order, error) {
+	var order models.Order
+	if err := r.db.Preload("Product").First(&order, orderID).Error; err != nil {
+		return nil, err
+	}
+	return &order, nil
 }
 
 func (r *gormOrderRepository) GetOrders(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.OrderResponse], error) {

@@ -113,6 +113,7 @@ func main() {
 	routers.RegisterStatsRoutes(r, container.StatsHandler, container.AuthMiddleware, appSettings)
 	routers.RegisterBotRoutes(r, container.BotHandler, container.ProductHandler, container.AuthMiddleware, appSettings)
 	routers.RegisterSettingRoutes(r, container.SettingHandler, container.AuthMiddleware)
+	routers.RegisterImageRoutes(r, container.ImageHandler, container.AuthMiddleware)
 	routers.SetupAuditLogRoutes(r.Group("/api"), container)
 
 	// Swagger route

@@ -26,6 +26,7 @@ type OrderResponse struct {
 	UserTelegramID int64     `json:"user_telegram_id"`
 	ProductName    string    `json:"product_name"`
 	FulfilledContent string   `json:"fulfilled_content,omitempty"`
+	ImageURL       string    `json:"image_url,omitempty"`
 }
 
 type OrderSlimResponse struct {

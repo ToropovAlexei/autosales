@@ -67,7 +67,12 @@ func (h *ImageHandler) ListImagesHandler(c *gin.Context) {
 		return
 	}
 
-	responses.SuccessResponse(c, http.StatusOK, images)
+	response := gin.H{
+		"data":  images,
+		"total": len(images),
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, response)
 }
 
 // ServeImageHandler godoc

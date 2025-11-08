@@ -52,6 +52,22 @@ func (h *OrderHandler) GetOrdersHandler(c *gin.Context) {
 	responses.SuccessResponse(c, http.StatusOK, orders)
 }
 
+func (h *OrderHandler) GetOrderHandler(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		c.Error(&apperrors.ErrValidation{Message: "Invalid order ID"})
+		return
+	}
+
+	order, err := h.orderService.GetOrder(uint(id))
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, order)
+}
+
 type BuyPayload struct {
 	UserID    int64 `json:"user_id" binding:"required"`
 	ProductID uint  `json:"product_id" binding:"required"`

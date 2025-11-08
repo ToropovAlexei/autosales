@@ -30,7 +30,11 @@ interface IImage {
   OriginalFilename: string;
 }
 
-const FOLDERS = [{ id: "categories", name: "Категории" }];
+const FOLDERS = [
+  { id: "product_images", name: "Изображения товаров" },
+  { id: "fulfillment_images", name: "Выдача (картинки)" },
+  { id: "categories", name: "Категории" },
+];
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 interface SelectImageProps {
@@ -40,7 +44,7 @@ interface SelectImageProps {
 }
 
 export const SelectImage = ({ open, onClose, onSelect }: SelectImageProps) => {
-  const [selectedFolder, setSelectedFolder] = useState("categories");
+  const [selectedFolder, setSelectedFolder] = useState("product_images");
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const client = useQueryClient();

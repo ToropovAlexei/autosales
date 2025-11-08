@@ -9,7 +9,18 @@ from keyboards.inline import back_to_main_menu_keyboard
 
 router = Router()
 
-async def process_buy_result(callback_query: CallbackQuery, result: dict):
+from aiogram import Router, F, Bot
+from aiogram.fsm.context import FSMContext
+from aiogram.types import CallbackQuery
+from aiogram.utils.markdown import hbold
+import logging
+
+from api import APIClient
+from keyboards.inline import back_to_main_menu_keyboard
+
+router = Router()
+
+async def process_buy_result(callback_query: CallbackQuery, result: dict, bot: Bot):
     if result.get("success"):
         data = result.get("data")
         if not isinstance(data, dict):
@@ -21,6 +32,7 @@ async def process_buy_result(callback_query: CallbackQuery, result: dict):
         product_name = data.get("product_name")
         product_price = data.get("product_price")
         fulfilled_content = data.get("fulfilled_content")
+        image_url = data.get("image_url")
 
         if new_balance is not None and product_name and product_price is not None:
             success_message = (
@@ -29,14 +41,27 @@ async def process_buy_result(callback_query: CallbackQuery, result: dict):
             )
 
             if fulfilled_content:
-                # We use hcode for multiline content to preserve formatting
                 success_message += f"\n\n{hbold('Ваш товар:')}\n<pre>{fulfilled_content}</pre>"
 
-            await callback_query.message.edit_text(
-                success_message,
-                parse_mode="HTML",
-                reply_markup=back_to_main_menu_keyboard()
-            )
+            # Delete the old message with the 'buy' button
+            await callback_query.message.delete()
+
+            if image_url:
+                full_image_url = f"{api_client.base_url}{image_url}"
+                await bot.send_photo(
+                    chat_id=callback_query.from_user.id,
+                    photo=full_image_url,
+                    caption=success_message,
+                    parse_mode="HTML",
+                    reply_markup=back_to_main_menu_keyboard()
+                )
+            else:
+                await bot.send_message(
+                    chat_id=callback_query.from_user.id,
+                    text=success_message,
+                    parse_mode="HTML",
+                    reply_markup=back_to_main_menu_keyboard()
+                )
         else:
             logging.error(f"Missing keys in successful buy response data: {data}")
             await callback_query.message.edit_text("Произошла ошибка при обработке покупки.")
@@ -51,7 +76,7 @@ async def process_buy_result(callback_query: CallbackQuery, result: dict):
         await callback_query.message.edit_text(error_message)
 
 @router.callback_query(F.data.startswith("buy_"))
-async def buy_handler(callback_query: CallbackQuery, state: FSMContext, api_client: APIClient):
+async def buy_handler(callback_query: CallbackQuery, state: FSMContext, api_client: APIClient, bot: Bot):
     try:
         parts = callback_query.data.split('_')
         telegram_id = callback_query.from_user.id
@@ -74,7 +99,7 @@ async def buy_handler(callback_query: CallbackQuery, state: FSMContext, api_clie
             product_id = int(product_id_str)
             result = await api_client.buy_product(telegram_id, product_id, referral_bot_id=referral_bot_id)
         
-        await process_buy_result(callback_query, result)
+        await process_buy_result(callback_query, result, bot)
 
     except Exception as e:
         logging.exception("An unexpected error occurred in buy_handler")

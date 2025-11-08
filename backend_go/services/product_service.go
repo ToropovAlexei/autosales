@@ -285,6 +285,7 @@ func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID
 		Details:                sql.NullString{String: "{}", Valid: true},
 		FulfillmentType:        fulfillmentType,
 		FulfillmentContent:     fulfillmentContent,
+		ImageID:                imageID,
 	}
 	if err := s.productRepo.CreateProduct(product); err != nil {
 		return nil, err

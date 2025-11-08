@@ -16,6 +16,7 @@ func RegisterOrderRoutes(router *gin.Engine, orderHandler *handlers.OrderHandler
 	orders.Use(authMiddleware.RequireAuth)
 	{
 		orders.GET("", middleware.PermissionMiddleware("orders:read"), orderHandler.GetOrdersHandler)
+		orders.GET("/:id", middleware.PermissionMiddleware("orders:read"), orderHandler.GetOrderHandler)
 		orders.POST("/:id/cancel", middleware.PermissionMiddleware("orders:update"), orderHandler.CancelOrderHandler)
 	}
 }

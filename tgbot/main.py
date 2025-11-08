@@ -88,7 +88,7 @@ async def main():
     bot = Bot(token=settings.bot_token, default=DefaultBotProperties(parse_mode="HTML"))
     me = await bot.get_me()
     api_client = APIClient(me.username)
-    dp = Dispatcher(storage=storage, api_client=api_client)
+    dp = Dispatcher(storage=storage, api_client=api_client, bot=bot)
 
     dp.update.middleware(BlockCheckMiddleware())
 

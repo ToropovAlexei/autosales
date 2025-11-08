@@ -25,6 +25,7 @@ type BuyRequest struct {
 
 type OrderService interface {
 	GetOrders(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.OrderResponse], error)
+	GetOrder(orderID uint) (*models.OrderResponse, error)
 	BuyFromBalance(req BuyRequest) (*BuyResponse, error)
 	CancelOrder(orderID uint) error
 	RenewSubscription(subscriptionID uint) error
@@ -36,6 +37,7 @@ type BuyResponse struct {
 	ProductPrice     float64                  `json:"product_price"`
 	Balance          float64                  `json:"balance"`
 	FulfilledContent string                   `json:"fulfilled_content,omitempty"`
+	ImageURL         string                   `json:"image_url,omitempty"`
 }
 
 type orderService struct {
@@ -70,6 +72,32 @@ func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, produc
 
 func (s *orderService) GetOrders(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.OrderResponse], error) {
 	return s.orderRepo.GetOrders(page, filters)
+}
+
+func (s *orderService) GetOrder(orderID uint) (*models.OrderResponse, error) {
+	order, err := s.orderRepo.GetOrderByID(orderID)
+	if err != nil {
+		return nil, &apperrors.ErrNotFound{Resource: "Order", ID: orderID}
+	}
+
+	imageURL := ""
+	if order.Product.ImageID != nil {
+		imageURL = fmt.Sprintf("/api/images/%s", order.Product.ImageID.String())
+	}
+
+	return &models.OrderResponse{
+		ID:             order.ID,
+		UserID:         order.UserID,
+		ProductID:      order.ProductID,
+		Quantity:       order.Quantity,
+		Amount:         order.Amount,
+		Status:         order.Status,
+		CreatedAt:      order.CreatedAt,
+		UserTelegramID: 0, // TODO: Populate this field
+		ProductName:    order.Product.Name,
+		FulfilledContent: order.FulfilledContent,
+		ImageURL:       imageURL,
+	}, nil
 }
 
 func (s *orderService) BuyFromBalance(req BuyRequest) (*BuyResponse, error) {
@@ -167,6 +195,11 @@ func (s *orderService) BuyFromBalance(req BuyRequest) (*BuyResponse, error) {
 		// --- End Fulfillment Logic ---
 
 		newBalance := balance - orderAmount
+		imageURL := ""
+		if product.ImageID != nil {
+			imageURL = fmt.Sprintf("/api/images/%s", product.ImageID.String())
+		}
+
 		response = &BuyResponse{
 			Order: models.OrderSlimResponse{
 				ID:        order.ID,
@@ -181,6 +214,7 @@ func (s *orderService) BuyFromBalance(req BuyRequest) (*BuyResponse, error) {
 			ProductPrice:     product.Price,
 			Balance:          newBalance,
 			FulfilledContent: order.FulfilledContent,
+			ImageURL:         imageURL,
 		}
 		return nil
 	})

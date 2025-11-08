@@ -29,7 +29,7 @@ interface ProductFormData {
   stock?: number;
   type: "item" | "subscription";
   subscription_period_days?: number;
-  fulfillment_type: "none" | "text" | "image_url";
+  fulfillment_type: "none" | "text" | "image";
   fulfillment_content?: string;
 }
 
@@ -70,6 +70,8 @@ export const ProductForm = ({
     data: ProductFormData | null;
   }>({ open: false, data: null });
   const [isImageSelectorOpen, setIsImageSelectorOpen] = useState(false);
+  const [isFulfillmentImageSelectorOpen, setIsFulfillmentImageSelectorOpen] =
+    useState(false);
 
   const form = useForm<ProductFormData>({
     defaultValues: {
@@ -78,7 +80,9 @@ export const ProductForm = ({
       price: defaultValues?.price || 0,
       type: defaultValues?.type || "item",
       stock: defaultValues?.stock || 0,
-      image_id: defaultValues?.image_url ? defaultValues.image_url.split('/').pop() : undefined,
+      image_id: defaultValues?.image_url
+        ? defaultValues.image_url.split("/").pop()
+        : undefined,
       initial_stock: !isEditMode ? 0 : undefined,
       subscription_period_days: defaultValues?.subscription_period_days || 30,
       fulfillment_type: defaultValues?.fulfillment_type || "none",
@@ -90,10 +94,16 @@ export const ProductForm = ({
   const productType = watch("type");
   const fulfillmentType = watch("fulfillment_type");
   const imageId = watch("image_id");
+  const fulfillmentContent = watch("fulfillment_content");
 
   const handleImageSelect = (image: { ID: string }) => {
     setValue("image_id", image.ID);
     setIsImageSelectorOpen(false);
+  };
+
+  const handleFulfillmentImageSelect = (image: { ID: string }) => {
+    setValue("fulfillment_content", image.ID);
+    setIsFulfillmentImageSelectorOpen(false);
   };
 
   const proceedToConfirm = (data: ProductFormData) => {
@@ -119,6 +129,8 @@ export const ProductForm = ({
     payload.fulfillment_type = data.fulfillment_type;
     if (data.fulfillment_type !== "none") {
       payload.fulfillment_content = data.fulfillment_content;
+    } else {
+      payload.fulfillment_content = "";
     }
 
     onConfirm(payload);
@@ -201,16 +213,34 @@ export const ProductForm = ({
                 options={[
                   { value: "none", label: "Ничего" },
                   { value: "text", label: "Текст / Ключ" },
-                  { value: "image_url", label: "Ссылка на изображение" },
+                  { value: "image", label: "Изображение" },
                 ]}
               />
-              {fulfillmentType !== "none" && (
+              {fulfillmentType === "text" && (
                 <InputText
                   name="fulfillment_content"
                   label="Содержимое для выдачи"
                   multiline
                   rows={4}
                 />
+              )}
+              {fulfillmentType === "image" && (
+                <div className={classes.selectImg}>
+                  <Button
+                    variant="outlined"
+                    onClick={() => setIsFulfillmentImageSelectorOpen(true)}
+                  >
+                    Выбрать изображение для выдачи
+                  </Button>
+                  {fulfillmentContent && (
+                    <img
+                      className={classes.img}
+                      src={`${CONFIG.IMAGES_URL}/${fulfillmentContent}`}
+                      alt="Fulfillment Preview"
+                      width="30%"
+                    />
+                  )}
+                </div>
               )}
               <div className={classes.selectImg}>
                 <Button
@@ -251,6 +281,11 @@ export const ProductForm = ({
         open={isImageSelectorOpen}
         onClose={() => setIsImageSelectorOpen(false)}
         onSelect={handleImageSelect}
+      />
+      <SelectImage
+        open={isFulfillmentImageSelectorOpen}
+        onClose={() => setIsFulfillmentImageSelectorOpen(false)}
+        onSelect={handleFulfillmentImageSelect}
       />
     </>
   );

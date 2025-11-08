@@ -18,7 +18,7 @@ type Product struct {
 	SubscriptionPeriodDays int            `gorm:"default:0" json:"subscription_period_days"`
 	Details                sql.NullString `gorm:"type:jsonb" json:"details"`
 	Visible                bool           `gorm:"default:true" json:"visible"`
-	FulfillmentType        string         `gorm:"default:'none'" json:"fulfillment_type"` // none, text, image_url
+	FulfillmentType        string         `gorm:"default:'none'" json:"fulfillment_type"` // none, text, image
 	FulfillmentContent     string         `gorm:"type:text" json:"fulfillment_content"`   // The content to be delivered
 	ProviderName           *string        `gorm:"index" json:"provider_name"`
 	ExternalID             *string        `gorm:"index" json:"external_id"`
