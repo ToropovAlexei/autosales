@@ -10,6 +10,7 @@ import (
 	"frbktg/backend_go/repositories"
 	"io"
 	"log/slog"
+	"math"
 	"reflect"
 	"sort"
 	"strconv"
@@ -24,7 +25,7 @@ import (
 type ProductUpdatePayload struct {
 	Name                   *string    `json:"name"`
 	CategoryID             *uint      `json:"category_id"`
-	Price                  *float64   `json:"price" binding:"omitempty,gte=0"`
+	BasePrice              *float64   `json:"base_price" binding:"omitempty,gte=0"`
 	ImageID                *uuid.UUID `json:"image_id"`
 	Type                   *string    `json:"type" binding:"omitempty,oneof=item subscription"`
 	SubscriptionPeriodDays *int       `json:"subscription_period_days" binding:"omitempty,gte=0"`
@@ -36,9 +37,9 @@ type ProductUpdatePayload struct {
 type ProductService interface {
 	GetProducts(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.ProductResponse], error)
 	GetProductsForBot(categoryID uint) ([]models.ProductResponse, error)
-	GetProduct(id uint) (*models.ProductResponse, error)
+	GetProduct(id uint, gateway string) (*models.ProductResponse, error)
 	GetProductForBot(id uint) (*models.ProductResponse, error)
-	CreateProduct(ctx *gin.Context, name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int, fulfillmentType string, fulfillmentContent string, imageID *uuid.UUID) (*models.ProductResponse, error)
+	CreateProduct(ctx *gin.Context, name string, categoryID uint, basePrice float64, initialStock int, productType string, subscriptionPeriodDays int, fulfillmentType string, fulfillmentContent string, imageID *uuid.UUID) (*models.ProductResponse, error)
 	UpdateProduct(ctx *gin.Context, id uint, payload ProductUpdatePayload) (*models.ProductResponse, error)
 	DeleteProduct(ctx *gin.Context, id uint) error
 	CreateStockMovement(ctx *gin.Context, productID uint, movementType models.StockMovementType, quantity int, description string, orderID *uint) (*models.StockMovement, error)
@@ -50,10 +51,33 @@ type productService struct {
 	categoryRepo     repositories.CategoryRepository
 	providerRegistry *external_providers.ProviderRegistry
 	auditLogService  AuditLogService
+	settingService   SettingService
 }
 
-func NewProductService(productRepo repositories.ProductRepository, categoryRepo repositories.CategoryRepository, providerRegistry *external_providers.ProviderRegistry, auditLogService AuditLogService) ProductService {
-	return &productService{productRepo: productRepo, categoryRepo: categoryRepo, providerRegistry: providerRegistry, auditLogService: auditLogService}
+func NewProductService(productRepo repositories.ProductRepository, categoryRepo repositories.CategoryRepository, providerRegistry *external_providers.ProviderRegistry, auditLogService AuditLogService, settingService SettingService) ProductService {
+	return &productService{productRepo: productRepo, categoryRepo: categoryRepo, providerRegistry: providerRegistry, auditLogService: auditLogService, settingService: settingService}
+}
+
+func (s *productService) calculatePrice(basePrice float64, gateway string, settings map[string]string) float64 {
+	price := basePrice
+
+	// Apply global markup
+	if markupStr, ok := settings["GLOBAL_PRICE_MARKUP"]; ok {
+		markup, err := strconv.ParseFloat(markupStr, 64)
+		if err == nil {
+			price = price * (1 + markup/100)
+		}
+	}
+
+	// Apply payment system markup
+	if markupStr, ok := settings["PAYMENT_SYSTEM_MARKUP"]; ok {
+		markup, err := strconv.ParseFloat(markupStr, 64)
+		if err == nil {
+			price = price / (1 - markup/100)
+		}
+	}
+
+	return math.Round(price)
 }
 
 func (s *productService) GetProductsForBot(categoryID uint) ([]models.ProductResponse, error) {
@@ -65,6 +89,11 @@ func (s *productService) GetProductsForBot(categoryID uint) ([]models.ProductRes
 	products, err := s.productRepo.GetProducts(filters)
 	if err != nil {
 		return nil, err
+	}
+
+	settings, err := s.settingService.GetSettings()
+	if err != nil {
+		return nil, apperrors.New(500, "failed to get settings", err)
 	}
 
 	var response = make([]models.ProductResponse, 0)
@@ -89,10 +118,13 @@ func (s *productService) GetProductsForBot(categoryID uint) ([]models.ProductRes
 			imageIDStr = p.ImageID.String()
 		}
 
+		finalPrice := s.calculatePrice(p.Price, "", settings)
+
 		response = append(response, models.ProductResponse{
 			ID:                     p.ID,
 			Name:                   p.Name,
-			Price:                  p.Price,
+			BasePrice:              p.Price,
+			Price:                  finalPrice,
 			CategoryID:             p.CategoryID,
 			Stock:                  stock,
 			Type:                   p.Type,
@@ -113,6 +145,11 @@ func (s *productService) GetProducts(page models.Page, filters []models.Filter) 
 	products, err := s.productRepo.GetProducts(filters)
 	if err != nil {
 		return nil, err
+	}
+
+	settings, err := s.settingService.GetSettings()
+	if err != nil {
+		return nil, apperrors.New(500, "failed to get settings", err)
 	}
 
 	var allProducts []models.ProductResponse
@@ -142,10 +179,13 @@ func (s *productService) GetProducts(page models.Page, filters []models.Filter) 
 			imageIDStr = p.ImageID.String()
 		}
 
+		finalPrice := s.calculatePrice(p.Price, "", settings)
+
 		allProducts = append(allProducts, models.ProductResponse{
 			ID:                     p.ID,
 			Name:                   p.Name,
-			Price:                  p.Price,
+			BasePrice:              p.Price,
+			Price:                  finalPrice,
 			CategoryID:             p.CategoryID,
 			Stock:                  stock,
 			Type:                   p.Type,
@@ -233,7 +273,7 @@ func (s *productService) GetProducts(page models.Page, filters []models.Filter) 
 	}, nil
 }
 
-func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
+func (s *productService) GetProduct(id uint, gateway string) (*models.ProductResponse, error) {
 	product, err := s.productRepo.GetProductByID(id)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Resource: "Product", ID: id}
@@ -254,10 +294,18 @@ func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
 		imageIDStr = product.ImageID.String()
 	}
 
+	settings, err := s.settingService.GetSettings()
+	if err != nil {
+		return nil, apperrors.New(500, "failed to get settings", err)
+	}
+
+	finalPrice := s.calculatePrice(product.Price, gateway, settings)
+
 	return &models.ProductResponse{
 		ID:                     product.ID,
 		Name:                   product.Name,
-		Price:                  product.Price,
+		BasePrice:              product.Price,
+		Price:                  finalPrice,
 		CategoryID:             product.CategoryID,
 		Stock:                  stock,
 		Type:                   product.Type,
@@ -267,10 +315,10 @@ func (s *productService) GetProduct(id uint) (*models.ProductResponse, error) {
 }
 
 func (s *productService) GetProductForBot(id uint) (*models.ProductResponse, error) {
-	return s.GetProduct(id)
+	return s.GetProduct(id, "")
 }
 
-func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID uint, price float64, initialStock int, productType string, subscriptionPeriodDays int, fulfillmentType string, fulfillmentContent string, imageID *uuid.UUID) (*models.ProductResponse, error) {
+func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID uint, basePrice float64, initialStock int, productType string, subscriptionPeriodDays int, fulfillmentType string, fulfillmentContent string, imageID *uuid.UUID) (*models.ProductResponse, error) {
 	_, err := s.productRepo.FindCategoryByID(categoryID)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Resource: "Category", ID: categoryID}
@@ -279,7 +327,7 @@ func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID
 	product := &models.Product{
 		Name:                   name,
 		CategoryID:             categoryID,
-		Price:                  price,
+		Price:                  basePrice,
 		Type:                   productType,
 		SubscriptionPeriodDays: subscriptionPeriodDays,
 		Details:                sql.NullString{String: "{}", Valid: true},
@@ -312,7 +360,8 @@ func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID
 	response := &models.ProductResponse{
 		ID:                     product.ID,
 		Name:                   product.Name,
-		Price:                  product.Price,
+		BasePrice:              product.Price,
+		Price:                  product.Price, // At creation, calculated price is same as base
 		CategoryID:             product.CategoryID,
 		Stock:                  stock,
 		Type:                   product.Type,
@@ -326,7 +375,7 @@ func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID
 }
 
 func (s *productService) DeleteProduct(ctx *gin.Context, id uint) error {
-	before, err := s.GetProduct(id)
+	before, err := s.GetProduct(id, "")
 	if err != nil {
 		return &apperrors.ErrNotFound{Resource: "Product", ID: id}
 	}
@@ -374,7 +423,7 @@ func (s *productService) CreateStockMovement(ctx *gin.Context, productID uint, m
 }
 
 func (s *productService) UpdateProduct(ctx *gin.Context, id uint, payload ProductUpdatePayload) (*models.ProductResponse, error) {
-	before, err := s.GetProduct(id)
+	before, err := s.GetProduct(id, "")
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Resource: "Product", ID: id}
 	}
@@ -417,8 +466,8 @@ func (s *productService) UpdateProduct(ctx *gin.Context, id uint, payload Produc
 		}
 		updateMap["category_id"] = *payload.CategoryID
 	}
-	if payload.Price != nil {
-		updateMap["price"] = *payload.Price
+	if payload.BasePrice != nil {
+		updateMap["price"] = *payload.BasePrice
 	}
 	if payload.Type != nil {
 		updateMap["type"] = *payload.Type
@@ -442,7 +491,7 @@ func (s *productService) UpdateProduct(ctx *gin.Context, id uint, payload Produc
 		}
 	}
 
-	after, err := s.GetProduct(id)
+	after, err := s.GetProduct(id, "")
 	if err != nil {
 		return nil, err
 	}

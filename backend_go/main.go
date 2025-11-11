@@ -119,6 +119,8 @@ func main() {
 	routers.RegisterAdminReferralRoutes(r, container.BotHandler, container.AuthMiddleware)
 	routers.SetupAuditLogRoutes(r.Group("/api"), container)
 
+	r.GET("/api/captcha", container.CaptchaHandler.GetCaptchaHandler)
+
 	// Swagger route
 	// rtr.SwaggerRouter(r)
 

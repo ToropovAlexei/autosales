@@ -188,21 +188,19 @@ async def product_handler(callback_query: CallbackQuery, api_client: APIClient):
     try:
         _, product_id_str, category_id_str = callback_query.data.split('_')
         product_id = int(product_id_str)
-        category_id = int(category_id_str)
 
-        response = await api_client.get_products_for_bot(category_id)
+        response = await api_client.get_product_for_bot(product_id)
         if response.get("success"):
-            products = response["data"]
-            product = next((p for p in products if p.get('id') == product_id), None)
+            product = response["data"]
             if product:
                 caption = (
                     f"{hbold(product['name'])}\n\n"
-                    f"{hitalic('Цена:')} {product['price']} ₽"
+                    f"{hitalic('Цена:')} {int(product['price'])} ₽"
                 )
                 reply_markup = product_card(product)
 
-                if product.get('image_url'):
-                    image_url = f"{settings.api_url.rstrip('/')}/images/{product['image_url']}"
+                if product.get('image_id'):
+                    image_url = f"{settings.api_url.rstrip('/')}/images/{product['image_id']}"
                     try:
                         async with aiohttp.ClientSession() as session:
                             async with session.get(image_url) as resp:
@@ -254,6 +252,7 @@ async def external_product_handler(callback_query: CallbackQuery, api_client: AP
         provider = '_'.join(parts[1:-1])
         external_id = parts[-1]
         
+        # This is not efficient, but we don't have a direct way to get an external product by its ID
         response = await api_client.get_products_for_bot()
         if response.get("success"):
             products = response["data"]
@@ -264,12 +263,12 @@ async def external_product_handler(callback_query: CallbackQuery, api_client: AP
                 caption = (
                     f"{hbold(product['name'])}\n\n"
                     f"{hitalic(description)}\n\n"
-                    f"{hitalic('Цена:')} {product['price']} ₽"
+                    f"{hitalic('Цена:')} {product['price']:.2f} ₽"
                 )
                 reply_markup = product_card(product)
 
-                if product.get('image_url'):
-                    image_url = f"{settings.api_url.rstrip('/')}/images/{product['image_url']}"
+                if product.get('image_id'):
+                    image_url = f"{settings.api_url.rstrip('/')}/images/{product['image_id']}"
                     try:
                         async with aiohttp.ClientSession() as session:
                             async with session.get(image_url) as resp:

@@ -7,6 +7,8 @@ import { ReferralProgramForm } from "./components/ReferralProgramForm";
 import { PaymentDiscountsForm } from "./components/PaymentDiscountsForm";
 import { BotSettingsForm } from "./components/BotSettingsForm";
 import { Stack } from "@mui/material";
+import { GlobalMarkupForm } from "./components/GlobalMarkupForm";
+import { PaymentSystemMarkupForm } from "./components/PaymentSystemMarkupForm";
 
 interface Settings {
   [key: string]: string;
@@ -24,12 +26,22 @@ export default function SettingsPage() {
   return (
     <PageLayout title="Настройки">
       <Stack gap={2}>
-        <ReferralProgramForm
+        <GlobalMarkupForm
+          settings={settings}
+          isSettingsPending={isSettingsPending}
+          refetchSettings={refetch}
+        />
+        <PaymentSystemMarkupForm
           settings={settings}
           isSettingsPending={isSettingsPending}
           refetchSettings={refetch}
         />
         <PaymentDiscountsForm
+          settings={settings}
+          isSettingsPending={isSettingsPending}
+          refetchSettings={refetch}
+        />
+        <ReferralProgramForm
           settings={settings}
           isSettingsPending={isSettingsPending}
           refetchSettings={refetch}

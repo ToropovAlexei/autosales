@@ -97,6 +97,10 @@ func createDefaultSettings(db *gorm.DB) {
                     - 💳 Проверять свой счет
                     Выберите действие в меню ниже:`},
 		{Key: "returning_user_welcome_message", Value: `Добро пожаловать, {username}! Чем могу помочь?`},
+		{Key: "GLOBAL_PRICE_MARKUP", Value: "10"},
+		{Key: "GATEWAY_COMMISSION_mock_provider", Value: "5"},
+		{Key: "GATEWAY_COMMISSION_platform_card", Value: "3"},
+		{Key: "GATEWAY_COMMISSION_platform_sbp", Value: "2"},
 	}
 	for _, setting := range settings {
 		db.FirstOrCreate(&setting, models.Setting{Key: setting.Key})

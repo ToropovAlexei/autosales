@@ -27,6 +27,7 @@ export interface IProduct {
   id: number;
   name: string;
   category_id: number;
+  base_price: number;
   price: number;
   stock: number;
   type: "item" | "subscription";

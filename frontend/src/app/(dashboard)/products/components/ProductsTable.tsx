@@ -94,7 +94,7 @@ export const ProductsTable = ({
       valueOptions: categories.map((c) => ({ value: c.id, label: c.name })),
       sortable: false,
     },
-    { field: "price", headerName: "Цена", type: "number", width: 110, sortable: false },
+    { field: "base_price", headerName: "Базовая цена", type: "number", width: 110, sortable: false },
     {
       field: "stock",
       headerName: "Остаток",

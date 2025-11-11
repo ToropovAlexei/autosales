@@ -11,7 +11,18 @@ from api import APIClient
 from keyboards import inline
 from config import settings
 from states import CaptchaState
-from captcha_helper import generate_captcha_and_options
+import base64
+import random
+import string
+
+def generate_options(correct_answer: str, num_options: int = 12):
+    options = [correct_answer.upper()]
+    while len(options) < num_options:
+        random_text = ''.join(random.choices(string.ascii_uppercase + string.digits, k=len(correct_answer)))
+        if random_text not in options:
+            options.append(random_text)
+    random.shuffle(options)
+    return options
 
 from aiogram.exceptions import TelegramBadRequest
 
@@ -64,12 +75,23 @@ async def start_handler(message: Message, state: FSMContext, api_client: APIClie
                 return
 
             if not user_data.get("has_passed_captcha"):
-                captcha_image, correct_answer, options = generate_captcha_and_options()
+                captcha_response = await api_client.get_captcha()
+                if not captcha_response.get("success"):
+                    await message.answer("Не удалось загрузить капчу. Попробуйте позже.")
+                    return
+
+                captcha_data = captcha_response["data"]
+                correct_answer = captcha_data["answer"]
+                image_data_b64 = captcha_data["imageData"].split(",")[1]
+                image_bytes = base64.b64decode(image_data_b64)
+
+                options = generate_options(correct_answer)
+
                 await state.set_state(CaptchaState.waiting_for_answer)
                 await state.update_data(correct_answer=correct_answer, user_id=user_data["id"], telegram_id=message.from_user.id)
                 
                 await message.answer_photo(
-                    photo=BufferedInputFile(captcha_image.getvalue(), "captcha.png"),
+                    photo=BufferedInputFile(image_bytes, "captcha.png"),
                     caption="Пожалуйста, решите капчу, чтобы продолжить:",
                     reply_markup=captcha_keyboard(options)
                 )
@@ -94,9 +116,9 @@ async def start_handler(message: Message, state: FSMContext, api_client: APIClie
 
 @router.callback_query(CaptchaState.waiting_for_answer, F.data.startswith("captcha_"))
 async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContext, api_client: APIClient):
-    answer = callback_query.data.split("_")[1]
+    answer = callback_query.data.split("_")[1].upper()
     data = await state.get_data()
-    correct_answer = data.get("correct_answer")
+    correct_answer = data.get("correct_answer").upper()
     user_id = data.get("user_id")
     telegram_id = data.get("telegram_id")
 
@@ -133,10 +155,22 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
         await state.clear()
     else:
         await callback_query.answer("Неверный ответ, попробуйте еще раз.", show_alert=True)
-        captcha_image, correct_answer, options = generate_captcha_and_options()
+        
+        captcha_response = await api_client.get_captcha()
+        if not captcha_response.get("success"):
+            await callback_query.message.answer("Не удалось загрузить новую капчу. Попробуйте позже.")
+            return
+
+        captcha_data = captcha_response["data"]
+        correct_answer = captcha_data["answer"]
+        image_data_b64 = captcha_data["imageData"].split(",")[1]
+        image_bytes = base64.b64decode(image_data_b64)
+
+        options = generate_options(correct_answer)
+
         await state.update_data(correct_answer=correct_answer)
         await callback_query.message.edit_media(
-            media=InputMediaPhoto(media=BufferedInputFile(captcha_image.getvalue(), "captcha.png"), caption="Пожалуйста, решите капчу, чтобы продолжить:"),
+            media=InputMediaPhoto(media=BufferedInputFile(image_bytes, "captcha.png"), caption="Пожалуйста, решите капчу, чтобы продолжить:"),
             reply_markup=captcha_keyboard(options)
         )
 

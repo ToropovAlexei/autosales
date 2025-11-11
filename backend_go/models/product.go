@@ -27,6 +27,7 @@ type Product struct {
 type ProductResponse struct {
 	ID                     uint    `json:"id"`
 	Name                   string  `json:"name"`
+	BasePrice              float64 `json:"base_price"`
 	Price                  float64 `json:"price"`
 	CategoryID             uint    `json:"category_id"`
 	ImageID                string  `json:"image_id,omitempty"`

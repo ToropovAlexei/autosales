@@ -64,6 +64,7 @@ type Container struct {
 	SettingHandler *handlers.SettingHandler
 	RoleHandler *handlers.RoleHandler
 	AuditLogHandler *handlers.AuditLogHandler
+	CaptchaHandler *handlers.CaptchaHandler
 	AuthMiddleware *middleware.AuthMiddleware
 	SubscriptionWorker *workers.SubscriptionWorker
 	PaymentWorker *workers.PaymentWorker
@@ -145,7 +146,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	settingService := services.NewSettingService(*settingRepo, userRepo, auditLogService)
 	authService := services.NewAuthService(userRepo, tokenService, twoFAService, activeTokenRepo, temporaryTokenRepo, appSettings)
 	userService := services.NewUserService(userRepo, botUserRepo, userSubscriptionRepo, orderRepo, auditLogService, twoFAService)
-	productService := services.NewProductService(productRepo, categoryRepo, providerRegistry, auditLogService)
+	productService := services.NewProductService(productRepo, categoryRepo, providerRegistry, auditLogService, *settingService)
 	categoryService := services.NewCategoryService(categoryRepo, productService, auditLogService)
 	referralService := services.NewReferralService(botRepo, botUserRepo, statsRepo, transactionRepo, *settingService)
 	botService := services.NewBotService(botRepo, botUserRepo, statsRepo, *settingService)
@@ -183,6 +184,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	settingHandler := handlers.NewSettingHandler(settingService)
 	roleHandler := handlers.NewRoleHandler(roleService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
+	captchaHandler := handlers.NewCaptchaHandler()
 
 	authMiddleware := middleware.NewAuthMiddleware(tokenService, userService)
 
@@ -231,6 +233,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 		SettingHandler: settingHandler,
 		RoleHandler: roleHandler,
 		AuditLogHandler: auditLogHandler,
+		CaptchaHandler: captchaHandler,
 		AuthMiddleware: authMiddleware,
 		SubscriptionWorker: subscriptionWorker,
 		PaymentWorker: paymentWorker,

@@ -1,8 +1,12 @@
 package services
 
 import (
+	"fmt"
+	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
+	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,9 +44,9 @@ func (s *SettingService) GetPublicSettings() (map[string]string, error) {
 	publicKeys := []string{
 		"referral_program_enabled",
 		"referral_percentage",
-		"GATEWAY_DISCOUNT_mock_provider",
-		"GATEWAY_DISCOUNT_platform_card",
-		"GATEWAY_DISCOUNT_platform_sbp",
+		"GATEWAY_BONUS_mock_provider",
+		"GATEWAY_BONUS_platform_card",
+		"GATEWAY_BONUS_platform_sbp",
 		"support_message",
 		"welcome_message",
 		"new_user_welcome_message",
@@ -65,6 +69,24 @@ func (s *SettingService) UpdateSettings(ctx *gin.Context, settingsMap map[string
 		// In a real-world scenario, you might want more sophisticated error handling.
 	}
 
+	// Validate settings
+	for key, value := range settingsMap {
+		switch {
+		case key == "GLOBAL_PRICE_MARKUP":
+			if err := validateFloat(value, 0, 30); err != nil {
+				return apperrors.New(400, fmt.Sprintf("Invalid value for %s: %v", key, err), nil)
+			}
+		case strings.HasPrefix(key, "GATEWAY_COMMISSION_"):
+			if err := validateFloat(value, 0, 25); err != nil {
+				return apperrors.New(400, fmt.Sprintf("Invalid value for %s: %v", key, err), nil)
+			}
+		case strings.HasPrefix(key, "GATEWAY_BONUS_"):
+			if err := validateFloat(value, 0, 25.8); err != nil {
+				return apperrors.New(400, fmt.Sprintf("Invalid value for %s: %v", key, err), nil)
+			}
+		}
+	}
+
 	var settings []models.Setting
 	for key, value := range settingsMap {
 		settings = append(settings, models.Setting{Key: key, Value: value})
@@ -76,5 +98,16 @@ func (s *SettingService) UpdateSettings(ctx *gin.Context, settingsMap map[string
 
 	s.auditLogService.Log(ctx, "SETTINGS_UPDATE", "GlobalSettings", 0, map[string]interface{}{"before": before, "after": settingsMap})
 
+	return nil
+}
+
+func validateFloat(value string, min, max float64) error {
+	f, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return fmt.Errorf("must be a valid number")
+	}
+	if f < min || f > max {
+		return fmt.Errorf("must be between %.2f and %.2f", min, max)
+	}
 	return nil
 }

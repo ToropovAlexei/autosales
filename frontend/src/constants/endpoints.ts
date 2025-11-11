@@ -2,6 +2,7 @@ export const ENDPOINTS = {
   USERS_ME: "me",
   ME_PERMISSIONS: "me/permissions",
   ADMIN_SETTINGS: "admin/settings",
+  ADMIN_PAYMENT_PROVIDERS: "admin/payment-providers",
   REFERRALS: "referrals",
   REFERRAL_BOTS_ADMIN: "referrals/admin-list",
   ADMIN_REFERRAL_BOTS: "admin/referral-bots",

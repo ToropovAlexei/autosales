@@ -63,6 +63,9 @@ class APIClient:
             params["category_id"] = category_id
         return await self._request("GET", endpoint, params=params)
 
+    async def get_product_for_bot(self, product_id: int):
+        return await self._request("GET", f"/bot/products/{product_id}")
+
 
     async def buy_product(self, telegram_id: int, product_id: int, referral_bot_id: int = None):
         payload = {"user_id": telegram_id, "product_id": product_id, "quantity": 1}
@@ -131,3 +134,11 @@ class APIClient:
 
     async def cancel_payment(self, order_id: str):
         return await self._request("POST", f"/bot/invoices/{order_id}/cancel")
+
+    async def get_captcha(self, length: int = 6, width: int = 360, height: int = 90):
+        params = {
+            "length": length,
+            "width": width,
+            "height": height,
+        }
+        return await self._request("GET", "/captcha", params=params)

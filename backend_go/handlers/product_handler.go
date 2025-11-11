@@ -67,7 +67,7 @@ func (h *ProductHandler) GetProductsHandler(c *gin.Context) {
 type productCreatePayload struct {
 	Name                   string     `json:"name" binding:"required"`
 	CategoryID             uint       `json:"category_id" binding:"required"`
-	Price                  float64    `json:"price" binding:"gte=0"`
+	BasePrice              float64    `json:"base_price" binding:"gte=0"`
 	InitialStock           int        `json:"initial_stock" binding:"gte=0"`
 	ImageID                *uuid.UUID `json:"image_id"`
 	Type                   string     `json:"type" binding:"oneof=item subscription"`
@@ -94,7 +94,7 @@ func (h *ProductHandler) CreateProductHandler(c *gin.Context) {
 		return
 	}
 
-	product, err := h.productService.CreateProduct(c, json.Name, json.CategoryID, json.Price, json.InitialStock, json.Type, json.SubscriptionPeriodDays, json.FulfillmentType, json.FulfillmentContent, json.ImageID)
+	product, err := h.productService.CreateProduct(c, json.Name, json.CategoryID, json.BasePrice, json.InitialStock, json.Type, json.SubscriptionPeriodDays, json.FulfillmentType, json.FulfillmentContent, json.ImageID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -108,6 +108,7 @@ func (h *ProductHandler) CreateProductHandler(c *gin.Context) {
 // @Tags         Products
 // @Produce      json
 // @Param        id path int true "Product ID"
+// @Param        gateway query string false "Payment gateway name"
 // @Success      200 {object} responses.ResponseSchema[models.ProductResponse]
 // @Failure      400 {object} responses.ErrorResponseSchema
 // @Failure      404 {object} responses.ErrorResponseSchema
@@ -120,7 +121,9 @@ func (h *ProductHandler) GetProductHandler(c *gin.Context) {
 		return
 	}
 
-	product, err := h.productService.GetProduct(uint(id))
+	gateway := c.Query("gateway")
+
+	product, err := h.productService.GetProduct(uint(id), gateway)
 	if err != nil {
 		c.Error(err)
 		return
@@ -274,7 +277,7 @@ func (h *ProductHandler) GetProductForBotHandler(c *gin.Context) {
 		return
 	}
 
-	product, err := h.productService.GetProduct(uint(id))
+	product, err := h.productService.GetProductForBot(uint(id))
 	if err != nil {
 		c.Error(err)
 		return
@@ -282,3 +285,4 @@ func (h *ProductHandler) GetProductForBotHandler(c *gin.Context) {
 
 	responses.SuccessResponse(c, http.StatusOK, product)
 }
+

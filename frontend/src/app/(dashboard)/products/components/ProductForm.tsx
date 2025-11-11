@@ -23,7 +23,7 @@ import classes from "./styles.module.css";
 interface ProductFormData {
   name: string;
   category_id: number;
-  price: number;
+  base_price: number;
   image_id?: string;
   initial_stock?: number;
   stock?: number;
@@ -77,7 +77,7 @@ export const ProductForm = ({
     defaultValues: {
       name: defaultValues?.name || "",
       category_id: defaultValues?.category_id || 0,
-      price: defaultValues?.price || 0,
+      base_price: defaultValues?.base_price || 0,
       type: defaultValues?.type || "item",
       stock: defaultValues?.stock || 0,
       image_id: defaultValues?.image_url
@@ -111,7 +111,7 @@ export const ProductForm = ({
       id: defaultValues?.id,
       name: data.name,
       category_id: data.category_id,
-      price: data.price,
+      base_price: data.base_price,
       type: data.type,
       image_id: data.image_id,
     };
@@ -187,7 +187,7 @@ export const ProductForm = ({
                 label="Категория"
                 options={categories}
               />
-              <InputNumber name="price" label="Цена" required />
+              <InputNumber name="base_price" label="Базовая цена" required />
 
               {productType === "item" && !isEditMode && (
                 <InputNumber
