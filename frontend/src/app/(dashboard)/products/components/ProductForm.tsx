@@ -80,9 +80,7 @@ export const ProductForm = ({
       base_price: defaultValues?.base_price || 0,
       type: defaultValues?.type || "item",
       stock: defaultValues?.stock || 0,
-      image_id: defaultValues?.image_url
-        ? defaultValues.image_url.split("/").pop()
-        : undefined,
+      image_id: defaultValues?.image_id || "",
       initial_stock: !isEditMode ? 0 : undefined,
       subscription_period_days: defaultValues?.subscription_period_days || 30,
       fulfillment_type: defaultValues?.fulfillment_type || "none",
