@@ -104,9 +104,40 @@ func (a *MockGatewayAdapter) HandleWebhook(r *http.Request) (*gateways.WebhookRe
 }
 
 func (a *MockGatewayAdapter) GetInvoiceStatus(gatewayInvoiceID string) (*gateways.StatusResult, error) {
-	// For the mock adapter, we'll just assume the payment is completed immediately.
+	apiURL := fmt.Sprintf("%s/status/%s", a.baseURL, gatewayInvoiceID)
+
+	resp, err := a.client.Get(apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("mock adapter: failed to send status request to mock server: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("mock adapter: mock server returned status %d for status check", resp.StatusCode)
+	}
+
+	var respData struct {
+		Status string `json:"status"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
+		return nil, fmt.Errorf("mock adapter: failed to decode status response from mock server: %w", err)
+	}
+
+	var internalStatus models.InvoiceStatus
+	switch respData.Status {
+	case "completed":
+		internalStatus = models.InvoiceStatusCompleted
+	case "pending":
+		internalStatus = models.InvoiceStatusPending
+	case "failed", "cancelled":
+		internalStatus = models.InvoiceStatusFailed
+	default:
+		internalStatus = models.InvoiceStatusPending
+	}
+
 	return &gateways.StatusResult{
-		Status:           string(models.InvoiceStatusCompleted),
+		Status:           string(internalStatus),
 		GatewayInvoiceID: gatewayInvoiceID,
 	}, nil
 }

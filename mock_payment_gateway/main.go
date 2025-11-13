@@ -149,10 +149,29 @@ func simulatePaymentHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "<h1>Payment successful!</h1><p>You can now close this window.</p>")
 }
 
+// getInvoiceStatusHandler returns the current status of an invoice.
+func getInvoiceStatusHandler(w http.ResponseWriter, r *http.Request) {
+	invoiceID := r.URL.Path[len("/status/"):]
+	mu.RLock()
+	invoice, ok := invoices[invoiceID]
+	mu.RUnlock()
+
+	if !ok {
+		http.Error(w, "Invoice not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": invoice.Status,
+	})
+}
+
 func main() {
 	http.HandleFunc("/create_invoice", createInvoiceHandler)
 	http.HandleFunc("/pay/", servePaymentPageHandler)
 	http.HandleFunc("/simulate_payment/", simulatePaymentHandler)
+	http.HandleFunc("/status/", getInvoiceStatusHandler)
 
 	log.Printf("Mock Payment Gateway starting on port %s", port)
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
