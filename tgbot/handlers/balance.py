@@ -1,6 +1,6 @@
 from aiogram import Router, F
 import logging
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup
 from aiogram.utils.markdown import hbold
 
 from api import APIClient
@@ -10,6 +10,17 @@ from config import settings
 
 router = Router()
 
+async def _safe_edit_message(callback_query: CallbackQuery, text: str, reply_markup: InlineKeyboardMarkup = None, parse_mode: str = None):
+    """
+    Safely edits message text or caption.
+    """
+    if callback_query.message and callback_query.message.photo:
+        return await callback_query.message.edit_caption(caption=text, reply_markup=reply_markup, parse_mode=parse_mode)
+    elif callback_query.message:
+        return await callback_query.message.edit_text(text, reply_markup=reply_markup, parse_mode=parse_mode)
+    return None
+
+
 @router.callback_query(F.data == 'balance')
 async def balance_handler(callback_query: CallbackQuery, api_client: APIClient):
     try:
@@ -17,13 +28,15 @@ async def balance_handler(callback_query: CallbackQuery, api_client: APIClient):
         response = await api_client.get_user_balance(user_id)
         if response.get("success"):
             balance = response["data"]["balance"]
-            await callback_query.message.edit_text(
+            await _safe_edit_message(
+                callback_query,
                 f"💳 Ваш текущий баланс: {hbold(f'{balance} ₽')}",
                 reply_markup=inline.balance_menu(),
                 parse_mode="HTML"
             )
         else:
-            await callback_query.message.edit_text(
+            await _safe_edit_message(
+                callback_query,
                 f"Не удалось получить баланс: {response.get('error')}",
                 reply_markup=inline.main_menu(bot_type=settings.bot_type)
             )
@@ -40,23 +53,26 @@ async def deposit_handler(callback_query: CallbackQuery, api_client: APIClient):
 
         if gateways_response.get("success"):
             gateways = gateways_response["data"]
-            await callback_query.message.edit_text(
+            await _safe_edit_message(
+                callback_query,
                 "💰 Выберите способ пополнения:",
                 reply_markup=inline.payment_gateways_menu(gateways, settings_response, settings.payment_instructions_url)
             )
         else:
-            await callback_query.message.edit_text(
+            await _safe_edit_message(
+                callback_query,
                 f"Не удалось загрузить способы оплаты: {gateways_response.get('error')}",
                 reply_markup=inline.main_menu(bot_type=settings.bot_type)
             )
     except Exception:
         logging.exception("An error occurred in deposit_handler")
-        await callback_query.message.edit_text("Произошла непредвиденная ошибка. Попробуйте позже.")
+        await _safe_edit_message(callback_query, "Произошла непредвиденная ошибка. Попробуйте позже.")
     await callback_query.answer()
 
 @router.callback_query(PaymentCallback.filter(F.action == 'select_gateway'))
 async def select_gateway_handler(callback_query: CallbackQuery, callback_data: PaymentCallback):
-    await callback_query.message.edit_text(
+    await _safe_edit_message(
+        callback_query,
         "Выберите сумму для пополнения:",
         reply_markup=inline.deposit_amount_menu(gateway=callback_data.gateway)
     )
@@ -80,7 +96,8 @@ async def select_amount_handler(callback_query: CallbackQuery, callback_data: Pa
 
             sent_message = None
             if pay_url:
-                sent_message = await callback_query.message.edit_text(
+                sent_message = await _safe_edit_message(
+                    callback_query,
                     f"✅ Ваш счет на {hbold(f'{amount} ₽')} создан.\n\nНажмите на кнопку ниже, чтобы перейти к оплате.",
                     reply_markup=inline.InlineKeyboardMarkup(inline_keyboard=[
                         [inline.InlineKeyboardButton(text="Оплатить", url=pay_url)],
@@ -97,7 +114,8 @@ async def select_amount_handler(callback_query: CallbackQuery, callback_data: Pa
                     f"{hbold('Сумма:')} {details.get('data_mathematics', {}).get('amount_pay', 'N/A')} ₽\n\n"
                     f"После оплаты, пожалуйста, подождите. Статус платежа обновится автоматически в течение нескольких минут."
                 )
-                sent_message = await callback_query.message.edit_text(
+                sent_message = await _safe_edit_message(
+                    callback_query,
                     requisites_text,
                     reply_markup=inline.InlineKeyboardMarkup(inline_keyboard=[
                         [inline.InlineKeyboardButton(text="⬅️ Назад", callback_data="deposit")]
@@ -105,7 +123,8 @@ async def select_amount_handler(callback_query: CallbackQuery, callback_data: Pa
                     parse_mode="HTML"
                 )
             else:
-                await callback_query.message.edit_text(
+                await _safe_edit_message(
+                    callback_query,
                     "Не удалось получить реквизиты для оплаты. Попробуйте другой способ.",
                     reply_markup=inline.deposit_amount_menu(gateway=gateway)
                 )
@@ -117,11 +136,12 @@ async def select_amount_handler(callback_query: CallbackQuery, callback_data: Pa
                 await api_client.set_invoice_message_id(order_id, sent_message.message_id)
         else:
             error_message = response.get('error', 'Неизвестная ошибка')
-            await callback_query.message.edit_text(
+            await _safe_edit_message(
+                callback_query,
                 f"Не удалось создать счет: {error_message}",
                 reply_markup=inline.deposit_amount_menu(gateway=gateway)
             )
     except Exception:
         logging.exception("An error occurred in select_amount_handler")
-        await callback_query.message.edit_text("Произошла непредвиденная ошибка. Попробуйте позже.")
+        await _safe_edit_message(callback_query, "Произошла непредвиденная ошибка. Попробуйте позже.")
     await callback_query.answer()

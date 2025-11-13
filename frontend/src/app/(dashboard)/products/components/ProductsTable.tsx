@@ -59,9 +59,9 @@ export const ProductsTable = ({
       width: 120,
       sortable: false,
       renderCell: ({ row }) =>
-        row.image_url ? (
+        row.image_id ? (
           <img
-            src={`${CONFIG.IMAGES_URL}/${row.image_url}`}
+            src={`${CONFIG.IMAGES_URL}/${row.image_id}`}
             alt={row.name}
             style={{ width: "100%", height: "100%", objectFit: "contain" }}
           />

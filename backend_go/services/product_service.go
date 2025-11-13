@@ -357,6 +357,11 @@ func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID
 		stock = -1
 	}
 
+	var imageIDStr string
+	if product.ImageID != nil {
+		imageIDStr = product.ImageID.String()
+	}
+
 	response := &models.ProductResponse{
 		ID:                     product.ID,
 		Name:                   product.Name,
@@ -366,7 +371,7 @@ func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID
 		Stock:                  stock,
 		Type:                   product.Type,
 		SubscriptionPeriodDays: product.SubscriptionPeriodDays,
-		ImageID:                product.ImageID.String(),
+		ImageID:                imageIDStr,
 	}
 
 	s.auditLogService.Log(ctx, "PRODUCT_CREATE", "Product", product.ID, map[string]interface{}{"after": response})

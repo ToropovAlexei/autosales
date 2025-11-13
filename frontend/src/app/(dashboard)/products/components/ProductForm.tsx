@@ -111,7 +111,7 @@ export const ProductForm = ({
       category_id: data.category_id,
       base_price: data.base_price,
       type: data.type,
-      image_id: data.image_id,
+      ...(data.image_id && { image_id: data.image_id }),
     };
 
     if (data.type === "item") {

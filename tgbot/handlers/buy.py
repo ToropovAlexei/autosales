@@ -1,31 +1,30 @@
-from aiogram import Router, F
-from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery
-from aiogram.utils.markdown import hbold
-import logging
-
-from api import APIClient
-from keyboards.inline import back_to_main_menu_keyboard
-
-router = Router()
-
 from aiogram import Router, F, Bot
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup
 from aiogram.utils.markdown import hbold
 import logging
 
 from api import APIClient
-from keyboards.inline import back_to_main_menu_keyboard
+from keyboards.inline import back_to_main_menu_keyboard, insufficient_balance_keyboard
 
 router = Router()
 
-async def process_buy_result(callback_query: CallbackQuery, result: dict, bot: Bot):
+async def _safe_edit_message(callback_query: CallbackQuery, text: str, reply_markup: InlineKeyboardMarkup = None):
+    """
+    Edits message text or caption, whichever is present, to avoid
+    TelegramBadRequest when a message is a photo.
+    """
+    if callback_query.message and callback_query.message.photo:
+        await callback_query.message.edit_caption(caption=text, reply_markup=reply_markup)
+    elif callback_query.message:
+        await callback_query.message.edit_text(text, reply_markup=reply_markup)
+
+async def process_buy_result(callback_query: CallbackQuery, result: dict, bot: Bot, api_client: APIClient):
     if result.get("success"):
         data = result.get("data")
         if not isinstance(data, dict):
             logging.error(f"API returned success but data is not a dict: {data}")
-            await callback_query.message.edit_text("Произошла ошибка при обработке ответа сервера.")
+            await _safe_edit_message(callback_query, "Произошла ошибка при обработке ответа сервера.")
             return
 
         new_balance = data.get("balance")
@@ -64,16 +63,18 @@ async def process_buy_result(callback_query: CallbackQuery, result: dict, bot: B
                 )
         else:
             logging.error(f"Missing keys in successful buy response data: {data}")
-            await callback_query.message.edit_text("Произошла ошибка при обработке покупки.")
+            await _safe_edit_message(callback_query, "Произошла ошибка при обработке покупки.")
     else:
         error = result.get("error", "Произошла неизвестная ошибка.")
         if error == "Insufficient Balance":
             error_message = "😔 Недостаточно средств на балансе для совершения покупки. Пожалуйста, пополните баланс."
+            await _safe_edit_message(callback_query, error_message, reply_markup=insufficient_balance_keyboard())
         elif error == "Product out of stock":
             error_message = "😔 К сожалению, этот товар закончился."
+            await _safe_edit_message(callback_query, error_message)
         else:
             error_message = "Произошла непредвиденная ошибка. Попробуйте позже."
-        await callback_query.message.edit_text(error_message)
+            await _safe_edit_message(callback_query, error_message)
 
 @router.callback_query(F.data.startswith("buy_"))
 async def buy_handler(callback_query: CallbackQuery, state: FSMContext, api_client: APIClient, bot: Bot):
@@ -99,10 +100,10 @@ async def buy_handler(callback_query: CallbackQuery, state: FSMContext, api_clie
             product_id = int(product_id_str)
             result = await api_client.buy_product(telegram_id, product_id, referral_bot_id=referral_bot_id)
         
-        await process_buy_result(callback_query, result, bot)
+        await process_buy_result(callback_query, result, bot, api_client)
 
     except Exception as e:
         logging.exception("An unexpected error occurred in buy_handler")
-        await callback_query.message.edit_text("Произошла непредвиденная ошибка. Попробуйте позже.")
+        await _safe_edit_message(callback_query, "Произошла непредвиденная ошибка. Попробуйте позже.")
     finally:
         await callback_query.answer()

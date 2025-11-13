@@ -151,3 +151,10 @@ def back_to_main_menu_keyboard():
         [InlineKeyboardButton(text="⬅️ Главное меню", callback_data="main_menu")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def insufficient_balance_keyboard():
+    buttons = [
+        [InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="deposit")],
+        [InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
