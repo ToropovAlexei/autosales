@@ -7,7 +7,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.redis import RedisStorage
 import redis.asyncio as redis
 
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from keyboards.inline import back_to_main_menu_keyboard
 
 from config import settings
 from handlers import start, balance, catalog, buy, referral, my_bots, my_subscriptions, my_orders, payment
@@ -42,6 +42,8 @@ async def redis_listener(bot: Bot, redis_client: redis.Redis, bot_username: str)
                     for row in inline_keyboard_data
                 ]
                 reply_markup = InlineKeyboardMarkup(inline_keyboard=buttons)
+            elif text and text.startswith("✅ Ваш баланс успешно пополнен на"):
+                reply_markup = back_to_main_menu_keyboard()
 
             if message_to_delete:
                 try:
