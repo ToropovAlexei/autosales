@@ -33,3 +33,6 @@ unavailable_tokens.txt
 uploads/
 */target/
 logs/
+
+backend_go
+backend_go_build
