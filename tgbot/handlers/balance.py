@@ -1,11 +1,12 @@
 from aiogram import Router, F
 import logging
+from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup
 from aiogram.utils.markdown import hbold
 
 from api import APIClient
 from keyboards import inline
-from keyboards.inline import PaymentCallback
+from keyboards.inline import PaymentCallback, suggest_best_gateway_keyboard
 from config import settings
 
 router = Router()
@@ -46,17 +47,21 @@ async def balance_handler(callback_query: CallbackQuery, api_client: APIClient):
     await callback_query.answer()
 
 @router.callback_query(F.data == 'deposit')
-async def deposit_handler(callback_query: CallbackQuery, api_client: APIClient):
+async def deposit_handler(callback_query: CallbackQuery, api_client: APIClient, state: FSMContext):
     try:
         gateways_response = await api_client.get_payment_gateways()
         settings_response = await api_client.get_public_settings()
 
         if gateways_response.get("success"):
             gateways = gateways_response["data"]
+            public_settings = settings_response
+            
+            await state.update_data(gateways=gateways, public_settings=public_settings)
+
             await _safe_edit_message(
                 callback_query,
                 "💰 Выберите способ пополнения:",
-                reply_markup=inline.payment_gateways_menu(gateways, settings_response, settings.payment_instructions_url)
+                reply_markup=inline.payment_gateways_menu(gateways, public_settings, settings.payment_instructions_url)
             )
         else:
             await _safe_edit_message(
@@ -69,13 +74,81 @@ async def deposit_handler(callback_query: CallbackQuery, api_client: APIClient):
         await _safe_edit_message(callback_query, "Произошла непредвиденная ошибка. Попробуйте позже.")
     await callback_query.answer()
 
+
 @router.callback_query(PaymentCallback.filter(F.action == 'select_gateway'))
-async def select_gateway_handler(callback_query: CallbackQuery, callback_data: PaymentCallback):
-    await _safe_edit_message(
-        callback_query,
-        "Выберите сумму для пополнения:",
-        reply_markup=inline.deposit_amount_menu(gateway=callback_data.gateway)
-    )
+async def select_gateway_handler(callback_query: CallbackQuery, callback_data: PaymentCallback, state: FSMContext):
+    if callback_data.force:
+        await _safe_edit_message(
+            callback_query,
+            "Выберите сумму для пополнения:",
+            reply_markup=inline.deposit_amount_menu(gateway=callback_data.gateway)
+        )
+        await callback_query.answer()
+        return
+
+    data = await state.get_data()
+    gateways = data.get("gateways", [])
+    public_settings = data.get("public_settings", {})
+
+    if not gateways:
+        # Fallback in case state is lost
+        await _safe_edit_message(
+            callback_query,
+            "Произошла ошибка, попробуйте начать сначала.",
+            reply_markup=inline.main_menu(bot_type=settings.bot_type)
+        )
+        await callback_query.answer()
+        return
+
+    gateways_with_bonuses = []
+    for gw in gateways:
+        bonus_key = f"GATEWAY_BONUS_{gw['name']}"
+        bonus_value = float(public_settings.get(bonus_key, "0"))
+        gateways_with_bonuses.append(
+            {
+                "name": gw['name'],
+                "display_name": gw['display_name'],
+                "bonus": bonus_value
+            }
+        )
+
+    gateways_with_bonuses.sort(key=lambda x: (-x['bonus'], x['display_name']))
+
+    selected_gateway_name = callback_data.gateway
+    best_gateway = gateways_with_bonuses[0] if gateways_with_bonuses else None
+    
+    selected_gateway = next((gw for gw in gateways_with_bonuses if gw['name'] == selected_gateway_name), None)
+
+    if not selected_gateway or not best_gateway:
+        # Should not happen, but as a safeguard
+        await _safe_edit_message(
+            callback_query,
+            "Произошла ошибка при выборе платежной системы.",
+            reply_markup=inline.main_menu(bot_type=settings.bot_type)
+        )
+        await callback_query.answer()
+        return
+
+    # If selected is not the best and the best has a better bonus
+    if selected_gateway['name'] != best_gateway['name'] and best_gateway['bonus'] > selected_gateway['bonus']:
+        suggestion_text = (
+            f"💡 Вы выбрали {selected_gateway['display_name']} (скидка {selected_gateway['bonus']}%).\n\n"
+            f"Предлагаем пополнить через {best_gateway['display_name']}, "
+            f"чтобы получить скидку {best_gateway['bonus']}%!"
+        )
+        await _safe_edit_message(
+            callback_query,
+            suggestion_text,
+            reply_markup=suggest_best_gateway_keyboard(selected_gateway, best_gateway)
+        )
+    else:
+        # Proceed directly if the selected is the best or there's no better bonus
+        await _safe_edit_message(
+            callback_query,
+            "Выберите сумму для пополнения:",
+            reply_markup=inline.deposit_amount_menu(gateway=callback_data.gateway)
+        )
+    
     await callback_query.answer()
 
 @router.callback_query(PaymentCallback.filter(F.action == 'select_amount'))

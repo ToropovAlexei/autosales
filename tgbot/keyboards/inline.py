@@ -13,6 +13,7 @@ class PaymentCallback(CallbackData, prefix="pay"):
     action: str       # e.g., 'select_gateway', 'select_amount'
     gateway: Optional[str] = None
     amount: Optional[float] = None
+    force: bool = False
 
 def main_menu(referral_program_enabled: bool = False, bot_type: str = "main"):
     buttons = [
@@ -156,5 +157,22 @@ def insufficient_balance_keyboard():
     buttons = [
         [InlineKeyboardButton(text="💰 Пополнить баланс", callback_data="deposit")],
         [InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu")]
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+def suggest_best_gateway_keyboard(selected_gateway: dict, best_gateway: dict):
+    buttons = [
+        [
+            InlineKeyboardButton(
+                text=f"Продолжить с {selected_gateway['display_name']}",
+                callback_data=PaymentCallback(action="select_gateway", gateway=selected_gateway['name'], force=True).pack()
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text=f"Выбрать {best_gateway['display_name']}",
+                callback_data=PaymentCallback(action="select_gateway", gateway=best_gateway['name'], force=True).pack()
+            )
+        ],
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
