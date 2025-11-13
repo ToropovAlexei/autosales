@@ -54,6 +54,9 @@ export const ProductCSVUploadModal = ({
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.PRODUCTS),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.CATEGORIES),
+      });
       setSelectedFile(null);
     },
     onError: () => {
