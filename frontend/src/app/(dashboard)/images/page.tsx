@@ -28,7 +28,11 @@ interface IImage {
   OriginalFilename: string;
 }
 
-const FOLDERS = [{ id: "categories", name: "Категории" }];
+const FOLDERS = [
+  { id: "product_images", name: "Изображения товаров" },
+  { id: "fulfillment_images", name: "Выдача (картинки)" },
+  { id: "categories", name: "Категории" },
+];
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 export default function ImagesPage() {
