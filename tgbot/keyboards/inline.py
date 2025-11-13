@@ -42,29 +42,29 @@ def payment_gateways_menu(gateways: list, public_settings: dict, instructions_ur
     if instructions_url:
         buttons.append([InlineKeyboardButton(text="ℹ️ Как пополнить баланс?", url=instructions_url)])
 
-    gateways_with_discounts = []
+    gateways_with_bonuses = []
     for gw in gateways:
-        discount_key = f"GATEWAY_DISCOUNT_{gw['name']}"
-        discount_value = float(public_settings.get(discount_key, "0"))
-        gateways_with_discounts.append({
+        bonus_key = f"GATEWAY_BONUS_{gw['name']}"
+        bonus_value = float(public_settings.get(bonus_key, "0"))
+        gateways_with_bonuses.append({
             "name": gw['name'],
             "display_name": gw['display_name'],
-            "discount": discount_value
+            "bonus": bonus_value
         })
 
-    gateways_with_discounts.sort(key=lambda x: (-x['discount'], x['display_name']))
+    gateways_with_bonuses.sort(key=lambda x: (-x['bonus'], x['display_name']))
 
-    for i, gw in enumerate(gateways_with_discounts):
+    for i, gw in enumerate(gateways_with_bonuses):
         display_name = gw['display_name']
-        if gw['discount'] > 0:
-            discount_text = ""
-            if gw['discount'].is_integer():
-                discount_text = str(int(gw['discount']))
+        if gw['bonus'] > 0:
+            bonus_text = ""
+            if gw['bonus'].is_integer():
+                bonus_text = str(int(gw['bonus']))
             else:
-                discount_text = str(gw['discount'])
-            display_name += f" (скидка {discount_text}%)"
+                bonus_text = str(gw['bonus'])
+            display_name += f" (скидка {bonus_text}%)"
         
-        if i == 0 and gw['discount'] > 0:
+        if i == 0 and gw['bonus'] > 0:
             display_name = f"🔥🔥 {display_name} 🔥🔥"
 
         buttons.append([InlineKeyboardButton(
