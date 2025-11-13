@@ -29,7 +29,13 @@ type CreateUserForm = {
   role_id: number;
 };
 
-export const UserModal = ({ open, onClose, onSave, tfaSecret, tfaQrCode }: UserModalProps) => {
+export const UserModal = ({
+  open,
+  onClose,
+  onSave,
+  tfaSecret,
+  tfaQrCode,
+}: UserModalProps) => {
   const form = useForm<CreateUserForm>();
 
   const { data: allRoles } = useList<Role>({ endpoint: ENDPOINTS.ROLES });
@@ -40,13 +46,17 @@ export const UserModal = ({ open, onClose, onSave, tfaSecret, tfaQrCode }: UserM
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
-      <DialogTitle>{tfaSecret ? "Two-Factor Authentication" : "Создать пользователя"}</DialogTitle>
+      <DialogTitle>
+        {tfaSecret ? "Двухфакторная аутентификация" : "Создать пользователя"}
+      </DialogTitle>
       <DialogContent>
         {tfaSecret ? (
           <Stack gap={2} py={2} alignItems="center">
-            <Typography>Scan the QR code with your authenticator app:</Typography>
+            <Typography>
+              Отсканируйте QR-код с помощью Google Authenticator:
+            </Typography>
             <img src={`data:image/png;base64,${tfaQrCode}`} alt="2FA QR Code" />
-            <Typography>Or enter this secret manually:</Typography>
+            <Typography>Или введите ваш код мануально:</Typography>
             <Typography fontFamily="monospace">{tfaSecret}</Typography>
           </Stack>
         ) : (

@@ -54,13 +54,16 @@ export default function UsersPage() {
 
   const createMutation = useMutation({
     mutationFn: (params: any) =>
-      dataLayer.create<{ data: { user: User; two_fa_secret: string; qr_code: string } }>({ url: ENDPOINTS.USERS, params }),
+      dataLayer.create<{ user: User; two_fa_secret: string; qr_code: string }>({
+        url: ENDPOINTS.USERS,
+        params,
+      }),
     onSuccess: (response) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.USERS),
       });
-      setTfaSecret(response.data.two_fa_secret);
-      setTfaQrCode(response.data.qr_code);
+      setTfaSecret(response.two_fa_secret);
+      setTfaQrCode(response.qr_code);
     },
     onError: (error) => toast.error(error.message),
   });

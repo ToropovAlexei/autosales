@@ -61,20 +61,13 @@ func (h *AdminHandler) GetBotUser(c *gin.Context) {
 }
 
 func (h *AdminHandler) ToggleBlockUser(c *gin.Context) {
-	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	telegramID, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
 	if err != nil {
 		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid user ID"})
 		return
 	}
 
-	// First, get the user to find their telegram_id
-	user, _, err := h.userService.GetBotUser(uint(id))
-	if err != nil {
-		c.Error(err)
-		return
-	}
-
-	if err := h.userService.ToggleBlockUser(c, user.TelegramID); err != nil {
+	if err := h.userService.ToggleBlockUser(c, telegramID); err != nil {
 		c.Error(err)
 		return
 	}
