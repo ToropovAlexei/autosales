@@ -104,6 +104,7 @@ export default function LoginPage() {
                     placeholder="123456"
                     required
                     label="Код"
+                    focused
                   />
                   {tfaError && (
                     <Typography color="error">Неверный код</Typography>
