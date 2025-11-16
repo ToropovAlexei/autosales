@@ -432,6 +432,7 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 
 			purchaseStoreBalanceDelta := product.Price
 			totalStoreBalanceDelta += purchaseStoreBalanceDelta
+			fmt.Printf("Purchase StoreBalanceDelta: %.2f (Product Price: %.2f)\n", purchaseStoreBalanceDelta, product.Price)
 
 			allPurchaseTransactions = append(allPurchaseTransactions, models.Transaction{
 				UserID:            user.ID,
