@@ -1,27 +1,99 @@
+version: '3.8'
+
 services:
-  postgres:
-    image: postgres:17
+  db:
+    image: postgres:15-alpine
+    container_name: frbktg_db
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: db
-    ports:
-      - "5434:5432"
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d db"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - db-data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT}:5432"
+    networks:
+      - default_network
+
+  backend:
+    build:
+      context: ./backend_go
+      dockerfile: Dockerfile
+    container_name: frbktg_backend
+    depends_on:
+      - db
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+    environment:
+      - DATABASE_HOST=db
+      - DATABASE_PORT=5432
+      - DATABASE_USER=${POSTGRES_USER}
+      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
+      - DATABASE_NAME=${POSTGRES_DB}
+      - CORS_ORIGINS=["http://localhost:${FRONTEND_PORT}"]
+      - SECRET_KEY=${SECRET_KEY}
+      - ALGORITHM=${ALGORITHM}
+      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
+      - SERVICE_API_KEY=${SERVICE_API_KEY}
+      - MOCK_GATEWAY_URL=http://mock_gateway:${MOCK_GATEWAY_PORT}
+      - PORT=${BACKEND_PORT}
+      - BOT_DISPATCHER_WEBHOOK_URL=http://bot:8080/webhook/dispatch-message
+      - PAYMENT_NOTIFICATION_MINUTES=${PAYMENT_NOTIFICATION_MINUTES}
+      - IMAGE_UPLOAD_PATH=${IMAGE_UPLOAD_PATH}
+      - TFA_SECRET_KEY=${TFA_SECRET_KEY}
+    networks:
+      - default_network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frbktg_frontend
+    ports:
+      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+    depends_on:
+      - backend
+    networks:
+      - default_network
+
+  bot:
+    build:
+      context: ./tgbot
+      dockerfile: Dockerfile
+    container_name: frbktg_bot
+    depends_on:
+      - backend
+    environment:
+      - API_BASE_URL=http://backend:${BACKEND_PORT}/api
+      - API_KEY=${SERVICE_API_KEY}
+      - BOT_TOKEN=${BOT_TOKEN}
+      - ADMIN_ID=${ADMIN_ID}
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+    networks:
+      - default_network
+
+  mock_gateway:
+    build:
+      context: ./mock_payment_gateway
+      dockerfile: Dockerfile
+    container_name: frbktg_mock_gateway
+    ports:
+      - "${MOCK_GATEWAY_PORT}:${MOCK_GATEWAY_PORT}"
+    networks:
+      - default_network
 
   redis:
-    image: redis:8.2
+    image: redis:7-alpine
+    container_name: frbktg_redis
     ports:
-      - "6380:6379"
-    volumes:
-      - redis_data:/data
+      - "${REDIS_PORT}:${REDIS_PORT}"
+    networks:
+      - default_network
 
 volumes:
-  postgres_data:
-  redis_data:
+  db-data:
+
+networks:
+  default_network:
+    driver: bridge
