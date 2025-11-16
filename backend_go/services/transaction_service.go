@@ -26,13 +26,17 @@ func (s *transactionService) GetAll(page models.Page, filters []models.Filter) (
 	var response []models.TransactionResponse
 	for _, t := range paginatedTransactions.Data {
 		response = append(response, models.TransactionResponse{
-			ID:          t.ID,
-			UserID:      t.UserID,
-			OrderID:     t.OrderID,
-			Type:        t.Type,
-			Amount:      t.Amount,
-			CreatedAt:   t.CreatedAt,
-			Description: t.Description,
+			ID:                 t.ID,
+			UserID:             t.UserID,
+			OrderID:            t.OrderID,
+			Type:               t.Type,
+			Amount:             t.Amount,
+			CreatedAt:          t.CreatedAt,
+			Description:        t.Description,
+			PaymentGateway:     t.PaymentGateway,
+			GatewayCommission:  t.GatewayCommission,
+			PlatformCommission: t.PlatformCommission,
+			StoreBalanceDelta:  t.StoreBalanceDelta,
 		})
 	}
 

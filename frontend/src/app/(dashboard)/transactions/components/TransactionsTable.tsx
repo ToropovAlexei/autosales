@@ -17,6 +17,10 @@ interface Transaction {
   amount: number;
   created_at: string;
   description: string | null;
+  payment_gateway: string | null;
+  gateway_commission: number;
+  platform_commission: number;
+  store_balance_delta: number;
 }
 
 interface TransactionsTableProps {
@@ -70,6 +74,34 @@ export const TransactionsTable = ({
       field: "amount",
       headerName: "Сумма",
       width: 120,
+      sortable: false,
+      type: "number",
+    },
+    {
+      field: "payment_gateway",
+      headerName: "Шлюз",
+      width: 130,
+      valueGetter: (value) => value ?? "N/A",
+      sortable: false,
+    },
+    {
+      field: "gateway_commission",
+      headerName: "Комиссия шлюза",
+      width: 150,
+      sortable: false,
+      type: "number",
+    },
+    {
+      field: "platform_commission",
+      headerName: "Комиссия платформы",
+      width: 160,
+      sortable: false,
+      type: "number",
+    },
+    {
+      field: "store_balance_delta",
+      headerName: "Дельта баланса магазина",
+      width: 200,
       sortable: false,
       type: "number",
     },

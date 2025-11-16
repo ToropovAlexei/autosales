@@ -14,6 +14,8 @@ type PaymentInvoiceRepository interface {
 	Update(invoice *models.PaymentInvoice) error
 	GetPendingInvoicesOlderThan(minutes int) ([]models.PaymentInvoice, error)
 	GetPendingInvoices() ([]models.PaymentInvoice, error)
+	FindUnfinished() ([]models.PaymentInvoice, error)
+	FindPendingPollable() ([]models.PaymentInvoice, error)
 }
 
 type gormPaymentInvoiceRepository struct {
@@ -34,7 +36,7 @@ func (r *gormPaymentInvoiceRepository) Create(invoice *models.PaymentInvoice) er
 
 func (r *gormPaymentInvoiceRepository) FindByOrderID(orderID string) (*models.PaymentInvoice, error) {
 	var invoice models.PaymentInvoice
-	if err := r.db.Where("order_id = ?", orderID).First(&invoice).Error; err != nil {
+	if err := r.db.Preload("BotUser").Where("order_id = ?", orderID).First(&invoice).Error; err != nil {
 		return nil, err
 	}
 	return &invoice, nil
@@ -58,7 +60,16 @@ func (r *gormPaymentInvoiceRepository) GetPendingInvoicesOlderThan(minutes int) 
 func (r *gormPaymentInvoiceRepository) GetPendingInvoices() ([]models.PaymentInvoice, error) {
 	var invoices []models.PaymentInvoice
 	err := r.db.
+		Preload("BotUser").
 		Where("status = ?", models.InvoiceStatusPending).
 		Find(&invoices).Error
 	return invoices, err
+}
+
+func (r *gormPaymentInvoiceRepository) FindUnfinished() ([]models.PaymentInvoice, error) {
+	return r.GetPendingInvoicesOlderThan(60)
+}
+
+func (r *gormPaymentInvoiceRepository) FindPendingPollable() ([]models.PaymentInvoice, error) {
+	return r.GetPendingInvoices()
 }

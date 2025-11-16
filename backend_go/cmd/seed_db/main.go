@@ -101,13 +101,12 @@ func createDefaultSettings(db *gorm.DB) {
 		{Key: "GATEWAY_COMMISSION_mock_provider", Value: "5"},
 		{Key: "GATEWAY_COMMISSION_platform_card", Value: "3"},
 		{Key: "GATEWAY_COMMISSION_platform_sbp", Value: "2"},
+		{Key: "PLATFORM_COMMISSION_PERCENTAGE", Value: "1.5"},
 	}
 	for _, setting := range settings {
 		db.FirstOrCreate(&setting, models.Setting{Key: setting.Key})
 	}
 }
-
-
 
 func dropAllTables(db *gorm.DB) {
 	fmt.Println("Dropping all tables...")
@@ -155,6 +154,7 @@ func createRbacData(db *gorm.DB) map[string]models.Permission {
 		{Name: "referrals:read", Group: "Referrals"}, {Name: "referrals:update", Group: "Referrals"},
 		{Name: "transactions:read", Group: "Transactions"},
 		{Name: "balance:read", Group: "Balance"},
+		{Name: "store_balance:read", Group: "Balance"},
 		{Name: "stock:read", Group: "Stock"}, {Name: "stock:update", Group: "Stock"},
 		{Name: "audit_log.read", Group: "AuditLog"},
 	}
@@ -364,6 +364,17 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 	fmt.Println("Creating deposits and purchases...")
 	userBalances := make(map[uint]float64)
 	var allTransactions []models.Transaction
+	totalStoreBalanceDelta := 0.0
+
+	gateways := []struct {
+		Name          string
+		CommissionBPS int
+	}{
+		{"mock_provider", 500}, // 5%
+		{"platform_card", 300}, // 3%
+		{"platform_sbp", 200},  // 2%
+	}
+	platformCommissionBPS := 150 // 1.5%
 
 	fmt.Println("Phase 1: Creating initial deposits for all users.")
 	for _, user := range users {
@@ -373,12 +384,23 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 			depositAmount := float64(rand.Intn(15000-500) + 500)
 			totalDeposit += depositAmount
 			createdAt := time.Now().AddDate(-1, 0, 0).Add(time.Hour * time.Duration(rand.Intn(365*24)))
+
+			gateway := gateways[rand.Intn(len(gateways))]
+			gatewayCommission := depositAmount * float64(gateway.CommissionBPS) / 10000.0
+			platformCommission := depositAmount * float64(platformCommissionBPS) / 10000.0
+			storeBalanceDelta := depositAmount - gatewayCommission - platformCommission
+			totalStoreBalanceDelta += storeBalanceDelta
+
 			allTransactions = append(allTransactions, models.Transaction{
-				UserID:      user.ID,
-				Type:        models.Deposit,
-				Amount:      depositAmount,
-				Description: "Test deposit",
-				CreatedAt:   createdAt,
+				UserID:             user.ID,
+				Type:               models.Deposit,
+				Amount:             depositAmount,
+				Description:        "Test deposit",
+				CreatedAt:          createdAt,
+				PaymentGateway:     gateway.Name,
+				GatewayCommission:  gatewayCommission,
+				PlatformCommission: platformCommission,
+				StoreBalanceDelta:  storeBalanceDelta,
 			})
 		}
 		userBalances[user.ID] = totalDeposit
@@ -408,13 +430,16 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 			}
 			db.Create(&order)
 
+			purchaseStoreBalanceDelta := product.Price
+			totalStoreBalanceDelta += purchaseStoreBalanceDelta
+
 			allPurchaseTransactions = append(allPurchaseTransactions, models.Transaction{
-				UserID:      user.ID,
-				OrderID:     &order.ID,
-				Type:        models.Purchase,
-				Amount:      -amount,
-				Description: fmt.Sprintf("Purchase for order %d", order.ID),
-				CreatedAt:   createdAt,
+				UserID:            user.ID,
+				Type:              models.Purchase,
+				Amount:            -product.Price,
+				Description:       fmt.Sprintf("Purchase of %s", product.Name),
+				CreatedAt:         createdAt,
+				StoreBalanceDelta: purchaseStoreBalanceDelta,
 			})
 
 			allStockMovements = append(allStockMovements, models.StockMovement{
@@ -434,4 +459,13 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 	for userID, balance := range userBalances {
 		db.Model(&models.BotUser{}).Where("id = ?", userID).Update("balance", balance)
 	}
+
+	fmt.Println("Phase 4: Updating store balance.")
+	// Ensure the balance record exists and is zeroed out before setting the final calculated balance.
+	// A more robust way would be to use the repository's GetOrCreate method if it existed.
+	db.Exec("DELETE FROM store_balances")
+	if err := db.Create(&models.StoreBalance{ID: 1, CurrentBalance: totalStoreBalanceDelta}).Error; err != nil {
+		log.Fatalf("Failed to create and set store balance: %v", err)
+	}
+	fmt.Printf("Final store balance set to: %.2f\n", totalStoreBalanceDelta)
 }

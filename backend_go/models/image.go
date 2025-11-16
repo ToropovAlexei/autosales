@@ -15,7 +15,7 @@ type Image struct {
 	FileSize         int64
 	Folder           string `gorm:"index"`
 	CreatedAt        time.Time
-	DeletedAt        gorm.DeletedAt `gorm:"index"`
+	DeletedAt        gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // BeforeCreate will set a UUID rather than an integer ID.

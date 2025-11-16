@@ -4,6 +4,7 @@ import Toolbar from "@mui/material/Toolbar";
 import Typography from "@mui/material/Typography";
 import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import { ColorModeIconDropdown } from "@/components/ColorModeIconDropdown";
+import { StoreBalance } from "@/components/StoreBalance";
 import classes from "./styles.module.css";
 
 export const NavBar = () => {
@@ -14,6 +15,7 @@ export const NavBar = () => {
           <DashboardRoundedIcon />
           <Typography variant="h6">Админ панель</Typography>
         </div>
+        <StoreBalance />
         <ColorModeIconDropdown />
       </Toolbar>
     </AppBar>

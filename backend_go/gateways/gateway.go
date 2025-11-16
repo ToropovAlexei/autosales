@@ -4,6 +4,13 @@ import (
 	"net/http"
 )
 
+const (
+	InvoiceStatusCompleted = "completed"
+	InvoiceStatusPending   = "pending"
+	InvoiceStatusFailed    = "failed"
+	InvoiceStatusRejected  = "rejected"
+)
+
 // InvoiceCreationRequest contains the data needed to create an invoice.
 type InvoiceCreationRequest struct {
 	Amount  float64 `json:"amount"`
@@ -42,11 +49,16 @@ type PaymentGateway interface {
 
 	// CreateInvoice creates a payment invoice in the external system.
 	CreateInvoice(req *InvoiceCreationRequest) (*Invoice, error)
+}
 
-	// HandleWebhook parses an incoming webhook, verifies it, and returns a structured result.
-	// It is responsible for validating the integrity of the webhook (e.g., checking signatures).
-	HandleWebhook(r *http.Request) (*WebhookResult, error)
+// WebhookHandler is an optional interface for gateways that support webhooks.
+type WebhookHandler interface {
+	// HandleWebhook parses an incoming webhook, verifies it, and returns its OrderID.
+	HandleWebhook(r *http.Request) (string, error)
+}
 
+// Pollable is an optional interface for gateways that support polling for status.
+type Pollable interface {
 	// GetInvoiceStatus retrieves the current status of an invoice from the external system.
-	GetInvoiceStatus(gatewayInvoiceID string) (*StatusResult, error)
+	GetInvoiceStatus(gatewayInvoiceID string) (string, error)
 }

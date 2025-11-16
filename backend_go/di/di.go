@@ -45,6 +45,7 @@ type Container struct {
 	SettingService services.SettingService
 	RoleService services.RoleService
 	AuditLogService services.AuditLogService
+	StoreBalanceService services.StoreBalanceService
 	UserRepo repositories.UserRepository
 	TemporaryTokenRepo repositories.TemporaryTokenRepository
 	AuthHandler *handlers.AuthHandler
@@ -65,6 +66,7 @@ type Container struct {
 	RoleHandler *handlers.RoleHandler
 	AuditLogHandler *handlers.AuditLogHandler
 	CaptchaHandler *handlers.CaptchaHandler
+	StoreBalanceHandler *handlers.StoreBalanceHandler
 	AuthMiddleware *middleware.AuthMiddleware
 	SubscriptionWorker *workers.SubscriptionWorker
 	PaymentWorker *workers.PaymentWorker
@@ -135,6 +137,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	activeTokenRepo := repositories.NewActiveTokenRepository(db)
 	temporaryTokenRepo := repositories.NewTemporaryTokenRepository(db)
 	botRepo := repositories.NewBotRepository(db)
+	storeBalanceRepo := repositories.NewGormStoreBalanceRepository(db)
 
 	twoFAService, err := services.NewTwoFAService(appSettings.TFASecretKey)
 	if err != nil {
@@ -157,7 +160,8 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	adminService := services.NewAdminService(adminRepo, botUserRepo)
 	webhookService := services.NewWebhookService(appSettings)
 	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, userSubscriptionRepo, categoryRepo, referralService, botService, providerRegistry, webhookService)
-	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo, botUserRepo, webhookService, settingService, appSettings)
+	storeBalanceService := services.NewStoreBalanceService(storeBalanceRepo, db)
+	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo, botUserRepo, webhookService, settingService, appSettings, storeBalanceService)
 	imageService := services.NewImageService(db, imageRepo, appSettings)
 	roleService := services.NewRoleService(roleRepo, auditLogService)
 
@@ -185,6 +189,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	roleHandler := handlers.NewRoleHandler(roleService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	captchaHandler := handlers.NewCaptchaHandler()
+	storeBalanceHandler := handlers.NewStoreBalanceHandler(storeBalanceService)
 
 	authMiddleware := middleware.NewAuthMiddleware(tokenService, userService)
 
@@ -214,6 +219,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 		SettingService: *settingService,
 		RoleService: roleService,
 		AuditLogService: auditLogService,
+		StoreBalanceService: storeBalanceService,
 		UserRepo: userRepo,
 		TemporaryTokenRepo: temporaryTokenRepo,
 		AuthHandler: authHandler,
@@ -234,6 +240,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 		RoleHandler: roleHandler,
 		AuditLogHandler: auditLogHandler,
 		CaptchaHandler: captchaHandler,
+		StoreBalanceHandler: storeBalanceHandler,
 		AuthMiddleware: authMiddleware,
 		SubscriptionWorker: subscriptionWorker,
 		PaymentWorker: paymentWorker,
@@ -241,9 +248,8 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	}, nil
 }
 
-// StartWorkers starts all the background workers.
 func (c *Container) StartWorkers() {
-	c.SubscriptionWorker.Start()
-	c.PaymentWorker.Start()
-	c.ProductSyncWorker.Start()
+	go c.SubscriptionWorker.Start()
+	go c.PaymentWorker.Start()
+	go c.ProductSyncWorker.Start()
 }

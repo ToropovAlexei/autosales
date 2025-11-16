@@ -19,6 +19,7 @@ func dropAllTables(db *gorm.DB) {
 		&models.UserRole{}, &models.RolePermission{}, &models.Permission{}, &models.Role{},
 		&models.ActiveToken{},
 		&models.TemporaryToken{},
+		&models.StoreBalance{},
 	}
 	if err := db.Migrator().DropTable(tables...); err != nil {
 		log.Fatalf("Failed to drop tables: %v", err)
@@ -40,41 +41,42 @@ func main() {
 	dropAllTables(db)
 
 	fmt.Println("Auto-migrating tables...")
-		if migrateErr := db.AutoMigrate(
-			&models.User{},
-			&models.Category{},
-			&models.Product{},
-			&models.BotUser{},
-			&models.Transaction{},
-			&models.Order{},
-			&models.StockMovement{},
-			&models.Bot{},
-			&models.RefTransaction{},
-			&models.UserSubscription{},
-			&models.PaymentInvoice{},
-			&models.Image{},
-			&models.Role{},
-			&models.Permission{},
-			&models.RolePermission{},
-			&models.UserRole{},
-			&models.UserPermission{},
-			&models.Setting{},
-			&models.ActiveToken{},
-			&models.TemporaryToken{},
-		); migrateErr != nil {
-			log.Fatalf("failed to migrate database: %v", migrateErr)
-		}
-	
-			fmt.Println("Seeding initial settings...")
-			initialSettings := []models.Setting{
-				{Key: "GLOBAL_PRICE_MARKUP", Value: "0"},
-				{Key: "GATEWAY_COMMISSION_mock_provider", Value: "0"},
-				{Key: "GATEWAY_COMMISSION_platform_card", Value: "0"},
-				{Key: "GATEWAY_COMMISSION_platform_sbp", Value: "0"},
-			}
-			if err := db.Create(&initialSettings).Error; err != nil {
-				log.Fatalf("failed to seed settings: %v", err)
-			}
-		
-			fmt.Println("Database initialization completed successfully!")
-		}	
+	if migrateErr := db.AutoMigrate(
+		&models.User{},
+		&models.Category{},
+		&models.Product{},
+		&models.BotUser{},
+		&models.Transaction{},
+		&models.Order{},
+		&models.StockMovement{},
+		&models.Bot{},
+		&models.RefTransaction{},
+		&models.UserSubscription{},
+		&models.PaymentInvoice{},
+		&models.Image{},
+		&models.Role{},
+		&models.Permission{},
+		&models.RolePermission{},
+		&models.UserRole{},
+		&models.UserPermission{},
+		&models.Setting{},
+		&models.ActiveToken{},
+		&models.TemporaryToken{},
+		&models.StoreBalance{},
+	); migrateErr != nil {
+		log.Fatalf("failed to migrate database: %v", migrateErr)
+	}
+
+	fmt.Println("Seeding initial settings...")
+	initialSettings := []models.Setting{
+		{Key: "GLOBAL_PRICE_MARKUP", Value: "0"},
+		{Key: "GATEWAY_COMMISSION_mock_provider", Value: "0"},
+		{Key: "GATEWAY_COMMISSION_platform_card", Value: "0"},
+		{Key: "GATEWAY_COMMISSION_platform_sbp", Value: "0"},
+	}
+	if err := db.Create(&initialSettings).Error; err != nil {
+		log.Fatalf("failed to seed settings: %v", err)
+	}
+
+	fmt.Println("Database initialization completed successfully!")
+}

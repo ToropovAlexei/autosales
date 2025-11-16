@@ -36,26 +36,28 @@ type PaymentService interface {
 }
 
 type paymentService struct {
-	db              *gorm.DB
-	registry        *gateways.ProviderRegistry
-	invoiceRepo     repositories.PaymentInvoiceRepository
-	transactionRepo repositories.TransactionRepository
-	botUserRepo     repositories.BotUserRepository
-	webhookService  WebhookService
-	settingService  *SettingService
-	config          *config.Config
+	db                  *gorm.DB
+	registry            *gateways.ProviderRegistry
+	invoiceRepo         repositories.PaymentInvoiceRepository
+	transactionRepo     repositories.TransactionRepository
+	botUserRepo         repositories.BotUserRepository
+	webhookService      WebhookService
+	settingService      *SettingService
+	config              *config.Config
+	storeBalanceService StoreBalanceService
 }
 
-func NewPaymentService(db *gorm.DB, registry *gateways.ProviderRegistry, invoiceRepo repositories.PaymentInvoiceRepository, transactionRepo repositories.TransactionRepository, botUserRepo repositories.BotUserRepository, webhookService WebhookService, settingService *SettingService, config *config.Config) PaymentService {
+func NewPaymentService(db *gorm.DB, registry *gateways.ProviderRegistry, invoiceRepo repositories.PaymentInvoiceRepository, transactionRepo repositories.TransactionRepository, botUserRepo repositories.BotUserRepository, webhookService WebhookService, settingService *SettingService, config *config.Config, storeBalanceService StoreBalanceService) PaymentService {
 	return &paymentService{
-		db:              db,
-		registry:        registry,
-		invoiceRepo:     invoiceRepo,
-		transactionRepo: transactionRepo,
-		botUserRepo:     botUserRepo,
-		webhookService:  webhookService,
-		settingService:  settingService,
-		config:          config,
+		db:                  db,
+		registry:            registry,
+		invoiceRepo:         invoiceRepo,
+		transactionRepo:     transactionRepo,
+		botUserRepo:         botUserRepo,
+		webhookService:      webhookService,
+		settingService:      settingService,
+		config:              config,
+		storeBalanceService: storeBalanceService,
 	}
 }
 
@@ -203,6 +205,7 @@ func (s *paymentService) SetInvoiceMessageID(orderID string, messageID int64) er
 func (s *paymentService) processCompletedInvoice(tx *gorm.DB, orderID string) error {
 	invoiceRepo := s.invoiceRepo.WithTx(tx)
 	txnRepo := s.transactionRepo.WithTx(tx)
+	botUserRepo := s.botUserRepo.WithTx(tx)
 
 	invoice, err := invoiceRepo.FindByOrderID(orderID)
 	if err != nil {
@@ -226,58 +229,67 @@ func (s *paymentService) processCompletedInvoice(tx *gorm.DB, orderID string) er
 	gateway, err := s.registry.GetProvider(invoice.Gateway)
 	if err != nil {
 		slog.Error("could not find gateway for completed invoice", "gateway", invoice.Gateway, "order_id", orderID)
-	}
-	gatewayName := "N/A"
-	if gateway != nil {
-		gatewayName = gateway.GetDisplayName()
+		// Continue without gateway-specific logic if it's not found, but log it as an error.
 	}
 
-	// --- Gateway Discount Logic ---
+	// --- Commission Logic ---
 	allSettings, err := s.settingService.GetSettings()
 	if err != nil {
-		slog.Error("could not retrieve settings to check for gateway discount", "error", err)
+		slog.Error("could not retrieve settings for commission calculation", "error", err)
 	}
 
-	discountKey := "GATEWAY_DISCOUNT_" + invoice.Gateway
-	discountPercentageStr, hasDiscount := allSettings[discountKey]
+	platformCommStr, _ := allSettings["PLATFORM_COMMISSION_PERCENTAGE"]
+	platformCommPerc, _ := strconv.ParseFloat(platformCommStr, 64)
 
-	depositAmount := invoice.OriginalAmount
-	notificationMessage := fmt.Sprintf("✅ Ваш баланс успешно пополнен на %.2f ₽.", depositAmount)
-	description := fmt.Sprintf("Пополнение баланса через %s (Счет: %s)", gatewayName, invoice.GatewayInvoiceID)
+	gatewayCommStr, _ := allSettings["GATEWAY_COMMISSION_"+invoice.Gateway]
+	gatewayCommPerc, _ := strconv.ParseFloat(gatewayCommStr, 64)
 
-	if hasDiscount && err == nil {
-		if discountPercentage, parseErr := strconv.ParseFloat(discountPercentageStr, 64); parseErr == nil && discountPercentage > 0 {
-			description = fmt.Sprintf("Пополнение через %s (Счет: %s). Скидка %.2f%%.", gatewayName, invoice.GatewayInvoiceID, discountPercentage)
-			notificationMessage = fmt.Sprintf("✅ Ваш баланс пополнен на %.2f ₽ (с учетом скидки %.2f%%).", depositAmount, discountPercentage)
-		}
+	gatewayCommission := invoice.Amount * (gatewayCommPerc / 100.0)
+	platformCommission := invoice.Amount * (platformCommPerc / 100.0)
+	storeBalanceDelta := invoice.Amount - gatewayCommission - platformCommission
+
+	// --- End Commission Logic ---
+
+	// --- Bonus Logic ---
+	bonusKey := "GATEWAY_BONUS_" + invoice.Gateway
+	bonusPercentageStr, hasBonus := allSettings[bonusKey]
+	bonusPercentage, _ := strconv.ParseFloat(bonusPercentageStr, 64)
+	finalAmount := invoice.Amount
+	if hasBonus && bonusPercentage > 0 {
+		finalAmount = invoice.Amount * (1 + bonusPercentage/100.0)
 	}
-	// --- End Gateway Discount Logic ---
+	// --- End Bonus Logic ---
 
-	depositTx := &models.Transaction{
-		UserID:      invoice.BotUserID,
-		Type:        models.Deposit,
-		Amount:      depositAmount,
-		Description: description,
+	transaction := &models.Transaction{
+		UserID:             invoice.BotUserID,
+		Type:               models.Deposit,
+		Amount:             finalAmount,
+		Description:        fmt.Sprintf("Пополнение баланса через %s", gateway.GetDisplayName()),
+		PaymentGateway:     invoice.Gateway,
+		GatewayCommission:  gatewayCommission,
+		PlatformCommission: platformCommission,
+		StoreBalanceDelta:  storeBalanceDelta,
 	}
 
-	if err := txnRepo.CreateTransaction(depositTx); err != nil {
+	if err := txnRepo.CreateTransaction(transaction); err != nil {
 		return fmt.Errorf("failed to create deposit transaction: %w", err)
 	}
 
-	if err := s.botUserRepo.WithTx(tx).UpdateBalance(invoice.BotUserID, depositAmount); err != nil {
+	if err := botUserRepo.UpdateBalance(invoice.BotUserID, finalAmount); err != nil {
 		return fmt.Errorf("failed to update user balance: %w", err)
 	}
 
-	user, err := s.botUserRepo.WithTx(tx).FindByID(invoice.BotUserID)
-	if err != nil {
-		slog.Error("could not find user to notify about payment", "userID", invoice.BotUserID, "error", err)
-	} else {
-		go func() {
-			// We pass nil for messageToEdit and the original message ID to messageToDelete to trigger a delete-and-send-new action in the bot.
-			if err := s.webhookService.SendNotification(user.LastSeenWithBot, user.TelegramID, notificationMessage, nil, invoice.BotMessageID, nil); err != nil {
-				slog.Error("failed to send payment notification webhook", "userID", user.ID, "error", err)
-			}
-		}()
+	// Update store balance
+	if err := s.storeBalanceService.UpdateStoreBalance(tx, storeBalanceDelta); err != nil {
+		return fmt.Errorf("failed to update store balance: %w", err)
+	}
+
+	slog.Info("successfully processed completed invoice", "order_id", orderID, "user_id", invoice.BotUserID, "amount", finalAmount)
+
+	// Send notification to bot
+	if err := s.webhookService.SendSuccessfulPaymentNotification(invoice.BotUser.TelegramID, finalAmount, int(bonusPercentage), invoice.BotMessageID); err != nil {
+		slog.Error("failed to send successful payment notification", "error", err, "user_id", invoice.BotUserID)
+		// Do not return error, as the payment is already processed
 	}
 
 	return nil
@@ -286,130 +298,82 @@ func (s *paymentService) processCompletedInvoice(tx *gorm.DB, orderID string) er
 func (s *paymentService) HandleWebhook(gatewayName string, r *http.Request) error {
 	gateway, err := s.registry.GetProvider(gatewayName)
 	if err != nil {
-		return apperrors.New(http.StatusNotFound, "Gateway not found", err)
+		return apperrors.New(http.StatusBadRequest, "Invalid payment gateway", err)
 	}
 
-	webhookResult, err := gateway.HandleWebhook(r)
+	webhookHandler, ok := gateway.(gateways.WebhookHandler)
+	if !ok {
+		return apperrors.New(http.StatusNotImplemented, "Webhook not supported for this gateway", nil)
+	}
+
+	orderID, err := webhookHandler.HandleWebhook(r)
 	if err != nil {
-		return apperrors.New(http.StatusBadRequest, "Webhook handling failed", err)
+		return apperrors.New(http.StatusInternalServerError, "Failed to handle webhook", err)
 	}
 
-	// Handle cases where webhook is not supported or event is not relevant
-	if webhookResult == nil || webhookResult.Status != string(models.InvoiceStatusCompleted) {
-		return nil
-	}
-
-	txErr := s.db.Transaction(func(tx *gorm.DB) error {
-		return s.processCompletedInvoice(tx, webhookResult.OrderID)
+	return s.db.Transaction(func(tx *gorm.DB) error {
+		return s.processCompletedInvoice(tx, orderID)
 	})
+}
 
-	if txErr != nil {
-		return apperrors.New(http.StatusInternalServerError, "Failed to process webhook transaction", txErr)
+func (s *paymentService) NotifyUnfinishedPayments() error {
+	invoices, err := s.invoiceRepo.FindUnfinished()
+	if err != nil {
+		return err
+	}
+
+	for _, invoice := range invoices {
+		if err := s.webhookService.SendUnfinishedPaymentNotification(invoice.BotUser.TelegramID, invoice.Amount, invoice.BotMessageID); err != nil {
+			slog.Error("failed to send unfinished payment notification", "error", err, "user_id", invoice.BotUserID)
+		}
 	}
 
 	return nil
 }
 
 func (s *paymentService) PollPendingPayments() error {
-	slog.Debug("starting payment polling job")
-	invoices, err := s.invoiceRepo.GetPendingInvoices()
+	invoices, err := s.invoiceRepo.FindPendingPollable()
 	if err != nil {
-		return fmt.Errorf("failed to get pending invoices for polling: %w", err)
+		slog.Error("failed to find pollable invoices", "error", err)
+		return err
 	}
 
-	if len(invoices) > 0 {
-		slog.Info("found pending invoices to poll", "count", len(invoices))
-	}
+	slog.Info("found pending pollable invoices", "count", len(invoices))
 
 	for _, invoice := range invoices {
 		gateway, err := s.registry.GetProvider(invoice.Gateway)
 		if err != nil {
-			slog.Error("polling: could not find gateway for invoice", "gateway", invoice.Gateway, "order_id", invoice.OrderID)
+			slog.Error("gateway not found for polling", "gateway", invoice.Gateway, "order_id", invoice.OrderID)
 			continue
 		}
 
-		statusResult, err := gateway.GetInvoiceStatus(invoice.GatewayInvoiceID)
+		pollableGateway, ok := gateway.(gateways.Pollable)
+		if !ok {
+			slog.Warn("gateway is not pollable, but invoice was marked as such", "gateway", invoice.Gateway, "order_id", invoice.OrderID)
+			continue
+		}
+
+		status, err := pollableGateway.GetInvoiceStatus(invoice.GatewayInvoiceID)
 		if err != nil {
-			slog.Error("polling: failed to get invoice status from gateway", "gateway", invoice.Gateway, "order_id", invoice.OrderID, "error", err)
+			slog.Error("failed to get invoice status from gateway", "gateway", invoice.Gateway, "order_id", invoice.OrderID, "error", err)
 			continue
 		}
 
-		if statusResult != nil && statusResult.Status == string(models.InvoiceStatusCompleted) {
-			slog.Info("polling: found completed payment", "gateway", invoice.Gateway, "order_id", invoice.OrderID)
-			txErr := s.db.Transaction(func(tx *gorm.DB) error {
+		slog.Info("polled invoice status", "gateway", invoice.Gateway, "order_id", invoice.OrderID, "status", status)
+
+		if status == gateways.InvoiceStatusCompleted {
+			err := s.db.Transaction(func(tx *gorm.DB) error {
 				return s.processCompletedInvoice(tx, invoice.OrderID)
 			})
-			if txErr != nil {
-				slog.Error("polling: failed to process completed payment", "gateway", invoice.Gateway, "order_id", invoice.OrderID, "error", txErr)
+			if err != nil {
+				slog.Error("failed to process completed invoice from polling", "gateway", invoice.Gateway, "order_id", invoice.OrderID, "error", err)
+			}
+		} else if status == gateways.InvoiceStatusFailed || status == gateways.InvoiceStatusRejected {
+			invoice.Status = models.InvoiceStatusFailed
+			if err := s.invoiceRepo.Update(&invoice); err != nil {
+				slog.Error("failed to update invoice status to failed from polling", "gateway", invoice.Gateway, "order_id", invoice.OrderID, "error", err)
 			}
 		}
-	}
-
-	slog.Debug("payment polling job finished")
-	return nil
-}
-
-func (s *paymentService) NotifyUnfinishedPayments() error {
-	minutes := s.config.PaymentNotificationMinutes
-	if minutes <= 0 {
-		slog.Debug("payment notification is disabled")
-		return nil
-	}
-
-	invoices, err := s.invoiceRepo.GetPendingInvoicesOlderThan(minutes)
-	if err != nil {
-		return fmt.Errorf("failed to get pending invoices: %w", err)
-	}
-
-	if len(invoices) == 0 {
-		return nil
-	}
-
-	slog.Info("found unfinished payments to notify", "count", len(invoices))
-
-	for _, invoice := range invoices {
-		// Use a copy of the invoice in the goroutine
-		invoiceCopy := invoice
-
-		go func() {
-			message := fmt.Sprintf(
-				"Вы недавно пытались пополнить баланс на %.2f ₽. Возникли ли у вас какие-либо проблемы с оплатой?",
-				invoiceCopy.Amount,
-			)
-
-			var keyboard [][]InlineKeyboardButton
-			if invoiceCopy.Gateway == "platform_card" || invoiceCopy.Gateway == "platform_sbp" {
-				keyboard = [][]InlineKeyboardButton{
-					{
-						{Text: "Я все оплатил", CallbackData: fmt.Sprintf("payment_confirm:%s", invoiceCopy.OrderID)},
-						{Text: "Отменить платеж", CallbackData: fmt.Sprintf("payment_cancel:%s", invoiceCopy.OrderID)},
-					},
-				}
-			}
-
-			// Send notification
-			err := s.webhookService.SendNotification(
-				invoiceCopy.BotUser.LastSeenWithBot,
-				invoiceCopy.BotUser.TelegramID,
-				message,
-				nil, // No message to edit
-				nil, // No message to delete
-				keyboard,
-			)
-			if err != nil {
-				slog.Error("failed to send payment notification", "invoice_id", invoiceCopy.ID, "error", err)
-				// Continue to next invoice even if one fails
-				return
-			}
-
-			// Mark invoice as notified
-			invoiceCopy.WasNotificationSent = true
-			if err := s.invoiceRepo.Update(&invoiceCopy); err != nil {
-				slog.Error("failed to update invoice notification status", "invoice_id", invoiceCopy.ID, "error", err)
-			} else {
-				slog.Info("successfully sent unfinished payment notification", "invoice_id", invoiceCopy.ID, "user_id", invoiceCopy.BotUserID)
-			}
-		}()
 	}
 
 	return nil

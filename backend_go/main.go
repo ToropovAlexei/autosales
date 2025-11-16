@@ -74,7 +74,7 @@ func main() {
 	container.StartWorkers()
 
 	// Run migrations
-	if err := container.DB.AutoMigrate(&models.Product{}, &models.Order{}, &models.Setting{}, &models.AuditLog{}, &models.ActiveToken{}, &models.BotUser{}, &models.PaymentInvoice{}, &models.User{}, &models.TemporaryToken{}, &models.Bot{}, &models.RefTransaction{}); err != nil {
+	if err := container.DB.AutoMigrate(&models.Product{}, &models.Order{}, &models.Setting{}, &models.AuditLog{}, &models.ActiveToken{}, &models.BotUser{}, &models.PaymentInvoice{}, &models.User{}, &models.TemporaryToken{}, &models.Bot{}, &models.RefTransaction{}, &models.Transaction{}, &models.StoreBalance{}); err != nil {
 		log.Fatal().Err(err).Msg("failed to migrate database")
 	}
 
@@ -117,6 +117,7 @@ func main() {
 	routers.RegisterRoleRoutes(r, container.RoleHandler, container.AuthMiddleware)
 	routers.RegisterAdminUserRoutes(r, container.RoleHandler, container.AdminHandler, container.AuthMiddleware)
 	routers.RegisterAdminReferralRoutes(r, container.BotHandler, container.AuthMiddleware)
+	routers.RegisterStoreBalanceRoutes(r, container.StoreBalanceHandler, container.AuthMiddleware)
 	routers.SetupAuditLogRoutes(r.Group("/api"), container)
 
 	r.GET("/api/captcha", container.CaptchaHandler.GetCaptchaHandler)
