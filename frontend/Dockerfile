@@ -24,19 +24,16 @@ FROM node:20-slim AS runner
 
 WORKDIR /app
 
-# Copy built application from builder stage
+# Copy built application and dependencies from builder stage
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/package.json ./package.json
 COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --from=builder /app/next.config.ts ./next.config.ts
-
-# Install pnpm and production dependencies
-RUN npm install -g pnpm
-RUN pnpm install --prod
+COPY --from=builder /app/node_modules ./node_modules
 
 # Expose the port the app runs on
 EXPOSE 3000
 
 # Set the command to start the app
-CMD ["pnpm", "start"]
+CMD ["node_modules/.bin/next", "start"]

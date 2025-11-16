@@ -7,6 +7,7 @@ import (
 	"frbktg/backend_go/config"
 	"frbktg/backend_go/db"
 	"frbktg/backend_go/models"
+
 	"gorm.io/gorm"
 )
 
@@ -20,6 +21,7 @@ func dropAllTables(db *gorm.DB) {
 		&models.ActiveToken{},
 		&models.TemporaryToken{},
 		&models.StoreBalance{},
+		&models.Setting{},
 	}
 	if err := db.Migrator().DropTable(tables...); err != nil {
 		log.Fatalf("Failed to drop tables: %v", err)
@@ -59,10 +61,10 @@ func main() {
 		&models.RolePermission{},
 		&models.UserRole{},
 		&models.UserPermission{},
-		&models.Setting{},
 		&models.ActiveToken{},
 		&models.TemporaryToken{},
 		&models.StoreBalance{},
+		&models.Setting{},
 	); migrateErr != nil {
 		log.Fatalf("failed to migrate database: %v", migrateErr)
 	}
