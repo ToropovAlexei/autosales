@@ -157,6 +157,7 @@ func createRbacData(db *gorm.DB) map[string]models.Permission {
 		{Name: "store_balance:read", Group: "Balance"},
 		{Name: "stock:read", Group: "Stock"}, {Name: "stock:update", Group: "Stock"},
 		{Name: "audit_log.read", Group: "AuditLog"},
+		{Name: "balance:manage", Group: "Balance"},
 	}
 	permissionsMap := make(map[string]models.Permission)
 	for _, p := range permissionsList {
@@ -175,7 +176,7 @@ func createAdmin(db *gorm.DB, twoFAService services.TwoFAService) models.User {
 	fmt.Println("Creating admin user...")
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
 
-	secret, _ := twoFAService.GenerateSecret("test@example.com")
+	secret := "QO4C6IF3RRNNUXLKAIVLOQPVYM5W3XEV" // Use constant secret for test@example.com
 	encryptedSecret, _ := twoFAService.EncryptSecret(secret)
 
 	admin := models.User{

@@ -10,6 +10,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import HistoryIcon from "@mui/icons-material/History";
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet"; // New import
 
 export const MENU_ITEMS = [
   {
@@ -89,5 +90,11 @@ export const MENU_ITEMS = [
     Icon: SettingsIcon,
     path: "/settings",
     permission: "settings:read",
+  },
+  { // New menu item for Balance Management
+    label: "Управление Балансом",
+    Icon: AccountBalanceWalletIcon,
+    path: "/balance",
+    permission: "balance:manage",
   },
 ];
