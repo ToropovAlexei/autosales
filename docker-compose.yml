@@ -108,11 +108,12 @@ services:
     environment:
       API_ID: ${API_ID}
       API_HASH: ${API_HASH}
-      REDIS_HOST: localhost
+      REDIS_HOST: redis
       REDIS_PORT: ${REDIS_PORT}
-      API_URL: ${API_URL}
+      API_URL: http://backend:${BACKEND_PORT}/api
       SUPPORT_URL: ${SUPPORT_URL}
       PAYMENT_INSTRUCTIONS_URL: ${PAYMENT_INSTRUCTIONS_URL}
+      SERVICE_TOKEN: ${SERVICE_API_KEY}
 
     depends_on:
       - backend
