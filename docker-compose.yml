@@ -2,19 +2,27 @@ services:
   db:
     image: postgres:15-alpine
     container_name: frbktg_db
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - POSTGRES_DB=${POSTGRES_DB}
     volumes:
       - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_NAME}
     ports:
-      - "${DB_PORT}:5432"
+      - "${POSTGRES_PORT}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - default_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: frbktg_redis
+    ports:
+      - "${REDIS_PORT}:6379"
     networks:
       - default_network
 
@@ -23,29 +31,54 @@ services:
       context: ./backend_go
       dockerfile: Dockerfile
     container_name: frbktg_backend
+
+    environment:
+      # --- Database ---
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_NAME: ${POSTGRES_NAME}
+
+      # --- Auth / JWT ---
+      SECRET_KEY: ${SECRET_KEY}
+      TFA_SECRET_KEY: ${TFA_SECRET_KEY}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+
+      # --- CORS ---
+      CORS_ORIGINS: ${CORS_ORIGINS}
+
+      # --- Service & API Keys ---
+      SERVICE_API_KEY: ${SERVICE_API_KEY}
+
+      # --- Ports & URLs ---
+      PORT: ${BACKEND_PORT:-8080}
+      MOCK_GATEWAY_URL: ${MOCK_GATEWAY_URL}
+      BOT_DISPATCHER_WEBHOOK_URL: ${BOT_DISPATCHER_WEBHOOK_URL}
+
+      # --- Business logic ---
+      PAYMENT_NOTIFICATION_MINUTES: ${PAYMENT_NOTIFICATION_MINUTES:-60}
+      IMAGE_UPLOAD_PATH: ${IMAGE_UPLOAD_PATH}
+
+      # --- Telegram Bots ---
+      MAIN_BOT_NAME: ${MAIN_BOT_NAME}
+      MAIN_BOT_TOKEN: ${MAIN_BOT_TOKEN}
+      FALLBACK_BOT_NAME: ${FALLBACK_BOT_NAME}
+      FALLBACK_BOT_TOKEN: ${FALLBACK_BOT_TOKEN}
+
+      # --- External Payment System ---
+      PLATFORM_PAYMENT_SYSTEM_BASE_URL: ${PLATFORM_PAYMENT_SYSTEM_BASE_URL}
+      PLATFORM_PAYMENT_SYSTEM_LOGIN: ${PLATFORM_PAYMENT_SYSTEM_LOGIN}
+      PLATFORM_PAYMENT_SYSTEM_PASSWORD: ${PLATFORM_PAYMENT_SYSTEM_PASSWORD}
+      PLATFORM_PAYMENT_SYSTEM_2FA_KEY: ${PLATFORM_PAYMENT_SYSTEM_2FA_KEY}
+
     depends_on:
       db:
         condition: service_healthy
     ports:
-      - "${BACKEND_PORT}:${BACKEND_PORT}"
+      - "8000:8000"
     command: sh -c "./init_db && ./seed_db && ./main"
-    environment:
-      - DATABASE_HOST=db
-      - DATABASE_PORT=5432
-      - DATABASE_USER=${POSTGRES_USER}
-      - DATABASE_PASSWORD=${POSTGRES_PASSWORD}
-      - DATABASE_NAME=${POSTGRES_DB}
-      - CORS_ORIGINS=["http://localhost:${FRONTEND_PORT}"]
-      - SECRET_KEY=${SECRET_KEY}
-      - ALGORITHM=${ALGORITHM}
-      - ACCESS_TOKEN_EXPIRE_MINUTES=${ACCESS_TOKEN_EXPIRE_MINUTES}
-      - SERVICE_API_KEY=${SERVICE_API_KEY}
-      - MOCK_GATEWAY_URL=http://mock_gateway:${MOCK_GATEWAY_PORT}
-      - PORT=${BACKEND_PORT}
-      - BOT_DISPATCHER_WEBHOOK_URL=http://bot:8080/webhook/dispatch-message
-      - PAYMENT_NOTIFICATION_MINUTES=${PAYMENT_NOTIFICATION_MINUTES}
-      - IMAGE_UPLOAD_PATH=${IMAGE_UPLOAD_PATH}
-      - TFA_SECRET_KEY=${TFA_SECRET_KEY}
     networks:
       - default_network
 
@@ -54,8 +87,13 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
     container_name: frbktg_frontend
+
+    environment:
+      NEXT_PUBLIC_IMAGES_URL: http://localhost:8000/api/images
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api
+
     ports:
-      - "${FRONTEND_PORT}:${FRONTEND_PORT}"
+      - "3000:3000"
     depends_on:
       - backend
     networks:
@@ -66,18 +104,19 @@ services:
       context: ./tgbot
       dockerfile: Dockerfile
     container_name: frbktg_bot
+
+    environment:
+      API_ID: ${API_ID}
+      API_HASH: ${API_HASH}
+      REDIS_HOST: localhost
+      REDIS_PORT: ${REDIS_PORT}
+      API_URL: ${API_URL}
+      SUPPORT_URL: ${SUPPORT_URL}
+      PAYMENT_INSTRUCTIONS_URL: ${PAYMENT_INSTRUCTIONS_URL}
+
     depends_on:
       - backend
-    environment:
-      - API_URL=http://backend:${BACKEND_PORT}/api
-      - SERVICE_TOKEN=${SERVICE_API_KEY}
-      - BOT_TOKEN=${BOT_TOKEN}
-      - ADMIN_ID=${ADMIN_ID}
-      - REDIS_HOST=${REDIS_HOST}
-      - REDIS_PORT=${REDIS_PORT}
-      - SUPPORT_URL=${SUPPORT_URL}
-      - API_ID=${API_ID}
-      - API_HASH=${API_HASH}
+    command: ["python", "monitor.py"]
     networks:
       - default_network
 
@@ -87,15 +126,7 @@ services:
       dockerfile: Dockerfile
     container_name: frbktg_mock_gateway
     ports:
-      - "${MOCK_GATEWAY_PORT}:${MOCK_GATEWAY_PORT}"
-    networks:
-      - default_network
-
-  redis:
-    image: redis:7-alpine
-    container_name: frbktg_redis
-    ports:
-      - "${REDIS_PORT}:${REDIS_PORT}"
+      - "8078:8078"
     networks:
       - default_network
 

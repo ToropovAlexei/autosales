@@ -20,57 +20,57 @@ import (
 
 // Container holds all the dependencies of the application.
 type Container struct {
-	DB *gorm.DB
-	AppSettings *config.Config
-	Logger *slog.Logger
-	ProviderRegistry *external_providers.ProviderRegistry
+	DB                     *gorm.DB
+	AppSettings            *config.Config
+	Logger                 *slog.Logger
+	ProviderRegistry       *external_providers.ProviderRegistry
 	PaymentGatewayRegistry *gateways.ProviderRegistry
-	TokenService services.TokenService
-	TwoFAService services.TwoFAService
-	AuthService services.AuthService
-	UserService services.UserService
-	ProductService services.ProductService
-	CategoryService services.CategoryService
-	ReferralService services.ReferralService
-	BotService services.BotService
-	OrderService services.OrderService
-	TransactionService services.TransactionService
-	DashboardService services.DashboardService
-	BalanceService services.BalanceService
-	StockService services.StockService
-	AdminService services.AdminService
-	PaymentService services.PaymentService
-	WebhookService services.WebhookService
-	ImageService services.ImageService
-	SettingService services.SettingService
-	RoleService services.RoleService
-	AuditLogService services.AuditLogService
-	StoreBalanceService services.StoreBalanceService
-	UserRepo repositories.UserRepository
-	TemporaryTokenRepo repositories.TemporaryTokenRepository
-	AuthHandler *handlers.AuthHandler
-	UserHandler *handlers.UserHandler
-	ProductHandler *handlers.ProductHandler
-	CategoryHandler *handlers.CategoryHandler
-	OrderHandler *handlers.OrderHandler
-	TransactionHandler *handlers.TransactionHandler
-	StatsHandler *handlers.StatsHandler
-	BotHandler *handlers.BotHandler
-	DashboardHandler *handlers.DashboardHandler
-	BalanceHandler *handlers.BalanceHandler
-	StockHandler *handlers.StockHandler
-	AdminHandler *handlers.AdminHandler
-	PaymentHandler *handlers.PaymentHandler
-	ImageHandler *handlers.ImageHandler
-	SettingHandler *handlers.SettingHandler
-	RoleHandler *handlers.RoleHandler
-	AuditLogHandler *handlers.AuditLogHandler
-	CaptchaHandler *handlers.CaptchaHandler
-	StoreBalanceHandler *handlers.StoreBalanceHandler
-	AuthMiddleware *middleware.AuthMiddleware
-	SubscriptionWorker *workers.SubscriptionWorker
-	PaymentWorker *workers.PaymentWorker
-	ProductSyncWorker *workers.ProductSyncWorker
+	TokenService           services.TokenService
+	TwoFAService           services.TwoFAService
+	AuthService            services.AuthService
+	UserService            services.UserService
+	ProductService         services.ProductService
+	CategoryService        services.CategoryService
+	ReferralService        services.ReferralService
+	BotService             services.BotService
+	OrderService           services.OrderService
+	TransactionService     services.TransactionService
+	DashboardService       services.DashboardService
+	BalanceService         services.BalanceService
+	StockService           services.StockService
+	AdminService           services.AdminService
+	PaymentService         services.PaymentService
+	WebhookService         services.WebhookService
+	ImageService           services.ImageService
+	SettingService         services.SettingService
+	RoleService            services.RoleService
+	AuditLogService        services.AuditLogService
+	StoreBalanceService    services.StoreBalanceService
+	UserRepo               repositories.UserRepository
+	TemporaryTokenRepo     repositories.TemporaryTokenRepository
+	AuthHandler            *handlers.AuthHandler
+	UserHandler            *handlers.UserHandler
+	ProductHandler         *handlers.ProductHandler
+	CategoryHandler        *handlers.CategoryHandler
+	OrderHandler           *handlers.OrderHandler
+	TransactionHandler     *handlers.TransactionHandler
+	StatsHandler           *handlers.StatsHandler
+	BotHandler             *handlers.BotHandler
+	DashboardHandler       *handlers.DashboardHandler
+	BalanceHandler         *handlers.BalanceHandler
+	StockHandler           *handlers.StockHandler
+	AdminHandler           *handlers.AdminHandler
+	PaymentHandler         *handlers.PaymentHandler
+	ImageHandler           *handlers.ImageHandler
+	SettingHandler         *handlers.SettingHandler
+	RoleHandler            *handlers.RoleHandler
+	AuditLogHandler        *handlers.AuditLogHandler
+	CaptchaHandler         *handlers.CaptchaHandler
+	StoreBalanceHandler    *handlers.StoreBalanceHandler
+	AuthMiddleware         *middleware.AuthMiddleware
+	SubscriptionWorker     *workers.SubscriptionWorker
+	PaymentWorker          *workers.PaymentWorker
+	ProductSyncWorker      *workers.ProductSyncWorker
 }
 
 // NewContainer creates a new dependency container.
@@ -84,7 +84,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 
 	// Init provider registry
 	providerRegistry := external_providers.NewProviderRegistry()
-	contmsAdapter := contms.NewContMSProxyAdapter("http://contms.ru:2525/api")
+	contmsAdapter := contms.NewContMSProxyAdapter("http://api.contms.ru:4850")
 	providerRegistry.RegisterProvider(contmsAdapter)
 
 	// Init payment gateway registry
@@ -194,57 +194,57 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	authMiddleware := middleware.NewAuthMiddleware(tokenService, userService)
 
 	return &Container{
-		DB: db,
-		AppSettings: appSettings,
-		Logger: logger,
-		ProviderRegistry: providerRegistry,
+		DB:                     db,
+		AppSettings:            appSettings,
+		Logger:                 logger,
+		ProviderRegistry:       providerRegistry,
 		PaymentGatewayRegistry: paymentGatewayRegistry,
-		TokenService: tokenService,
-		TwoFAService: twoFAService,
-		AuthService: authService,
-		UserService: userService,
-		ProductService: productService,
-		CategoryService: categoryService,
-		ReferralService: referralService,
-		BotService: botService,
-		OrderService: orderService,
-		TransactionService: transactionService,
-		DashboardService: dashboardService,
-		BalanceService: balanceService,
-		StockService: stockService,
-		AdminService: adminService,
-		PaymentService: paymentService,
-		WebhookService: webhookService,
-		ImageService: imageService,
-		SettingService: *settingService,
-		RoleService: roleService,
-		AuditLogService: auditLogService,
-		StoreBalanceService: storeBalanceService,
-		UserRepo: userRepo,
-		TemporaryTokenRepo: temporaryTokenRepo,
-		AuthHandler: authHandler,
-		UserHandler: userHandler,
-		ProductHandler: productHandler,
-		CategoryHandler: categoryHandler,
-		OrderHandler: orderHandler,
-		TransactionHandler: transactionHandler,
-		StatsHandler: statsHandler,
-		BotHandler: botHandler,
-		DashboardHandler: dashboardHandler,
-		BalanceHandler: balanceHandler,
-		StockHandler: stockHandler,
-		AdminHandler: adminHandler,
-		PaymentHandler: paymentHandler,
-		ImageHandler: imageHandler,
-		SettingHandler: settingHandler,
-		RoleHandler: roleHandler,
-		AuditLogHandler: auditLogHandler,
-		CaptchaHandler: captchaHandler,
-		StoreBalanceHandler: storeBalanceHandler,
-		AuthMiddleware: authMiddleware,
-		SubscriptionWorker: subscriptionWorker,
-		PaymentWorker: paymentWorker,
-		ProductSyncWorker: productSyncWorker,
+		TokenService:           tokenService,
+		TwoFAService:           twoFAService,
+		AuthService:            authService,
+		UserService:            userService,
+		ProductService:         productService,
+		CategoryService:        categoryService,
+		ReferralService:        referralService,
+		BotService:             botService,
+		OrderService:           orderService,
+		TransactionService:     transactionService,
+		DashboardService:       dashboardService,
+		BalanceService:         balanceService,
+		StockService:           stockService,
+		AdminService:           adminService,
+		PaymentService:         paymentService,
+		WebhookService:         webhookService,
+		ImageService:           imageService,
+		SettingService:         *settingService,
+		RoleService:            roleService,
+		AuditLogService:        auditLogService,
+		StoreBalanceService:    storeBalanceService,
+		UserRepo:               userRepo,
+		TemporaryTokenRepo:     temporaryTokenRepo,
+		AuthHandler:            authHandler,
+		UserHandler:            userHandler,
+		ProductHandler:         productHandler,
+		CategoryHandler:        categoryHandler,
+		OrderHandler:           orderHandler,
+		TransactionHandler:     transactionHandler,
+		StatsHandler:           statsHandler,
+		BotHandler:             botHandler,
+		DashboardHandler:       dashboardHandler,
+		BalanceHandler:         balanceHandler,
+		StockHandler:           stockHandler,
+		AdminHandler:           adminHandler,
+		PaymentHandler:         paymentHandler,
+		ImageHandler:           imageHandler,
+		SettingHandler:         settingHandler,
+		RoleHandler:            roleHandler,
+		AuditLogHandler:        auditLogHandler,
+		CaptchaHandler:         captchaHandler,
+		StoreBalanceHandler:    storeBalanceHandler,
+		AuthMiddleware:         authMiddleware,
+		SubscriptionWorker:     subscriptionWorker,
+		PaymentWorker:          paymentWorker,
+		ProductSyncWorker:      productSyncWorker,
 	}, nil
 }
 

@@ -20,7 +20,7 @@ import (
 func main() {
 	rand.New(rand.NewSource(time.Now().UnixNano()))
 
-	appSettings, err := config.LoadConfig(".env")
+	appSettings, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("could not load config: %v", err)
 	}

@@ -1,39 +1,34 @@
-# Stage 1: Build the application
-FROM node:20-slim AS builder
+FROM node:24-slim AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Install pnpm
 RUN npm install -g pnpm
 
-# Copy dependency definition files
 COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies
 RUN pnpm install
 
-# Copy the rest of the application source code
 COPY . .
 
-# Build the application
 RUN pnpm build
 
-# Stage 2: Production image
-FROM node:20-slim AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 
-# Copy built application and dependencies from builder stage
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/pnpm-lock.yaml ./pnpm-lock.yaml
-COPY --from=builder /app/next.config.ts ./next.config.ts
-COPY --from=builder /app/node_modules ./node_modules
+ENV NODE_ENV=production
 
-# Expose the port the app runs on
+# Create a non-root user for security
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nextjs
+RUN chown -R nextjs:nodejs /app
+
+USER nextjs
+
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/static ./.next/static
+
 EXPOSE 3000
 
-# Set the command to start the app
-CMD ["node_modules/.bin/next", "start"]
+CMD ["node", "server.js"]

@@ -8,14 +8,20 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o /app/main .
+RUN go build -ldflags="-w -s" -o /app/main .
 
 # Stage 2: Run
-FROM alpine:latest
+FROM alpine:3.20
 
 WORKDIR /app
 
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
 COPY --from=builder /app/main .
+
+RUN chown -R appuser:appgroup /app
+
+USER appuser
 
 EXPOSE 8078
 

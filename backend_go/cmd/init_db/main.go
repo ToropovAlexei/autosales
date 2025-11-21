@@ -29,7 +29,7 @@ func dropAllTables(db *gorm.DB) {
 }
 
 func main() {
-	appSettings, err := config.LoadConfig(".env")
+	appSettings, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("could not load config: %v", err)
 	}

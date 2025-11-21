@@ -57,10 +57,9 @@ func (gla GinLogAdapter) Write(p []byte) (n int, err error) {
 func main() {
 	config.InitLogger()
 
-	configPath := flag.String("config", ".env", "path to config file")
 	flag.Parse()
 
-	appSettings, err := config.LoadConfig(*configPath)
+	appSettings, err := config.LoadConfig()
 	if err != nil {
 		log.Fatal().Err(err).Msg("could not load config")
 	}

@@ -232,22 +232,40 @@ func (s *paymentService) processCompletedInvoice(tx *gorm.DB, orderID string) er
 		// Continue without gateway-specific logic if it's not found, but log it as an error.
 	}
 
-	// --- Commission Logic ---
-	allSettings, err := s.settingService.GetSettings()
+	allSettings, err := (*s.settingService).GetSettings()
 	if err != nil {
-		slog.Error("could not retrieve settings for commission calculation", "error", err)
+		slog.Error("could not retrieve settings for bonus/commission logic", "error", err)
+		// Continue without bonus/commission, but this is a significant issue.
 	}
 
-	platformCommStr, _ := allSettings["PLATFORM_COMMISSION_PERCENTAGE"]
-	platformCommPerc, _ := strconv.ParseFloat(platformCommStr, 64)
+	// --- Commission Logic ---
+	// Using hardcoded values as requested
+	const serviceUSDRate = 1.0
+	const autosaleCommissionPercent = 1.0
+	const cryptoProviderCommissionPercent = 0.05
+	const paymentProviderCommissionPercent = 0.2
+	const platformOnlyCommissionPercent = 1.0
 
-	gatewayCommStr, _ := allSettings["GATEWAY_COMMISSION_"+invoice.Gateway]
-	gatewayCommPerc, _ := strconv.ParseFloat(gatewayCommStr, 64)
+	amountUSD := invoice.Amount / serviceUSDRate
 
-	gatewayCommission := invoice.Amount * (gatewayCommPerc / 100.0)
-	platformCommission := invoice.Amount * (platformCommPerc / 100.0)
-	storeBalanceDelta := invoice.Amount - gatewayCommission - platformCommission
+	var platformCommission float64
+	var gatewayCommission float64
 
+	switch invoice.Gateway {
+	case "mock_provider": // Криптопроц
+		platformCommission = amountUSD * (autosaleCommissionPercent / 100.0)
+		gatewayCommission = amountUSD * (cryptoProviderCommissionPercent / 100.0)
+	default: // Платежки (and other providers not specifically handled, will use default payment provider comms)
+		platformCommission = amountUSD * (autosaleCommissionPercent / 100.0)
+		gatewayCommission = amountUSD * (paymentProviderCommissionPercent / 100.0)
+	}
+
+	// For the "Сторонняя платежка" case, if a specific gateway were identified:
+	// case "some_third_party_gateway":
+	//     platformCommission = amountUSD * (platformOnlyCommissionPercent / 100.0)
+	//     gatewayCommission = 0.0
+
+	storeBalanceDelta := amountUSD - platformCommission - gatewayCommission
 	// --- End Commission Logic ---
 
 	// --- Bonus Logic ---

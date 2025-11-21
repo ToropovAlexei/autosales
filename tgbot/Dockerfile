@@ -13,5 +13,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the rest of the application's code into the container at /app
 COPY . .
 
+RUN addgroup --system appgroup && adduser --system --ingroup appgroup appuser
+RUN chown -R appuser:appgroup /app
+USER appuser
+
 # Set the command to run the application
-CMD ["python", "main.py"]
+CMD ["python", "monitor.py"]

@@ -7,16 +7,16 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-// Configuration
-const (
-	port                  = "8078"
-	mainBackendWebhookURL = "http://localhost:8000/api/webhooks/mock_provider"
+var (
+	mainBackendWebhookURL = getEnv("MAIN_BACKEND_WEBHOOK_URL", "http://localhost:8000/api/webhooks/mock_provider")
+	port                  = getEnv("PORT", "8078")
 )
 
 // Invoice represents a payment request from the main backend
@@ -156,6 +156,8 @@ func getInvoiceStatusHandler(w http.ResponseWriter, r *http.Request) {
 	invoice, ok := invoices[invoiceID]
 	mu.RUnlock()
 
+
+
 	if !ok {
 		http.Error(w, "Invoice not found", http.StatusNotFound)
 		return
@@ -177,4 +179,11 @@ func main() {
 	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatalf("Failed to start server: %v", err)
 	}
+}
+
+func getEnv(key, fallback string) string {
+	if value, ok := os.LookupEnv(key); ok {
+		return value
+	}
+	return fallback
 }
