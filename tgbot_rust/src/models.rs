@@ -94,3 +94,13 @@ pub struct BuyResponse {
     pub product_price: f64,
     pub fulfilled_content: Option<String>,
 }
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct Bot {
+    pub id: i64,
+    pub token: String,
+    pub username: String,
+    pub is_primary: bool,
+    pub is_active: bool,
+    pub owner_id: Option<i64>,
+}

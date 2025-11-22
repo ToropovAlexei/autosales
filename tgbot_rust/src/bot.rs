@@ -13,10 +13,9 @@ use teloxide::{
     macros::BotCommands,
     payloads::{EditMessageTextSetters, SendMessageSetters},
     prelude::{Dialogue, Dispatcher, Request, Requester},
-    types::{CallbackQuery, ChatId, Me, Message, MessageId, ParseMode, Update},
+    types::{CallbackQuery, ChatId, Message, MessageId, ParseMode, Update},
 };
 use tokio_stream::StreamExt;
-use tokio_util::sync::CancellationToken;
 
 use crate::{
     AppState,
@@ -26,9 +25,9 @@ use crate::{
             balance::balance_handler, buy::buy_handler, captcha_answer::captcha_answer_handler,
             catalog::catalog_handler, deposit_amount::deposit_amount_handler,
             deposit_confirm::deposit_confirm_handler, deposit_gateway::deposit_gateway_handler,
-            fallback_bot_msg::fallback_bot_msg, main_menu::main_menu_handler,
-            my_orders::my_orders_handler, my_subscriptions::my_subscriptions_handler,
-            product::product_handler, start::start_handler, support::support_handler,
+            main_menu::main_menu_handler, my_bots::my_bots_handler, my_orders::my_orders_handler,
+            my_subscriptions::my_subscriptions_handler, product::product_handler,
+            start::start_handler, support::support_handler,
         },
         keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard,
     },
@@ -36,7 +35,23 @@ use crate::{
     models::DispatchMessagePayload,
 };
 
-mod handlers;
+mod handlers {
+    pub mod balance;
+    pub mod buy;
+    pub mod captcha_answer;
+    pub mod catalog;
+    pub mod deposit_amount;
+    pub mod deposit_confirm;
+    pub mod deposit_gateway;
+    pub mod fallback_bot_msg;
+    pub mod main_menu;
+    pub mod my_bots;
+    pub mod my_orders;
+    pub mod my_subscriptions;
+    pub mod product;
+    pub mod start;
+    pub mod support;
+}
 mod keyboards;
 mod middlewares;
 
@@ -52,14 +67,14 @@ pub enum PaymentAction {
     SelectAmount { gateway: String, amount: i64 },
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct InvoiceData {
     pub order_id: String,
     pub pay_url: Option<String>,
     pub details: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub enum BotState {
     #[default]
     Start,
@@ -169,19 +184,13 @@ impl From<String> for CallbackData {
 #[command(rename_rule = "lowercase")]
 pub enum Command {
     Start,
+    MyBots,
 }
 
 type MyDialogue = Dialogue<BotState, RedisStorage<Json>>;
 
-pub async fn start_bot(
-    app_state: AppState,
-    token: &str,
-    fallback_bot_username: String,
-    api_client: Arc<BackendApi>,
-    captcha_api_client: Arc<CaptchaApi>,
-    cancel_token: CancellationToken,
-) -> AppResult<()> {
-    let bot = Bot::new(token);
+pub async fn run_bot(bot_token: String, app_state: AppState) -> AppResult<()> {
+    let bot = Bot::new(bot_token);
     let me = bot.get_me().await?;
     let username = me.user.username.unwrap_or_default();
     tracing::info!("Starting bot: @{}", username);
@@ -204,6 +213,10 @@ pub async fn start_bot(
             dptree::entry()
                 .filter_command::<Command>()
                 .endpoint(command_handler),
+        )
+        .branch(
+            dptree::filter(|state: BotState| state == BotState::WaitingForReferralBotToken)
+                .endpoint(handlers::my_bots::referral_bot_token_handler),
         );
 
     let callback_router = dptree::entry().endpoint(
@@ -334,33 +347,6 @@ pub async fn start_bot(
     let mut dispatcher = Dispatcher::builder(
         bot.clone(),
         dptree::entry()
-            .filter_async(
-                async move |update: Update, api_client: Arc<BackendApi>, me: Me| {
-                    let chat_id = match update.chat() {
-                        Some(chat) => chat.id,
-                        None => return false,
-                    };
-                    match api_client
-                        .get_user(chat_id.0, &me.user.username.unwrap_or_default())
-                        .await
-                    {
-                        Ok(user) => !user.is_blocked,
-                        Err(_) => true,
-                    }
-                },
-            )
-            .inspect_async(
-                async |bot: Bot, update: Update, fallback_bot_username: BotUsername| {
-                    let chat_id = match update.chat() {
-                        Some(chat) => chat.id,
-                        None => return,
-                    };
-
-                    if let Err(err) = fallback_bot_msg(bot, chat_id, fallback_bot_username).await {
-                        tracing::error!("Failed to send fallback bot message: {}", err);
-                    }
-                },
-            )
             .branch(handler)
             .branch(callback_query_handler),
     )
@@ -368,9 +354,8 @@ pub async fn start_bot(
         app_state.clone(),
         storage,
         username.clone(),
-        api_client,
-        captcha_api_client,
-        BotUsername(fallback_bot_username)
+        app_state.api.clone(),
+        app_state.captcha_api.clone()
     ])
     .default_handler(|upd| async move {
         tracing::warn!("Unhandled update: {upd:?}");
@@ -378,12 +363,7 @@ pub async fn start_bot(
     .enable_ctrlc_handler()
     .build();
 
-    tokio::select! {
-        _ = dispatcher.dispatch() => {},
-        _ = cancel_token.cancelled() => {
-            tracing::info!("Cancellation requested for bot {username}");
-        }
-    }
+    dispatcher.dispatch().await;
 
     listener_handle.abort();
     bot.delete_webhook().await?;
@@ -399,6 +379,7 @@ async fn command_handler(
     username: String,
     api_client: Arc<BackendApi>,
     captcha_api_client: Arc<CaptchaApi>,
+    app_state: AppState,
 ) -> AppResult<()> {
     match cmd {
         Command::Start => {
@@ -412,6 +393,12 @@ async fn command_handler(
                 captcha_api_client,
             )
             .await
+        }
+        Command::MyBots => {
+            dialogue
+                .update(BotState::WaitingForReferralBotToken)
+                .await?;
+            my_bots_handler(bot, dialogue, app_state).await
         }
     }
 }

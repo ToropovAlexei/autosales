@@ -273,4 +273,43 @@ impl BackendApi {
                 })
             })
     }
+
+    pub async fn get_bots(&self, bot_type: &str) -> AppResult<Vec<crate::models::Bot>> {
+        self.api_client
+            .get::<BackendResponse<Vec<crate::models::Bot>>>(&format!("bots?type={bot_type}"))
+            .await
+            .and_then(|res| {
+                res.data.ok_or_else(|| {
+                    AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
+                })
+            })
+    }
+
+    pub async fn create_referral_bot(&self, telegram_id: i64, bot_token: &str) -> AppResult<crate::models::Bot> {
+        self.api_client
+            .post_with_body::<BackendResponse<crate::models::Bot>, _>(
+                "referrals",
+                &json!({"owner_id": telegram_id, "bot_token": bot_token}),
+            )
+            .await
+            .and_then(|res| {
+                res.data.ok_or_else(|| {
+                    AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
+                })
+            })
+    }
+
+    pub async fn create_main_bot(&self, token: &str, username: &str) -> AppResult<crate::models::Bot> {
+        self.api_client
+            .post_with_body::<BackendResponse<crate::models::Bot>, _>(
+                "bots/main",
+                &json!({"token": token, "username": username}),
+            )
+            .await
+            .and_then(|res| {
+                res.data.ok_or_else(|| {
+                    AppError::BadRequest(res.error.unwrap_or_else(|| "Unknown error".to_string()))
+                })
+            })
+    }
 }

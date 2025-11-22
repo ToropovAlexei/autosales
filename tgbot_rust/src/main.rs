@@ -1,8 +1,9 @@
 use std::sync::Arc;
 
 use anyhow::Context;
+use tgbot_rust::bot_manager::BotManager;
 use tgbot_rust::config::Config;
-use tgbot_rust::monitor::manage_main_bots;
+use tgbot_rust::health_checker::HealthChecker;
 use tgbot_rust::webhook::create_webhook_service;
 use tgbot_rust::{AppState, init_logging};
 
@@ -19,21 +20,23 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("Failed to bind TCP listener")?;
 
-    let monitor_handle = tokio::spawn(manage_main_bots(app_state));
+    let bot_manager = Arc::new(tokio::sync::Mutex::new(BotManager::new(app_state)));
+    bot_manager.lock().await.start_bots().await?;
+
+    let health_checker = HealthChecker::new(bot_manager.clone());
+    let health_checker_handle = tokio::spawn(async move {
+        health_checker.start().await;
+    });
 
     let server = axum::serve(listener, webhook_service);
 
+    let mut bot_manager_guard = bot_manager.lock().await;
     tokio::select! {
-        res = monitor_handle => {
-            match res {
-                Ok(Ok(())) => tracing::info!("Bot manager exited cleanly."),
-                Ok(Err(e)) => tracing::error!("Bot manager exited with error: {e}"),
-                Err(e) => tracing::error!("Bot manager task panicked: {e}"),
-            }
+        _ = bot_manager_guard.wait_for_all() => {
+            tracing::info!("All bots have exited.");
         },
-        res = server => {
-            res.context("Server error")?;
-        }
+        _ = server => {},
+        _ = health_checker_handle => {},
     }
 
     Ok(())
