@@ -85,20 +85,9 @@ async def buy_handler(callback_query: CallbackQuery, state: FSMContext, api_clie
         data = await state.get_data()
         referral_bot_id = data.get("referral_bot_id")
 
-        if len(parts) >= 2 and parts[1] == 'ext':
-            # External product: buy_ext_{provider}_{external_id}
-            # Provider name can contain underscores, so we reassemble it.
-            if len(parts) < 4:
-                raise ValueError("Invalid external buy callback format")
-            
-            provider = '_'.join(parts[2:-1])
-            external_id = parts[-1]
-            result = await api_client.buy_external_product(telegram_id, provider, external_id, referral_bot_id=referral_bot_id)
-        else:
-            # Internal product: buy_{product_id}
-            _, product_id_str = parts
-            product_id = int(product_id_str)
-            result = await api_client.buy_product(telegram_id, product_id, referral_bot_id=referral_bot_id)
+        _, product_id_str = parts
+        product_id = int(product_id_str)
+        result = await api_client.buy_product(telegram_id, product_id, referral_bot_id=referral_bot_id)
         
         await process_buy_result(callback_query, result, bot, api_client)
 

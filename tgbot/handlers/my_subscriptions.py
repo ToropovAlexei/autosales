@@ -45,6 +45,10 @@ async def my_subscriptions_handler(callback_query: CallbackQuery, api_client: AP
                         details = json.loads(details_json) if isinstance(details_json, str) else details_json
                         if details:
                             response_text += f"   {hbold('Данные для доступа:')}\n"
+                            if 'host' in details:
+                                response_text += f"     - Хост: {hcode(str(details['host']))}\n"
+                            if 'port' in details:
+                                response_text += f"     - Порт: {hcode(str(details['port']))}\n"
                             if 'username' in details:
                                 response_text += f"     - Логин: {hcode(str(details['username']))}\n"
                             if 'password' in details:

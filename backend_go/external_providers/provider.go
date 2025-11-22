@@ -13,6 +13,8 @@ type ProviderProduct struct {
 	Description string
 	Type        string // e.g., "item", "subscription"
 	Category    []string
+	Host        string
+	Port        int
 	// Metadata can store any other provider-specific information.
 	Metadata map[string]interface{}
 }

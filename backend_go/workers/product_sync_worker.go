@@ -88,6 +88,10 @@ func (w *ProductSyncWorker) syncProducts() error {
 				if !localProduct.Visible {
 					updateMap["visible"] = true // Re-enable if it was soft-deleted
 				}
+				if externalProduct.Host != "" {
+					updateMap["fulfillment_type"] = "text"
+					updateMap["fulfillment_content"] = fmt.Sprintf("Host: %s\nPort: %d", externalProduct.Host, externalProduct.Port)
+				}
 
 				if len(updateMap) > 0 {
 					if err := w.productRepo.UpdateProduct(&localProduct, updateMap); err != nil {
@@ -106,6 +110,10 @@ func (w *ProductSyncWorker) syncProducts() error {
 					ProviderName: &providerName,
 					ExternalID:   &externalProduct.ExternalID,
 					Visible:      true,
+				}
+				if externalProduct.Host != "" {
+					newProduct.FulfillmentType = "text"
+					newProduct.FulfillmentContent = fmt.Sprintf("Host: %s\nPort: %d", externalProduct.Host, externalProduct.Port)
 				}
 				if err := w.productRepo.CreateProduct(newProduct); err != nil {
 					slog.Error("failed to create external product", "key", key, "error", err)

@@ -2,7 +2,6 @@ package gateways
 
 import (
 	"frbktg/backend_go/external_providers/platform_payment_system"
-	"frbktg/backend_go/models"
 	"net/http"
 )
 
@@ -49,27 +48,24 @@ func (a *PlatformPaymentSystemAdapter) HandleWebhook(r *http.Request) (*WebhookR
 	return nil, nil
 }
 
-func (a *PlatformPaymentSystemAdapter) GetInvoiceStatus(gatewayInvoiceID string) (*StatusResult, error) {
+func (a *PlatformPaymentSystemAdapter) GetInvoiceStatus(gatewayInvoiceID string) (string, error) {
 	resp, err := a.client.OrderGetStatus(gatewayInvoiceID)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	var internalStatus string
 
 	switch resp.Data.Status.Status {
 	case "trader_success", "merch_success", "system_timer_end_merch_process_success", "system_timer_end_merch_check_down_success", "admin_appeal_success":
-		internalStatus = string(models.InvoiceStatusCompleted)
+		internalStatus = InvoiceStatusCompleted
 	case "system_timer_end_merch_initialized_cancel", "order_cancel", "merch_cancel", "system_timer_end_trader_check_query_cancel", "admin_appeal_cancel": // Assuming these are failure/cancel statuses
-		internalStatus = string(models.InvoiceStatusFailed)
+		internalStatus = InvoiceStatusFailed
 	default:
-		internalStatus = string(models.InvoiceStatusPending)
+		internalStatus = InvoiceStatusPending
 	}
 
-	return &StatusResult{
-		Status:           internalStatus,
-		GatewayInvoiceID: gatewayInvoiceID,
-	}, nil
+	return internalStatus, nil
 }
 
 func (a *PlatformPaymentSystemAdapter) ConfirmPayment(gatewayInvoiceID string) error {

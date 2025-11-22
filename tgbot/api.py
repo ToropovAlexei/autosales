@@ -73,17 +73,6 @@ class APIClient:
             payload["referral_bot_id"] = referral_bot_id
         return await self._request("POST", "/orders/buy-from-balance", json=payload)
 
-    async def buy_external_product(self, telegram_id: int, provider: str, external_product_id: str, referral_bot_id: int = None):
-        payload = {
-            "user_id": telegram_id, 
-            "provider": provider, 
-            "external_product_id": external_product_id, 
-            "quantity": 1
-        }
-        if referral_bot_id:
-            payload["referral_bot_id"] = referral_bot_id
-        return await self._request("POST", "/orders/buy-from-balance", json=payload)
-
     async def get_payment_gateways(self):
         return await self._request("GET", "/gateways")
 

@@ -7,6 +7,7 @@ import (
 	"frbktg/backend_go/external_providers"
 	"frbktg/backend_go/models"
 	"io"
+	"log"
 	"net/http"
 	"time"
 )
@@ -26,6 +27,7 @@ type AvailableProxy struct {
 	Name string `json:"name"`
 	Type string `json:"type"`
 	Host string `json:"host"`
+	Port int    `json:"port"`
 }
 
 type AvailableResponse struct {
@@ -90,6 +92,8 @@ func (a *ContMSProxyAdapter) doRequest(payload interface{}, responseContainer in
 		return fmt.Errorf("failed to marshal request payload: %w", err)
 	}
 
+	log.Printf("sending request to %s, body: %s", a.baseURL, string(body))
+
 	req, err := http.NewRequest("POST", a.baseURL, bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
@@ -102,13 +106,15 @@ func (a *ContMSProxyAdapter) doRequest(payload interface{}, responseContainer in
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("received non-OK HTTP status: %s", resp.Status)
-	}
-
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	log.Printf("received response from %s, status: %s, body: %s", a.baseURL, resp.Status, string(respBody))
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("received non-OK HTTP status: %s", resp.Status)
 	}
 
 	if err := json.Unmarshal(respBody, responseContainer); err != nil {
@@ -135,10 +141,12 @@ func (a *ContMSProxyAdapter) GetProducts() ([]external_providers.ProviderProduct
 		products = append(products, external_providers.ProviderProduct{
 			ExternalID:  p.Name,
 			Name:        fmt.Sprintf("Proxy %s (%s)", p.Name, p.Type),
-			Price:       100, // Price is not in the API, so we assume a fixed price.
-			Description: fmt.Sprintf("A %s proxy server at %s", p.Type, p.Host),
+			Price:       0, // Price is not in the API, so we assume a fixed price.
+			Description: fmt.Sprintf("A %s proxy server at %s:%d", p.Type, p.Host, p.Port),
 			Type:        "subscription",
 			Category:    []string{"PROXY", p.Type},
+			Host:        p.Host,
+			Port:        p.Port,
 		})
 	}
 

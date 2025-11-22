@@ -8,6 +8,8 @@ import (
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
 	"log/slog"
+	"strconv"
+	"strings"
 	"time"
 
 	"gorm.io/gorm"
@@ -178,6 +180,16 @@ func (s *orderService) BuyFromBalance(req BuyRequest) (*BuyResponse, error) {
 			if err := s.handleSubscriptionPurchase(tx, user.ID, product, order.ID, provisionedID, provisionResult.Details); err != nil {
 				return err
 			}
+
+			// Augment fulfillment content with dynamic data for the response
+			dynamicContent := ""
+			if username, ok := provisionResult.Details["username"].(string); ok {
+				dynamicContent += fmt.Sprintf("\nUsername: %s", username)
+			}
+			if password, ok := provisionResult.Details["password"].(string); ok {
+				dynamicContent += fmt.Sprintf("\nPassword: %s", password)
+			}
+			order.FulfilledContent = product.FulfillmentContent + dynamicContent
 		}
 
 		if err := s.createOrderTransactionsAndMovements(tx, user, product, *order, orderAmount); err != nil {
@@ -185,8 +197,12 @@ func (s *orderService) BuyFromBalance(req BuyRequest) (*BuyResponse, error) {
 		}
 
 		// --- Fulfillment Logic ---
-		if product.FulfillmentType != "none" && product.FulfillmentContent != "" {
+		// For non-subscription items
+		if product.Type != "subscription" && product.FulfillmentType != "none" && product.FulfillmentContent != "" {
 			order.FulfilledContent = product.FulfillmentContent
+		}
+
+		if order.FulfilledContent != "" {
 			if err := s.orderRepo.WithTx(tx).UpdateOrder(order); err != nil {
 				// Log the error but don't fail the transaction
 				slog.Error("failed to update order with fulfilled content", "order_id", order.ID, "error", err)
@@ -225,6 +241,28 @@ func (s *orderService) BuyFromBalance(req BuyRequest) (*BuyResponse, error) {
 func (s *orderService) handleSubscriptionPurchase(tx *gorm.DB, botUserID uint, product *models.Product, orderID uint, provisionedID string, details map[string]interface{}) error {
 	subscriptionRepo := s.userSubscriptionRepo.WithTx(tx)
 
+	if details == nil {
+		details = make(map[string]interface{})
+	}
+
+	// Parse host and port from fulfillment content and add to details
+	if product.FulfillmentContent != "" {
+		lines := strings.Split(product.FulfillmentContent, "\n")
+		for _, line := range lines {
+			parts := strings.SplitN(line, ":", 2)
+			if len(parts) == 2 {
+				key := strings.TrimSpace(strings.ToLower(parts[0]))
+				value := strings.TrimSpace(parts[1])
+				if key == "host" {
+					details["host"] = value
+				} else if key == "port" {
+					if port, err := strconv.Atoi(value); err == nil {
+						details["port"] = port
+					}
+				}
+			}
+		}
+	}
 	// Convert details to JSON
 	detailsJSON, err := json.Marshal(details)
 	if err != nil {

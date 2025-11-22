@@ -95,16 +95,10 @@ def categories_menu(categories: list, parent_id: int = 0, products: list = [], c
         )])
     
     for product in products:
-        if product.get('provider'):
-            buttons.append([InlineKeyboardButton(
-                text=f"🔹 {product['name']} - {product['price']} ₽", 
-                callback_data=f"extproduct_{product['provider']}_{product['external_id']}"
-            )])
-        else:
-            buttons.append([InlineKeyboardButton(
-                text=f"🔹 {product['name']} - {product['price']} ₽", 
-                callback_data=f"product_{product['id']}_{category_id}"
-            )])
+        buttons.append([InlineKeyboardButton(
+            text=f"🔹 {product['name']} - {product['price']} ₽", 
+            callback_data=f"product_{product['id']}_{category_id}"
+        )])
     
     if parent_id == 0:
         buttons.append([InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu")])
@@ -119,10 +113,7 @@ def categories_menu(categories: list, parent_id: int = 0, products: list = [], c
 def products_menu(products: list, category_id: int, parent_id: int):
     buttons = []
     for product in products:
-        if product.get('provider'):
-            buttons.append([InlineKeyboardButton(text=f"{product['name']} - {product['price']} ₽", callback_data=f"extproduct_{product['provider']}_{product['external_id']}")])
-        else:
-            buttons.append([InlineKeyboardButton(text=f"{product['name']} - {product['price']} ₽", callback_data=f"product_{product['id']}_{category_id}")])
+        buttons.append([InlineKeyboardButton(text=f"{product['name']} - {product['price']} ₽", callback_data=f"product_{product['id']}_{category_id}")])
     
     buttons.append([InlineKeyboardButton(
         text="⬅️ Назад к категориям", 
@@ -132,19 +123,11 @@ def products_menu(products: list, category_id: int, parent_id: int):
 
 def product_card(product: dict):
     buttons = []
-    if product.get('provider'):
-        buttons.append([InlineKeyboardButton(text="✅ Купить", callback_data=f"buy_ext_{product['provider']}_{product['external_id']}")])
-        # For external products, "back" returns to the root catalog
-        buttons.append([InlineKeyboardButton(
-            text="⬅️ Назад к каталогу", 
-            callback_data=CategoryCallback(action="view", category_id=0).pack()
-        )])
-    else:
-        buttons.append([InlineKeyboardButton(text="✅ Купить", callback_data=f"buy_{product['id']}")])
-        buttons.append([InlineKeyboardButton(
-            text="⬅️ Назад к товарам", 
-            callback_data=CategoryCallback(action="view", category_id=product['category_id']).pack()
-        )])
+    buttons.append([InlineKeyboardButton(text="✅ Купить", callback_data=f"buy_{product['id']}")])
+    buttons.append([InlineKeyboardButton(
+        text="⬅️ Назад к товарам", 
+        callback_data=CategoryCallback(action="view", category_id=product['category_id']).pack()
+    )])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def back_to_main_menu_keyboard():

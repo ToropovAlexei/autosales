@@ -84,7 +84,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 
 	// Init provider registry
 	providerRegistry := external_providers.NewProviderRegistry()
-	contmsAdapter := contms.NewContMSProxyAdapter("http://api.contms.ru:4850")
+	contmsAdapter := contms.NewContMSProxyAdapter("http://api.contms.ru:4850/api")
 	providerRegistry.RegisterProvider(contmsAdapter)
 
 	// Init payment gateway registry
