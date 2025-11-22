@@ -110,7 +110,7 @@ func main() {
 	routers.RegisterDashboardRoutes(r, container.DashboardHandler, container.AuthMiddleware)
 	routers.RegisterPaymentRoutes(r, container.PaymentHandler, container.AuthMiddleware)
 	routers.RegisterStatsRoutes(r, container.StatsHandler, container.AuthMiddleware, appSettings)
-	routers.RegisterBotRoutes(r, container.BotHandler, container.ProductHandler, container.AuthMiddleware, appSettings)
+	routers.RegisterBotRoutes(r, container.BotHandler, container.ProductHandler, container.OrderHandler, container.AuthMiddleware, appSettings)
 	routers.RegisterSettingRoutes(r, container.SettingHandler, container.AuthMiddleware)
 	routers.RegisterImageRoutes(r, container.ImageHandler, container.AuthMiddleware)
 	routers.RegisterRoleRoutes(r, container.RoleHandler, container.AuthMiddleware)
