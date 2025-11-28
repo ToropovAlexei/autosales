@@ -62,11 +62,34 @@ export const UserModal = ({
         ) : (
           <FormProvider {...form}>
             <Stack gap={2} py={2}>
-              <InputText name="email" label="Email" type="email" />
-              <InputPassword name="password" label="Пароль" />
+              <InputText
+                name="email"
+                label="Email"
+                type="email"
+                rules={{
+                  validate: (value) => {
+                    const emailRegex =
+                      /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
+                    return emailRegex.test(value) || "Некорректный email";
+                  },
+                }}
+              />
+              <InputPassword
+                name="password"
+                label="Пароль"
+                rules={{
+                  minLength: {
+                    value: 6,
+                    message: "Минимальная длина пароля 6 символов",
+                  },
+                }}
+              />
               <InputSelect
                 name="role_id"
                 label="Роль"
+                rules={{
+                  required: "Поле обязательно к заполнению",
+                }}
                 options={
                   allRoles?.data.map((role) => ({
                     value: role.id,

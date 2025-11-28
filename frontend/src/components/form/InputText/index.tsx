@@ -1,13 +1,20 @@
 import { BaseTextFieldProps, TextField } from "@mui/material";
-import { useController } from "react-hook-form";
+import { RegisterOptions, useController } from "react-hook-form";
 
 interface IProps
   extends Omit<BaseTextFieldProps, "name" | "onChange" | "value"> {
   name: string;
   label?: string;
+  rules?: RegisterOptions;
 }
 
-export const InputText = ({ name, label, required, ...props }: IProps) => {
+export const InputText = ({
+  name,
+  label,
+  required,
+  rules,
+  ...props
+}: IProps) => {
   const {
     field: { value, onChange },
     fieldState: { error },
@@ -15,6 +22,7 @@ export const InputText = ({ name, label, required, ...props }: IProps) => {
     name,
     defaultValue: "",
     rules: {
+      ...rules,
       required: required && "Поле обязательно к заполнению",
     },
   });

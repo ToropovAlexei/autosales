@@ -5,7 +5,7 @@ import {
   MenuItem,
   Select,
 } from "@mui/material";
-import { useController } from "react-hook-form";
+import { RegisterOptions, useController } from "react-hook-form";
 
 type Option = {
   value: string | number;
@@ -17,13 +17,14 @@ interface IProps {
   options?: Option[];
   label?: string;
   disabled?: boolean;
+  rules?: RegisterOptions;
 }
 
-export const InputSelect = ({ name, label, options }: IProps) => {
+export const InputSelect = ({ name, label, options, rules }: IProps) => {
   const {
     field: { value, onChange },
     fieldState: { error },
-  } = useController({ name, defaultValue: "" });
+  } = useController({ name, rules, defaultValue: "" });
 
   return (
     <FormControl error={!!error}>
