@@ -91,10 +91,11 @@ export const MENU_ITEMS = [
     path: "/settings",
     permission: "settings:read",
   },
-  { // New menu item for Balance Management
+  {
+    // New menu item for Balance Management
     label: "Управление Балансом",
     Icon: AccountBalanceWalletIcon,
     path: "/balance",
-    permission: "balance:manage",
+    permission: "store_balance:manage",
   },
 ];

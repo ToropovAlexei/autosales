@@ -1,21 +1,29 @@
-'use client';
+"use client";
 
 import { Authorized, Sidebar } from "@/components";
 import { Box } from "@mui/material";
 import { alpha } from "@mui/material/styles";
-import { NavBar } from '@/components/NavBar';
-import classes from './styles.module.css';
+import { NavBar } from "@/components/NavBar";
+import classes from "./styles.module.css";
+import { useState } from "react";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const [isMobileDrawerOpen, setMobileDrawerOpen] = useState(false);
+
+  const handleToggleMobileDrawer = () => setMobileDrawerOpen((p) => !p);
+
   return (
     <Authorized>
       <Box sx={{ display: "flex" }}>
-        <NavBar />
-        <Sidebar />
+        <NavBar toggleMobileDrawer={handleToggleMobileDrawer} />
+        <Sidebar
+          mobileOpen={isMobileDrawerOpen}
+          toggleMobileDrawer={handleToggleMobileDrawer}
+        />
         <Box
           component="main"
           className={classes.mainContent}

@@ -153,11 +153,10 @@ func createRbacData(db *gorm.DB) map[string]models.Permission {
 		{Name: "images:read", Group: "Images"}, {Name: "images:upload", Group: "Images"}, {Name: "images:delete", Group: "Images"},
 		{Name: "referrals:read", Group: "Referrals"}, {Name: "referrals:update", Group: "Referrals"},
 		{Name: "transactions:read", Group: "Transactions"},
-		{Name: "balance:read", Group: "Balance"},
 		{Name: "store_balance:read", Group: "Balance"},
 		{Name: "stock:read", Group: "Stock"}, {Name: "stock:update", Group: "Stock"},
 		{Name: "audit_log.read", Group: "AuditLog"},
-		{Name: "balance:manage", Group: "Balance"},
+		{Name: "store_balance:manage", Group: "Balance"},
 	}
 	permissionsMap := make(map[string]models.Permission)
 	for _, p := range permissionsList {
@@ -224,7 +223,7 @@ func createTestUsers(db *gorm.DB, permissions map[string]models.Permission, twoF
 	if accountantRole.ID != 0 {
 		db.Create(&models.UserRole{UserID: accountant.ID, RoleID: accountantRole.ID})
 		db.Create(&models.RolePermission{RoleID: accountantRole.ID, PermissionID: permissions["transactions:read"].ID})
-		db.Create(&models.RolePermission{RoleID: accountantRole.ID, PermissionID: permissions["balance:read"].ID})
+		db.Create(&models.RolePermission{RoleID: accountantRole.ID, PermissionID: permissions["store_balance:read"].ID})
 	}
 	fmt.Printf("User created: accountant@example.com, 2FA Secret: %s\n", secretAccountant)
 
