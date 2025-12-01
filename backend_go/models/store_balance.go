@@ -1,8 +1,10 @@
 package models
 
+import "gorm.io/gorm"
+
 type StoreBalance struct {
-	ID             uint    `gorm:"primaryKey"`
-	CurrentBalance float64 `gorm:"not null"`
+	gorm.Model
+	CurrentBalance float64 `gorm:"not null;default:0"`
 }
 
 type StoreBalanceResponse struct {

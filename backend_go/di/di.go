@@ -45,6 +45,7 @@ type Container struct {
 	SettingService         services.SettingService
 	RoleService            services.RoleService
 	AuditLogService        services.AuditLogService
+	BotStatusService       services.BotStatusService
 	StoreBalanceService    services.StoreBalanceService
 	UserRepo               repositories.UserRepository
 	TemporaryTokenRepo     repositories.TemporaryTokenRepository
@@ -66,6 +67,7 @@ type Container struct {
 	RoleHandler            *handlers.RoleHandler
 	AuditLogHandler        *handlers.AuditLogHandler
 	CaptchaHandler         *handlers.CaptchaHandler
+	BotStatusHandler       *handlers.BotStatusHandler
 	StoreBalanceHandler    *handlers.StoreBalanceHandler
 	AuthMiddleware         *middleware.AuthMiddleware
 	SubscriptionWorker     *workers.SubscriptionWorker
@@ -160,7 +162,8 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	adminService := services.NewAdminService(adminRepo, botUserRepo)
 	webhookService := services.NewWebhookService(appSettings)
 	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, userSubscriptionRepo, categoryRepo, referralService, botService, providerRegistry, webhookService)
-	storeBalanceService := services.NewStoreBalanceService(storeBalanceRepo, db)
+	storeBalanceService := services.NewStoreBalanceService(storeBalanceRepo)
+	botStatusService := services.NewBotStatusService(storeBalanceService)
 	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo, botUserRepo, webhookService, settingService, appSettings, storeBalanceService)
 	imageService := services.NewImageService(db, imageRepo, appSettings)
 	roleService := services.NewRoleService(roleRepo, auditLogService)
@@ -189,6 +192,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	roleHandler := handlers.NewRoleHandler(roleService)
 	auditLogHandler := handlers.NewAuditLogHandler(auditLogService)
 	captchaHandler := handlers.NewCaptchaHandler()
+	botStatusHandler := handlers.NewBotStatusHandler(botStatusService)
 	storeBalanceHandler := handlers.NewStoreBalanceHandler(storeBalanceService)
 
 	authMiddleware := middleware.NewAuthMiddleware(tokenService, userService)
@@ -219,6 +223,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 		SettingService:         *settingService,
 		RoleService:            roleService,
 		AuditLogService:        auditLogService,
+		BotStatusService:       botStatusService,
 		StoreBalanceService:    storeBalanceService,
 		UserRepo:               userRepo,
 		TemporaryTokenRepo:     temporaryTokenRepo,
@@ -240,6 +245,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 		RoleHandler:            roleHandler,
 		AuditLogHandler:        auditLogHandler,
 		CaptchaHandler:         captchaHandler,
+		BotStatusHandler:       botStatusHandler,
 		StoreBalanceHandler:    storeBalanceHandler,
 		AuthMiddleware:         authMiddleware,
 		SubscriptionWorker:     subscriptionWorker,

@@ -119,6 +119,7 @@ func dropAllTables(db *gorm.DB) {
 		&models.ActiveToken{},
 		&models.TemporaryToken{},
 		&models.Setting{},
+		&models.StoreBalance{},
 	}
 	if err := db.Migrator().DropTable(tables...); err != nil {
 		log.Fatalf("Failed to drop tables: %v", err)
@@ -135,6 +136,7 @@ func autoMigrate(db *gorm.DB) {
 		&models.RolePermission{}, &models.UserRole{}, &models.UserPermission{}, &models.Setting{},
 		&models.ActiveToken{},
 		&models.TemporaryToken{},
+		&models.StoreBalance{},
 	); err != nil {
 		log.Fatalf("Failed to auto-migrate: %v", err)
 	}
@@ -456,17 +458,31 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 	db.Create(&allPurchaseTransactions)
 	db.Create(&allStockMovements)
 
+	// Create a final transaction to make the balance negative
+	negativeTransaction := models.Transaction{
+		Type:              models.Withdrawal,
+		Amount:            0,
+		Description:       "Manual adjustment for testing",
+		StoreBalanceDelta: -2000.0, // A large negative number
+	}
+	db.Create(&negativeTransaction)
+	fmt.Println("Created a negative transaction to test balance check.")
+
 	fmt.Println("Phase 3: Updating user balances.")
 	for userID, balance := range userBalances {
 		db.Model(&models.BotUser{}).Where("id = ?", userID).Update("balance", balance)
 	}
 
-	fmt.Println("Phase 4: Updating store balance.")
+	fmt.Println("Phase 4: Calculating and setting final store balance.")
+	var finalStoreBalance float64
+	db.Model(&models.Transaction{}).Select("sum(store_balance_delta)").Row().Scan(&finalStoreBalance)
+
 	// Ensure the balance record exists and is zeroed out before setting the final calculated balance.
-	// A more robust way would be to use the repository's GetOrCreate method if it existed.
 	db.Exec("DELETE FROM store_balances")
-	if err := db.Create(&models.StoreBalance{ID: 1, CurrentBalance: totalStoreBalanceDelta}).Error; err != nil {
+	balance := models.StoreBalance{CurrentBalance: finalStoreBalance}
+	balance.ID = 1
+	if err := db.Create(&balance).Error; err != nil {
 		log.Fatalf("Failed to create and set store balance: %v", err)
 	}
-	fmt.Printf("Final store balance set to: %.2f\n", totalStoreBalanceDelta)
+	fmt.Printf("Final store balance set to: %.2f\n", finalStoreBalance)
 }

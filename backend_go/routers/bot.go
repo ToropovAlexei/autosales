@@ -8,13 +8,14 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterBotRoutes(router *gin.Engine, botHandler *handlers.BotHandler, productHandler *handlers.ProductHandler, orderHandler *handlers.OrderHandler, authMiddleware *middleware.AuthMiddleware, appSettings *config.Config) {
+func RegisterBotRoutes(router *gin.Engine, botHandler *handlers.BotHandler, productHandler *handlers.ProductHandler, orderHandler *handlers.OrderHandler, botStatusHandler *handlers.BotStatusHandler, authMiddleware *middleware.AuthMiddleware, appSettings *config.Config) {
 	botRoutes := router.Group("/api/bot")
 	botRoutes.Use(middleware.ServiceTokenMiddleware(appSettings))
 	{
 		botRoutes.GET("/products", productHandler.GetProductsForBotHandler)
 		botRoutes.GET("/products/:id", productHandler.GetProductForBotHandler)
 		botRoutes.GET("/orders/:id", orderHandler.GetOrderHandler)
+		botRoutes.GET("/status", botStatusHandler.GetBotStatus)
 		botRoutes.POST("/invoices/:order_id/confirm", botHandler.ConfirmPayment)
 		botRoutes.POST("/invoices/:order_id/cancel", botHandler.CancelPayment)
 	}

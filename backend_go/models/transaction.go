@@ -7,8 +7,9 @@ import (
 type TransactionType string
 
 const (
-	Deposit  TransactionType = "deposit"
-	Purchase TransactionType = "purchase"
+	Deposit    TransactionType = "deposit"
+	Purchase   TransactionType = "purchase"
+	Withdrawal TransactionType = "withdrawal"
 )
 
 type Transaction struct {

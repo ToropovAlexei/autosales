@@ -131,3 +131,6 @@ class APIClient:
             "height": height,
         }
         return await self._request("GET", "/captcha", params=params)
+
+    async def get_bot_status(self):
+        return await self._request("GET", "/bot/status")

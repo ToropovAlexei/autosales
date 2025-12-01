@@ -25,6 +25,7 @@ func NewStoreBalanceHandler(service services.StoreBalanceService) *StoreBalanceH
 // @Success 200 {object} responses.ResponseSchema[models.StoreBalanceResponse]
 // @Failure 500 {object} responses.ErrorResponse
 // @Router /admin/store-balance [get]
+// @Security ApiKeyAuth
 func (h *StoreBalanceHandler) GetStoreBalance(c *gin.Context) {
 	balance, err := h.service.GetStoreBalance()
 	if err != nil {

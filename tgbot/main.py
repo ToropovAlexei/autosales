@@ -2,9 +2,11 @@ import asyncio
 import logging
 import json
 
-from aiogram import Bot, Dispatcher
+from aiogram import Bot, Dispatcher, BaseMiddleware
 from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.types import TelegramObject, InlineKeyboardButton, InlineKeyboardMarkup
+from typing import Callable, Dict, Any, Awaitable
 import redis.asyncio as redis
 
 from keyboards.inline import back_to_main_menu_keyboard
@@ -14,6 +16,37 @@ from handlers import start, balance, catalog, buy, referral, my_bots, my_subscri
 from api import APIClient
 from logging_config import setup_logging
 from middleware.block_check import BlockCheckMiddleware
+
+# Global flag to control bot operation
+BOT_CAN_OPERATE = True
+
+class CanOperateMiddleware(BaseMiddleware):
+    async def __call__(
+        self,
+        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        event: TelegramObject,
+        data: Dict[str, Any],
+    ) -> Any:
+        if not BOT_CAN_OPERATE:
+            logging.warning("Store balance is low. Bot is disabled. Ignoring update.")
+            return
+        return await handler(event, data)
+
+async def check_bot_status(api_client: APIClient):
+    """Periodically checks with the backend if the bot is allowed to operate."""
+    global BOT_CAN_OPERATE
+    while True:
+        try:
+            response = await api_client.get_bot_status()
+            can_operate = response.get("data", {}).get("can_operate", False)
+            if can_operate != BOT_CAN_OPERATE:
+                logging.info(f"Bot operational status changed to: {can_operate}")
+                BOT_CAN_OPERATE = can_operate
+        except Exception as e:
+            logging.exception(f"Failed to check bot operational status: {e}. Assuming it cannot operate.")
+            BOT_CAN_OPERATE = False
+        await asyncio.sleep(30)
+
 
 async def redis_listener(bot: Bot, redis_client: redis.Redis, bot_username: str):
     pubsub = redis_client.pubsub()
@@ -93,6 +126,7 @@ async def main():
     dp = Dispatcher(storage=storage, api_client=api_client, bot=bot)
 
     dp.update.middleware(BlockCheckMiddleware())
+    dp.update.middleware(CanOperateMiddleware()) # Register the new middleware
 
     dp.include_router(start.router)
     dp.include_router(balance.router)
@@ -104,16 +138,22 @@ async def main():
     dp.include_router(my_orders.router)
     dp.include_router(payment.router)
 
+
     await bot.delete_webhook(drop_pending_updates=True)
     
+    # Start background tasks
     listener_task = asyncio.create_task(redis_listener(bot, redis_client, me.username))
+    status_check_task = asyncio.create_task(check_bot_status(api_client))
+
 
     try:
         await dp.start_polling(bot)
     finally:
-        logging.info("Stopping bot, cancelling listener task...")
+        logging.info("Stopping bot, cancelling background tasks...")
         listener_task.cancel()
-        await listener_task
+        status_check_task.cancel()
+        await asyncio.gather(listener_task, status_check_task, return_exceptions=True)
+
 
 if __name__ == "__main__":
     try:
