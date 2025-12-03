@@ -12,6 +12,7 @@ import (
 
 type TokenService interface {
 	GenerateToken(user *models.User) (string, string, time.Time, error)
+	GenerateTemporaryToken(email string) (string, error)
 	ValidateToken(tokenString string) (*jwt.Token, error)
 }
 
@@ -28,6 +29,17 @@ func NewTokenService(secretKey string, expireMinutes int, activeTokenRepo reposi
 		activeTokenRepo: activeTokenRepo,
 	}
 }
+
+func (s *tokenService) GenerateTemporaryToken(email string) (string, error) {
+	expirationTime := time.Now().Add(5 * time.Minute)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"sub": email,
+		"exp": expirationTime.Unix(),
+	})
+
+	return token.SignedString([]byte(s.secretKey))
+}
+
 
 func (s *tokenService) GenerateToken(user *models.User) (string, string, time.Time, error) {
 	jti := uuid.New().String()

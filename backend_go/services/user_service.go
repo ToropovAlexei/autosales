@@ -16,49 +16,69 @@ import (
 
 type UserService interface {
 	GetMe(user models.User) *models.UserResponse
-	GetMeByEmail(email string) (*models.User, error)
-	GetUsers(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.User], error)
-	CreateUser(ctx *gin.Context, email, password string, roleID uint) (*models.CreateUserResponse, error)
-	UpdateReferralSettings(ctx *gin.Context, user *models.User, enabled bool, percentage float64) error
-	RegisterBotUser(telegramID int64, botName string) (*models.BotUser, float64, bool, bool, error)
-	GetBotUser(id uint) (*models.BotUser, float64, error)
-	GetBotUserByTelegramID(telegramID int64, botName string) (*models.BotUser, float64, error)
-	ToggleBlockUser(ctx *gin.Context, telegramID int64) error
-	GetUserBalance(telegramID int64) (float64, error)
-	GetUserTransactions(telegramID int64) ([]models.Transaction, error)
-	GetUserSubscriptionsByTelegramID(telegramID int64) ([]models.UserSubscription, error)
-	GetUserOrdersByTelegramID(telegramID int64) ([]models.Order, error)
-	UpdateUserCaptchaStatus(id uint, hasPassed bool) error
-	UpdateUserCaptchaStatusByTelegramID(telegramID int64, hasPassed bool) error
-}
-
-type userService struct {
-	userRepo             repositories.UserRepository
-	botUserRepo          repositories.BotUserRepository
-	userSubscriptionRepo repositories.UserSubscriptionRepository
-	orderRepo            repositories.OrderRepository
-	auditLogService      AuditLogService
-	twoFAService         TwoFAService
-}
-
-func NewUserService(userRepo repositories.UserRepository, botUserRepo repositories.BotUserRepository, userSubscriptionRepo repositories.UserSubscriptionRepository, orderRepo repositories.OrderRepository, auditLogService AuditLogService, twoFAService TwoFAService) UserService {
-	return &userService{
-		userRepo:             userRepo,
-		botUserRepo:          botUserRepo,
-		userSubscriptionRepo: userSubscriptionRepo,
-		orderRepo:            orderRepo,
-		auditLogService:      auditLogService,
-		twoFAService:         twoFAService,
+		GetMeByEmail(email string) (*models.User, error)
+		FindByTelegramID(telegramID int64) (*models.User, error)
+		GetUsers(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.User], error)
+		CreateUser(ctx *gin.Context, email, password string, roleID uint) (*models.CreateUserResponse, error)
+		UpdateReferralSettings(ctx *gin.Context, user *models.User, enabled bool, percentage float64) error
+		SetTelegramID(ctx *gin.Context, userID uint, telegramID int64) error
+		RegisterBotUser(telegramID int64, botName string) (*models.BotUser, float64, bool, bool, error)
+		GetBotUser(id uint) (*models.BotUser, float64, error)
+		GetBotUserByTelegramID(telegramID int64, botName string) (*models.BotUser, float64, error)
+		ToggleBlockUser(ctx *gin.Context, telegramID int64) error
+		GetUserBalance(telegramID int64) (float64, error)
+		GetUserTransactions(telegramID int64) ([]models.Transaction, error)
+		GetUserSubscriptionsByTelegramID(telegramID int64) ([]models.UserSubscription, error)
+		GetUserOrdersByTelegramID(telegramID int64) ([]models.Order, error)
+		UpdateUserCaptchaStatus(id uint, hasPassed bool) error
+		UpdateUserCaptchaStatusByTelegramID(telegramID int64, hasPassed bool) error
 	}
-}
-
-func (s *userService) GetUserSubscriptionsByTelegramID(telegramID int64) ([]models.UserSubscription, error) {
-	user, err := s.botUserRepo.FindByTelegramID(telegramID)
-	if err != nil {
-		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "BotUser", ID: uint(telegramID)}
+	
+	type userService struct {
+		userRepo             repositories.UserRepository
+		botUserRepo          repositories.BotUserRepository
+		userSubscriptionRepo repositories.UserSubscriptionRepository
+		orderRepo            repositories.OrderRepository
+		auditLogService      AuditLogService
+		twoFAService         TwoFAService
 	}
-	return s.userSubscriptionRepo.FindSubscriptionsByBotUserID(user.ID)
-}
+	
+	func NewUserService(userRepo repositories.UserRepository, botUserRepo repositories.BotUserRepository, userSubscriptionRepo repositories.UserSubscriptionRepository, orderRepo repositories.OrderRepository, auditLogService AuditLogService, twoFAService TwoFAService) UserService {
+		return &userService{
+			userRepo:             userRepo,
+			botUserRepo:          botUserRepo,
+			userSubscriptionRepo: userSubscriptionRepo,
+			orderRepo:            orderRepo,
+			auditLogService:      auditLogService,
+			twoFAService:         twoFAService,
+		}
+	}
+	
+	func (s *userService) FindByTelegramID(telegramID int64) (*models.User, error) {
+		return s.userRepo.FindByTelegramID(telegramID)
+	}
+	
+	func (s *userService) SetTelegramID(ctx *gin.Context, userID uint, telegramID int64) error {
+		before, err := s.userRepo.FindByID(userID)
+		if err != nil {
+			return err
+		}
+		if err := s.userRepo.SetTelegramID(userID, telegramID); err != nil {
+			return err
+		}
+		after, _ := s.userRepo.FindByID(userID)
+		s.auditLogService.Log(ctx, "USER_SET_TELEGRAM_ID", "User", userID, map[string]interface{}{"before": before, "after": after})
+		return nil
+	}
+	
+	func (s *userService) GetUserSubscriptionsByTelegramID(telegramID int64) ([]models.UserSubscription, error) {
+		user, err := s.botUserRepo.FindByTelegramID(telegramID)
+		if err != nil {
+			return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "BotUser", ID: uint(telegramID)}
+		}
+		return s.userSubscriptionRepo.FindSubscriptionsByBotUserID(user.ID)
+	}
+	
 
 func (s *userService) GetUserOrdersByTelegramID(telegramID int64) ([]models.Order, error) {
 	user, err := s.botUserRepo.FindByTelegramID(telegramID)

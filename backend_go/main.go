@@ -98,7 +98,7 @@ func main() {
 	r.Use(cors.New(corsConfig))
 
 	// Register all routes
-	routers.RegisterAuthRoutes(r, container.AuthHandler, container.AuthMiddleware)
+	routers.RegisterAuthRoutes(r, container.AuthHandler, container.AuthMiddleware, container.AppSettings)
 	routers.RegisterCategoryRoutes(r, container.CategoryHandler, container.AuthMiddleware)
 	routers.RegisterProductRoutes(r, container.ProductHandler, container.AuthMiddleware, appSettings)
 	routers.RegisterUserRoutes(r, container.UserHandler, container.AuthMiddleware)

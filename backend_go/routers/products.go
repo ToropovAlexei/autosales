@@ -9,22 +9,31 @@ import (
 )
 
 func RegisterProductRoutes(router *gin.Engine, productHandler *handlers.ProductHandler, authMiddleware *middleware.AuthMiddleware, appSettings *config.Config) {
+	// --- Public/Admin Panel Routes ---
 	products := router.Group("/api/products")
-
-	// Группа для роутов, доступных и для пользователей, и для сервисов
-	// openAPI := router.Group("/api")
-	// {
-	products.GET("", productHandler.GetProductsHandler) // TODO: fix auth
-	// }
-
-	// Группа для роутов, требующих строгой аутентификации пользователя (JWT)
-	products.Use(authMiddleware.RequireAuth)
 	{
-		products.POST("", middleware.PermissionMiddleware("products:create"), productHandler.CreateProductHandler)
-		products.GET("/:id", middleware.PermissionMiddleware("products:read"), productHandler.GetProductHandler)
-		products.PATCH("/:id", middleware.PermissionMiddleware("products:update"), productHandler.UpdateProductHandler)
-		products.DELETE("/:id", middleware.PermissionMiddleware("products:delete"), productHandler.DeleteProductHandler)
-		products.POST("/:id/stock/movements", middleware.PermissionMiddleware("stock:update"), productHandler.CreateStockMovementHandler)
-		products.POST("/upload", middleware.PermissionMiddleware("products:create"), productHandler.UploadProductsCSVHandler)
+		// Publicly accessible endpoint for products
+		products.GET("", productHandler.GetProductsHandler)
+
+		// Routes for admin panel (JWT auth)
+		adminProducts := products.Group("")
+		adminProducts.Use(authMiddleware.RequireAuth)
+		{
+			adminProducts.POST("", middleware.PermissionMiddleware("products:create"), productHandler.CreateProductHandler)
+			adminProducts.GET("/:id", middleware.PermissionMiddleware("products:read"), productHandler.GetProductHandler)
+			adminProducts.PATCH("/:id", middleware.PermissionMiddleware("products:update"), productHandler.UpdateProductHandler)
+			adminProducts.DELETE("/:id", middleware.PermissionMiddleware("products:delete"), productHandler.DeleteProductHandler)
+			adminProducts.POST("/:id/stock/movements", middleware.PermissionMiddleware("stock:update"), productHandler.CreateStockMovementHandler)
+			adminProducts.POST("/upload", middleware.PermissionMiddleware("products:create"), productHandler.UploadProductsCSVHandler)
+		}
+	}
+
+	// --- Bot Admin Routes ---
+	botAdminProducts := router.Group("/api/bot/admin/products")
+	botAdminProducts.Use(authMiddleware.BotAdminAuthMiddleware())
+	{
+		botAdminProducts.POST("", middleware.PermissionMiddleware("products:create"), productHandler.CreateProductHandler)
+		botAdminProducts.PUT("/:id", middleware.PermissionMiddleware("products:update"), productHandler.UpdateProductHandler)
+		botAdminProducts.DELETE("/:id", middleware.PermissionMiddleware("products:delete"), productHandler.DeleteProductHandler)
 	}
 }

@@ -77,6 +77,7 @@ export const UserModal = ({
               <InputPassword
                 name="password"
                 label="Пароль"
+                helperText="Минимальная длина пароля 6 символов"
                 rules={{
                   minLength: {
                     value: 6,

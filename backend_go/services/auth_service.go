@@ -1,12 +1,17 @@
 package services
 
 import (
+	"fmt"
+	"net/http"
+	"time"
+
 	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/config"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
-	"time"
 
+	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -15,10 +20,13 @@ type AuthService interface {
 	Login(email, password string) (string, bool, error)
 	Verify2FA(tempToken, code string) (string, error)
 	Logout(jti string) error
+	InitiateBotAdminAuth(email, password string) (string, error)
+	CompleteBotAdminAuth(authToken, tfaCode string, telegramID int64, ctx *gin.Context) error
 }
 
 type authService struct {
 	userRepo           repositories.UserRepository
+	userService        UserService
 	tokenService       TokenService
 	twoFAService       TwoFAService
 	activeTokenRepo    repositories.ActiveTokenRepository
@@ -26,9 +34,10 @@ type authService struct {
 	appSettings        *config.Config
 }
 
-func NewAuthService(userRepo repositories.UserRepository, tokenService TokenService, twoFAService TwoFAService, activeTokenRepo repositories.ActiveTokenRepository, temporaryTokenRepo repositories.TemporaryTokenRepository, appSettings *config.Config) AuthService {
+func NewAuthService(userRepo repositories.UserRepository, userService UserService, tokenService TokenService, twoFAService TwoFAService, activeTokenRepo repositories.ActiveTokenRepository, temporaryTokenRepo repositories.TemporaryTokenRepository, appSettings *config.Config) AuthService {
 	return &authService{
 		userRepo:           userRepo,
+		userService:        userService,
 		tokenService:       tokenService,
 		twoFAService:       twoFAService,
 		activeTokenRepo:    activeTokenRepo,
@@ -36,6 +45,61 @@ func NewAuthService(userRepo repositories.UserRepository, tokenService TokenServ
 		appSettings:        appSettings,
 	}
 }
+
+func (s *authService) InitiateBotAdminAuth(email, password string) (string, error) {
+	user, err := s.userRepo.FindByEmail(email)
+	if err != nil {
+		return "", &apperrors.ErrValidation{Message: "incorrect username or password"}
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.HashedPassword), []byte(password)); err != nil {
+		return "", &apperrors.ErrValidation{Message: "incorrect username or password"}
+	}
+
+	if !user.TwoFAEnabled {
+		return "", apperrors.New(http.StatusForbidden, "2FA is not enabled for this account", nil)
+	}
+
+	return s.tokenService.GenerateTemporaryToken(email)
+}
+
+func (s *authService) CompleteBotAdminAuth(authToken, tfaCode string, telegramID int64, ctx *gin.Context) error {
+	token, err := jwt.Parse(authToken, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(s.appSettings.SecretKey), nil
+	})
+	if err != nil {
+		return &apperrors.ErrValidation{Message: "invalid or expired authentication token"}
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || !token.Valid {
+		return &apperrors.ErrValidation{Message: "invalid or expired authentication token"}
+	}
+
+	email := claims["sub"].(string)
+	user, err := s.userRepo.FindByEmail(email)
+	if err != nil {
+		return &apperrors.ErrValidation{Message: "user not found"}
+	}
+
+	decryptedSecret, err := s.twoFAService.DecryptSecret(*user.TwoFASecret)
+	if err != nil {
+		return apperrors.New(500, "failed to decrypt 2FA secret", err)
+	}
+	if !s.twoFAService.ValidateCode(decryptedSecret, tfaCode) {
+		return &apperrors.ErrValidation{Message: "invalid 2FA code"}
+	}
+
+	if err := s.userService.SetTelegramID(ctx, user.ID, telegramID); err != nil {
+		return apperrors.New(500, "failed to link telegram account", err)
+	}
+
+	return nil
+}
+
 
 func (s *authService) Login(email, password string) (string, bool, error) {
 	user, err := s.userRepo.FindByEmail(email)

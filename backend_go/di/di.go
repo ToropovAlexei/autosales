@@ -149,8 +149,8 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	tokenService := services.NewTokenService(appSettings.SecretKey, appSettings.AccessTokenExpireMinutes, activeTokenRepo)
 	auditLogService := services.NewAuditLogService(auditLogRepo)
 	settingService := services.NewSettingService(*settingRepo, userRepo, auditLogService)
-	authService := services.NewAuthService(userRepo, tokenService, twoFAService, activeTokenRepo, temporaryTokenRepo, appSettings)
 	userService := services.NewUserService(userRepo, botUserRepo, userSubscriptionRepo, orderRepo, auditLogService, twoFAService)
+	authService := services.NewAuthService(userRepo, userService, tokenService, twoFAService, activeTokenRepo, temporaryTokenRepo, appSettings)
 	productService := services.NewProductService(productRepo, categoryRepo, providerRegistry, auditLogService, *settingService)
 	categoryService := services.NewCategoryService(categoryRepo, productService, auditLogService)
 	referralService := services.NewReferralService(botRepo, botUserRepo, statsRepo, transactionRepo, *settingService)
@@ -195,7 +195,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	botStatusHandler := handlers.NewBotStatusHandler(botStatusService)
 	storeBalanceHandler := handlers.NewStoreBalanceHandler(storeBalanceService)
 
-	authMiddleware := middleware.NewAuthMiddleware(tokenService, userService)
+	authMiddleware := middleware.NewAuthMiddleware(tokenService, userService, appSettings)
 
 	return &Container{
 		DB:                     db,

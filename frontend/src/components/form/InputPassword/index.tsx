@@ -5,9 +5,10 @@ interface IProps {
   name: string;
   label?: string;
   rules?: RegisterOptions;
+  helperText?: string;
 }
 
-export const InputPassword = ({ name, label, rules }: IProps) => {
+export const InputPassword = ({ name, label, rules, helperText }: IProps) => {
   const {
     field: { value, onChange },
     fieldState: { error },
@@ -18,7 +19,7 @@ export const InputPassword = ({ name, label, rules }: IProps) => {
       name={name}
       label={label ?? name}
       error={!!error}
-      helperText={error?.message}
+      helperText={error?.message || helperText}
       value={value}
       onChange={onChange}
       size="small"

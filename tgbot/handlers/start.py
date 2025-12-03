@@ -100,16 +100,24 @@ async def start_handler(message: Message, state: FSMContext, api_client: APIClie
                 seller_info_response = await api_client.get_public_settings()
                 referral_program_enabled = seller_info_response.get("referral_program_enabled", False) == 'true'
 
+                # Check for admin status
+                user_info_response = await api_client.get_user(message.from_user.id)
+                user_data = user_info_response.get("data", {})
+                roles = user_data.get("roles", [])
+                is_admin = any(role.get("name") == "admin" for role in roles) if roles else False
+
                 welcome_message = await api_client.get_returning_user_welcome_message()
                 welcome_message = welcome_message.replace("{username}", hbold(message.from_user.full_name))
-                await message.answer(
+                sent_message = await message.answer(
                     welcome_message,
                     reply_markup=inline.main_menu(
                         referral_program_enabled=referral_program_enabled,
-                        bot_type=settings.bot_type
+                        bot_type=settings.bot_type,
+                        is_admin=is_admin
                     ),
                     parse_mode="HTML"
                 )
+                await state.update_data(main_menu_id=sent_message.message_id)
     except Exception:
         logging.exception("An error occurred in start_handler")
         await message.answer("Произошла непредвиденная ошибка. Попробуйте позже.")
@@ -144,15 +152,17 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
 
         welcome_message = await api_client.get_new_user_welcome_message()
         welcome_message = welcome_message.replace("{username}", hbold(callback_query.from_user.full_name))
-        await callback_query.message.answer(
+        sent_message = await callback_query.message.answer(
             welcome_message,
             reply_markup=inline.main_menu(
                 referral_program_enabled=referral_program_enabled,
-                bot_type=settings.bot_type
+                bot_type=settings.bot_type,
+                is_admin=False
             ),
             parse_mode="HTML"
         )
-        await state.clear()
+        await state.update_data(main_menu_id=sent_message.message_id)
+        await state.set_state(None)
     else:
         await callback_query.answer("Неверный ответ, попробуйте еще раз.", show_alert=True)
         
@@ -178,21 +188,30 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
 async def main_menu_handler(callback_query: CallbackQuery, api_client: APIClient):
     seller_info_response = await api_client.get_public_settings()
     referral_program_enabled = seller_info_response.get("referral_program_enabled", False)
+
+    user_info_response = await api_client.get_user(callback_query.from_user.id)
+    user_data = user_info_response.get("data", {})
+    roles = user_data.get("roles", [])
+    is_admin = any(role.get("name") == "admin" for role in roles) if roles else False
+
     reply_markup = inline.main_menu(
         referral_program_enabled=referral_program_enabled,
-        bot_type=settings.bot_type
+        bot_type=settings.bot_type,
+        is_admin=is_admin
     )
     try:
         await callback_query.message.edit_text(
             "Главное меню",
             reply_markup=reply_markup
         )
+        await state.update_data(main_menu_id=callback_query.message.message_id)
     except TelegramBadRequest:
         await callback_query.message.delete()
-        await callback_query.message.answer(
+        sent_message = await callback_query.message.answer(
             "Главное меню",
             reply_markup=reply_markup
         )
+        await state.update_data(main_menu_id=sent_message.message_id)
 
 @router.callback_query(F.data == "support")
 async def support_handler(callback_query: CallbackQuery, api_client: APIClient):

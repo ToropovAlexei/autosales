@@ -1,10 +1,13 @@
 package models
 
+import "database/sql"
+
 type User struct {
 	ID                     uint      `gorm:"primaryKey" json:"id"`
 	Email                  string    `gorm:"uniqueIndex" json:"email"`
 	HashedPassword         string    `json:"-"` // Do not expose hashed password
 	IsActive               bool      `gorm:"default:true" json:"is_active"`
+	TelegramID             sql.NullInt64 `gorm:"unique;index"`
 	TwoFASecret            *string   `json:"-"`
 	TwoFAEnabled           bool      `gorm:"default:true" json:"two_fa_enabled"`
 	ReferralProgramEnabled bool      `gorm:"default:false" json:"referral_program_enabled"`

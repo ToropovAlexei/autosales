@@ -92,7 +92,7 @@ export const PaymentMarkupsForm = ({
                   key={gateway.name}
                   name={`GATEWAY_MARKUP_${gateway.name.toUpperCase()}`}
                   label={`Наценка для ${gateway.display_name}`}
-                  min={-25}
+                  min={0}
                   max={25}
                   step={0.5}
                 />

@@ -42,7 +42,7 @@ type Verify2FAPayload struct {
 func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	var payload LoginPayload
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: err.Error()})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Некорректный формат email или пароля."})
 		return
 	}
 
@@ -73,7 +73,7 @@ func (h *AuthHandler) LoginHandler(c *gin.Context) {
 func (h *AuthHandler) Verify2FAHandler(c *gin.Context) {
 	var payload Verify2FAPayload
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: err.Error()})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Некорректные данные для верификации."})
 		return
 	}
 
@@ -120,6 +120,72 @@ func (h *AuthHandler) LogoutHandler(c *gin.Context) {
 			c.Error(err)
 			return
 		}
+	}
+
+	responses.SuccessResponse(c, http.StatusNoContent, nil)
+}
+
+type BotAuthInitiatePayload struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}
+
+type BotAuthCompletePayload struct {
+	AuthToken  string `json:"auth_token" binding:"required"`
+	TFACode    string `json:"tfa_code" binding:"required"`
+	TelegramID int64  `json:"telegram_id" binding:"required"`
+}
+
+// @Summary      Initiate Bot Admin Login
+// @Description  Initiates the login process for a bot admin, validates credentials, and returns a temporary auth token.
+// @Tags         Bot Auth
+// @Accept       json
+// @Produce      json
+// @Param        login body BotAuthInitiatePayload true "Admin credentials"
+// @Success      200  {object}  responses.ResponseSchema[responses.TokenResponse]
+// @Failure      400  {object}  responses.ErrorResponseSchema
+// @Failure      401  {object}  responses.ErrorResponseSchema
+// @Failure      403  {object}  responses.ErrorResponseSchema
+// @Router       /bot/auth/initiate [post]
+// @Security     ServiceApiKeyAuth
+func (h *AuthHandler) InitiateBotAdminAuthHandler(c *gin.Context) {
+	var payload BotAuthInitiatePayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Некорректный формат email или пароля."})
+		return
+	}
+
+	authToken, err := h.authService.InitiateBotAdminAuth(payload.Email, payload.Password)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, gin.H{"auth_token": authToken})
+}
+
+// @Summary      Complete Bot Admin Login
+// @Description  Completes the bot admin login by verifying the temporary token and 2FA code, then linking the Telegram ID.
+// @Tags         Bot Auth
+// @Accept       json
+// @Produce      json
+// @Param        login body BotAuthCompletePayload true "2FA verification and Telegram ID"
+// @Success      204
+// @Failure      400  {object}  responses.ErrorResponseSchema
+// @Failure      401  {object}  responses.ErrorResponseSchema
+// @Router       /bot/auth/complete [post]
+// @Security     ServiceApiKeyAuth
+func (h *AuthHandler) CompleteBotAdminAuthHandler(c *gin.Context) {
+	var payload BotAuthCompletePayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Некорректные данные для завершения авторизации."})
+		return
+	}
+
+	err := h.authService.CompleteBotAdminAuth(payload.AuthToken, payload.TFACode, payload.TelegramID, c)
+	if err != nil {
+		c.Error(err)
+		return
 	}
 
 	responses.SuccessResponse(c, http.StatusNoContent, nil)

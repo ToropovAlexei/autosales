@@ -14,11 +14,29 @@ class APIClient:
         }
         self._public_settings = None
 
-    async def _request(self, method: str, endpoint: str, **kwargs):
+    async def _request(self, method: str, endpoint: str, extra_headers: dict = None, **kwargs):
         url = f"{self.base_url}{endpoint}"
-        async with aiohttp.ClientSession(headers=self.headers) as session:
-            async with session.request(method, url, **kwargs) as response:
-                return await response.json()
+        
+        headers = self.headers.copy()
+        if extra_headers:
+            headers.update(extra_headers)
+
+        try:
+            timeout = aiohttp.ClientTimeout(total=15)
+            async with aiohttp.ClientSession(headers=headers, timeout=timeout) as session:
+                async with session.request(method, url, **kwargs) as response:
+                    if response.status == 204:
+                        return {"status": 204, "success": True}
+                    
+                    if response.content_type == 'application/json':
+                        json_body = await response.json()
+                        # response.json() can return None if body is empty
+                        return json_body if json_body is not None else {}
+                    
+                    return {"status": response.status}
+        except aiohttp.ClientError as e:
+            print(f"API request failed: {e}")
+            return {"success": False, "error": {"message": "API request failed."}}
 
     async def load_public_settings(self):
         self._public_settings = await self._request("GET", "/settings/public")
@@ -38,11 +56,25 @@ class APIClient:
 
     async def get_new_user_welcome_message(self):
         public_settings = await self.get_public_settings()
-        return public_settings.get("new_user_welcome_message", "Добро пожаловать, {username}!\n\nЯ - ваш личный помощник для покупок. Здесь вы можете:\n- 🛍️ Смотреть каталог товаров\n- 💰 Пополнять баланс\n- 💳 Проверять свой счет\n\nВыберите действие в меню ниже:")
+        return public_settings.get("new_user_welcome_message", """Добро пожаловать, {username}!
+
+Я - ваш личный помощник для покупок. Здесь вы можете:
+- 🛍️ Смотреть каталог товаров
+- 💰 Пополнять баланс
+- 💳 Проверять свой счет
+
+Выберите действие в меню ниже:""")
 
     async def get_returning_user_welcome_message(self):
         public_settings = await self.get_public_settings()
-        return public_settings.get("returning_user_welcome_message", "С возвращением, {username}!\n\nЯ - ваш личный помощник для покупок. Здесь вы можете:\n- 🛍️ Смотреть каталог товаров\n- 💰 Пополнять баланс\n- 💳 Проверять свой счет\n\nВыберите действие в меню ниже:")
+        return public_settings.get("returning_user_welcome_message", """С возвращением, {username}!
+
+Я - ваш личный помощник для покупок. Здесь вы можете:
+- 🛍️ Смотреть каталог товаров
+- 💰 Пополнять баланс
+- 💳 Проверять свой счет
+
+Выберите действие в меню ниже:""")
 
     async def register_user(self, telegram_id: int):
         return await self._request("POST", "/users/register", json={"telegram_id": telegram_id, "bot_name": self.bot_username})
@@ -134,3 +166,29 @@ class APIClient:
 
     async def get_bot_status(self):
         return await self._request("GET", "/bot/status")
+
+    # --- Admin Auth ---
+    async def initiate_bot_admin_auth(self, email, password):
+        payload = {"email": email, "password": password}
+        return await self._request("POST", "/bot/auth/initiate", json=payload)
+
+    async def complete_bot_admin_auth(self, auth_token, tfa_code, telegram_id):
+        payload = {
+            "auth_token": auth_token,
+            "tfa_code": tfa_code,
+            "telegram_id": telegram_id
+        }
+        return await self._request("POST", "/bot/auth/complete", json=payload)
+
+    # --- Admin Product Management ---
+    async def create_product(self, product_data: dict, admin_telegram_id: int):
+        headers = {"X-Admin-Telegram-ID": str(admin_telegram_id)}
+        return await self._request("POST", "/bot/admin/products", extra_headers=headers, json=product_data)
+
+    async def update_product(self, product_id: int, product_data: dict, admin_telegram_id: int):
+        headers = {"X-Admin-Telegram-ID": str(admin_telegram_id)}
+        return await self._request("PUT", f"/bot/admin/products/{product_id}", extra_headers=headers, json=product_data)
+
+    async def delete_product(self, product_id: int, admin_telegram_id: int):
+        headers = {"X-Admin-Telegram-ID": str(admin_telegram_id)}
+        return await self._request("DELETE", f"/bot/admin/products/{product_id}", extra_headers=headers)

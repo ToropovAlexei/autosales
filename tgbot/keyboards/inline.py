@@ -15,7 +15,7 @@ class PaymentCallback(CallbackData, prefix="pay"):
     amount: Optional[float] = None
     force: bool = False
 
-def main_menu(referral_program_enabled: bool = False, bot_type: str = "main"):
+def main_menu(referral_program_enabled: bool = False, bot_type: str = "main", is_admin: bool = False):
     buttons = [
         [InlineKeyboardButton(text="🛍️ Каталог", callback_data=CategoryCallback(action="view", category_id=0).pack())],
         [InlineKeyboardButton(text="💳 Баланс", callback_data="balance")],
@@ -26,6 +26,9 @@ def main_menu(referral_program_enabled: bool = False, bot_type: str = "main"):
     if referral_program_enabled and bot_type == "main":
         buttons.append([InlineKeyboardButton(text="🤝 Реферальный магазин", callback_data="referral_program")])
     
+    if is_admin:
+        buttons.append([InlineKeyboardButton(text="👑 Админ-панель", callback_data="admin_panel")])
+
     buttons.append([InlineKeyboardButton(text="💬 Поддержка", callback_data="support")])
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
