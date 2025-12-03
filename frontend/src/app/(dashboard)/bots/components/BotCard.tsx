@@ -11,6 +11,7 @@ import {
   Stack,
   TextField,
   IconButton,
+  Link,
 } from "@mui/material";
 import { Edit } from "@mui/icons-material";
 import { useState } from "react";
@@ -20,6 +21,7 @@ interface Bot {
   id: number;
   owner_telegram_id: number;
   token: string;
+  username: string;
   created_at: string;
   type: "main" | "referral";
   is_active: boolean;
@@ -100,7 +102,13 @@ export const BotCard = ({
               justifyContent="space-between"
               alignItems="center"
             >
-              Бот ID: {bot.id}
+              <Link
+                href={`https://t.me/${bot.username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Бот ID: {bot.id}
+              </Link>
               <Stack direction="row" gap={1}>
                 {bot.is_primary && (
                   <Chip label="Основной" color="primary" size="small" />

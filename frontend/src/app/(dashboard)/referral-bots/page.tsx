@@ -12,7 +12,8 @@ import { PageLayout } from "@/components/PageLayout";
 interface ReferralBot {
   id: number;
   owner_telegram_id: number;
-  bot_token: string;
+  token: string;
+  username: string;
   created_at: string;
   is_active: boolean;
   is_primary: boolean;

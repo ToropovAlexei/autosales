@@ -12,7 +12,8 @@ import { PageLayout } from "@/components/PageLayout";
 interface Bot {
   id: number;
   owner_telegram_id: number;
-  bot_token: string;
+  token: string;
+  username: string;
   created_at: string;
   type: "main" | "referral";
   is_active: boolean;

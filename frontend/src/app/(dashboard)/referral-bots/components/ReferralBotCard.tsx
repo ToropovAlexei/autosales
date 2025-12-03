@@ -11,6 +11,7 @@ import {
   Stack,
   TextField,
   IconButton,
+  Link,
 } from "@mui/material";
 import { Edit } from "@mui/icons-material";
 import { useState } from "react";
@@ -19,7 +20,8 @@ import classes from "./styles.module.css";
 interface ReferralBot {
   id: number;
   owner_telegram_id: number;
-  bot_token: string;
+  token: string;
+  username: string;
   created_at: string;
   is_active: boolean;
   is_primary: boolean;
@@ -109,9 +111,18 @@ export const ReferralBotCard = ({
           subheader={`TG ID владельца: ${bot.owner_telegram_id}`}
         />
         <CardContent>
+          <Typography variant="body2" color="text.secondary">
+            <Link
+              href={`https://t.me/${bot.username}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              @{bot.username}
+            </Link>
+          </Typography>
           <div>
             <Typography variant="body2" color="text.secondary">
-              Токен: ...{bot.bot_token.slice(-8)}
+              Токен: ...{bot.token.slice(-8)}
             </Typography>
             <Typography variant="body2" color="text.secondary">
               Оборот: {bot.turnover.toFixed(2)} ₽
