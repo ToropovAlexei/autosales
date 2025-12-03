@@ -11,4 +11,5 @@ pub struct BotUser {
     pub last_seen_with_bot: String,
     pub last_seen_at: String,
     pub created_at: String,
+    pub is_new: bool,
 }
