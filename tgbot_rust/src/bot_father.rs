@@ -1,13 +1,11 @@
-use std::io::{BufRead, Write};
-use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
-
-use anyhow::{Context, anyhow};
-use grammers_client::{Client, SignInError};
-use grammers_mtsender::SenderPool;
-use grammers_session::storages::SqliteSession;
-use grammers_tl_types as tl;
-use regex::Regex;
+use std::{
+    io::{BufReader, BufWriter},
+    path::Path,
+    sync::Arc,
+};
+use anyhow::anyhow;
+use grammers_client::{Client, Config, InitParams, SignInError};
+use grammers_session::SqliteSession;
 
 use crate::api::backend_api::BackendApi;
 use crate::errors::AppResult;

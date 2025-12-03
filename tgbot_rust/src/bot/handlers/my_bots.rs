@@ -1,7 +1,6 @@
-use std::sync::Arc;
 use teloxide::prelude::*;
 use crate::{
-    bot::MyDialogue,
+    bot::{DialogueData, MyDialogue},
     errors::AppResult,
     AppState,
 };
@@ -9,11 +8,14 @@ use crate::{
 pub async fn my_bots_handler(
     bot: Bot,
     dialogue: MyDialogue,
-    app_state: AppState,
+    _app_state: AppState,
 ) -> AppResult<()> {
     bot.send_message(dialogue.chat_id(), "Please send me the token of your bot.")
         .await?;
-    dialogue.update(crate::bot::BotState::WaitingForReferralBotToken).await?;
+    dialogue.update(DialogueData {
+        state: crate::bot::BotState::WaitingForReferralBotToken,
+        ..dialogue.get().await?.unwrap_or_default()
+    }).await?;
     Ok(())
 }
 
@@ -33,6 +35,9 @@ pub async fn referral_bot_token_handler(
             bot.send_message(dialogue.chat_id(), format!("Failed to create referral bot: {}", e)).await?;
         }
     }
-    dialogue.update(crate::bot::BotState::MainMenu).await?;
+    dialogue.update(DialogueData {
+        state: crate::bot::BotState::MainMenu,
+        ..dialogue.get().await?.unwrap_or_default()
+    }).await?;
     Ok(())
 }

@@ -1,161 +1,142 @@
-# Платформа для E-commerce с Telegram-ботом
+# E-commerce Platform with Go, Next.js, and a Telegram Bot
 
-Это комплексное приложение, представляющее собой платформу для электронной коммерции. Она включает в себя бэкенд на FastAPI, фронтенд для администрирования на Next.js и Telegram-бота на aiogram для взаимодействия с клиентами.
+This is a comprehensive e-commerce platform application. It includes a backend built with Go (Gin), an administration frontend using Next.js, and a customer-facing Telegram bot using Python's `aiogram`.
 
-## Возможности
+## Features
 
-- **Административная панель:** Удобный веб-интерфейс для продавцов для управления категориями, товарами, складом, заказами и транзакциями.
-- **Telegram-бот для клиентов:** Позволяет пользователям просматривать каталог товаров, пополнять баланс и совершать покупки прямо в Telegram.
-- **Реферальная программа:** Продавцы могут включить реферальную программу, позволяя пользователям создавать собственные "магазины-боты" и получать процент с продаж.
-- **Система высокой доступности:** Основной Telegram-бот находится под управлением монитора, который отслеживает его состояние. В случае сбоя, монитор автоматически запускает резервного бота и может создать нового при необходимости, обеспечивая бесперебойную работу.
+- **Admin Panel:** A user-friendly web interface for managing categories, products, stock, orders, and system settings.
+- **Telegram Bot for Customers:** Allows users to browse the product catalog, manage their balance, and make purchases directly within Telegram.
+- **External Provider Integration:** The system can synchronize products from external providers (like proxy services) and manage subscriptions.
+- **Referral Program:** Users can create their own referral "bot shops" to earn a commission on sales.
+- **High-Availability Bot System:** The main Telegram bot is managed by a monitor that tracks its status. In case of a failure, it can switch to a fallback bot to ensure uninterrupted service.
 
-## Предварительные требования
+## Prerequisites
 
-Перед началом убедитесь, что у вас установлено следующее:
+Before you begin, ensure you have the following installed:
 
-- Python 3.8+
+- Go 1.21+
 - Node.js 18.x+
-- pnpm (или npm/yarn)
-- Docker и Docker Compose
+- pnpm (or npm/yarn)
+- Python 3.8+
+- Docker and Docker Compose
 
-## Базы данных
+## Database Setup
 
-Для локальной разработки используются PostgreSQL и Redis, которые можно запустить с помощью Docker Compose.
+For local development, the project uses PostgreSQL and Redis, which can be run via Docker Compose.
 
-1.  **Запустите контейнеры:**
-    В корневой папке проекта выполните команду:
+1.  **Start the containers:**
+    From the root directory of the project, run:
     ```bash
     docker-compose up -d
     ```
-    Эта команда запустит PostgreSQL и Redis в фоновом режиме.
+    This command will start PostgreSQL and Redis services in the background.
 
-## Установка и запуск
+## Installation and Running
 
-Этот проект разделен на три основных компонента: `backend`, `frontend` и `tgbot`. Следуйте приведенным ниже инструкциям для настройки каждой части.
+The project is divided into three main components: `backend_go`, `frontend`, and `tgbot`. Follow the instructions below to set up each part.
 
-### Бэкенд
+### Backend (`backend_go`)
 
-Бэкенд представляет собой приложение FastAPI, которое служит API для фронтенда и Telegram-бота.
+The backend is a Go application using the Gin framework, serving as a REST API for the frontend and the Telegram bot.
 
-1.  **Перейдите в каталог бэкенда:**
-
-    ```bash
-    cd backend
-    ```
-
-2.  **Создайте файл .env:**
-    Создайте файл `.env` в каталоге `backend`, скопировав содержимое из `.env.example`, и заполните его необходимыми данными.
-
-3.  **Создайте и активируйте виртуальное окружение:**
+1.  **Navigate to the backend directory:**
 
     ```bash
-    python -m venv .venv
-    source .venv/bin/activate
+    cd backend_go
     ```
 
-4.  **Установите зависимости:**
+2.  **Create `.env` file:**
+    Copy the contents of `.env.example` into a new `.env` file and fill in the necessary configuration details (database connection, secrets, etc.).
+
+3.  **Install dependencies:**
 
     ```bash
-    pip install -r requirements.txt
+    go mod tidy
     ```
 
-5.  **Инициализируйте и заполните базу данных:**
-
+4.  **Run the backend server:**
     ```bash
-    python init_db.py
-    python seed_db.py # Опционально, для заполнения тестовыми данными
+    go run main.go
     ```
+    The backend will start on `http://127.0.0.1:8000` (or the port specified in your `.env`). The server will automatically handle database migrations on startup.
 
-6.  **Запустите сервер бэкенда:**
-    ```bash
-    uvicorn main:app --reload
-    ```
-    Бэкенд будет запущен по адресу `http://127.0.0.1:8000`.
+### Frontend (`frontend`)
 
-### Фронтенд
+The frontend is a Next.js application that provides the administration panel.
 
-Фронтенд представляет собой приложение Next.js, которое предоставляет административную панель.
-
-1.  **Перейдите в каталог фронтенда:**
+1.  **Navigate to the frontend directory:**
 
     ```bash
     cd frontend
     ```
 
-2.  **Установите зависимости:**
+2.  **Install dependencies:**
 
     ```bash
     pnpm install
     ```
 
-3.  **Запустите сервер для разработки:**
+3.  **Run the development server:**
     ```bash
     pnpm run dev
     ```
-    Фронтенд будет запущен по адресу `http://localhost:3000`.
+    The frontend will be available at `http://localhost:3000`.
 
-### Telegram-бот
+### Telegram Bot (`tgbot`)
 
-Telegram-бот создан с использованием `aiogram` и обеспечивает взаимодействие с клиентами.
+The Telegram bot is built with `aiogram` and serves as the primary client interface.
 
-#### Ключевые концепции
+#### Key Concepts
 
-Для правильной настройки и понимания работы бота, важно ознакомиться с несколькими понятиями:
+To configure and understand the bot's operation, it's important to be familiar with these concepts:
 
-- **Основной и Резервный боты:** Система спроектирована для высокой надежности. Для этого используются как минимум два бота: **основной** (активный), с которым общаются пользователи, и **резервный** (запасной). Специальный скрипт `monitor.py` постоянно следит за здоровьем основного бота. Если тот перестает отвечать, монитор немедленно делает резервного бота основным, обеспечивая непрерывность сервиса.
+- **Main and Fallback Bots:** The system is designed for high availability. It uses at least two bots: a **main** (active) bot and a **fallback** (standby) bot. The `monitor.py` script continuously checks the health of the main bot. If it becomes unresponsive, the monitor promotes the fallback bot to main, ensuring service continuity.
 
-- **Автоматическое создание ботов (`API_ID` и `API_HASH`):** Чтобы система могла сама себя восстанавливать, ей нужны права на создание новых ботов от вашего имени. Для этого используются `API_ID` и `API_HASH` — это ваши личные ключи разработчика в Telegram.
-  - **Что это?** Это не токен бота, а учетные данные вашего личного аккаунта. Они позволяют скрипту `monitor.py` подключаться к Telegram как вы и выполнять действия, например, общаться с `BotFather` для создания нового бота, если количество рабочих ботов упадет ниже двух.
-  - **Где их взять?** Вы можете получить их на официальном сайте [my.telegram.org](https://my.telegram.org), войдя в свой аккаунт и перейдя в раздел "API development tools".
+- **Automatic Bot Creation (`API_ID` & `API_HASH`):** For the system to be self-healing, it needs permission to create new bots on your behalf. This is done using your personal Telegram developer keys, `API_ID` and `API_HASH`.
+  - **What are they?** These are not bot tokens, but credentials for your personal Telegram account. They allow the `monitor.py` script to connect to Telegram as you and perform actions like creating a new bot via `BotFather` if the number of healthy bots drops below a threshold.
+  - **How to get them:** You can obtain them from the official [my.telegram.org](https://my.telegram.org) website by logging in and navigating to the "API development tools" section.
 
-#### Настройка и запуск
+#### Setup and Launch
 
-1.  **Создайте ботов:**
+1.  **Create Bots:**
 
-    - Откройте Telegram и найдите официального бота `BotFather`.
-    - Создайте как минимум двух ботов с помощью команды `/newbot`.
-    - Сохраните токены обоих ботов. Токен выглядит примерно так: `1234567890:ABC-DEF1234ghIkl-zyx57W2v1u1234567890`.
+    - Open Telegram and find the official `BotFather` bot.
+    - Create at least two bots using the `/newbot` command.
+    - Save the tokens for both bots. A token looks like `1234567890:ABC-DEF1234ghIkl-zyx57W2v1u1234567890`.
 
-2.  **Перейдите в каталог `tgbot`:**
+2.  **Navigate to the `tgbot` directory:**
 
     ```bash
     cd tgbot
     ```
 
-3.  **Заполните `tokens.txt`:**
+3.  **Fill `tokens.txt`:**
 
-    - Создайте файл `tokens.txt`.
-    - Вставьте в него токены двух созданных вами ботов, каждый с новой строки. Монитор будет использовать этот список для работы.
+    - Create a file named `tokens.txt`.
+    - Paste the tokens of the two bots you created, each on a new line. The monitor will use this list to manage the bots.
 
-4.  **Заполните файл `.env`:**
+4.  **Fill in the `.env` file:**
 
-    - Скопируйте `.env.example` в новый файл `.env`.
-    - Вставьте ваш `API_ID` и `API_HASH`, полученные на [my.telegram.org](https://my.telegram.org).
-    - Заполните остальные переменные, такие как `SERVICE_TOKEN` (для связи с бэкендом) и настройки Redis.
-    - **Важно:** `BOT_TOKEN` в этом файле будет перезаписан монитором, но его можно оставить для тестов.
+    - Copy `.env.example` to a new `.env` file.
+    - Enter your `API_ID` and `API_HASH` obtained from [my.telegram.org](https://my.telegram.org).
+    - Fill in the other variables, such as `SERVICE_TOKEN` (for backend communication) and Redis settings.
+    - **Note:** The `BOT_TOKEN` in this file will be overwritten by the monitor but can be left for testing purposes.
 
-5.  **Создайте и активируйте виртуальное окружение:**
+5.  **Create and activate a virtual environment:**
 
     ```bash
     python -m venv .venv
     source .venv/bin/activate
     ```
 
-6.  **Установите зависимости:**
+6.  **Install dependencies:**
 
     ```bash
     pip install -r requirements.txt
     ```
 
-7.  **Запустите монитор бота:**
+7.  **Run the bot monitor:**
     ```bash
     python monitor.py
     ```
-    Монитор запустит основного бота из вашего списка, назначит резервного и будет поддерживать их в рабочем состоянии. Если один из ботов "умрет", монитор автоматически поднимет резервный и, если нужно, создаст новый с помощью ваших `API_ID` и `API_HASH`.
-
-## Конфигурация
-
-- **Бэкенд:** `backend/config.py` и `.env` файл. Здесь настраиваются подключение к базе данных, секретные ключи и другие параметры API.
-- **Фронтенд:** `frontend/src/constants/endpoints.ts` для URL-адресов API. Основные настройки Next.js находятся в `next.config.ts`.
-- **Telegram-бот:** `tgbot/config.py` и `.env` файл для токенов, `API_ID`, `API_HASH` и других настроек.
-- **Монитор:** `tgbot/monitor.py` содержит логику для системы высокой доступности. Основные параметры (например, интервал проверки) можно настроить вверху файла.
+    The monitor will launch the main bot from your list, designate a fallback, and keep them operational. If a bot fails, the monitor will automatically promote the fallback and, if necessary, create a new one using your `API_ID` and `API_HASH`.

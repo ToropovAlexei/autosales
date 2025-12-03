@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::api::backend_api::BackendApi;
 use crate::bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard;
-use crate::bot::{BotState, CallbackData, InvoiceData, MyDialogue};
+use crate::bot::{BotState, CallbackData, DialogueData, InvoiceData, MyDialogue};
 use crate::errors::AppResult;
 use teloxide::dispatching::dialogue::GetChatId;
 use teloxide::prelude::*;
@@ -76,12 +76,16 @@ pub async fn deposit_confirm_handler(
     };
 
     dialogue
-        .update(BotState::DepositConfirm {
-            gateway: gateway.clone(),
-            amount,
-            invoice: Some(invoice_data.clone()),
+        .update(DialogueData {
+            state: BotState::DepositConfirm {
+                gateway: gateway.clone(),
+                amount,
+                invoice: Some(invoice_data.clone()),
+            },
+            ..dialogue.get().await?.unwrap_or_default()
         })
         .await?;
+
 
     let text = if let Some(pay_url) = &invoice_data.pay_url {
         format!(

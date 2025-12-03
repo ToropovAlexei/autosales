@@ -33,3 +33,5 @@ unavailable_tokens.txt
 uploads/
 */target/
 logs/
+local_docs/
+*.zip

@@ -1,6 +1,5 @@
-use std::sync::Arc;
-use std::time::Duration;
-use teloxide::prelude::*;
+use std::{sync::Arc, time::Duration};
+use tokio::sync::Mutex;
 use crate::bot_manager::BotManager;
 
 pub struct HealthChecker {
