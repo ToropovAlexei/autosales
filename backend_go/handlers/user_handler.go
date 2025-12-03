@@ -12,12 +12,13 @@ import (
 )
 
 type UserHandler struct {
-	userService services.UserService
-	roleService services.RoleService
+	userService    services.UserService
+	roleService    services.RoleService
+	paymentService services.PaymentService
 }
 
-func NewUserHandler(userService services.UserService, roleService services.RoleService) *UserHandler {
-	return &UserHandler{userService: userService, roleService: roleService}
+func NewUserHandler(userService services.UserService, roleService services.RoleService, paymentService services.PaymentService) *UserHandler {
+	return &UserHandler{userService: userService, roleService: roleService, paymentService: paymentService}
 }
 
 // @Summary      Get Current User
@@ -90,6 +91,42 @@ func (h *UserHandler) UpdateReferralSettingsHandler(c *gin.Context) {
 	}
 
 	responses.SuccessResponse(c, http.StatusOK, responses.MessageResponse{Message: "Referral settings updated successfully"})
+}
+
+// @Summary      Get User Invoices
+// @Description  Retrieves the payment invoice history for a bot user.
+// @Tags         Users, Payments
+// @Produce      json
+// @Param        telegram_id path int true "User Telegram ID"
+// @Param        page query int false "Page number for pagination" default(1)
+// @Param        pageSize query int false "Number of items per page" default(10)
+// @Success      200 {object} responses.ResponseSchema[models.PaginatedResult[models.PaymentInvoice]]
+// @Failure      400 {object} responses.ErrorResponseSchema
+// @Failure      404 {object} responses.ErrorResponseSchema
+// @Router       /users/{telegram_id}/invoices [get]
+// @Security     ServiceApiKeyAuth
+func (h *UserHandler) GetUserInvoicesHandler(c *gin.Context) {
+	telegramID, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
+	if err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid user ID"})
+		return
+	}
+
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+
+	pageModel := models.Page{
+		Page:     page,
+		PageSize: pageSize,
+	}
+
+	invoices, err := h.paymentService.GetInvoicesByTelegramID(telegramID, pageModel)
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, invoices)
 }
 
 type registerBotUserPayload struct {

@@ -185,7 +185,7 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
         )
 
 @router.callback_query(F.data == "main_menu")
-async def main_menu_handler(callback_query: CallbackQuery, api_client: APIClient):
+async def main_menu_handler(callback_query: CallbackQuery, state: FSMContext, api_client: APIClient):
     seller_info_response = await api_client.get_public_settings()
     referral_program_enabled = seller_info_response.get("referral_program_enabled", False)
 

@@ -12,7 +12,7 @@ import redis.asyncio as redis
 from keyboards.inline import back_to_main_menu_keyboard
 
 from config import settings
-from handlers import start, balance, catalog, buy, referral, my_bots, my_subscriptions, my_orders, payment, admin
+from handlers import start, balance, catalog, buy, referral, my_bots, my_subscriptions, my_orders, payment, admin, my_payments
 from api import APIClient
 from logging_config import setup_logging
 from middleware.block_check import BlockCheckMiddleware
@@ -138,6 +138,7 @@ async def main():
     dp.include_router(my_orders.router)
     dp.include_router(payment.router)
     dp.include_router(admin.router)
+    dp.include_router(my_payments.router)
 
 
     await bot.delete_webhook(drop_pending_updates=True)

@@ -20,9 +20,9 @@ func RegisterUserRoutes(router *gin.Engine, userHandler *handlers.UserHandler, a
 		users.GET("/:telegram_id/transactions", userHandler.GetUserTransactionsHandler)
 		users.GET("/:telegram_id/subscriptions", userHandler.GetUserSubscriptionsHandler)
 		users.GET("/:telegram_id/orders", userHandler.GetUserOrdersHandler)
+		users.GET("/:telegram_id/invoices", userHandler.GetUserInvoicesHandler)
 		users.PUT("/:telegram_id/captcha-status", userHandler.UpdateUserCaptchaStatusHandler)
 	}
-
 
 	// Admin/Seller API for their own data
 	me := router.Group("/api/me")

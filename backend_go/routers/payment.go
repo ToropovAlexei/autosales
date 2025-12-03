@@ -15,7 +15,8 @@ func RegisterPaymentRoutes(router *gin.Engine, handler *handlers.PaymentHandler,
 	// Endpoints requiring service API key auth
 	// serviceAuth := router.Group("")
 	// serviceAuth.Use(middleware.ServiceTokenMiddleware(r.appSettings))
-	api.GET("/gateways", handler.GetGatewaysHandler)                   // TODO: fix this
-	api.POST("/deposit/invoice", handler.CreateInvoiceHandler)         // TODO: fix this
+	api.GET("/gateways", handler.GetGatewaysHandler)                                // TODO: fix this
+	api.POST("/deposit/invoice", handler.CreateInvoiceHandler)                      // TODO: fix this
 	api.PATCH("/invoices/:order_id/message-id", handler.SetInvoiceMessageIDHandler) // TODO: fix this
+	api.GET("/invoices/:invoice_id", handler.GetInvoiceByIDHandler)                 // New route to fetch a single invoice by ID
 }

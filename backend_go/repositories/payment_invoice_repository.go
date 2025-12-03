@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	"frbktg/backend_go/models"
 	"time"
 
@@ -11,6 +12,8 @@ type PaymentInvoiceRepository interface {
 	WithTx(tx *gorm.DB) PaymentInvoiceRepository
 	Create(invoice *models.PaymentInvoice) error
 	FindByOrderID(orderID string) (*models.PaymentInvoice, error)
+	FindInvoicesByTelegramID(telegramID int64, page models.Page) (*models.PaginatedResult[models.PaymentInvoice], error)
+	FindByID(id uint) (*models.PaymentInvoice, error)
 	Update(invoice *models.PaymentInvoice) error
 	GetPendingInvoicesOlderThan(minutes int) ([]models.PaymentInvoice, error)
 	GetPendingInvoices() ([]models.PaymentInvoice, error)
@@ -40,6 +43,41 @@ func (r *gormPaymentInvoiceRepository) FindByOrderID(orderID string) (*models.Pa
 		return nil, err
 	}
 	return &invoice, nil
+}
+
+func (r *gormPaymentInvoiceRepository) FindByID(id uint) (*models.PaymentInvoice, error) {
+	var invoice models.PaymentInvoice
+	if err := r.db.Preload("BotUser").First(&invoice, id).Error; err != nil {
+		return nil, err
+	}
+	return &invoice, nil
+}
+
+func (r *gormPaymentInvoiceRepository) FindInvoicesByTelegramID(telegramID int64, page models.Page) (*models.PaginatedResult[models.PaymentInvoice], error) {
+	var invoices []models.PaymentInvoice
+	var total int64
+
+	query := r.db.Model(&models.PaymentInvoice{}).
+		Joins("JOIN bot_users ON bot_users.id = payment_invoices.bot_user_id").
+		Where("bot_users.telegram_id = ?", telegramID)
+
+	// Count total records
+	if err := query.Count(&total).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply pagination
+	offset := (page.Page - 1) * page.PageSize
+	order := fmt.Sprintf("%s %s", "payment_invoices.created_at", "desc") // Overriding default order
+
+	if err := query.Order(order).Limit(page.PageSize).Offset(offset).Find(&invoices).Error; err != nil {
+		return nil, err
+	}
+
+	return &models.PaginatedResult[models.PaymentInvoice]{
+		Data:  invoices,
+		Total: total,
+	}, nil
 }
 
 func (r *gormPaymentInvoiceRepository) Update(invoice *models.PaymentInvoice) error {

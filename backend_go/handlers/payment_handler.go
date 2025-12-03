@@ -5,6 +5,7 @@ import (
 	"frbktg/backend_go/responses"
 	"frbktg/backend_go/services"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -150,4 +151,30 @@ func (h *PaymentHandler) AdminGetGatewaysHandler(c *gin.Context) {
 		})
 	}
 	responses.SuccessResponse(c, http.StatusOK, response)
+}
+
+// @Summary      Get Invoice by ID
+// @Description  Retrieves a single payment invoice by its ID.
+// @Tags         Payments
+// @Produce      json
+// @Param        invoice_id path int true "Invoice ID"
+// @Success      200  {object}  responses.ResponseSchema[models.PaymentInvoice]
+// @Failure      400  {object}  responses.ErrorResponseSchema
+// @Failure      404  {object}  responses.ErrorResponseSchema
+// @Router       /invoices/{invoice_id} [get]
+// @Security     ServiceApiKeyAuth
+func (h *PaymentHandler) GetInvoiceByIDHandler(c *gin.Context) {
+	invoiceID, err := strconv.ParseUint(c.Param("invoice_id"), 10, 32)
+	if err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid invoice ID"})
+		return
+	}
+
+	invoice, err := h.paymentService.GetInvoiceByID(uint(invoiceID))
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, invoice)
 }

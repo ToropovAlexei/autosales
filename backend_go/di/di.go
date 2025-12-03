@@ -175,7 +175,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 
 	// Init handlers
 	authHandler := handlers.NewAuthHandler(authService)
-	userHandler := handlers.NewUserHandler(userService, roleService)
+	userHandler := handlers.NewUserHandler(userService, roleService, paymentService)
 	productHandler := handlers.NewProductHandler(productService)
 	categoryHandler := handlers.NewCategoryHandler(categoryService)
 	orderHandler := handlers.NewOrderHandler(orderService, botService)

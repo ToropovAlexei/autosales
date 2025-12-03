@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"frbktg/backend_go/apperrors"
@@ -27,6 +28,8 @@ type CreateInvoiceResponse struct {
 type PaymentService interface {
 	GetAvailableGateways() []gateways.PaymentGateway
 	CreateInvoice(telegramID int64, gatewayName string, amount float64) (*CreateInvoiceResponse, error)
+	GetInvoicesByTelegramID(telegramID int64, page models.Page) (*models.PaginatedResult[models.PaymentInvoice], error)
+	GetInvoiceByID(invoiceID uint) (*models.PaymentInvoice, error)
 	SetInvoiceMessageID(orderID string, messageID int64) error
 	HandleWebhook(gatewayName string, r *http.Request) error
 	NotifyUnfinishedPayments() error
@@ -111,6 +114,14 @@ func (s *paymentService) GetAvailableGateways() []gateways.PaymentGateway {
 	return s.registry.GetAllProviders()
 }
 
+func (s *paymentService) GetInvoicesByTelegramID(telegramID int64, page models.Page) (*models.PaginatedResult[models.PaymentInvoice], error) {
+	return s.invoiceRepo.FindInvoicesByTelegramID(telegramID, page)
+}
+
+func (s *paymentService) GetInvoiceByID(invoiceID uint) (*models.PaymentInvoice, error) {
+	return s.invoiceRepo.FindByID(invoiceID)
+}
+
 func (s *paymentService) CreateInvoice(telegramID int64, gatewayName string, amount float64) (*CreateInvoiceResponse, error) {
 	if gatewayName == "" {
 		settings, err := s.settingService.GetSettings()
@@ -168,6 +179,15 @@ func (s *paymentService) CreateInvoice(telegramID int64, gatewayName string, amo
 		return nil, apperrors.New(http.StatusInternalServerError, "Failed to create external invoice", err)
 	}
 
+	// Marshal externalInvoice.Details to JSON for storage
+	var paymentDetailsJSON []byte
+	if externalInvoice.Details != nil {
+		paymentDetailsJSON, err = json.Marshal(externalInvoice.Details)
+		if err != nil {
+			return nil, apperrors.New(http.StatusInternalServerError, "Failed to marshal payment details", err)
+		}
+	}
+
 	dbInvoice := &models.PaymentInvoice{
 		BotUserID:        botUser.ID,
 		OriginalAmount:   amount,
@@ -176,6 +196,8 @@ func (s *paymentService) CreateInvoice(telegramID int64, gatewayName string, amo
 		Gateway:          gatewayName,
 		GatewayInvoiceID: externalInvoice.GatewayInvoiceID,
 		OrderID:          orderID,
+		PayURL:           externalInvoice.PayURL, // Store PayURL
+		PaymentDetails:   paymentDetailsJSON,     // Store marshaled Details
 	}
 
 	if err := s.invoiceRepo.Create(dbInvoice); err != nil {

@@ -144,6 +144,13 @@ class APIClient:
     async def get_user_orders(self, telegram_id: int):
         return await self._request("GET", f"/users/{telegram_id}/orders")
 
+    async def get_my_invoices(self, telegram_id: int, page: int = 1, limit: int = 10):
+        params = {"page": page, "limit": limit}
+        return await self._request("GET", f"/users/{telegram_id}/invoices", params=params)
+
+    async def get_invoice_by_id(self, invoice_id: int):
+        return await self._request("GET", f"/invoices/{invoice_id}")
+    
     async def get_order(self, order_id: int):
         return await self._request("GET", f"/bot/orders/{order_id}")
 
