@@ -15,7 +15,7 @@ export const useDataGrid = <T>(endpoint: string) => {
     items: [],
   });
   const [sortModel, setSortModel] = useState<GridSortModel>([
-    { field: "id", sort: "asc" },
+    { field: "id", sort: "desc" },
   ]);
 
   const formattedFilters = filterModel.items
