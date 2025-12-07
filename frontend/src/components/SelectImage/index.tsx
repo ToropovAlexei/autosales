@@ -161,7 +161,7 @@ export const SelectImage = ({ open, onClose, onSelect }: SelectImageProps) => {
                   ))}
                 </ImageList>
               ) : (
-                <Typography>Перетащите файлы сюда для загрузки.</Typography>
+                <Typography color="info">Перетащите файлы сюда для загрузки.</Typography>
               )}
             </div>
           </div>
