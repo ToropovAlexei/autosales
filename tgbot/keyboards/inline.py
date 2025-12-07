@@ -28,10 +28,20 @@ def main_menu(referral_program_enabled: bool = False, bot_type: str = "main", is
         buttons.append([InlineKeyboardButton(text="🤝 Реферальный магазин", callback_data="referral_program")])
     
     if is_admin:
-        buttons.append([InlineKeyboardButton(text="👑 Админ-панель", callback_data="admin_panel")])
+        buttons.append([InlineKeyboardButton(text="👑 Админ-меню", callback_data="admin_panel")])
 
     buttons.append([InlineKeyboardButton(text="💬 Поддержка", callback_data="support")])
 
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def admin_menu():
+    buttons = [
+        [InlineKeyboardButton(text="➕ Добавить товар", callback_data="prod_add")],
+        [InlineKeyboardButton(text="✏️ Редактировать товар", callback_data="prod_edit_start")],
+        [InlineKeyboardButton(text="🗑️ Удалить товар", callback_data="prod_delete_start")],
+        [InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu")]
+    ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 def balance_menu():

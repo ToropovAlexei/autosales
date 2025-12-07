@@ -6,23 +6,22 @@ from aiogram.types import Message, InlineKeyboardButton, InlineKeyboardMarkup
 
 from api import APIClient
 from states import AdminLogin, ProductManagement
-from keyboards.inline import main_menu
+from keyboards.inline import main_menu, admin_menu
 from config import settings
 
 router = Router()
 
 # --- Helper Functions ---
 
-async def _return_to_main_menu(bot: Bot, chat_id: int, message_id: int, api_client: APIClient, state: FSMContext):
+async def _return_to_main_menu(bot: Bot, chat_id: int, message_id: int, api_client: APIClient, state: FSMContext, is_admin: bool = False):
     """Clears state and edits the message to show the main menu."""
-    await state.clear()
+    if not is_admin:
+        await state.clear()
     
     try:
         seller_info = await api_client.get_public_settings()
         referral_enabled = seller_info.get("referral_program_enabled", False)
         
-        is_admin = False
-
         keyboard = main_menu(
             referral_program_enabled=referral_enabled,
             bot_type=settings.bot_type,
@@ -44,40 +43,12 @@ async def _return_to_main_menu(bot: Bot, chat_id: int, message_id: int, api_clie
         )
 
 
-async def get_admin_menu():
-    buttons = [
-        [InlineKeyboardButton(text="Добавить товар", callback_data="prod_add")],
-        [InlineKeyboardButton(text="Редактировать товар", callback_data="prod_edit_start")],
-        [InlineKeyboardButton(text="Удалить товар", callback_data="prod_delete_start")],
-        [InlineKeyboardButton(text="⬅️ Назад в главное меню", callback_data="main_menu")]
-    ]
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-def get_cancel_keyboard():
-    buttons = [[InlineKeyboardButton(text="❌ Отмена", callback_data="admin_login_cancel")]]
-    return InlineKeyboardMarkup(inline_keyboard=buttons)
-
-
-# --- Admin Main Menu & Auth Handlers ---
-
 @router.callback_query(F.data == "admin_panel")
 async def show_admin_panel(callback: types.CallbackQuery, state: FSMContext, api_client: APIClient):
-    # Double-check if user is admin for security
-    user_info = await api_client.get_user(callback.from_user.id)
-    user_data = user_info.get("data", {})
-    roles = user_data.get("roles", [])
-    is_admin = any(role.get("name") == "admin" for role in roles) if roles else False
-
-    if not is_admin:
-        await callback.answer("Доступ запрещен.", show_alert=True)
-        # Try to edit the message to remove the admin button, just in case.
-        await callback.message.edit_text("Ошибка доступа.")
-        return
-
     await state.set_state(ProductManagement.menu)
     await callback.message.edit_text(
         "👑 Панель администратора",
-        reply_markup=await get_admin_menu()
+        reply_markup=admin_menu()
     )
     await callback.answer()
 
@@ -103,23 +74,13 @@ async def cancel_login_handler(callback: types.CallbackQuery, state: FSMContext,
 async def cmd_admin(message: Message, state: FSMContext, api_client: APIClient):
     await message.delete()
 
-    # Check if user is already an admin
-    user_info = await api_client.get_user(message.from_user.id)
-    user_data = user_info.get("data", {})
-    roles = user_data.get("roles", [])
-    is_admin = any(role.get("name") == "admin" for role in roles) if roles else False
-
-    if is_admin:
-        await message.answer("Вы уже авторизованы как администратор. Кнопка доступа к панели находится в главном меню (/start).")
-        return
-
     await state.set_state(AdminLogin.waiting_for_email)
     
     data = await state.get_data()
     main_menu_id = data.get("main_menu_id")
 
     prompt_text = "Добро пожаловать в панель администратора.\n\nПожалуйста, введите ваш email:"
-    keyboard = get_cancel_keyboard()
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Отмена", callback_data="admin_login_cancel")]])
 
     if main_menu_id:
         try:
@@ -152,7 +113,7 @@ async def process_email(message: Message, state: FSMContext):
             "Введите ваш пароль:",
             chat_id=message.chat.id,
             message_id=login_message_id,
-            reply_markup=get_cancel_keyboard()
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Отмена", callback_data="admin_login_cancel")]])
         )
 
 @router.message(AdminLogin.waiting_for_password)
@@ -182,7 +143,7 @@ async def process_password(message: Message, state: FSMContext, api_client: APIC
                 "Пароль принят. Введите код двухфакторной аутентификации (2FA):",
                 chat_id=message.chat.id,
                 message_id=login_message_id,
-                reply_markup=get_cancel_keyboard()
+                reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Отмена", callback_data="admin_login_cancel")]])
             )
     else:
         error_payload = response.get("error")
@@ -210,7 +171,7 @@ async def retry_login_handler(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(AdminLogin.waiting_for_email)
     await callback.message.edit_text(
         "Пожалуйста, введите ваш email:",
-        reply_markup=get_cancel_keyboard()
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="❌ Отмена", callback_data="admin_login_cancel")]])
     )
     await callback.answer()
 
@@ -236,7 +197,7 @@ async def process_tfa(message: Message, state: FSMContext, api_client: APIClient
             "✅ Авторизация пройдена успешно!",
             chat_id=message.chat.id,
             message_id=edit_target_id,
-            reply_markup=await get_admin_menu()
+            reply_markup=admin_menu()
         )
     else:
         error_payload = response.get("error")
@@ -263,7 +224,7 @@ async def process_tfa(message: Message, state: FSMContext, api_client: APIClient
 
 @router.callback_query(F.data == "admin_main_menu")
 async def back_to_admin_menu(callback: types.CallbackQuery, state: FSMContext):
-    await callback.message.edit_text("Панель администратора:", reply_markup=await get_admin_menu())
+    await callback.message.edit_text("Панель администратора:", reply_markup=admin_menu())
     await state.set_state(ProductManagement.menu)
     await callback.answer()
 
@@ -273,17 +234,49 @@ async def back_to_admin_menu(callback: types.CallbackQuery, state: FSMContext):
 
 # --- Add Product Flow ---
 
+def get_product_creation_keyboard(back_callback: str = None):
+    buttons = []
+    if back_callback:
+        buttons.append(InlineKeyboardButton(text="⬅️ Назад", callback_data=back_callback))
+    buttons.append(InlineKeyboardButton(text="❌ Отмена", callback_data="admin_main_menu"))
+    return InlineKeyboardMarkup(inline_keyboard=[buttons])
+
 @router.callback_query(F.data == "prod_add", ProductManagement.menu)
 async def add_product_start(callback: types.CallbackQuery, state: FSMContext):
     await state.set_state(ProductManagement.add_name)
-    await callback.message.edit_text("Введите название нового товара:")
+    await state.update_data(product_creation_message_id=callback.message.message_id)
+    await callback.message.edit_text(
+        "Введите название нового товара:",
+        reply_markup=get_product_creation_keyboard()
+    )
     await callback.answer()
 
 @router.message(ProductManagement.add_name)
 async def add_product_name(message: Message, state: FSMContext):
     await state.update_data(name=message.text)
     await state.set_state(ProductManagement.add_price)
-    await message.answer("Отлично. Теперь введите цену товара (только число, например, 1500 или 99.99):")
+    data = await state.get_data()
+    message_id = data.get("product_creation_message_id")
+    await message.delete()
+    if message_id:
+        await message.bot.edit_message_text(
+            "Отлично. Теперь введите цену товара (только число, например, 1500 или 99.99):",
+            chat_id=message.chat.id,
+            message_id=message_id,
+            reply_markup=get_product_creation_keyboard(back_callback="prod_add_back_to_name")
+        )
+
+@router.callback_query(F.data == "prod_add_back_to_name", ProductManagement.add_price)
+async def back_to_add_product_name(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(ProductManagement.add_name)
+    data = await state.get_data()
+    message_id = data.get("product_creation_message_id")
+    if message_id:
+        await callback.message.edit_text(
+            "Введите название нового товара:",
+            reply_markup=get_product_creation_keyboard()
+        )
+    await callback.answer()
 
 @router.message(ProductManagement.add_price)
 async def add_product_price(message: Message, state: FSMContext):
@@ -291,21 +284,37 @@ async def add_product_price(message: Message, state: FSMContext):
         price = float(message.text)
         await state.update_data(price=price)
         await state.set_state(ProductManagement.add_description)
-        await message.answer("Цена принята. Введите описание товара:")
+        data = await state.get_data()
+        message_id = data.get("product_creation_message_id")
+        await message.delete()
+        if message_id:
+            await message.bot.edit_message_text(
+                "Цена принята. Введите описание товара:",
+                chat_id=message.chat.id,
+                message_id=message_id,
+                reply_markup=get_product_creation_keyboard(back_callback="prod_add_back_to_price")
+            )
     except ValueError:
         await message.answer("Это не похоже на число. Пожалуйста, введите цену в формате 1500 или 99.99.")
+
+@router.callback_query(F.data == "prod_add_back_to_price", ProductManagement.add_description)
+async def back_to_add_product_price(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(ProductManagement.add_price)
+    data = await state.get_data()
+    message_id = data.get("product_creation_message_id")
+    if message_id:
+        await callback.message.edit_text(
+            "Отлично. Теперь введите цену товара (только число, например, 1500 или 99.99):",
+            reply_markup=get_product_creation_keyboard(back_callback="prod_add_back_to_name")
+        )
+    await callback.answer()
 
 @router.message(ProductManagement.add_description)
 async def add_product_description(message: Message, state: FSMContext, api_client: APIClient):
     await state.update_data(description=message.text)
     
-    # For now, we skip category and photo selection to simplify
-    # A real implementation would show a category tree here
-    
     product_data = await state.get_data()
     
-    # For simplicity, we'll assign it to the first category found.
-    # THIS IS A PLACEHOLDER
     categories_response = await api_client.get_categories()
     if not categories_response.get("data"):
         await message.answer("Не удалось найти категории. Невозможно создать товар.")
@@ -316,6 +325,8 @@ async def add_product_description(message: Message, state: FSMContext, api_clien
     await state.update_data(category_id=first_category_id)
     
     product_data = await state.get_data()
+    message_id = product_data.get("product_creation_message_id")
+    await message.delete()
 
     text = (
         f"<b>Подтвердите создание товара:</b>\n\n"
@@ -328,11 +339,31 @@ async def add_product_description(message: Message, state: FSMContext, api_clien
     
     confirm_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="✅ Да, создать", callback_data="prod_add_confirm")],
+        [InlineKeyboardButton(text="⬅️ Назад", callback_data="prod_add_back_to_description")],
         [InlineKeyboardButton(text="❌ Нет, отмена", callback_data="admin_main_menu")]
     ])
     
     await state.set_state(ProductManagement.add_confirm)
-    await message.answer(text, reply_markup=confirm_keyboard, parse_mode="HTML")
+    if message_id:
+        await message.bot.edit_message_text(
+            text,
+            chat_id=message.chat.id,
+            message_id=message_id,
+            reply_markup=confirm_keyboard, 
+            parse_mode="HTML"
+        )
+
+@router.callback_query(F.data == "prod_add_back_to_description", ProductManagement.add_confirm)
+async def back_to_add_product_description(callback: types.CallbackQuery, state: FSMContext):
+    await state.set_state(ProductManagement.add_description)
+    data = await state.get_data()
+    message_id = data.get("product_creation_message_id")
+    if message_id:
+        await callback.message.edit_text(
+            "Цена принята. Введите описание товара:",
+            reply_markup=get_product_creation_keyboard(back_callback="prod_add_back_to_price")
+        )
+    await callback.answer()
 
 @router.callback_query(F.data == "prod_add_confirm", ProductManagement.add_confirm)
 async def add_product_confirm(callback: types.CallbackQuery, state: FSMContext, api_client: APIClient):
@@ -353,7 +384,11 @@ async def add_product_confirm(callback: types.CallbackQuery, state: FSMContext, 
     if response.get("status") == 201: # 201 Created
         await callback.message.edit_text("✅ Товар успешно создан!", reply_markup=await get_admin_menu())
     else:
-        error_msg = response.get("error", {}).get("message", "Произошла неизвестная ошибка.")
+        error_payload = response.get("error", "Произошла неизвестная ошибка.")
+        if isinstance(error_payload, dict):
+            error_msg = error_payload.get("message", "Произошла неизвестная ошибка.")
+        else:
+            error_msg = str(error_payload)
         await callback.message.edit_text(f"❌ Не удалось создать товар.\nОшибка: {error_msg}", reply_markup=await get_admin_menu())
         
     await state.set_state(ProductManagement.menu)

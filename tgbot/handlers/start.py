@@ -100,11 +100,15 @@ async def start_handler(message: Message, state: FSMContext, api_client: APIClie
                 seller_info_response = await api_client.get_public_settings()
                 referral_program_enabled = seller_info_response.get("referral_program_enabled", False) == 'true'
 
-                # Check for admin status
-                user_info_response = await api_client.get_user(message.from_user.id)
-                user_data = user_info_response.get("data", {})
-                roles = user_data.get("roles", [])
-                is_admin = any(role.get("name") == "admin" for role in roles) if roles else False
+                data = await state.get_data()
+                is_admin = data.get("is_admin", False)
+                if not is_admin:
+                    user_info_response = await api_client.get_user(message.from_user.id)
+                    user_data = user_info_response.get("data", {})
+                    roles = user_data.get("roles", [])
+                    is_admin = any(role.get("name") == "admin" for role in roles) if roles else False
+                    if is_admin:
+                        await state.update_data({"is_admin": True})
 
                 welcome_message = await api_client.get_returning_user_welcome_message()
                 welcome_message = welcome_message.replace("{username}", hbold(message.from_user.full_name))
@@ -189,10 +193,15 @@ async def main_menu_handler(callback_query: CallbackQuery, state: FSMContext, ap
     seller_info_response = await api_client.get_public_settings()
     referral_program_enabled = seller_info_response.get("referral_program_enabled", False)
 
-    user_info_response = await api_client.get_user(callback_query.from_user.id)
-    user_data = user_info_response.get("data", {})
-    roles = user_data.get("roles", [])
-    is_admin = any(role.get("name") == "admin" for role in roles) if roles else False
+    data = await state.get_data()
+    is_admin = data.get("is_admin", False)
+    if not is_admin:
+        user_info_response = await api_client.get_user(callback_query.from_user.id)
+        user_data = user_info_response.get("data", {})
+        roles = user_data.get("roles", [])
+        is_admin = any(role.get("name") == "admin" for role in roles) if roles else False
+        if is_admin:
+            await state.update_data({"is_admin": True})
 
     reply_markup = inline.main_menu(
         referral_program_enabled=referral_program_enabled,
