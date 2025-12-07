@@ -2,7 +2,7 @@ export const PERMISSION_GROUP_TRANSLATIONS: Record<string, string> = {
   RBAC: "Управление доступом",
   Products: "Товары",
   Categories: "Категории",
-  Orders: "Заказы",
+  Orders: "Покупки",
   Users: "Пользователи",
   Dashboard: "Дашборд",
   Settings: "Настройки",

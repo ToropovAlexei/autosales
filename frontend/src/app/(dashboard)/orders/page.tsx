@@ -19,7 +19,7 @@ export default function OrdersPage() {
   } = useDataGrid(ENDPOINTS.ORDERS);
 
   return (
-    <PageLayout title="Заказы">
+    <PageLayout title="Покупки">
       <OrdersTable
         orders={orders}
         loading={isFetching}

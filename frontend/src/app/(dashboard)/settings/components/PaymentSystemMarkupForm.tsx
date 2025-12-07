@@ -77,7 +77,7 @@ export const PaymentSystemMarkupForm = ({
               <InputSlider
                 name="PAYMENT_SYSTEM_MARKUP"
                 label="Наценка платежной системы"
-                min={-25}
+                min={0}
                 max={25}
                 step={0.5}
               />

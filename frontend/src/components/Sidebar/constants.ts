@@ -44,7 +44,7 @@ export const MENU_ITEMS = [
     permission: "transactions:read",
   },
   {
-    label: "Заказы",
+    label: "Покупки",
     Icon: LocalMallIcon,
     path: "/orders",
     permission: "orders:read",
