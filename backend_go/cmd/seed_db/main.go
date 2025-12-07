@@ -148,7 +148,7 @@ func createRbacData(db *gorm.DB) map[string]models.Permission {
 		{Name: "rbac:manage", Group: "RBAC"},
 		{Name: "products:read", Group: "Products"}, {Name: "products:create", Group: "Products"}, {Name: "products:update", Group: "Products"}, {Name: "products:delete", Group: "Products"},
 		{Name: "categories:read", Group: "Categories"}, {Name: "categories:create", Group: "Categories"}, {Name: "categories:update", Group: "Categories"}, {Name: "categories:delete", Group: "Categories"},
-		{Name: "orders:read", Group: "Orders"}, {Name: "orders:update", Group: "Orders"},
+		{Name: "orders:read", Group: "Orders"},
 		{Name: "users:read", Group: "Users"}, {Name: "users:create", Group: "Users"}, {Name: "users:update", Group: "Users"}, {Name: "users:delete", Group: "Users"},
 		{Name: "dashboard:read", Group: "Dashboard"},
 		{Name: "settings:read", Group: "Settings"}, {Name: "settings:edit", Group: "Settings"},
@@ -241,7 +241,7 @@ func createTestUsers(db *gorm.DB, permissions map[string]models.Permission, twoF
 		managerPermissions := []string{
 			"products:read", "products:create", "products:update", "products:delete",
 			"categories:read", "categories:create", "categories:update", "categories:delete",
-			"orders:read", "orders:update", "stock:read", "stock:update",
+			"orders:read", "stock:read", "stock:update",
 		}
 		for _, pName := range managerPermissions {
 			db.Create(&models.RolePermission{RoleID: managerRole.ID, PermissionID: permissions[pName].ID})
