@@ -8,7 +8,7 @@ import { ENDPOINTS } from "@/constants";
 import { toast } from "react-toastify";
 import { queryKeys } from "@/utils/query";
 import { useEffect } from "react";
-import { InputSlider } from "@/components";
+import { InputNumber, InputSlider } from "@/components";
 
 interface PaymentSystemMarkupFormData {
   PAYMENT_SYSTEM_MARKUP: number;
@@ -80,6 +80,22 @@ export const PaymentSystemMarkupForm = ({
                 min={0}
                 max={25}
                 step={0.5}
+                disabled={isPending}
+              />
+              <InputNumber
+                name="PAYMENT_SYSTEM_MARKUP"
+                label="Наценка платежной системы"
+                rules={{
+                  min: {
+                    message: "Наценка должна быть больше 0%",
+                    value: 0,
+                  },
+                  max: {
+                    message: "Наценка должна быть меньше 25%",
+                    value: 25,
+                  },
+                }}
+                disabled={isPending}
               />
               <Button
                 type="submit"

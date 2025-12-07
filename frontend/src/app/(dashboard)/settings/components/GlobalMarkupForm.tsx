@@ -8,7 +8,7 @@ import { ENDPOINTS } from "@/constants";
 import { toast } from "react-toastify";
 import { queryKeys } from "@/utils/query";
 import { useEffect } from "react";
-import { InputSlider } from "@/components";
+import { InputNumber, InputSlider } from "@/components";
 
 interface GlobalMarkupFormData {
   GLOBAL_PRICE_MARKUP: number;
@@ -78,8 +78,24 @@ export const GlobalMarkupForm = ({
                 name="GLOBAL_PRICE_MARKUP"
                 label="Наценка"
                 min={0}
-                max={30}
+                max={1000}
                 step={1}
+                disabled={isPending}
+              />
+              <InputNumber
+                name="GLOBAL_PRICE_MARKUP"
+                label="Наценка"
+                disabled={isPending}
+                rules={{
+                  min: {
+                    value: 0,
+                    message: "Наценка не может быть отрицательной",
+                  },
+                  max: {
+                    value: 1000,
+                    message: "Наценка не может быть больше 1000%",
+                  },
+                }}
               />
               <Button
                 type="submit"

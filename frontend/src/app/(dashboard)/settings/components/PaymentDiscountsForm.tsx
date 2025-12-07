@@ -7,8 +7,8 @@ import { dataLayer } from "@/lib/dataLayer";
 import { ENDPOINTS } from "@/constants";
 import { toast } from "react-toastify";
 import { queryKeys } from "@/utils/query";
-import { useEffect } from "react";
-import { InputSlider } from "@/components";
+import { Fragment, useEffect } from "react";
+import { InputNumber, InputSlider } from "@/components";
 import { useList } from "@/hooks";
 
 interface PaymentGateway {
@@ -88,15 +88,32 @@ export const PaymentDiscountsForm = ({
           <FormProvider {...form}>
             <Stack component="form" onSubmit={handleSubmit(onSubmit)} gap={2}>
               {gateways.map((gateway) => (
-                <InputSlider
-                  key={gateway.name}
-                  name={`GATEWAY_BONUS_${gateway.name}`}
-                  label={`Бонус для ${gateway.display_name}`}
-                  min={0}
-                  max={25.8}
-                  step={0.1}
-                  disabled={isPending}
-                />
+                <Fragment key={gateway.name}>
+                  <InputSlider
+                    key={gateway.name}
+                    name={`GATEWAY_BONUS_${gateway.name}`}
+                    label={`Бонус для ${gateway.display_name}`}
+                    min={0}
+                    max={25.8}
+                    step={0.1}
+                    disabled={isPending}
+                  />
+                  <InputNumber
+                    name={`GATEWAY_BONUS_${gateway.name}`}
+                    label={`Бонус для ${gateway.display_name}`}
+                    rules={{
+                      min: {
+                        message: "Бонус не может быть отрицательным",
+                        value: 0,
+                      },
+                      max: {
+                        message: "Бонус не может быть больше 25.8%",
+                        value: 25.8,
+                      },
+                    }}
+                    disabled={isPending}
+                  />
+                </Fragment>
               ))}
               <Button
                 type="submit"
