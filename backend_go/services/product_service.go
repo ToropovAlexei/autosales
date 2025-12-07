@@ -577,7 +577,7 @@ func (s *productService) UploadProductsCSV(ctx *gin.Context, file io.Reader) (ma
 			continue
 		}
 
-		category, err := s.categoryRepo.FindOrCreateByPath(strings.Split(categoryPath, "->"))
+		category, err := s.categoryRepo.FindOrCreateByPath(strings.Split(categoryPath, "/"))
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("Row %d: failed to find or create category '%s': %v", i+1, categoryPath, err))
 			errorCount++

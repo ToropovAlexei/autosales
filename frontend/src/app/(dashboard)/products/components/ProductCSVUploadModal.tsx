@@ -103,17 +103,15 @@ export const ProductCSVUploadModal = ({
           <TableBody>
             <TableRow>
               <TableCell>Google Pixel</TableCell>
-              <TableCell>
-                Электроника-&gt;Телефоны-&gt;Android-&gt;Google
-              </TableCell>
+              <TableCell>Электроника/Телефоны/Android/Google</TableCell>
               <TableCell>30000</TableCell>
               <TableCell>10</TableCell>
             </TableRow>
           </TableBody>
         </Table>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Разделитель категорий вложенности: <code>-&gt;</code> (например,{" "}
-          <code>Электроника-&gt;Телефоны-&gt;Android</code>)
+          Разделитель категорий вложенности: <code>/</code> (например,{" "}
+          <code>Электроника/Телефоны/Android</code>)
         </Typography>
         <UploadBtn
           onFileChange={handleFileChange}

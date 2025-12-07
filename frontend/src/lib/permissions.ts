@@ -1,5 +1,5 @@
 export const PERMISSION_GROUP_TRANSLATIONS: Record<string, string> = {
-  RBAC: "Управление доступом",
+  RBAC: "Управление ролями",
   Dashboard: "Дашборд",
   Products: "Товары",
   Categories: "Категории",
@@ -20,7 +20,7 @@ export const translatePermissionGroup = (group: string): string => {
 };
 
 export const PERMISSION_TRANSLATIONS: Record<string, string> = {
-  "rbac:manage": "Управление доступом",
+  "rbac:manage": "Управление ролями",
   "dashboard:read": "Просмотр дашборда",
   "products:read": "Просмотр товаров",
   "products:create": "Создание товаров",
