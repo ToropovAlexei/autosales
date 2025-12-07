@@ -22,7 +22,7 @@ export const useDataGrid = <T>(endpoint: string) => {
     .filter((item) => item.value !== undefined && item.value !== "")
     .map(({ field, operator: op, value }) => ({ field, op, value }));
 
-  const { data, isFetching, error } = useList<T>({
+  const { data, isFetching, error, refetch } = useList<T>({
     endpoint,
     filter: {
       page: paginationModel.page + 1, // MUI is 0-indexed, backend is 1-indexed
@@ -57,5 +57,6 @@ export const useDataGrid = <T>(endpoint: string) => {
     onFilterModelChange,
     sortModel,
     onSortModelChange,
+    refetch,
   };
 };

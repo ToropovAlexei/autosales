@@ -4,6 +4,7 @@ import { useDataGrid } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { StockMovementsTable } from "./components/StockMovementsTable";
 import { PageLayout } from "@/components/PageLayout";
+import { Button, Stack } from "@mui/material";
 
 export default function StockPage() {
   const {
@@ -16,10 +17,14 @@ export default function StockPage() {
     onFilterModelChange,
     sortModel,
     onSortModelChange,
+    refetch,
   } = useDataGrid(ENDPOINTS.STOCK_MOVEMENTS);
 
   return (
     <PageLayout title="Движения по складу">
+      <Stack direction="row" mb={2}>
+        <Button onClick={() => refetch()}>Обновить</Button>
+      </Stack>
       <StockMovementsTable
         movements={movements}
         loading={isFetching}

@@ -1,9 +1,10 @@
-'use client';
+"use client";
 
 import { useDataGrid } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
-import { TransactionsTable } from './components/TransactionsTable';
-import { PageLayout } from '@/components/PageLayout';
+import { TransactionsTable } from "./components/TransactionsTable";
+import { PageLayout } from "@/components/PageLayout";
+import { Button, Stack } from "@mui/material";
 
 export default function TransactionsPage() {
   const {
@@ -16,10 +17,14 @@ export default function TransactionsPage() {
     onFilterModelChange,
     sortModel,
     onSortModelChange,
+    refetch,
   } = useDataGrid(ENDPOINTS.TRANSACTIONS);
 
   return (
     <PageLayout title="Транзакции">
+      <Stack direction="row" mb={2}>
+        <Button onClick={() => refetch()}>Обновить</Button>
+      </Stack>
       <TransactionsTable
         transactions={transactions}
         loading={isFetching}

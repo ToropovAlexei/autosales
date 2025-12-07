@@ -4,6 +4,7 @@ import { useDataGrid } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { OrdersTable } from "./components/OrdersTable";
 import { PageLayout } from "@/components/PageLayout";
+import { Button, Stack } from "@mui/material";
 
 export default function OrdersPage() {
   const {
@@ -16,10 +17,14 @@ export default function OrdersPage() {
     onFilterModelChange,
     sortModel,
     onSortModelChange,
+    refetch,
   } = useDataGrid(ENDPOINTS.ORDERS);
 
   return (
     <PageLayout title="Покупки">
+      <Stack direction="row" mb={2}>
+        <Button onClick={() => refetch()}>Обновить</Button>
+      </Stack>
       <OrdersTable
         orders={orders}
         loading={isFetching}

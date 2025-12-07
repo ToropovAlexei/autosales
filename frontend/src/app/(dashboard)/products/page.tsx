@@ -6,7 +6,7 @@ import { useDataGrid, useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { ICategory, IProduct } from "@/types";
 import { flattenCategoriesForSelect, findCategoryNameById } from "@/lib/utils";
-import { Button } from "@mui/material";
+import { Button, Stack } from "@mui/material";
 import { ProductForm } from "./components/ProductForm";
 import { ProductsTable } from "./components/ProductsTable";
 import { ProductCSVUploadModal } from "./components/ProductCSVUploadModal";
@@ -29,6 +29,7 @@ export default function ProductsPage() {
     onFilterModelChange,
     sortModel,
     onSortModelChange,
+    refetch,
   } = useDataGrid(ENDPOINTS.PRODUCTS);
 
   const { data: categories, isPending: isLoadingCategories } =
@@ -86,12 +87,15 @@ export default function ProductsPage() {
 
   return (
     <PageLayout title="Товары">
-      <Button variant="contained" onClick={() => openForm()} sx={{ mb: 2, mr: 2 }}>
-        Добавить товар
-      </Button>
-      <Button variant="outlined" onClick={() => setIsUploadModalOpen(true)} sx={{ mb: 2 }}>
-        Загрузить CSV
-      </Button>
+      <Stack direction="row" mb={2} gap={2}>
+        <Button variant="contained" onClick={() => openForm()}>
+          Добавить товар
+        </Button>
+        <Button variant="outlined" onClick={() => setIsUploadModalOpen(true)}>
+          Загрузить CSV
+        </Button>
+        <Button onClick={() => refetch()}>Обновить</Button>
+      </Stack>
       <ProductsTable
         products={products}
         onEdit={openForm}

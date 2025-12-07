@@ -10,6 +10,7 @@ import { PageLayout } from "@/components/PageLayout";
 import { BotUser } from "@/types/common";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { Button, Stack } from "@mui/material";
 
 export default function BotUsersPage() {
   const queryClient = useQueryClient();
@@ -26,6 +27,7 @@ export default function BotUsersPage() {
     onFilterModelChange,
     sortModel,
     onSortModelChange,
+    refetch,
   } = useDataGrid<BotUser>(ENDPOINTS.BOT_USERS);
 
   const toggleBlockMutation = useMutation({
@@ -64,6 +66,9 @@ export default function BotUsersPage() {
 
   return (
     <PageLayout title="Пользователи бота">
+      <Stack direction="row" mb={2}>
+        <Button onClick={() => refetch()}>Обновить</Button>
+      </Stack>
       <BotUsersTable
         users={botUsers}
         onToggleBlock={openConfirmDialog}
