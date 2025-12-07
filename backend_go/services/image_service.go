@@ -1,6 +1,7 @@
 package services
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"errors"
 	"fmt"
@@ -8,8 +9,13 @@ import (
 	"frbktg/backend_go/config"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/repositories"
+	"image"
+	_ "image/gif" // Import image formats for decoding
+	_ "image/jpeg"
+	_ "image/png"
 	"io"
 	"mime/multipart"
+	"net/http"
 	"os"
 	"path/filepath"
 
@@ -73,6 +79,39 @@ func (s *imageService) UploadImage(fileHeader *multipart.FileHeader, folder stri
 	}
 	defer file.Close()
 
+	// Read a chunk to detect content type
+	fileBuf := bytes.NewBuffer(nil)
+	if _, err := io.CopyN(fileBuf, file, 512); err != nil && err != io.EOF {
+		return nil, apperrors.New(500, "failed to read file header", err)
+	}
+
+	contentType := http.DetectContentType(fileBuf.Bytes())
+	allowedMimeTypes := map[string]bool{
+		"image/jpeg": true,
+		"image/png":  true,
+		"image/gif":  true,
+	}
+
+	if !allowedMimeTypes[contentType] {
+		return nil, apperrors.New(400, fmt.Sprintf("unsupported file type: %s, only JPEG, PNG, GIF are allowed", contentType), nil)
+	}
+
+	// Reset file reader for subsequent operations (hashing, saving)
+	if _, err := file.Seek(0, 0); err != nil {
+		return nil, apperrors.New(500, "failed to reset file reader", err)
+	}
+
+	// Attempt to decode the image to ensure it's a valid image
+	_, _, err = image.Decode(file)
+	if err != nil {
+		return nil, apperrors.New(400, "invalid image file or corrupted", err)
+	}
+
+	// Reset file reader again after image.Decode
+	if _, err := file.Seek(0, 0); err != nil {
+		return nil, apperrors.New(500, "failed to reset file reader", err)
+	}
+
 	// Calculate hash
 	hash := sha256.New()
 	if _, err := io.Copy(hash, file); err != nil {
@@ -98,7 +137,7 @@ func (s *imageService) UploadImage(fileHeader *multipart.FileHeader, folder stri
 	newImage := &models.Image{
 		OriginalFilename: fileHeader.Filename,
 		Hash:             hashString,
-		MimeType:         fileHeader.Header.Get("Content-Type"),
+		MimeType:         contentType, // Use detected content type
 		FileSize:         fileHeader.Size,
 		Folder:           folder,
 	}
@@ -119,7 +158,14 @@ func (s *imageService) UploadImage(fileHeader *multipart.FileHeader, folder stri
 	}
 	defer outFile.Close()
 
-	if _, err := io.Copy(outFile, file); err != nil {
+	// Re-open file for writing to disk
+	fileForWrite, err := fileHeader.Open()
+	if err != nil {
+		return nil, apperrors.New(500, "failed to open file for writing", err)
+	}
+	defer fileForWrite.Close()
+
+	if _, err := io.Copy(outFile, fileForWrite); err != nil {
 		return nil, apperrors.New(500, "failed to save file to disk", err)
 	}
 
