@@ -17,6 +17,7 @@ import (
 var (
 	mainBackendWebhookURL = getEnv("MAIN_BACKEND_WEBHOOK_URL", "http://localhost:8000/api/webhooks/mock_provider")
 	port                  = getEnv("PORT", "8078")
+	publicURL             = getEnv("MOCK_GATEWAY_PUBLIC_URL", "http://localhost:8078")
 )
 
 // Invoice represents a payment request from the main backend
@@ -56,9 +57,7 @@ func createInvoiceHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Use public URL for PayURL if available, otherwise default to localhost
-	baseURL := "https://unaisled-jenny-scroddled.ngrok-free.dev"
-	log.Printf("Using hardcoded public URL: %s", baseURL)
+	log.Printf("Using public URL: %s", publicURL)
 
 	invoiceID := uuid.New().String()
 	invoice := &Invoice{
@@ -67,7 +66,7 @@ func createInvoiceHandler(w http.ResponseWriter, r *http.Request) {
 		UserID:    req.UserID,
 		OrderID:   req.OrderID,
 		Status:    "pending",
-		PayURL:    fmt.Sprintf("%s/pay/%s", baseURL, invoiceID),
+		PayURL:    fmt.Sprintf("%s/pay/%s", publicURL, invoiceID),
 		CreatedAt: time.Now(),
 	}
 
@@ -155,8 +154,6 @@ func getInvoiceStatusHandler(w http.ResponseWriter, r *http.Request) {
 	mu.RLock()
 	invoice, ok := invoices[invoiceID]
 	mu.RUnlock()
-
-
 
 	if !ok {
 		http.Error(w, "Invoice not found", http.StatusNotFound)

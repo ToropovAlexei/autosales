@@ -15,7 +15,7 @@ type InlineKeyboardButton struct {
 
 type WebhookService interface {
 	SendNotification(botName string, telegramID int64, message string, messageToEdit *int64, messageToDelete *int64, inlineKeyboard [][]InlineKeyboardButton) error
-	SendSuccessfulPaymentNotification(telegramID int64, amount float64, bonus int, messageToDelete *int64) error
+	SendSuccessfulPaymentNotification(botName string, telegramID int64, amount float64, bonus int, messageToDelete *int64) error
 	SendUnfinishedPaymentNotification(telegramID int64, amount float64, messageToDelete *int64) error
 }
 
@@ -81,12 +81,19 @@ func (s *webhookService) SendNotification(botName string, telegramID int64, mess
 	return nil
 }
 
-func (s *webhookService) SendSuccessfulPaymentNotification(telegramID int64, amount float64, bonus int, messageToDelete *int64) error {
+func (s *webhookService) SendSuccessfulPaymentNotification(botName string, telegramID int64, amount float64, bonus int, messageToDelete *int64) error {
 	message := fmt.Sprintf("✅ Баланс пополнен на %.2f RUB", amount)
 	if bonus > 0 {
 		message += fmt.Sprintf(" (включая бонус %d%%)", bonus)
 	}
-	return s.SendNotification("", telegramID, message, nil, messageToDelete, nil)
+
+	keyboard := [][]InlineKeyboardButton{
+		{
+			{Text: "⬅️ Главное меню", CallbackData: "main_menu"},
+		},
+	}
+
+	return s.SendNotification(botName, telegramID, message, nil, messageToDelete, keyboard)
 }
 
 func (s *webhookService) SendUnfinishedPaymentNotification(telegramID int64, amount float64, messageToDelete *int64) error {

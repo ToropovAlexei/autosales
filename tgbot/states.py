@@ -13,16 +13,13 @@ class AdminLogin(StatesGroup):
 
 class ProductManagement(StatesGroup):
     menu = State()
+    add_type = State()
     add_name = State()
-    add_price = State()
     add_category = State()
-    add_description = State()
-    add_photo = State()
+    add_base_price = State()
+    add_initial_stock = State()
+    add_subscription_period_days = State()
+    add_fulfillment_text = State()
+    add_fulfillment_image = State()
+    add_image = State()
     add_confirm = State()
-    
-    edit_select_product = State()
-    edit_select_field = State()
-    edit_enter_value = State()
-
-    delete_select_product = State()
-    delete_confirm = State()

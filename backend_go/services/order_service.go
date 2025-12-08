@@ -34,12 +34,13 @@ type OrderService interface {
 }
 
 type BuyResponse struct {
-	Order            models.OrderSlimResponse `json:"order"`
-	ProductName      string                   `json:"product_name"`
-	ProductPrice     float64                  `json:"product_price"`
-	Balance          float64                  `json:"balance"`
-	FulfilledContent string                   `json:"fulfilled_content,omitempty"`
-	ImageURL         string                   `json:"image_url,omitempty"`
+	Order             models.OrderSlimResponse `json:"order"`
+	ProductName       string                   `json:"product_name"`
+	ProductPrice      float64                  `json:"product_price"`
+	Balance           float64                  `json:"balance"`
+	FulfilledContent  string                   `json:"fulfilled_content,omitempty"`
+	ImageURL          string                   `json:"image_url,omitempty"`
+	FulfilledImageURL string                   `json:"fulfilled_image_url,omitempty"`
 }
 
 type orderService struct {
@@ -84,21 +85,27 @@ func (s *orderService) GetOrder(orderID uint) (*models.OrderResponse, error) {
 
 	imageURL := ""
 	if order.Product.ImageID != nil {
-		imageURL = fmt.Sprintf("/api/images/%s", order.Product.ImageID.String())
+		imageURL = fmt.Sprintf("/images/%s", order.Product.ImageID.String())
+	}
+
+	fulfilledImageURL := ""
+	if order.FulfilledImageID != nil {
+		fulfilledImageURL = fmt.Sprintf("/images/%s", order.FulfilledImageID.String())
 	}
 
 	return &models.OrderResponse{
-		ID:             order.ID,
-		UserID:         order.UserID,
-		ProductID:      order.ProductID,
-		Quantity:       order.Quantity,
-		Amount:         order.Amount,
-		Status:         order.Status,
-		CreatedAt:      order.CreatedAt,
-		UserTelegramID: 0, // TODO: Populate this field
-		ProductName:    order.Product.Name,
-		FulfilledContent: order.FulfilledContent,
-		ImageURL:       imageURL,
+		ID:                order.ID,
+		UserID:            order.UserID,
+		ProductID:         order.ProductID,
+		Quantity:          order.Quantity,
+		Amount:            order.Amount,
+		Status:            order.Status,
+		CreatedAt:         order.CreatedAt,
+		UserTelegramID:    0, // TODO: Populate this field
+		ProductName:       order.Product.Name,
+		FulfilledContent:  order.FulfilledContent,
+		FulfilledImageURL: fulfilledImageURL,
+		ImageURL:          imageURL,
 	}, nil
 }
 
@@ -139,8 +146,6 @@ func (s *orderService) BuyFromBalance(req BuyRequest) (*BuyResponse, error) {
 		if balance < orderAmount {
 			return apperrors.ErrInsufficientBalance
 		}
-
-
 
 		order := &models.Order{
 			UserID:    user.ID,
@@ -189,7 +194,10 @@ func (s *orderService) BuyFromBalance(req BuyRequest) (*BuyResponse, error) {
 			if password, ok := provisionResult.Details["password"].(string); ok {
 				dynamicContent += fmt.Sprintf("\nPassword: %s", password)
 			}
-			order.FulfilledContent = product.FulfillmentContent + dynamicContent
+			if product.FulfillmentText.Valid {
+				order.FulfilledContent = product.FulfillmentText.String + dynamicContent
+			}
+
 		}
 
 		if err := s.createOrderTransactionsAndMovements(tx, user, product, *order, orderAmount); err != nil {
@@ -198,11 +206,16 @@ func (s *orderService) BuyFromBalance(req BuyRequest) (*BuyResponse, error) {
 
 		// --- Fulfillment Logic ---
 		// For non-subscription items
-		if product.Type != "subscription" && product.FulfillmentType != "none" && product.FulfillmentContent != "" {
-			order.FulfilledContent = product.FulfillmentContent
+		if product.Type != "subscription" {
+			if product.FulfillmentText.Valid {
+				order.FulfilledContent = product.FulfillmentText.String
+			}
+			if product.FulfillmentImageID != nil {
+				order.FulfilledImageID = product.FulfillmentImageID
+			}
 		}
 
-		if order.FulfilledContent != "" {
+		if (order.FulfilledContent != "") || (order.FulfilledImageID != nil) {
 			if err := s.orderRepo.WithTx(tx).UpdateOrder(order); err != nil {
 				// Log the error but don't fail the transaction
 				slog.Error("failed to update order with fulfilled content", "order_id", order.ID, "error", err)
@@ -213,7 +226,12 @@ func (s *orderService) BuyFromBalance(req BuyRequest) (*BuyResponse, error) {
 		newBalance := balance - orderAmount
 		imageURL := ""
 		if product.ImageID != nil {
-			imageURL = fmt.Sprintf("/api/images/%s", product.ImageID.String())
+			imageURL = fmt.Sprintf("/images/%s", product.ImageID.String())
+		}
+
+		fulfilledImageURL := ""
+		if order.FulfilledImageID != nil {
+			fulfilledImageURL = fmt.Sprintf("/images/%s", order.FulfilledImageID.String())
 		}
 
 		response = &BuyResponse{
@@ -226,11 +244,12 @@ func (s *orderService) BuyFromBalance(req BuyRequest) (*BuyResponse, error) {
 				Status:    order.Status,
 				CreatedAt: order.CreatedAt,
 			},
-			ProductName:      product.Name,
-			ProductPrice:     product.Price,
-			Balance:          newBalance,
-			FulfilledContent: order.FulfilledContent,
-			ImageURL:         imageURL,
+			ProductName:       product.Name,
+			ProductPrice:      product.Price,
+			Balance:           newBalance,
+			FulfilledContent:  order.FulfilledContent,
+			ImageURL:          imageURL,
+			FulfilledImageURL: fulfilledImageURL,
 		}
 		return nil
 	})
@@ -246,8 +265,8 @@ func (s *orderService) handleSubscriptionPurchase(tx *gorm.DB, botUserID uint, p
 	}
 
 	// Parse host and port from fulfillment content and add to details
-	if product.FulfillmentContent != "" {
-		lines := strings.Split(product.FulfillmentContent, "\n")
+	if product.FulfillmentText.Valid {
+		lines := strings.Split(product.FulfillmentText.String, "\n")
 		for _, line := range lines {
 			parts := strings.SplitN(line, ":", 2)
 			if len(parts) == 2 {

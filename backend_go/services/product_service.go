@@ -30,8 +30,8 @@ type ProductUpdatePayload struct {
 	Type                   *string    `json:"type" binding:"omitempty,oneof=item subscription"`
 	SubscriptionPeriodDays *int       `json:"subscription_period_days" binding:"omitempty,gte=0"`
 	Stock                  *int       `json:"stock" binding:"omitempty,gte=0"`
-	FulfillmentType        *string    `json:"fulfillment_type"`
-	FulfillmentContent     *string    `json:"fulfillment_content"`
+	FulfillmentText        *string    `json:"fulfillment_text"`
+	FulfillmentImageID     *uuid.UUID `json:"fulfillment_image_id"`
 }
 
 type ProductService interface {
@@ -39,7 +39,7 @@ type ProductService interface {
 	GetProductsForBot(categoryID uint) ([]models.ProductResponse, error)
 	GetProduct(id uint, gateway string) (*models.ProductResponse, error)
 	GetProductForBot(id uint) (*models.ProductResponse, error)
-	CreateProduct(ctx *gin.Context, name string, categoryID uint, basePrice float64, initialStock int, productType string, subscriptionPeriodDays int, fulfillmentType string, fulfillmentContent string, imageID *uuid.UUID) (*models.ProductResponse, error)
+	CreateProduct(ctx *gin.Context, name string, categoryID uint, basePrice float64, initialStock int, productType string, subscriptionPeriodDays int, fulfillmentText string, fulfillmentImageID *uuid.UUID, imageID *uuid.UUID) (*models.ProductResponse, error)
 	UpdateProduct(ctx *gin.Context, id uint, payload ProductUpdatePayload) (*models.ProductResponse, error)
 	DeleteProduct(ctx *gin.Context, id uint) error
 	CreateStockMovement(ctx *gin.Context, productID uint, movementType models.StockMovementType, quantity int, description string, orderID *uint) (*models.StockMovement, error)
@@ -117,6 +117,14 @@ func (s *productService) GetProductsForBot(categoryID uint) ([]models.ProductRes
 		if p.ImageID != nil {
 			imageIDStr = p.ImageID.String()
 		}
+		var fulfillmentText string
+		if p.FulfillmentText.Valid {
+			fulfillmentText = p.FulfillmentText.String
+		}
+		fulfillmentImageID := ""
+		if p.FulfillmentImageID != nil {
+			fulfillmentImageID = p.FulfillmentImageID.String()
+		}
 
 		finalPrice := s.calculatePrice(p.Price, "", settings)
 
@@ -130,8 +138,8 @@ func (s *productService) GetProductsForBot(categoryID uint) ([]models.ProductRes
 			Type:                   p.Type,
 			SubscriptionPeriodDays: p.SubscriptionPeriodDays,
 			Visible:                p.Visible,
-			FulfillmentType:        p.FulfillmentType,
-			FulfillmentContent:     p.FulfillmentContent,
+			FulfillmentText:        fulfillmentText,
+			FulfillmentImageID:     fulfillmentImageID,
 			ImageID:                imageIDStr,
 			Provider:               providerName,
 			ExternalID:             externalID,
@@ -179,6 +187,16 @@ func (s *productService) GetProducts(page models.Page, filters []models.Filter) 
 			imageIDStr = p.ImageID.String()
 		}
 
+		var fulfillmentText string
+		if p.FulfillmentText.Valid {
+			fulfillmentText = p.FulfillmentText.String
+		}
+
+		fulfillmentImageID := ""
+		if p.FulfillmentImageID != nil {
+			fulfillmentImageID = p.FulfillmentImageID.String()
+		}
+
 		finalPrice := s.calculatePrice(p.Price, "", settings)
 
 		allProducts = append(allProducts, models.ProductResponse{
@@ -191,8 +209,8 @@ func (s *productService) GetProducts(page models.Page, filters []models.Filter) 
 			Type:                   p.Type,
 			SubscriptionPeriodDays: p.SubscriptionPeriodDays,
 			Visible:                p.Visible,
-			FulfillmentType:        p.FulfillmentType,
-			FulfillmentContent:     p.FulfillmentContent,
+			FulfillmentText:        fulfillmentText,
+			FulfillmentImageID:     fulfillmentImageID,
 			ImageID:                imageIDStr,
 			Provider:               providerName,
 			ExternalID:             externalID,
@@ -301,6 +319,16 @@ func (s *productService) GetProduct(id uint, gateway string) (*models.ProductRes
 
 	finalPrice := s.calculatePrice(product.Price, gateway, settings)
 
+	var fulfillmentText string
+	if product.FulfillmentText.Valid {
+		fulfillmentText = product.FulfillmentText.String
+	}
+
+	fulfillmentImageID := ""
+	if product.FulfillmentImageID != nil {
+		fulfillmentImageID = product.FulfillmentImageID.String()
+	}
+
 	return &models.ProductResponse{
 		ID:                     product.ID,
 		Name:                   product.Name,
@@ -311,6 +339,8 @@ func (s *productService) GetProduct(id uint, gateway string) (*models.ProductRes
 		Type:                   product.Type,
 		SubscriptionPeriodDays: product.SubscriptionPeriodDays,
 		ImageID:                imageIDStr,
+		FulfillmentText:        fulfillmentText,
+		FulfillmentImageID:     fulfillmentImageID,
 	}, nil
 }
 
@@ -318,7 +348,7 @@ func (s *productService) GetProductForBot(id uint) (*models.ProductResponse, err
 	return s.GetProduct(id, "")
 }
 
-func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID uint, basePrice float64, initialStock int, productType string, subscriptionPeriodDays int, fulfillmentType string, fulfillmentContent string, imageID *uuid.UUID) (*models.ProductResponse, error) {
+func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID uint, basePrice float64, initialStock int, productType string, subscriptionPeriodDays int, fulfillmentText string, fulfillmentImageID *uuid.UUID, imageID *uuid.UUID) (*models.ProductResponse, error) {
 	_, err := s.productRepo.FindCategoryByID(categoryID)
 	if err != nil {
 		return nil, &apperrors.ErrNotFound{Resource: "Category", ID: categoryID}
@@ -331,8 +361,8 @@ func (s *productService) CreateProduct(ctx *gin.Context, name string, categoryID
 		Type:                   productType,
 		SubscriptionPeriodDays: subscriptionPeriodDays,
 		Details:                sql.NullString{String: "{}", Valid: true},
-		FulfillmentType:        fulfillmentType,
-		FulfillmentContent:     fulfillmentContent,
+		FulfillmentText:        sql.NullString{String: fulfillmentText, Valid: fulfillmentText != ""},
+		FulfillmentImageID:     fulfillmentImageID,
 		ImageID:                imageID,
 	}
 	if err := s.productRepo.CreateProduct(product); err != nil {
@@ -480,11 +510,11 @@ func (s *productService) UpdateProduct(ctx *gin.Context, id uint, payload Produc
 	if payload.SubscriptionPeriodDays != nil {
 		updateMap["subscription_period_days"] = *payload.SubscriptionPeriodDays
 	}
-	if payload.FulfillmentType != nil {
-		updateMap["fulfillment_type"] = *payload.FulfillmentType
+	if payload.FulfillmentText != nil {
+		updateMap["fulfillment_text"] = sql.NullString{String: *payload.FulfillmentText, Valid: true}
 	}
-	if payload.FulfillmentContent != nil {
-		updateMap["fulfillment_content"] = *payload.FulfillmentContent
+	if payload.FulfillmentImageID != nil {
+		updateMap["fulfillment_image_id"] = *payload.FulfillmentImageID
 	}
 	if payload.ImageID != nil {
 		updateMap["image_id"] = *payload.ImageID
@@ -584,7 +614,7 @@ func (s *productService) UploadProductsCSV(ctx *gin.Context, file io.Reader) (ma
 			continue
 		}
 
-		_, err = s.CreateProduct(ctx, name, category.ID, price, initialStock, "item", 0, "", "", nil)
+		_, err = s.CreateProduct(ctx, name, category.ID, price, initialStock, "item", 0, "", nil, nil)
 		if err != nil {
 			errors = append(errors, fmt.Sprintf("Row %d: failed to create product '%s': %v", i+1, name, err))
 			errorCount++

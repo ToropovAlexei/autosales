@@ -1,5 +1,5 @@
 from aiogram import Router, F, Bot
-from aiogram.types import CallbackQuery, InlineKeyboardButton
+from aiogram.types import CallbackQuery, InlineKeyboardButton, BufferedInputFile
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.utils.markdown import hbold, hitalic
 import logging
@@ -56,6 +56,10 @@ async def my_orders_handler(callback_query: CallbackQuery, api_client: APIClient
 async def order_details_handler(callback_query: CallbackQuery, api_client: APIClient, bot: Bot):
     order_id = int(callback_query.data.split(":")[1])
     try:
+        # The API call for a single order needs to be created first.
+        # For now, let's assume get_user_orders can filter by a single order ID
+        # or that a get_order(id) exists and returns the full details.
+        # Based on previous work, get_order exists.
         result = await api_client.get_order(order_id)
 
         if result.get("success"):
@@ -65,6 +69,7 @@ async def order_details_handler(callback_query: CallbackQuery, api_client: APICl
             created_at_str = order.get('created_at', '')
             fulfilled_content = order.get('fulfilled_content')
             image_url = order.get('image_url')
+            fulfilled_image_url = order.get('fulfilled_image_url')
 
             try:
                 created_dt = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
@@ -82,16 +87,30 @@ async def order_details_handler(callback_query: CallbackQuery, api_client: APICl
                 caption += f"\n{hbold('Ваш товар:')}\n<pre>{fulfilled_content}</pre>\n"
 
             await callback_query.message.delete()
+            
+            image_path_to_send = None
+            if fulfilled_image_url:
+                image_path_to_send = fulfilled_image_url
+            elif image_url:
+                image_path_to_send = image_url
 
-            if image_url:
-                full_image_url = f"{api_client.base_url}{image_url}"
-                await bot.send_photo(
-                    chat_id=callback_query.from_user.id,
-                    photo=full_image_url,
-                    caption=caption,
-                    parse_mode="HTML",
-                    reply_markup=back_to_main_menu_keyboard()
-                )
+            if image_path_to_send:
+                image_bytes = await api_client.get_image(image_path_to_send)
+                if image_bytes:
+                    await bot.send_photo(
+                        chat_id=callback_query.from_user.id,
+                        photo=BufferedInputFile(image_bytes, filename="order_image.png"),
+                        caption=caption,
+                        parse_mode="HTML",
+                        reply_markup=back_to_main_menu_keyboard()
+                    )
+                else: # Fallback to text if image download fails
+                    await bot.send_message(
+                        chat_id=callback_query.from_user.id,
+                        text=caption,
+                        parse_mode="HTML",
+                        reply_markup=back_to_main_menu_keyboard()
+                    )
             else:
                 await bot.send_message(
                     chat_id=callback_query.from_user.id,

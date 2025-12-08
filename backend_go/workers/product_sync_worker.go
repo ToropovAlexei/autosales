@@ -1,6 +1,7 @@
 package workers
 
 import (
+	"database/sql"
 	"fmt"
 	"frbktg/backend_go/external_providers"
 	"frbktg/backend_go/models"
@@ -89,8 +90,8 @@ func (w *ProductSyncWorker) syncProducts() error {
 					updateMap["visible"] = true // Re-enable if it was soft-deleted
 				}
 				if externalProduct.Host != "" {
-					updateMap["fulfillment_type"] = "text"
-					updateMap["fulfillment_content"] = fmt.Sprintf("Host: %s\nPort: %d", externalProduct.Host, externalProduct.Port)
+					fulfillmentText := fmt.Sprintf("Host: %s\nPort: %d", externalProduct.Host, externalProduct.Port)
+					updateMap["fulfillment_text"] = sql.NullString{String: fulfillmentText, Valid: true}
 				}
 
 				if len(updateMap) > 0 {
@@ -112,8 +113,8 @@ func (w *ProductSyncWorker) syncProducts() error {
 					Visible:      true,
 				}
 				if externalProduct.Host != "" {
-					newProduct.FulfillmentType = "text"
-					newProduct.FulfillmentContent = fmt.Sprintf("Host: %s\nPort: %d", externalProduct.Host, externalProduct.Port)
+					fulfillmentText := fmt.Sprintf("Host: %s\nPort: %d", externalProduct.Host, externalProduct.Port)
+					newProduct.FulfillmentText = sql.NullString{String: fulfillmentText, Valid: true}
 				}
 				if err := w.productRepo.CreateProduct(newProduct); err != nil {
 					slog.Error("failed to create external product", "key", key, "error", err)

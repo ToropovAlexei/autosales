@@ -72,8 +72,8 @@ type productCreatePayload struct {
 	ImageID                *uuid.UUID `json:"image_id"`
 	Type                   string     `json:"type" binding:"oneof=item subscription"`
 	SubscriptionPeriodDays int        `json:"subscription_period_days" binding:"gte=0"`
-	FulfillmentType        string     `json:"fulfillment_type"`
-	FulfillmentContent     string     `json:"fulfillment_content"`
+	FulfillmentText        string     `json:"fulfillment_text"`
+	FulfillmentImageID     *uuid.UUID `json:"fulfillment_image_id"`
 }
 
 // @Summary      Create a product
@@ -94,7 +94,7 @@ func (h *ProductHandler) CreateProductHandler(c *gin.Context) {
 		return
 	}
 
-	product, err := h.productService.CreateProduct(c, json.Name, json.CategoryID, json.BasePrice, json.InitialStock, json.Type, json.SubscriptionPeriodDays, json.FulfillmentType, json.FulfillmentContent, json.ImageID)
+	product, err := h.productService.CreateProduct(c, json.Name, json.CategoryID, json.BasePrice, json.InitialStock, json.Type, json.SubscriptionPeriodDays, json.FulfillmentText, json.FulfillmentImageID, json.ImageID)
 	if err != nil {
 		c.Error(err)
 		return
@@ -285,4 +285,3 @@ func (h *ProductHandler) GetProductForBotHandler(c *gin.Context) {
 
 	responses.SuccessResponse(c, http.StatusOK, product)
 }
-

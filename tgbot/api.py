@@ -2,6 +2,7 @@ import aiohttp
 import asyncio
 import math
 import json
+import logging # Added this line
 from urllib.parse import urlencode
 from config import settings
 
@@ -199,3 +200,17 @@ class APIClient:
     async def delete_product(self, product_id: int, admin_telegram_id: int):
         headers = {"X-Admin-Telegram-ID": str(admin_telegram_id)}
         return await self._request("DELETE", f"/bot/admin/products/{product_id}", extra_headers=headers)
+
+    async def get_image(self, image_path: str):
+        url = f"{self.base_url.rstrip('/')}{image_path}"
+        try:
+            timeout = aiohttp.ClientTimeout(total=15)
+            async with aiohttp.ClientSession(headers=self.headers, timeout=timeout) as session:
+                async with session.get(url) as response:
+                    if response.status == 200:
+                        return await response.read()
+                    logging.error(f"Failed to download image. Status: {response.status}, URL: {url}")
+                    return None
+        except aiohttp.ClientError as e:
+            logging.error(f"API request for image failed: {e}")
+            return None

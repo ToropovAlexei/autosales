@@ -4,9 +4,13 @@ from typing import Optional
 
 # Фабрика колбэков для навигации по категориям
 class CategoryCallback(CallbackData, prefix="cat"):
-    action: str  # "view", "back"
+    action: str  # "view", "back", "select"
     category_id: int = 0
     parent_id: int = 0 # ID родителя, чтобы знать, куда возвращаться
+
+class AddProductCallback(CallbackData, prefix="add_prod"):
+    action: str
+    value: Optional[str] = None
 
 # Фабрика колбэков для процесса оплаты
 class PaymentCallback(CallbackData, prefix="pay"):
@@ -99,7 +103,7 @@ def deposit_amount_menu(gateway: str):
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-def categories_menu(categories: list, parent_id: int = 0, products: list = [], category_id: int = 0):
+def categories_menu(categories: list, parent_id: int = 0, products: list = [], category_id: int = 0, mode: str = "view"):
     buttons = []
     
     for category in categories:
@@ -113,9 +117,15 @@ def categories_menu(categories: list, parent_id: int = 0, products: list = [], c
             text=f"🔹 {product['name']} - {product['price']} ₽", 
             callback_data=f"product_{product['id']}_{category_id}"
         )])
+
+    if mode == "select" and category_id != 0:
+        buttons.append([InlineKeyboardButton(text="✅ Выбрать эту категорию", callback_data=CategoryCallback(action="select", category_id=category_id).pack())])
     
     if parent_id == 0:
-        buttons.append([InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu")])
+        if mode == "select":
+            buttons.append([InlineKeyboardButton(text="⬅️ Назад", callback_data=AddProductCallback(action="set_name").pack())])
+        else:
+            buttons.append([InlineKeyboardButton(text="⬅️ Назад", callback_data="main_menu")])
     else:
         buttons.append([InlineKeyboardButton(
             text="⬅️ Назад", 

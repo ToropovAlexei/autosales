@@ -1,5 +1,5 @@
-export * from './common';
-export * from './role';
+export * from "./common";
+export * from "./role";
 
 export interface IAuditLog {
   id: number;
@@ -36,6 +36,8 @@ export interface IProduct {
   external_id?: string;
   image_id?: string;
   image_url?: string;
+  fulfillment_text?: string;
+  fulfillment_image_id?: string;
 }
 
 export interface IFilter {

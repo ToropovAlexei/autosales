@@ -1,6 +1,6 @@
 from aiogram import Router, F, Bot
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery, InlineKeyboardMarkup
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, BufferedInputFile
 from aiogram.utils.markdown import hbold
 import logging
 
@@ -32,6 +32,9 @@ async def process_buy_result(callback_query: CallbackQuery, result: dict, bot: B
         product_price = data.get("product_price")
         fulfilled_content = data.get("fulfilled_content")
         image_url = data.get("image_url")
+        fulfilled_image_url = data.get("fulfilled_image_url")
+
+        logging.info(f"Fulfilled Image URL from API: {fulfilled_image_url}")
 
         if new_balance is not None and product_name and product_price is not None:
             success_message = (
@@ -45,15 +48,29 @@ async def process_buy_result(callback_query: CallbackQuery, result: dict, bot: B
             # Delete the old message with the 'buy' button
             await callback_query.message.delete()
 
-            if image_url:
-                full_image_url = f"{api_client.base_url}{image_url}"
-                await bot.send_photo(
-                    chat_id=callback_query.from_user.id,
-                    photo=full_image_url,
-                    caption=success_message,
-                    parse_mode="HTML",
-                    reply_markup=back_to_main_menu_keyboard()
-                )
+            image_path_to_send = None
+            if fulfilled_image_url:
+                image_path_to_send = fulfilled_image_url
+            elif image_url:
+                image_path_to_send = image_url
+            
+            if image_path_to_send:
+                image_bytes = await api_client.get_image(image_path_to_send)
+                if image_bytes:
+                    await bot.send_photo(
+                        chat_id=callback_query.from_user.id,
+                        photo=BufferedInputFile(image_bytes, filename="image.png"),
+                        caption=success_message,
+                        parse_mode="HTML",
+                        reply_markup=back_to_main_menu_keyboard()
+                    )
+                else: # Fallback to text if image download fails
+                     await bot.send_message(
+                        chat_id=callback_query.from_user.id,
+                        text=success_message,
+                        parse_mode="HTML",
+                        reply_markup=back_to_main_menu_keyboard()
+                    )
             else:
                 await bot.send_message(
                     chat_id=callback_query.from_user.id,

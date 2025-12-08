@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"frbktg/backend_go/apperrors"
 	"frbktg/backend_go/models"
 	"frbktg/backend_go/responses"
@@ -331,12 +332,22 @@ func (h *UserHandler) GetUserOrdersHandler(c *gin.Context) {
 	// Map to DTO
 	response := make([]models.UserOrderResponse, 0, len(orders))
 	for _, order := range orders {
+		productImageURL := ""
+		if order.Product.ImageID != nil {
+			productImageURL = fmt.Sprintf("/images/%s", order.Product.ImageID.String())
+		}
+		fulfilledImageURL := ""
+		if order.FulfilledImageID != nil {
+			fulfilledImageURL = fmt.Sprintf("/images/%s", order.FulfilledImageID.String())
+		}
 		response = append(response, models.UserOrderResponse{
-			ID:               order.ID,
-			ProductName:      order.Product.Name,
-			Amount:           order.Amount,
-			CreatedAt:        order.CreatedAt,
-			FulfilledContent: order.FulfilledContent,
+			ID:                order.ID,
+			ProductName:       order.Product.Name,
+			Amount:            order.Amount,
+			CreatedAt:         order.CreatedAt,
+			FulfilledContent:  order.FulfilledContent,
+			ProductImageURL:   productImageURL,
+			FulfilledImageURL: fulfilledImageURL,
 		})
 	}
 

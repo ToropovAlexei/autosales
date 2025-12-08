@@ -29,8 +29,8 @@ interface ProductFormData {
   stock?: number;
   type: "item" | "subscription";
   subscription_period_days?: number;
-  fulfillment_type: "none" | "text" | "image";
-  fulfillment_content?: string;
+  fulfillment_text?: string;
+  fulfillment_image_id?: string;
 }
 
 interface ProductFormProps {
@@ -83,16 +83,15 @@ export const ProductForm = ({
       image_id: defaultValues?.image_id || "",
       initial_stock: !isEditMode ? 0 : undefined,
       subscription_period_days: defaultValues?.subscription_period_days || 30,
-      fulfillment_type: defaultValues?.fulfillment_type || "none",
-      fulfillment_content: defaultValues?.fulfillment_content || "",
+      fulfillment_text: defaultValues?.fulfillment_text || "",
+      fulfillment_image_id: defaultValues?.fulfillment_image_id || "",
     },
   });
   const { handleSubmit, watch, setValue } = form;
 
   const productType = watch("type");
-  const fulfillmentType = watch("fulfillment_type");
   const imageId = watch("image_id");
-  const fulfillmentContent = watch("fulfillment_content");
+  const fulfillmentImageId = watch("fulfillment_image_id");
 
   const handleImageSelect = (image: { ID: string }) => {
     setValue("image_id", image.ID);
@@ -100,7 +99,7 @@ export const ProductForm = ({
   };
 
   const handleFulfillmentImageSelect = (image: { ID: string }) => {
-    setValue("fulfillment_content", image.ID);
+    setValue("fulfillment_image_id", image.ID);
     setIsFulfillmentImageSelectorOpen(false);
   };
 
@@ -124,11 +123,11 @@ export const ProductForm = ({
       payload.subscription_period_days = data.subscription_period_days;
     }
 
-    payload.fulfillment_type = data.fulfillment_type;
-    if (data.fulfillment_type !== "none") {
-      payload.fulfillment_content = data.fulfillment_content;
-    } else {
-      payload.fulfillment_content = "";
+    if (data.fulfillment_text) {
+      payload.fulfillment_text = data.fulfillment_text;
+    }
+    if (data.fulfillment_image_id) {
+      payload.fulfillment_image_id = data.fulfillment_image_id;
     }
 
     onConfirm(payload);
@@ -205,41 +204,28 @@ export const ProductForm = ({
                 />
               )}
 
-              <InputSelect
-                name="fulfillment_type"
-                label="Тип выдачи товара"
-                options={[
-                  { value: "none", label: "Ничего" },
-                  { value: "text", label: "Текст / Ключ" },
-                  { value: "image", label: "Изображение" },
-                ]}
+              <InputText
+                name="fulfillment_text"
+                label="Текст / Ключ для выдачи"
+                multiline
+                rows={4}
               />
-              {fulfillmentType === "text" && (
-                <InputText
-                  name="fulfillment_content"
-                  label="Содержимое для выдачи"
-                  multiline
-                  rows={4}
-                />
-              )}
-              {fulfillmentType === "image" && (
-                <div className={classes.selectImg}>
-                  <Button
-                    variant="outlined"
-                    onClick={() => setIsFulfillmentImageSelectorOpen(true)}
-                  >
-                    Выбрать изображение для выдачи
-                  </Button>
-                  {fulfillmentContent && (
-                    <img
-                      className={classes.img}
-                      src={`${CONFIG.IMAGES_URL}/${fulfillmentContent}`}
-                      alt="Fulfillment Preview"
-                      width="30%"
-                    />
-                  )}
-                </div>
-              )}
+              <div className={classes.selectImg}>
+                <Button
+                  variant="outlined"
+                  onClick={() => setIsFulfillmentImageSelectorOpen(true)}
+                >
+                  Выбрать изображение для выдачи
+                </Button>
+                {fulfillmentImageId && (
+                  <img
+                    className={classes.img}
+                    src={`${CONFIG.IMAGES_URL}/${fulfillmentImageId}`}
+                    alt="Fulfillment Preview"
+                    width="30%"
+                  />
+                )}
+              </div>
               <div className={classes.selectImg}>
                 <Button
                   variant="outlined"

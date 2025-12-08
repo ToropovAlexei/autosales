@@ -327,7 +327,7 @@ func (s *paymentService) processCompletedInvoice(tx *gorm.DB, orderID string) er
 	slog.Info("successfully processed completed invoice", "order_id", orderID, "user_id", invoice.BotUserID, "amount", finalAmount)
 
 	// Send notification to bot
-	if err := s.webhookService.SendSuccessfulPaymentNotification(invoice.BotUser.TelegramID, finalAmount, int(bonusPercentage), invoice.BotMessageID); err != nil {
+	if err := s.webhookService.SendSuccessfulPaymentNotification(invoice.BotUser.RegisteredWithBot, invoice.BotUser.TelegramID, finalAmount, int(bonusPercentage), invoice.BotMessageID); err != nil {
 		slog.Error("failed to send successful payment notification", "error", err, "user_id", invoice.BotUserID)
 		// Do not return error, as the payment is already processed
 	}

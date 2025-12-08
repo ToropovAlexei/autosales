@@ -71,10 +71,10 @@ func (a *MockGatewayAdapter) CreateInvoice(req *gateways.InvoiceCreationRequest)
 	}, nil
 }
 
-func (a *MockGatewayAdapter) HandleWebhook(r *http.Request) (*gateways.WebhookResult, error) {
+func (a *MockGatewayAdapter) HandleWebhook(r *http.Request) (string, error) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		return nil, fmt.Errorf("mock adapter: failed to read webhook body: %w", err)
+		return "", fmt.Errorf("mock adapter: failed to read webhook body: %w", err)
 	}
 
 	var webhookPayload struct {
@@ -86,21 +86,16 @@ func (a *MockGatewayAdapter) HandleWebhook(r *http.Request) (*gateways.WebhookRe
 	}
 
 	if err := json.Unmarshal(body, &webhookPayload); err != nil {
-		return nil, fmt.Errorf("mock adapter: failed to unmarshal webhook: %w", err)
+		return "", fmt.Errorf("mock adapter: failed to unmarshal webhook: %w", err)
 	}
 
 	// In a real gateway, we would verify a signature here.
 
 	if webhookPayload.Event != "payment.completed" {
-		return nil, fmt.Errorf("mock adapter: received unexpected event type '%s'", webhookPayload.Event)
+		return "", fmt.Errorf("mock adapter: received unexpected event type '%s'", webhookPayload.Event)
 	}
 
-	return &gateways.WebhookResult{
-		GatewayInvoiceID: webhookPayload.InvoiceID,
-		OrderID:          webhookPayload.OrderID,
-		Status:           webhookPayload.Status,
-		Amount:           webhookPayload.Amount,
-	}, nil
+	return webhookPayload.OrderID, nil
 }
 
 func (a *MockGatewayAdapter) GetInvoiceStatus(gatewayInvoiceID string) (*gateways.StatusResult, error) {
