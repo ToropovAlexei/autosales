@@ -30,11 +30,23 @@ export const AuditLogTable = ({
 }: AuditLogTableProps) => {
   const columns: GridColDef[] = [
     { field: "id", headerName: "Id", width: 90, sortable: false },
-    { field: "user_email", headerName: "Email", width: 250, flex: 1, sortable: false },
-    { field: "action", headerName: "Действие", width: 200, flex: 1, sortable: false },
+    {
+      field: "user_email",
+      headerName: "Логин",
+      width: 250,
+      flex: 1,
+      sortable: false,
+    },
+    {
+      field: "action",
+      headerName: "Действие",
+      width: 200,
+      flex: 1,
+      sortable: false,
+    },
     {
       field: "target",
-      headerName: "Сущность",
+      headerName: "Объект",
       width: 200,
       valueGetter: (value, row) => `${row.target_type} (${row.target_id})`,
       flex: 1,
@@ -52,7 +64,7 @@ export const AuditLogTable = ({
     { field: "status", headerName: "Статус", width: 110, sortable: false },
     {
       field: "created_at",
-      headerName: "Дата создания",
+      headerName: "Дата",
       width: 200,
       valueGetter: (value) => new Date(value).toLocaleString(),
       sortable: false,
