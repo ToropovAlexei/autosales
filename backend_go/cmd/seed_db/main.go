@@ -2,10 +2,12 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"log/slog"
 	"math/rand"
+	"net/http"
 	"time"
 
 	"frbktg/backend_go/config"
@@ -60,13 +62,51 @@ func seedData(db *gorm.DB, twoFAService services.TwoFAService, appSettings *conf
 	createDefaultSettings(db)
 }
 
+func getBotUsername(token string) (string, error) {
+	if token == "" {
+		return "", nil
+	}
+	resp, err := http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/getMe", token))
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("telegram api returned non-200 status code: %d", resp.StatusCode)
+	}
+
+	var result struct {
+		OK     bool `json:"ok"`
+		Result struct {
+			Username string `json:"username"`
+		} `json:"result"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return "", err
+	}
+
+	if !result.OK {
+		return "", fmt.Errorf("telegram api returned ok=false")
+	}
+
+	return result.Result.Username, nil
+}
+
 func createMainBots(db *gorm.DB, appSettings *config.Config, logger *slog.Logger) {
 	logger.Info("Creating main and fallback bots...")
 
 	if appSettings.MainBotToken != "" {
+		username, err := getBotUsername(appSettings.MainBotToken)
+		if err != nil {
+			logger.Error("failed to get main bot username", "error", err)
+			username = appSettings.MainBotName
+		}
+
 		bot := models.Bot{
 			Token:     appSettings.MainBotToken,
-			Username:  appSettings.MainBotName,
+			Username:  username,
 			Type:      "main",
 			IsPrimary: true,
 		}
@@ -75,9 +115,14 @@ func createMainBots(db *gorm.DB, appSettings *config.Config, logger *slog.Logger
 	}
 
 	if appSettings.FallbackBotToken != "" {
+		username, err := getBotUsername(appSettings.FallbackBotToken)
+		if err != nil {
+			logger.Error("failed to get fallback bot username", "error", err)
+			username = appSettings.FallbackBotName
+		}
 		bot := models.Bot{
 			Token:     appSettings.FallbackBotToken,
-			Username:  appSettings.FallbackBotName,
+			Username:  username,
 			Type:      "main",
 			IsPrimary: false,
 		}
