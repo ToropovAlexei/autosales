@@ -1,5 +1,6 @@
 "use client";
 
+import { Typography } from "@mui/material";
 import {
   DataGrid,
   GridColDef,
@@ -62,6 +63,17 @@ export const StockMovementsTable = ({
       headerName: "Количество",
       width: 120,
       sortable: false,
+      renderCell: (params) => {
+        return (
+          <Typography
+            color={params.value > 0 ? "success" : "error"}
+            component="span"
+            align="center"
+          >
+            {params.value > 0 ? `+${params.value}` : params.value}
+          </Typography>
+        );
+      },
     },
     {
       field: "created_at",

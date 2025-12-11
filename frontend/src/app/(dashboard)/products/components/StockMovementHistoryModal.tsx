@@ -61,7 +61,23 @@ export const StockMovementHistoryModal = ({
         }
       },
     },
-    { field: "quantity", headerName: "Количество", type: "number", width: 120 },
+    {
+      field: "quantity",
+      headerName: "Количество",
+      type: "number",
+      width: 120,
+      renderCell: (params) => {
+        return (
+          <Typography
+            color={params.value > 0 ? "success" : "error"}
+            component="span"
+            align="center"
+          >
+            {params.value > 0 ? `+${params.value}` : params.value}
+          </Typography>
+        );
+      },
+    },
     { field: "description", headerName: "Описание", flex: 1 },
     {
       field: "created_at",
