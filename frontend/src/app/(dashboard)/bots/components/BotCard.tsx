@@ -12,10 +12,12 @@ import {
   TextField,
   IconButton,
   Link,
+  Box,
 } from "@mui/material";
-import { Edit } from "@mui/icons-material";
+import { Edit, ContentCopy as ContentCopyIcon } from "@mui/icons-material";
 import { useState } from "react";
 import classes from "./styles.module.css";
+import { toast } from "react-toastify";
 
 interface Bot {
   id: number;
@@ -96,38 +98,55 @@ export const BotCard = ({
     <>
       <Card className={classes.container}>
         <CardHeader
-          title={
-            <Stack
-              direction="row"
-              justifyContent="space-between"
-              alignItems="center"
-            >
-              <Link
-                href={`https://t.me/${bot.username}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                Бот ID: {bot.id}
-              </Link>
-              <Stack direction="row" gap={1}>
-                {bot.is_primary && (
-                  <Chip label="Основной" color="primary" size="small" />
-                )}
-                <Chip
-                  label={bot.is_active ? "Активен" : "Неактивен"}
-                  color={bot.is_active ? "success" : "error"}
-                  size="small"
-                />
-              </Stack>
-            </Stack>
-          }
+          title={bot.username}
           subheader={
             bot.owner_telegram_id
               ? `TG ID владельца: ${bot.owner_telegram_id}`
               : "Основной бот магазина"
           }
+          action={
+            <Stack direction="row" gap={1}>
+              {bot.is_primary && (
+                <Chip label="Основной" color="primary" size="small" />
+              )}
+              <Chip
+                label={bot.is_active ? "Активен" : "Неактивен"}
+                color={bot.is_active ? "success" : "error"}
+                size="small"
+              />
+            </Stack>
+          }
         />
         <CardContent>
+          <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
+            <Box
+              sx={{
+                overflow: "hidden",
+                wordBreak: "break-all",
+              }}
+            >
+              <Link
+                href={`https://t.me/${bot.username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                variant="body2"
+              >
+                https://t.me/{bot.username}
+              </Link>
+            </Box>
+            <IconButton
+              onClick={() =>
+                navigator.clipboard
+                  .writeText(`https://t.me/${bot.username}`)
+                  .then(() => {
+                    toast.success("Ссылка скопирована в буфер обмена");
+                  })
+              }
+              size="small"
+            >
+              <ContentCopyIcon fontSize="small" />
+            </IconButton>
+          </Stack>
           <div>
             <Typography variant="body2" color="text.secondary">
               Токен: ...{bot.token.slice(-8)}

@@ -1,5 +1,5 @@
 .container {
-  width: min(400px, 100%);
+  width: 100%;
 }
 
 .editContainer {
