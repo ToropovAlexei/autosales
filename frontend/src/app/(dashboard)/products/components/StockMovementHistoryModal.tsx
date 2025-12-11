@@ -32,6 +32,8 @@ export const StockMovementHistoryModal = ({
       endpoint: ENDPOINTS.STOCK_MOVEMENTS,
       filter: {
         filters: [{ field: "product_id", op: "=", value: productId }],
+        orderBy: "id",
+        order: "desc",
       },
       enabled: open && productId !== null,
     });
