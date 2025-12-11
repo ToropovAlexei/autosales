@@ -28,6 +28,7 @@ func (s *stockService) GetStockMovements(page models.Page, filters []models.Filt
 		response = append(response, models.StockMovementResponse{
 			ID:          m.ID,
 			ProductID:   m.ProductID,
+			ProductName: m.Product.Name,
 			Type:        m.Type,
 			Quantity:    m.Quantity,
 			CreatedAt:   m.CreatedAt,

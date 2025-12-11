@@ -12,6 +12,7 @@ import { ruRU } from "@mui/x-data-grid/locales";
 interface StockMovement {
   id: number;
   product_id: number;
+  product_name: string;
   type: string;
   quantity: number;
   created_at: string;
@@ -47,6 +48,12 @@ export const StockMovementsTable = ({
       field: "product_id",
       headerName: "ID Товара",
       width: 120,
+      sortable: false,
+    },
+    {
+      field: "product_name",
+      headerName: "Название товара",
+      width: 200,
       sortable: false,
     },
     { field: "type", headerName: "Тип", width: 120, sortable: false },

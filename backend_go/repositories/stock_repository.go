@@ -24,7 +24,7 @@ func (r *gormStockRepository) WithTx(tx *gorm.DB) StockRepository {
 }
 
 func (r *gormStockRepository) GetStockMovements(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.StockMovement], error) {
-	db := r.db.Model(&models.StockMovement{})
+	db := r.db.Model(&models.StockMovement{}).Preload("Product")
 	db = ApplyFilters[models.StockMovement](db, filters)
 
 	paginatedResult, err := ApplyPagination[models.StockMovement](db, page)
