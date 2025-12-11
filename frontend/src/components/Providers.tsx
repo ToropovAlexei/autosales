@@ -8,6 +8,12 @@ import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { ToastContainer } from "react-toastify";
 import { ruRU } from "@mui/x-date-pickers/locales";
 import { createAppTheme } from "@/themes";
+import relativeTime from "dayjs/plugin/relativeTime";
+import "dayjs/locale/ru";
+import dayjs from "dayjs";
+
+dayjs.extend(relativeTime);
+dayjs.locale("ru");
 
 const theme = createAppTheme();
 

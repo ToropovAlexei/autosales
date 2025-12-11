@@ -11,6 +11,7 @@ import BlockIcon from "@mui/icons-material/Block";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { Chip } from "@mui/material";
 import { BotUser } from "@/types/common";
+import dayjs from "dayjs";
 
 interface BotUsersTableProps {
   users: BotUser[];
@@ -89,9 +90,8 @@ export const BotUsersTable = ({
       field: "last_seen_at",
       headerName: "Последний раз был",
       width: 200,
-      type: "dateTime",
-      valueGetter: (value) => new Date(value),
       sortable: false,
+      renderCell: (params) => dayjs(params.value).fromNow(),
     },
     {
       field: "actions",
