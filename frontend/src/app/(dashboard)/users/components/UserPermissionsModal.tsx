@@ -9,14 +9,15 @@ import {
   FormControl,
   InputLabel,
   FormControlLabel,
-  RadioGroup,
-  Radio,
   CircularProgress,
+  Box,
+  Checkbox,
+  Typography,
 } from "@mui/material";
 import { User, Role, Permission, UserPermission } from "@/types";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dataLayer } from "@/lib/dataLayer";
 import { queryKeys } from "@/utils/query";
@@ -35,34 +36,36 @@ export const UserPermissionsModal = ({
 }: UserPermissionsModalProps) => {
   const queryClient = useQueryClient();
   const [selectedRole, setSelectedRole] = useState<number | string>("");
-  const [userPermissions, setUserPermissions] = useState<
-    Record<number, "allow" | "deny" | "inherit">
+  const [permissionOverrides, setPermissionOverrides] = useState<
+    Record<number, "allow" | "deny">
   >({});
 
-  const { data: allRoles } = useList<Role>({ endpoint: ENDPOINTS.ROLES });
+  // Fetch all possible roles and permissions
+  const { data: allRoles, isPending: isRolesLoading } = useList<Role>({
+    endpoint: ENDPOINTS.ROLES,
+  });
   const { data: allPermissions, isPending: isPermissionsLoading } =
     useList<Permission>({ endpoint: ENDPOINTS.PERMISSIONS });
-  const {
-    data: currentUserPermissions,
-    isPending: isUserPermissionsLoading,
-    refetch,
-  } = useList<UserPermission>({
-    endpoint: `${ENDPOINTS.USERS}/${user?.id}/permissions`,
-    enabled: !!user,
-  });
 
+  // Fetch the specific permissions currently assigned to the user
+  const { data: currentUserPermissions, isPending: isUserPermissionsLoading } =
+    useList<UserPermission>({
+      endpoint: ENDPOINTS.USER_PERMISSIONS,
+      meta: { ":id": user?.id },
+      enabled: !!user,
+    });
+
+  // Effect to initialize the state when the user prop changes
   useEffect(() => {
-    if (user) {
+    if (user && currentUserPermissions?.data && allRoles?.data) {
       setSelectedRole(user.roles?.[0]?.id || "");
-      const permissions: Record<number, "allow" | "deny" | "inherit"> = {};
-      if (currentUserPermissions?.data) {
-        currentUserPermissions.data.forEach((p) => {
-          permissions[p.permission_id] = p.effect;
-        });
-      }
-      setUserPermissions(permissions);
+      const overrides: Record<number, "allow" | "deny"> = {};
+      currentUserPermissions.data.forEach((p) => {
+        overrides[p.permission_id] = p.effect;
+      });
+      setPermissionOverrides(overrides);
     }
-  }, [user, currentUserPermissions]);
+  }, [user, currentUserPermissions, allRoles]);
 
   const setRoleMutation = useMutation({
     mutationFn: (roleId: number) =>
@@ -71,11 +74,6 @@ export const UserPermissionsModal = ({
         params: { role_id: roleId },
         meta: { ":id": user?.id },
       }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.list(ENDPOINTS.USERS),
-      });
-    },
   });
 
   const setUserPermissionMutation = useMutation({
@@ -84,9 +82,6 @@ export const UserPermissionsModal = ({
         url: `${ENDPOINTS.USERS}/${user?.id}/permissions`,
         params: { permission_id: params.permissionId, effect: params.effect },
       }),
-    onSuccess: () => {
-      refetch();
-    },
   });
 
   const removeUserPermissionMutation = useMutation({
@@ -94,49 +89,88 @@ export const UserPermissionsModal = ({
       dataLayer.delete({
         url: `${ENDPOINTS.USERS}/${user?.id}/permissions/${permissionId}`,
       }),
-    onSuccess: () => {
-      refetch();
-    },
   });
 
+  // Memoize the permissions derived from the selected role
+  const rolePermissions = useMemo(() => {
+    if (!selectedRole || !allRoles?.data) {
+      return new Set<number>();
+    }
+    const role = allRoles.data.find((r) => r.id === selectedRole);
+    // The backend now sends permissions with roles
+    return new Set(role?.permissions?.map((p) => p.id) || []);
+  }, [selectedRole, allRoles]);
+
   const handleSave = async () => {
-    if (selectedRole && typeof selectedRole === "number") {
-      await setRoleMutation.mutateAsync(selectedRole);
+    // 1. Update the role if it has changed
+    const initialRoleId = user?.roles?.[0]?.id || "";
+    if (selectedRole && selectedRole !== initialRoleId) {
+      await setRoleMutation.mutateAsync(Number(selectedRole));
     }
 
-    const promises = Object.entries(userPermissions).map(
-      ([permissionId, effect]) => {
-        const originalEffect = currentUserPermissions?.data?.find(
-          (p) => p.permission_id === Number(permissionId)
-        )?.effect;
+    // 2. Calculate permission changes
+    const originalOverrides: Record<number, "allow" | "deny"> = {};
+    currentUserPermissions?.data.forEach((p) => {
+      originalOverrides[p.permission_id] = p.effect;
+    });
 
-        if (effect === "inherit" && originalEffect) {
-          return removeUserPermissionMutation.mutateAsync(Number(permissionId));
-        } else if (effect !== "inherit" && effect !== originalEffect) {
-          return setUserPermissionMutation.mutateAsync({
-            permissionId: Number(permissionId),
-            effect,
-          });
-        }
-        return Promise.resolve();
+    const promises: Promise<any>[] = [];
+
+    // Check for new or modified permissions
+    for (const permIdStr in permissionOverrides) {
+      const permId = Number(permIdStr);
+      const newEffect = permissionOverrides[permId];
+      const originalEffect = originalOverrides[permId];
+
+      if (newEffect !== originalEffect) {
+        promises.push(
+          setUserPermissionMutation.mutateAsync({
+            permissionId: permId,
+            effect: newEffect,
+          })
+        );
       }
-    );
+    }
+
+    // Check for removed permissions
+    for (const permIdStr in originalOverrides) {
+      const permId = Number(permIdStr);
+      if (permissionOverrides[permId] === undefined) {
+        promises.push(removeUserPermissionMutation.mutateAsync(permId));
+      }
+    }
 
     await Promise.all(promises);
 
+    // Invalidate queries to refetch data on next open
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.list(ENDPOINTS.USERS),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.list(ENDPOINTS.USER_PERMISSIONS),
+    });
+    setPermissionOverrides({});
     onClose();
   };
 
-  const handlePermissionChange = (
-    permissionId: number,
-    effect: "allow" | "deny" | "inherit"
-  ) => {
-    setUserPermissions((prev) => ({ ...prev, [permissionId]: effect }));
+  const handlePermissionToggle = (permissionId: number, isChecked: boolean) => {
+    setPermissionOverrides((prev) => {
+      const newOverrides = { ...prev };
+      newOverrides[permissionId] = isChecked ? "allow" : "deny";
+      return newOverrides;
+    });
+  };
+
+  const handleRoleSelectChange = (roleId: number | string) => {
+    setSelectedRole(roleId);
+    // Clear local overrides when role changes, so UI reflects the new role's permissions
+    setPermissionOverrides({});
   };
 
   if (!user) return null;
 
-  const isLoading = isPermissionsLoading || isUserPermissionsLoading;
+  const isLoading =
+    isPermissionsLoading || isRolesLoading || isUserPermissionsLoading;
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
@@ -151,7 +185,9 @@ export const UserPermissionsModal = ({
               <Select
                 value={selectedRole}
                 label="Роль"
-                onChange={(e) => setSelectedRole(e.target.value as number)}
+                onChange={(e) =>
+                  handleRoleSelectChange(e.target.value as number)
+                }
               >
                 {allRoles?.data?.map((role) => (
                   <MenuItem key={role.id} value={role.id}>
@@ -161,49 +197,63 @@ export const UserPermissionsModal = ({
               </Select>
             </FormControl>
 
-            <h4>Индивидуальные права:</h4>
-            {allPermissions?.data?.map((permission) => (
-              <div
-                key={permission.id}
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  margin: "8px 0",
-                }}
-              >
-                <span>{translatePermission(permission.name)}</span>
-                <RadioGroup
-                  row
-                  value={userPermissions[permission.id] || "inherit"}
-                  onChange={(e) =>
-                    handlePermissionChange(permission.id, e.target.value as any)
-                  }
-                >
-                  <FormControlLabel
-                    value="inherit"
-                    control={<Radio />}
-                    label="Наследовать"
-                  />
-                  <FormControlLabel
-                    value="allow"
-                    control={<Radio />}
-                    label="Разрешить"
-                  />
-                  <FormControlLabel
-                    value="deny"
-                    control={<Radio />}
-                    label="Запретить"
-                  />
-                </RadioGroup>
-              </div>
-            ))}
+            <h4>Права доступа:</h4>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "0 16px",
+                maxHeight: "50vh",
+                overflowY: "auto",
+              }}
+            >
+              {allPermissions?.data
+                ?.sort(
+                  (a, b) =>
+                    a.group.localeCompare(b.group) ||
+                    a.name.localeCompare(b.name)
+                )
+                .map((permission) => {
+                  const hasOverride =
+                    permissionOverrides[permission.id] !== undefined;
+                  const isChecked = hasOverride
+                    ? permissionOverrides[permission.id] === "allow"
+                    : rolePermissions.has(permission.id);
+
+                  return (
+                    <FormControlLabel
+                      key={permission.id}
+                      control={
+                        <Checkbox
+                          checked={isChecked}
+                          onChange={(e) =>
+                            handlePermissionToggle(
+                              permission.id,
+                              e.target.checked
+                            )
+                          }
+                        />
+                      }
+                      label={translatePermission(permission.name)}
+                    />
+                  );
+                })}
+            </Box>
           </>
         )}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Отмена</Button>
-        <Button onClick={handleSave}>Сохранить</Button>
+        <Button
+          onClick={handleSave}
+          disabled={
+            setRoleMutation.isPending ||
+            setUserPermissionMutation.isPending ||
+            removeUserPermissionMutation.isPending
+          }
+        >
+          Сохранить
+        </Button>
       </DialogActions>
     </Dialog>
   );

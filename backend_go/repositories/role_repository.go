@@ -42,7 +42,7 @@ func (r *gormRoleRepository) CreateRole(role *models.Role) error {
 
 func (r *gormRoleRepository) GetRoles() ([]models.Role, error) {
 	roles := make([]models.Role, 0)
-	err := r.db.Find(&roles).Error
+	err := r.db.Preload("Permissions").Find(&roles).Error
 	return roles, err
 }
 
