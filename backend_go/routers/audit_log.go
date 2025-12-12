@@ -13,7 +13,7 @@ func SetupAuditLogRoutes(router *gin.RouterGroup, c *di.Container) {
 	authMiddleware := middleware.NewAuthMiddleware(c.TokenService, c.UserService, c.AppSettings)
 
 	adminRoutes := router.Group("/admin")
-	adminRoutes.Use(authMiddleware.RequireAuth, middleware.PermissionMiddleware("audit_log.read"))
+	adminRoutes.Use(authMiddleware.RequireAuth, middleware.PermissionMiddleware("audit_log:read"))
 	{
 		adminRoutes.GET("/audit-logs", auditLogHandler.GetAuditLogs)
 	}

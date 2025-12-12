@@ -202,8 +202,10 @@ func createRbacData(db *gorm.DB) map[string]models.Permission {
 		{Name: "transactions:read", Group: "Transactions"},
 		{Name: "store_balance:read", Group: "Balance"},
 		{Name: "stock:read", Group: "Stock"}, {Name: "stock:update", Group: "Stock"},
-		{Name: "audit_log.read", Group: "AuditLog"},
+		{Name: "audit_log:read", Group: "AuditLog"},
 		{Name: "store_balance:manage", Group: "Balance"},
+		{Name: "pricing:read", Group: "Pricing"},
+		{Name: "pricing:edit", Group: "Pricing"},
 	}
 	permissionsMap := make(map[string]models.Permission)
 	for _, p := range permissionsList {
