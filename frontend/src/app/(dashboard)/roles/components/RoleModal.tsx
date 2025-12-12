@@ -57,6 +57,12 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
     );
   };
 
+  const handleChangeAll = (checked: boolean) => {
+    setSelectedPermissions(
+      checked ? rolePermissions?.data.map((p) => p.id) || [] : []
+    );
+  };
+
   return (
     <Dialog open={open} onClose={onClose}>
       <DialogTitle>{role ? "Редактировать роль" : "Создать роль"}</DialogTitle>
@@ -73,6 +79,7 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
         <PermissionsSelector
           value={selectedPermissions}
           onChange={handlePermissionChange}
+          onChangeAll={handleChangeAll}
         />
       </DialogContent>
       <DialogActions>

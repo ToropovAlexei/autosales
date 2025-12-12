@@ -158,6 +158,15 @@ export const UserPermissionsModal = ({
     });
   };
 
+  const handleChangeAllPermissions = (checked: boolean) => {
+    const newOverrides: Record<number, "allow" | "deny"> = {};
+    const state = checked ? "allow" : "deny";
+    allPermissions?.data.forEach(({ id }) => {
+      newOverrides[id] = state;
+    });
+    setPermissionOverrides(newOverrides);
+  };
+
   const handleRoleSelectChange = (roleId: number | string) => {
     setSelectedRole(roleId);
     // Clear local overrides when role changes, so UI reflects the new role's permissions
@@ -202,6 +211,7 @@ export const UserPermissionsModal = ({
                 permissionOverrides
               )}
               onChange={handlePermissionToggle}
+              onChangeAll={handleChangeAllPermissions}
             />
           </>
         )}

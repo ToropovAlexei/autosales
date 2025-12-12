@@ -20,10 +20,16 @@ import { Fragment } from "react/jsx-runtime";
 interface IProps {
   value: number[];
   onChange: (permissionId: number, checked: boolean) => void;
+  onChangeAll: (checked: boolean) => void;
   loading?: boolean;
 }
 
-export const PermissionsSelector = ({ onChange, value, loading }: IProps) => {
+export const PermissionsSelector = ({
+  onChange,
+  onChangeAll,
+  value,
+  loading,
+}: IProps) => {
   const { data, isPending } = useList<Permission>({
     endpoint: ENDPOINTS.PERMISSIONS,
   });
@@ -54,6 +60,16 @@ export const PermissionsSelector = ({ onChange, value, loading }: IProps) => {
 
   return (
     <div className={classes.container}>
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={selectedPermissions.size === data?.data?.length}
+            onChange={(_, checked) => onChangeAll(checked)}
+          />
+        }
+        label="! Полный доступ"
+        slotProps={{ typography: { color: "error" } }}
+      />
       {Object.entries(groupedPermissions).map(([group, permissions]) => (
         <div key={group}>
           <Typography variant="h6" fontSize="1rem">
