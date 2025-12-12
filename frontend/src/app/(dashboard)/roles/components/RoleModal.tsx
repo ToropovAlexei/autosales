@@ -7,19 +7,12 @@ import {
   DialogActions,
   Button,
   TextField,
-  FormGroup,
-  FormControlLabel,
-  Checkbox,
 } from "@mui/material";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { Permission, Role } from "@/types";
 import { useEffect, useState } from "react";
-import {
-  translatePermission,
-  translatePermissionGroup,
-} from "@/lib/permissions";
-import { PERMISSIONS_COLORS } from "./constants";
+import { PermissionsSelector } from "@/components";
 
 interface RoleModalProps {
   open: boolean;
@@ -36,11 +29,7 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
   const [name, setName] = useState(role?.name || "");
   const [selectedPermissions, setSelectedPermissions] = useState<number[]>([]);
 
-  const { data: allPermissions } = useList<Permission>({
-    endpoint: ENDPOINTS.PERMISSIONS,
-  });
-
-  const { data: rolePermissions } = useList<Permission>({
+  const { data: rolePermissions, isPending } = useList<Permission>({
     endpoint: ENDPOINTS.ROLE_PERMISSIONS,
     meta: { ":id": role?.id },
     enabled: !!role,
@@ -68,11 +57,6 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
     );
   };
 
-  const groupedPermissions = Object.groupBy(
-    allPermissions?.data || [],
-    (permission) => permission.group || "Other"
-  );
-
   return (
     <Dialog open={open} onClose={onClose}>
       <DialogTitle>{role ? "Редактировать роль" : "Создать роль"}</DialogTitle>
@@ -86,31 +70,10 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        {groupedPermissions &&
-          Object.entries(groupedPermissions).map(([group, permissions]) => (
-            <div key={group}>
-              <h4>{translatePermissionGroup(group)}</h4>
-              <FormGroup>
-                {permissions?.map((permission) => (
-                  <FormControlLabel
-                    key={permission.id}
-                    control={
-                      <Checkbox
-                        checked={selectedPermissions.includes(permission.id)}
-                        onChange={() => handlePermissionChange(permission.id)}
-                      />
-                    }
-                    label={translatePermission(permission.name)}
-                    slotProps={{
-                      typography: {
-                        color: PERMISSIONS_COLORS[permission.name] || "success",
-                      },
-                    }}
-                  />
-                ))}
-              </FormGroup>
-            </div>
-          ))}
+        <PermissionsSelector
+          value={selectedPermissions}
+          onChange={handlePermissionChange}
+        />
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Отмена</Button>

@@ -6,3 +6,4 @@ export * from "./NavBar";
 export * from "./SelectImage";
 export * from "./UploadBtn";
 export * from "./StoreBalance";
+export * from "./PermissionsSelector";

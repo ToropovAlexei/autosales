@@ -35,7 +35,10 @@ export default function RolesPage() {
 
   const createMutation = useMutation({
     mutationFn: (params: { name: string; permissions: number[] }) =>
-      dataLayer.create<{ id: number }>({ url: ENDPOINTS.ROLES, params: { name: params.name } }),
+      dataLayer.create<{ id: number }>({
+        url: ENDPOINTS.ROLES,
+        params: { name: params.name },
+      }),
     onSuccess: async (data, variables) => {
       const promises = variables.permissions.map((permissionId) =>
         addPermissionMutation.mutateAsync({
@@ -48,19 +51,22 @@ export default function RolesPage() {
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.ROLES),
       });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.ROLE_PERMISSIONS),
+      });
       setIsModalOpen(false);
     },
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, name }: { id: number; name:string }) =>
+    mutationFn: ({ id, name }: { id: number; name: string }) =>
       dataLayer.update({ url: ENDPOINTS.ROLES, id, params: { name } }),
     onSuccess: (data, variables) => {
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.ROLES),
       });
       queryClient.invalidateQueries({
-        queryKey: queryKeys.list(`${ENDPOINTS.ROLES}/${variables.id}/permissions`),
+        queryKey: queryKeys.list(ENDPOINTS.ROLE_PERMISSIONS),
       });
       setIsModalOpen(false);
       setEditingRole(null);
@@ -75,7 +81,7 @@ export default function RolesPage() {
       }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.list(`${ENDPOINTS.ROLES}/${variables.role_id}/permissions`),
+        queryKey: queryKeys.list(ENDPOINTS.ROLE_PERMISSIONS),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.ROLES),
@@ -96,7 +102,7 @@ export default function RolesPage() {
       }),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.list(`${ENDPOINTS.ROLES}/${variables.role_id}/permissions`),
+        queryKey: queryKeys.list(ENDPOINTS.ROLE_PERMISSIONS),
       });
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.ROLES),
@@ -142,7 +148,9 @@ export default function RolesPage() {
       }
 
       const toAdd = permissions.filter((p) => !initialPermissions.includes(p));
-      const toRemove = initialPermissions.filter((p) => !permissions.includes(p));
+      const toRemove = initialPermissions.filter(
+        (p) => !permissions.includes(p)
+      );
 
       toAdd.forEach((permissionId) => {
         addPermissionMutation.mutate({
