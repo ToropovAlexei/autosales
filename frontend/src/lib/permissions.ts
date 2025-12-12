@@ -14,6 +14,7 @@ export const PERMISSION_GROUP_TRANSLATIONS: Record<string, string> = {
   Balance: "Баланс",
   Stock: "Склад",
   AuditLog: "Журнал аудита",
+  Pricing: "Ценообразование",
   Other: "Другое",
 };
 

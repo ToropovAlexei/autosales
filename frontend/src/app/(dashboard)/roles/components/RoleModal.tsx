@@ -34,6 +34,7 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
     meta: { ":id": role?.id },
     enabled: !!role,
   });
+  const { data: allPermissions } = useList<Permission>({ endpoint: ENDPOINTS.PERMISSIONS });
 
   useEffect(() => {
     if (open) {
@@ -59,7 +60,7 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
 
   const handleChangeAll = (checked: boolean) => {
     setSelectedPermissions(
-      checked ? rolePermissions?.data.map((p) => p.id) || [] : []
+      checked ? allPermissions?.data.map((p) => p.id) || [] : []
     );
   };
 
