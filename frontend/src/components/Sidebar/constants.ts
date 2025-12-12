@@ -17,6 +17,7 @@ import { AppRoute } from "@/types";
 export const MENU_ITEMS = [
   { label: "Дашборд", Icon: HomeRoundedIcon, route: AppRoute.Dashboard },
   { label: "Категории", Icon: CategoryIcon, route: AppRoute.Categories },
+  { label: "Ценообразование", Icon: PriceCheckIcon, route: AppRoute.Pricing },
   { label: "Товары", Icon: ShoppingCartIcon, route: AppRoute.Products },
   { label: "Пользователи бота", Icon: GroupIcon, route: AppRoute.BotUsers },
   { label: "Транзакции", Icon: ReceiptIcon, route: AppRoute.Transactions },
@@ -28,7 +29,6 @@ export const MENU_ITEMS = [
   { label: "Изображения", Icon: PhotoLibraryIcon, route: AppRoute.Images },
   { label: "Журнал аудита", Icon: HistoryIcon, route: AppRoute.AuditLog },
   { label: "Настройки", Icon: SettingsIcon, route: AppRoute.Settings },
-  { label: "Ценообразование", Icon: PriceCheckIcon, route: AppRoute.Pricing },
   {
     label: "Управление Балансом",
     Icon: AccountBalanceWalletIcon,
