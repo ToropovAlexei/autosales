@@ -49,7 +49,9 @@ class APIClient:
 
     async def get_support_message(self):
         public_settings = await self.get_public_settings()
-        return public_settings.get("support_message", "Что-то пошло не так, попробуйте позже.")
+        message = public_settings.get("support_message", "Что-то пошло не так, попробуйте позже.")
+        image_id = public_settings.get("support_message_image_id")
+        return message, image_id
 
     async def get_welcome_message(self):
         public_settings = await self.get_public_settings()
@@ -57,7 +59,7 @@ class APIClient:
 
     async def get_new_user_welcome_message(self):
         public_settings = await self.get_public_settings()
-        return public_settings.get("new_user_welcome_message", """Добро пожаловать, {username}!
+        message = public_settings.get("new_user_welcome_message", """Добро пожаловать, {username}!
 
 Я - ваш личный помощник для покупок. Здесь вы можете:
 - 🛍️ Смотреть каталог товаров
@@ -65,10 +67,12 @@ class APIClient:
 - 💳 Проверять свой счет
 
 Выберите действие в меню ниже:""")
+        image_id = public_settings.get("new_user_welcome_message_image_id")
+        return message, image_id
 
     async def get_returning_user_welcome_message(self):
         public_settings = await self.get_public_settings()
-        return public_settings.get("returning_user_welcome_message", """С возвращением, {username}!
+        message = public_settings.get("returning_user_welcome_message", """С возвращением, {username}!
 
 Я - ваш личный помощник для покупок. Здесь вы можете:
 - 🛍️ Смотреть каталог товаров
@@ -76,6 +80,8 @@ class APIClient:
 - 💳 Проверять свой счет
 
 Выберите действие в меню ниже:""")
+        image_id = public_settings.get("returning_user_welcome_message_image_id")
+        return message, image_id
 
     async def register_user(self, telegram_id: int):
         return await self._request("POST", "/users/register", json={"telegram_id": telegram_id, "bot_name": self.bot_username})

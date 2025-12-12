@@ -50,7 +50,10 @@ func (s *SettingService) GetPublicSettings() (map[string]string, error) {
 		"support_message",
 		"welcome_message",
 		"new_user_welcome_message",
+		"new_user_welcome_message_image_id",
 		"returning_user_welcome_message",
+		"returning_user_welcome_message_image_id",
+		"support_message_image_id",
 	}
 
 	for _, key := range publicKeys {

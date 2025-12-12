@@ -23,12 +23,8 @@ import {
 import { ENDPOINTS } from "@/constants";
 import classes from "./styles.module.css";
 import { CONFIG } from "../../../config";
+import { IImage } from "@/types";
 import { queryKeys } from "@/utils/query";
-
-interface IImage {
-  ID: string;
-  OriginalFilename: string;
-}
 
 const FOLDERS = [
   { id: "product_images", name: "Изображения товаров" },

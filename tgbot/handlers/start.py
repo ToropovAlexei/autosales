@@ -1,5 +1,6 @@
 from aiogram import Router, F
 import logging
+import aiohttp
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, BufferedInputFile, InlineKeyboardButton, InputMediaPhoto
 from aiogram.utils.markdown import hbold
@@ -110,17 +111,47 @@ async def start_handler(message: Message, state: FSMContext, api_client: APIClie
                     if is_admin:
                         await state.update_data({"is_admin": True})
 
-                welcome_message = await api_client.get_returning_user_welcome_message()
+                welcome_message, image_id = await api_client.get_returning_user_welcome_message()
                 welcome_message = welcome_message.replace("{username}", hbold(message.from_user.full_name))
-                sent_message = await message.answer(
-                    welcome_message,
-                    reply_markup=inline.main_menu(
-                        referral_program_enabled=referral_program_enabled,
-                        bot_type=settings.bot_type,
-                        is_admin=is_admin
-                    ),
-                    parse_mode="HTML"
+
+                reply_markup = inline.main_menu(
+                    referral_program_enabled=referral_program_enabled,
+                    bot_type=settings.bot_type,
+                    is_admin=is_admin,
                 )
+
+                if image_id:
+                    try:
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(f"{settings.api_url.rstrip('/')}/images/{image_id}") as resp:
+                                if resp.status == 200:
+                                    image_bytes = await resp.read()
+                                    sent_message = await message.answer_photo(
+                                        photo=BufferedInputFile(image_bytes, filename="welcome.jpg"),
+                                        caption=welcome_message,
+                                        reply_markup=reply_markup,
+                                        parse_mode="HTML",
+                                    )
+                                else:
+                                    sent_message = await message.answer(
+                                        welcome_message,
+                                        reply_markup=reply_markup,
+                                        parse_mode="HTML",
+                                    )
+                    except Exception as e:
+                        logging.error(f"Error sending photo for returning user: {e}")
+                        sent_message = await message.answer(
+                            welcome_message,
+                            reply_markup=reply_markup,
+                            parse_mode="HTML",
+                        )
+                else:
+                    logging.info(f"Sending returning user welcome message without image.")
+                    sent_message = await message.answer(
+                        welcome_message,
+                        reply_markup=reply_markup,
+                        parse_mode="HTML",
+                    )
                 await state.update_data(main_menu_id=sent_message.message_id)
     except Exception:
         logging.exception("An error occurred in start_handler")
@@ -154,17 +185,47 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
         seller_info_response = await api_client.get_public_settings()
         referral_program_enabled = seller_info_response.get("referral_program_enabled", False)
 
-        welcome_message = await api_client.get_new_user_welcome_message()
+        welcome_message, image_id = await api_client.get_new_user_welcome_message()
         welcome_message = welcome_message.replace("{username}", hbold(callback_query.from_user.full_name))
-        sent_message = await callback_query.message.answer(
-            welcome_message,
-            reply_markup=inline.main_menu(
-                referral_program_enabled=referral_program_enabled,
-                bot_type=settings.bot_type,
-                is_admin=False
-            ),
-            parse_mode="HTML"
+        
+        reply_markup = inline.main_menu(
+            referral_program_enabled=referral_program_enabled,
+            bot_type=settings.bot_type,
+            is_admin=False
         )
+
+        if image_id:
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(f"{settings.api_url.rstrip('/')}/images/{image_id}") as resp:
+                        if resp.status == 200:
+                            image_bytes = await resp.read()
+                            sent_message = await callback_query.message.answer_photo(
+                                photo=BufferedInputFile(image_bytes, filename="welcome.jpg"),
+                                caption=welcome_message,
+                                reply_markup=reply_markup,
+                                parse_mode="HTML"
+                            )
+                        else:
+                            sent_message = await callback_query.message.answer(
+                                welcome_message,
+                                reply_markup=reply_markup,
+                                parse_mode="HTML"
+                            )
+            except Exception as e:
+                logging.error(f"Error sending photo for new user: {e}")
+                sent_message = await callback_query.message.answer(
+                    welcome_message,
+                    reply_markup=reply_markup,
+                    parse_mode="HTML"
+                )
+        else:
+            logging.info(f"Sending new user welcome message without image.")
+            sent_message = await callback_query.message.answer(
+                welcome_message,
+                reply_markup=reply_markup,
+                parse_mode="HTML"
+            )
         await state.update_data(main_menu_id=sent_message.message_id)
         await state.set_state(None)
     else:
@@ -224,9 +285,40 @@ async def main_menu_handler(callback_query: CallbackQuery, state: FSMContext, ap
 
 @router.callback_query(F.data == "support")
 async def support_handler(callback_query: CallbackQuery, api_client: APIClient):
-    support_message = await api_client.get_support_message()
-    await callback_query.message.edit_text(
-        support_message,
-        reply_markup=inline.back_to_main_menu_keyboard(),
-        parse_mode="HTML"
-    )
+    support_message, image_id = await api_client.get_support_message()
+    
+    reply_markup = inline.back_to_main_menu_keyboard()
+
+    if image_id:
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(f"{settings.api_url.rstrip('/')}/images/{image_id}") as resp:
+                    if resp.status == 200:
+                        image_bytes = await resp.read()
+                        await callback_query.message.delete()
+                        await callback_query.message.answer_photo(
+                            photo=BufferedInputFile(image_bytes, filename="support.jpg"),
+                            caption=support_message,
+                            reply_markup=reply_markup,
+                            parse_mode="HTML"
+                        )
+                    else:
+                        await callback_query.message.edit_text(
+                            support_message,
+                            reply_markup=reply_markup,
+                            parse_mode="HTML"
+                        )
+        except Exception as e:
+            logging.error(f"Error sending photo for support message: {e}")
+            await callback_query.message.edit_text(
+                support_message,
+                reply_markup=reply_markup,
+                parse_mode="HTML"
+            )
+    else:
+        logging.info(f"Sending support message without image.")
+        await callback_query.message.edit_text(
+            support_message,
+            reply_markup=reply_markup,
+            parse_mode="HTML"
+        )

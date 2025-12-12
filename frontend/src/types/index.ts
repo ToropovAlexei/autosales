@@ -54,6 +54,11 @@ export interface IFilter {
   }[];
 }
 
+export interface IImage {
+  ID: string;
+  OriginalFilename: string;
+}
+
 export interface IStockMovement {
   id: number;
   product_id: number;
