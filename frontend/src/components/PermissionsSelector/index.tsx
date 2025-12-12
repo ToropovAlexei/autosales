@@ -19,7 +19,7 @@ import { Fragment } from "react/jsx-runtime";
 
 interface IProps {
   value: number[];
-  onChange: (permissionId: number) => void;
+  onChange: (permissionId: number, checked: boolean) => void;
   loading?: boolean;
 }
 
@@ -66,7 +66,7 @@ export const PermissionsSelector = ({ onChange, value, loading }: IProps) => {
                 control={
                   <Checkbox
                     checked={selectedPermissions.has(permission.id)}
-                    onChange={() => onChange(permission.id)}
+                    onChange={(_, checked) => onChange(permission.id, checked)}
                   />
                 }
                 label={translatePermission(permission.name)}

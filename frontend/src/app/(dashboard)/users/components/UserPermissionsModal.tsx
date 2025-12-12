@@ -8,11 +8,7 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
-  FormControlLabel,
   CircularProgress,
-  Box,
-  Checkbox,
-  Typography,
 } from "@mui/material";
 import { User, Role, Permission, UserPermission } from "@/types";
 import { useList } from "@/hooks";
@@ -21,7 +17,8 @@ import { useEffect, useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dataLayer } from "@/lib/dataLayer";
 import { queryKeys } from "@/utils/query";
-import { translatePermission } from "@/lib/permissions";
+import { PermissionsSelector } from "@/components";
+import { getUserPermissions } from "./utils";
 
 interface UserPermissionsModalProps {
   open: boolean;
@@ -153,10 +150,10 @@ export const UserPermissionsModal = ({
     onClose();
   };
 
-  const handlePermissionToggle = (permissionId: number, isChecked: boolean) => {
+  const handlePermissionToggle = (permissionId: number, checked: boolean) => {
     setPermissionOverrides((prev) => {
       const newOverrides = { ...prev };
-      newOverrides[permissionId] = isChecked ? "allow" : "deny";
+      newOverrides[permissionId] = checked ? "allow" : "deny";
       return newOverrides;
     });
   };
@@ -173,7 +170,7 @@ export const UserPermissionsModal = ({
     isPermissionsLoading || isRolesLoading || isUserPermissionsLoading;
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
+    <Dialog open={open} onClose={onClose} maxWidth="md">
       <DialogTitle>Настроить права для {user.email}</DialogTitle>
       <DialogContent>
         {isLoading ? (
@@ -198,47 +195,14 @@ export const UserPermissionsModal = ({
             </FormControl>
 
             <h4>Права доступа:</h4>
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: "0 16px",
-                maxHeight: "50vh",
-                overflowY: "auto",
-              }}
-            >
-              {allPermissions?.data
-                ?.sort(
-                  (a, b) =>
-                    a.group.localeCompare(b.group) ||
-                    a.name.localeCompare(b.name)
-                )
-                .map((permission) => {
-                  const hasOverride =
-                    permissionOverrides[permission.id] !== undefined;
-                  const isChecked = hasOverride
-                    ? permissionOverrides[permission.id] === "allow"
-                    : rolePermissions.has(permission.id);
-
-                  return (
-                    <FormControlLabel
-                      key={permission.id}
-                      control={
-                        <Checkbox
-                          checked={isChecked}
-                          onChange={(e) =>
-                            handlePermissionToggle(
-                              permission.id,
-                              e.target.checked
-                            )
-                          }
-                        />
-                      }
-                      label={translatePermission(permission.name)}
-                    />
-                  );
-                })}
-            </Box>
+            <PermissionsSelector
+              value={getUserPermissions(
+                allPermissions?.data || [],
+                rolePermissions,
+                permissionOverrides
+              )}
+              onChange={handlePermissionToggle}
+            />
           </>
         )}
       </DialogContent>
