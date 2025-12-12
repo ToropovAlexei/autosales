@@ -1,6 +1,6 @@
 "use client";
 
-import { Authorized, Sidebar } from "@/components";
+import { Authorized, PageAccessGuard, Sidebar } from "@/components";
 import { Box } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { NavBar } from "@/components/NavBar";
@@ -33,7 +33,7 @@ export default function DashboardLayout({
               : alpha(theme.palette.background.default, 1),
           })}
         >
-          {children}
+          <PageAccessGuard>{children}</PageAccessGuard>
         </Box>
       </Box>
     </Authorized>

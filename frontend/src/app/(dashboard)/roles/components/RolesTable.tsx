@@ -1,8 +1,8 @@
 import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { Role } from "@/types";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { PermissionName, Role } from "@/types";
 import { useCan } from "@/hooks";
 
 interface RolesTableProps {
@@ -12,9 +12,14 @@ interface RolesTableProps {
   loading: boolean;
 }
 
-export const RolesTable = ({ roles, onEdit, onDelete, loading }: RolesTableProps) => {
-  const canEdit = useCan("rbac:manage");
-  const canDelete = useCan("rbac:manage");
+export const RolesTable = ({
+  roles,
+  onEdit,
+  onDelete,
+  loading,
+}: RolesTableProps) => {
+  const { can: canEdit } = useCan(PermissionName.RbacManage);
+  const { can: canDelete } = useCan(PermissionName.RbacManage);
 
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", width: 90 },

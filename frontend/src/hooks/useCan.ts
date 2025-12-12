@@ -1,13 +1,14 @@
 "use client";
 
+import { PermissionName } from "@/types";
 import { usePermissions } from "./usePermissions";
 
-export const useCan = (permission: string) => {
+export const useCan = (permission: PermissionName) => {
   const { permissions, isLoading } = usePermissions();
 
   if (isLoading) {
-    return false; // Or a loading state, but false is safer for rendering
+    return { can: false, isLoading };
   }
 
-  return permissions.includes(permission);
+  return { can: permissions.includes(permission), isLoading };
 };

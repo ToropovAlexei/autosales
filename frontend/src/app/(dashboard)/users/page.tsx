@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useDataGrid, useCan } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { PageLayout } from "@/components/PageLayout";
-import { User } from "@/types";
+import { PermissionName, User } from "@/types";
 import { UserPermissionsModal } from "./components/UserPermissionsModal";
 import { UsersTable } from "./components/UsersTable";
 import { Button } from "@mui/material";
@@ -29,7 +29,7 @@ export default function UsersPage() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [tfaSecret, setTfaSecret] = useState<string | null>(null);
   const [tfaQrCode, setTfaQrCode] = useState<string | null>(null);
-  const canCreate = useCan("users:create");
+  const { can: canCreate } = useCan(PermissionName.UsersCreate);
   const queryClient = useQueryClient();
 
   const openPermissionsModal = (user: User) => {

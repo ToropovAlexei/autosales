@@ -10,92 +10,28 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import PhotoLibraryIcon from "@mui/icons-material/PhotoLibrary";
 import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import HistoryIcon from "@mui/icons-material/History";
-import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet"; // New import
+import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
+import PriceCheckIcon from "@mui/icons-material/PriceCheck";
+import { AppRoute } from "@/types";
 
 export const MENU_ITEMS = [
+  { label: "Дашборд", Icon: HomeRoundedIcon, route: AppRoute.Dashboard },
+  { label: "Категории", Icon: CategoryIcon, route: AppRoute.Categories },
+  { label: "Товары", Icon: ShoppingCartIcon, route: AppRoute.Products },
+  { label: "Пользователи бота", Icon: GroupIcon, route: AppRoute.BotUsers },
+  { label: "Транзакции", Icon: ReceiptIcon, route: AppRoute.Transactions },
+  { label: "Покупки", Icon: LocalMallIcon, route: AppRoute.Orders },
+  { label: "Склад", Icon: InventoryIcon, route: AppRoute.Stock },
+  { label: "Боты", Icon: SmartToyIcon, route: AppRoute.Bots },
+  { label: "Роли", Icon: AdminPanelSettingsIcon, route: AppRoute.Roles },
+  { label: "Администраторы", Icon: GroupIcon, route: AppRoute.Users },
+  { label: "Изображения", Icon: PhotoLibraryIcon, route: AppRoute.Images },
+  { label: "Журнал аудита", Icon: HistoryIcon, route: AppRoute.AuditLog },
+  { label: "Настройки", Icon: SettingsIcon, route: AppRoute.Settings },
+  { label: "Ценообразование", Icon: PriceCheckIcon, route: AppRoute.Pricing },
   {
-    label: "Дашборд",
-    Icon: HomeRoundedIcon,
-    path: "/dashboard",
-    permission: "dashboard:read",
-  },
-  {
-    label: "Категории",
-    Icon: CategoryIcon,
-    path: "/categories",
-    permission: "categories:read",
-  },
-  {
-    label: "Товары",
-    Icon: ShoppingCartIcon,
-    path: "/products",
-    permission: "products:read",
-  },
-  {
-    label: "Пользователи бота",
-    Icon: GroupIcon,
-    path: "/bot-users",
-    permission: "users:read", // Assuming bot users fall under general user read
-  },
-  {
-    label: "Транзакции",
-    Icon: ReceiptIcon,
-    path: "/transactions",
-    permission: "transactions:read",
-  },
-  {
-    label: "Покупки",
-    Icon: LocalMallIcon,
-    path: "/orders",
-    permission: "orders:read",
-  },
-  {
-    label: "Склад",
-    Icon: InventoryIcon,
-    path: "/stock",
-    permission: "stock:read",
-  },
-  {
-    label: "Боты",
-    Icon: SmartToyIcon,
-    path: "/bots",
-    permission: "referrals:read",
-  },
-  {
-    label: "Роли",
-    Icon: AdminPanelSettingsIcon,
-    path: "/roles",
-    permission: "rbac:manage",
-  },
-  {
-    label: "Администраторы",
-    Icon: GroupIcon,
-    path: "/users",
-    permission: "rbac:manage",
-  },
-  {
-    label: "Изображения",
-    Icon: PhotoLibraryIcon,
-    path: "/images",
-    permission: "images:upload", // Or a more general images permission
-  },
-  {
-    label: "Журнал аудита",
-    Icon: HistoryIcon,
-    path: "/audit-log",
-    permission: "audit_log.read",
-  },
-  {
-    label: "Настройки",
-    Icon: SettingsIcon,
-    path: "/settings",
-    permission: "settings:read",
-  },
-  {
-    // New menu item for Balance Management
     label: "Управление Балансом",
     Icon: AccountBalanceWalletIcon,
-    path: "/balance",
-    permission: "store_balance:manage",
+    route: AppRoute.Balance,
   },
 ];

@@ -8,22 +8,24 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { MENU_ITEMS } from "@/components/Sidebar/constants";
 import { useCan } from "@/hooks";
+import { ROUTES_ACCESS_MAP } from "@/constants/access";
+import { APP_ROUTES } from "@/constants/routing";
 
-const MenuItem = ({ item }) => {
+const MenuItem = ({ item }: { item: (typeof MENU_ITEMS)[number] }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const { label, Icon, path, permission } = item;
-  const canAccess = useCan(permission);
+  const { label, Icon, route } = item;
+  const { can: canAccess } = useCan(ROUTES_ACCESS_MAP[route]);
 
   if (!canAccess) {
     return null;
   }
 
   return (
-    <ListItem key={path} disablePadding>
+    <ListItem key={route} disablePadding>
       <ListItemButton
-        selected={pathname.startsWith(path)}
-        onClick={() => router.push(path)}
+        selected={pathname.startsWith(APP_ROUTES[route])}
+        onClick={() => router.push(APP_ROUTES[route])}
       >
         <ListItemIcon>
           <Icon />
@@ -38,7 +40,7 @@ export const MenuContent = () => {
   return (
     <List>
       {MENU_ITEMS.map((item) => (
-        <MenuItem key={item.path} item={item} />
+        <MenuItem key={item.route} item={item} />
       ))}
     </List>
   );

@@ -1,3 +1,5 @@
+import { PermissionName } from "./permissions";
+
 export interface Role {
   id: number;
   name: string;
@@ -7,7 +9,7 @@ export interface Role {
 
 export interface Permission {
   id: number;
-  name: string;
+  name: PermissionName;
   group: string;
 }
 

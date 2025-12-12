@@ -1,0 +1,17 @@
+export enum AppRoute {
+  Dashboard,
+  Categories,
+  Products,
+  BotUsers,
+  Transactions,
+  Orders,
+  Stock,
+  Bots,
+  Roles,
+  Users,
+  Images,
+  AuditLog,
+  Settings,
+  Pricing,
+  Balance,
+}

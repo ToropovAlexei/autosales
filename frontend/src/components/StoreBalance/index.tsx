@@ -1,16 +1,16 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
 import { CircularProgress, Typography } from "@mui/material";
 import { useCan, useOne } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
+import { PermissionName } from "@/types";
 
 export const StoreBalance = () => {
   const { data, isLoading, error } = useOne<{ current_balance: number }>({
     endpoint: ENDPOINTS.STORE_BALANCE,
   });
 
-  const can = useCan("store_balance:read");
+  const { can } = useCan(PermissionName.StoreBalanceRead);
 
   if (!can) {
     return null;

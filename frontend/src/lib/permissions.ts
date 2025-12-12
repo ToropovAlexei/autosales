@@ -1,3 +1,5 @@
+import { PermissionName } from "@/types";
+
 export const PERMISSION_GROUP_TRANSLATIONS: Record<string, string> = {
   RBAC: "Управление ролями",
   Dashboard: "Дашборд",
@@ -15,41 +17,41 @@ export const PERMISSION_GROUP_TRANSLATIONS: Record<string, string> = {
   Other: "Другое",
 };
 
-export const translatePermissionGroup = (group: string): string => {
-  return PERMISSION_GROUP_TRANSLATIONS[group] || group;
+export const translatePermissionGroup = (group: string): string =>
+  PERMISSION_GROUP_TRANSLATIONS[group] || group;
+
+export const PERMISSION_TRANSLATIONS: Record<PermissionName, string> = {
+  [PermissionName.RbacManage]: "Управление ролями",
+  [PermissionName.DashboardRead]: "Просмотр дашборда",
+  [PermissionName.ProductsRead]: "Просмотр товаров",
+  [PermissionName.ProductsCreate]: "Создание товаров",
+  [PermissionName.ProductsUpdate]: "Редактирование товаров",
+  [PermissionName.ProductsDelete]: "Удаление товаров",
+  [PermissionName.CategoriesRead]: "Просмотр категорий",
+  [PermissionName.CategoriesCreate]: "Создание категорий",
+  [PermissionName.CategoriesUpdate]: "Редактирование категорий",
+  [PermissionName.CategoriesDelete]: "Удаление категорий",
+  [PermissionName.OrdersRead]: "Просмотр покупок",
+  [PermissionName.UsersRead]: "Просмотр пользователей",
+  [PermissionName.UsersCreate]: "Создание пользователей",
+  [PermissionName.UsersUpdate]: "Редактирование пользователей",
+  [PermissionName.UsersDelete]: "Удаление пользователей",
+  [PermissionName.SettingsRead]: "Просмотр настроек",
+  [PermissionName.SettingsEdit]: "Редактирование настроек",
+  [PermissionName.ImagesRead]: "Просмотр изображений",
+  [PermissionName.ImagesUpload]: "Загрузка изображений",
+  [PermissionName.ImagesDelete]: "Удаление изображений",
+  [PermissionName.ReferralsRead]: "Просмотр рефералов",
+  [PermissionName.ReferralsUpdate]: "Редактирование рефералов",
+  [PermissionName.TransactionsRead]: "Просмотр транзакций",
+  [PermissionName.StoreBalanceRead]: "Просмотр баланса",
+  [PermissionName.StoreBalanceManage]: "Управление балансом",
+  [PermissionName.StockRead]: "Просмотр склада",
+  [PermissionName.StockUpdate]: "Редактирование склада",
+  [PermissionName.AuditLogRead]: "Просмотр журнала аудита",
+  [PermissionName.PricingRead]: "Просмотр ценообразования",
+  [PermissionName.PricingEdit]: "Редактирование ценообразования",
 };
 
-export const PERMISSION_TRANSLATIONS: Record<string, string> = {
-  "rbac:manage": "Управление ролями",
-  "dashboard:read": "Просмотр дашборда",
-  "products:read": "Просмотр товаров",
-  "products:create": "Создание товаров",
-  "products:update": "Редактирование товаров",
-  "products:delete": "Удаление товаров",
-  "categories:read": "Просмотр категорий",
-  "categories:create": "Создание категорий",
-  "categories:update": "Редактирование категорий",
-  "categories:delete": "Удаление категорий",
-  "orders:read": "Просмотр покупок",
-  "users:read": "Просмотр пользователей",
-  "users:create": "Создание пользователей",
-  "users:update": "Редактирование пользователей",
-  "users:delete": "Удаление пользователей",
-  "settings:read": "Просмотр настроек",
-  "settings:edit": "Редактирование настроек",
-  "images:read": "Просмотр изображений",
-  "images:upload": "Загрузка изображений",
-  "images:delete": "Удаление изображений",
-  "referrals:read": "Просмотр рефералов",
-  "referrals:update": "Редактирование рефералов",
-  "transactions:read": "Просмотр транзакций",
-  "store_balance:read": "Просмотр баланса",
-  "store_balance:manage": "Управление балансом",
-  "stock:read": "Просмотр склада",
-  "stock:update": "Редактирование склада",
-  "audit_log.read": "Просмотр журнала аудита",
-};
-
-export const translatePermission = (permission: string): string => {
-  return PERMISSION_TRANSLATIONS[permission] || permission;
-};
+export const translatePermission = (permission: PermissionName) =>
+  PERMISSION_TRANSLATIONS[permission] || permission;

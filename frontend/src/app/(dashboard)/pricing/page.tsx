@@ -3,15 +3,16 @@
 import { useOne } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { PageLayout } from "@/components/PageLayout";
-import { ReferralProgramForm } from "./components/ReferralProgramForm";
-import { BotSettingsForm } from "./components/BotSettingsForm";
+import { PaymentDiscountsForm } from "../settings/components/PaymentDiscountsForm";
 import { Stack } from "@mui/material";
+import { GlobalMarkupForm } from "../settings/components/GlobalMarkupForm";
+import { PaymentSystemMarkupForm } from "../settings/components/PaymentSystemMarkupForm";
 
 interface Settings {
   [key: string]: string;
 }
 
-export default function SettingsPage() {
+export default function PricingPage() {
   const {
     data: settings,
     isPending: isSettingsPending,
@@ -21,14 +22,19 @@ export default function SettingsPage() {
   });
 
   return (
-    <PageLayout title="Настройки">
+    <PageLayout title="Ценообразование">
       <Stack gap={2}>
-        <ReferralProgramForm
+        <GlobalMarkupForm
           settings={settings}
           isSettingsPending={isSettingsPending}
           refetchSettings={refetch}
         />
-        <BotSettingsForm
+        <PaymentSystemMarkupForm
+          settings={settings}
+          isSettingsPending={isSettingsPending}
+          refetchSettings={refetch}
+        />
+        <PaymentDiscountsForm
           settings={settings}
           isSettingsPending={isSettingsPending}
           refetchSettings={refetch}

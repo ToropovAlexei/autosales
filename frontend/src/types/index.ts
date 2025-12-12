@@ -1,5 +1,7 @@
 export * from "./common";
 export * from "./role";
+export * from "./permissions";
+export * from "./routing";
 
 export interface IAuditLog {
   id: number;

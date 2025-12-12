@@ -1,9 +1,15 @@
 "use client";
 
-import { DataGrid, GridColDef, GridActionsCellItem, GridPaginationModel, GridFilterModel } from "@mui/x-data-grid";
+import {
+  DataGrid,
+  GridColDef,
+  GridActionsCellItem,
+  GridPaginationModel,
+  GridFilterModel,
+} from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
-import { User } from "@/types";
+import { PermissionName, User } from "@/types";
 import { useCan } from "@/hooks";
 
 interface UsersTableProps {
@@ -27,7 +33,7 @@ export const UsersTable = ({
   filterModel,
   onFilterModelChange,
 }: UsersTableProps) => {
-  const canConfigure = useCan("rbac:manage");
+  const { can: canConfigure } = useCan(PermissionName.RbacManage);
 
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", width: 90, sortable: false },

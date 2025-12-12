@@ -10,7 +10,7 @@ import {
   InputLabel,
   CircularProgress,
 } from "@mui/material";
-import { User, Role, Permission, UserPermission } from "@/types";
+import { User, Role, UserPermission, Permission } from "@/types";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { useEffect, useState, useMemo } from "react";
