@@ -23,6 +23,7 @@ export const ENDPOINTS = {
   REFERRAL_PERCENTAGE: "referrals/:id/percentage",
   ROLES: "admin/roles",
   PERMISSIONS: "admin/permissions",
+  ROLE_PERMISSIONS: "admin/roles/:id/permissions",
   USER_PERMISSIONS: "admin/users/:id/permissions",
   USERS: "admin/users",
   USER_ROLES: "admin/users/:id/roles",
