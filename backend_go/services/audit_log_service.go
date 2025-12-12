@@ -33,7 +33,7 @@ func (s *auditLogService) Log(ctx *gin.Context, action string, targetType string
 
 	logEntry := models.AuditLog{
 		UserID:     currentUser.ID,
-		UserEmail:  currentUser.Email,
+		UserLogin:  currentUser.Login,
 		Action:     action,
 		TargetType: targetType,
 		TargetID:   targetID,

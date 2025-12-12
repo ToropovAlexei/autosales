@@ -228,12 +228,12 @@ func createAdmin(db *gorm.DB, twoFAService services.TwoFAService) models.User {
 	encryptedSecret, _ := twoFAService.EncryptSecret(secret)
 
 	admin := models.User{
-		Email:          "test@example.com",
+		Login:          "test@example.com",
 		HashedPassword: string(hashedPassword),
 		IsActive:       true,
 		TwoFASecret:    &encryptedSecret,
 	}
-	db.FirstOrCreate(&admin, models.User{Email: admin.Email})
+	db.FirstOrCreate(&admin, models.User{Login: admin.Login})
 
 	fmt.Printf("Admin user created: test@example.com, 2FA Secret: %s\n", secret)
 
@@ -257,16 +257,16 @@ func createTestUsers(db *gorm.DB, permissions map[string]models.Permission, twoF
 	// admin@gmail.com user with admin role
 	secretAdmin, _ := twoFAService.GenerateSecret("admin@gmail.com")
 	encryptedSecretAdmin, _ := twoFAService.EncryptSecret(secretAdmin)
-	admin2 := models.User{Email: "admin@gmail.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretAdmin}
-	db.FirstOrCreate(&admin2, models.User{Email: admin2.Email})
+	admin2 := models.User{Login: "admin@gmail.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretAdmin}
+	db.FirstOrCreate(&admin2, models.User{Login: admin2.Login})
 	assignAdminRole(db, admin2)
 	fmt.Printf("User created: admin@gmail.com, 2FA Secret: %s\n", secretAdmin)
 
 	// Accountant
 	secretAccountant, _ := twoFAService.GenerateSecret("accountant@example.com")
 	encryptedSecretAccountant, _ := twoFAService.EncryptSecret(secretAccountant)
-	accountant := models.User{Email: "accountant@example.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretAccountant}
-	db.FirstOrCreate(&accountant, models.User{Email: accountant.Email})
+	accountant := models.User{Login: "accountant@example.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretAccountant}
+	db.FirstOrCreate(&accountant, models.User{Login: accountant.Login})
 	var accountantRole models.Role
 	db.First(&accountantRole, "name = ?", "бухгалтер")
 	if accountantRole.ID != 0 {
@@ -279,8 +279,8 @@ func createTestUsers(db *gorm.DB, permissions map[string]models.Permission, twoF
 	// Manager
 	secretManager, _ := twoFAService.GenerateSecret("manager@example.com")
 	encryptedSecretManager, _ := twoFAService.EncryptSecret(secretManager)
-	manager := models.User{Email: "manager@example.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretManager}
-	db.FirstOrCreate(&manager, models.User{Email: manager.Email})
+	manager := models.User{Login: "manager@example.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretManager}
+	db.FirstOrCreate(&manager, models.User{Login: manager.Login})
 	var managerRole models.Role
 	db.First(&managerRole, "name = ?", "менеджер")
 	if managerRole.ID != 0 {
@@ -299,8 +299,8 @@ func createTestUsers(db *gorm.DB, permissions map[string]models.Permission, twoF
 	// Godlike user
 	secretGod, _ := twoFAService.GenerateSecret("god@example.com")
 	encryptedSecretGod, _ := twoFAService.EncryptSecret(secretGod)
-	godlikeUser := models.User{Email: "god@example.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretGod}
-	db.FirstOrCreate(&godlikeUser, models.User{Email: godlikeUser.Email})
+	godlikeUser := models.User{Login: "god@example.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretGod}
+	db.FirstOrCreate(&godlikeUser, models.User{Login: godlikeUser.Login})
 	godlikeRole := models.Role{Name: "godlike", IsSuper: false}
 	db.FirstOrCreate(&godlikeRole, models.Role{Name: godlikeRole.Name})
 	db.Create(&models.UserRole{UserID: godlikeUser.ID, RoleID: godlikeRole.ID})

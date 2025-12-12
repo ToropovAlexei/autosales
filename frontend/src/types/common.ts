@@ -14,14 +14,12 @@ export interface IFilter {
 
 export type FalsyValues = false | null | 0 | "" | undefined;
 
-export interface User {
+export type User = {
   id: number;
-  email: string;
+  login: string;
   is_active: boolean;
   roles: Role[];
-  referral_program_enabled: boolean;
-  referral_percentage: number;
-}
+};
 
 export interface BotUser {
   id: number;

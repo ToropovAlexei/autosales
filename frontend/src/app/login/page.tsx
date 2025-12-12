@@ -16,7 +16,7 @@ import { newApi } from "@/lib/api";
 import { useRouter } from "next/navigation";
 import classes from "./styles.module.css";
 
-type LoginForm = { email: string; password: string; code?: string };
+type LoginForm = { login: string; password: string; code?: string };
 
 export default function LoginPage() {
   const [tfaRequired, setTfaRequired] = useState(false);
@@ -75,7 +75,7 @@ export default function LoginPage() {
             subheader={
               tfaRequired
                 ? "Введите код из вашего приложения для аутентификации."
-                : "Введите свой email и пароль для входа в панель."
+                : "Введите свой логин и пароль для входа в панель."
             }
           />
           <CardContent>
@@ -83,16 +83,15 @@ export default function LoginPage() {
               {!tfaRequired ? (
                 <>
                   <InputText
-                    name="email"
-                    type="email"
-                    label="Email"
-                    placeholder="mail@example.com"
+                    name="login"
+                    label="Логин"
+                    placeholder="admin"
                     required
                   />
                   <InputPassword name="password" />
                   {loginError && (
                     <Typography color="error">
-                      Неверный email или пароль
+                      Неверный логин или пароль
                     </Typography>
                   )}
                   <Button type="submit">Войти</Button>

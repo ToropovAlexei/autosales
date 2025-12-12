@@ -20,7 +20,7 @@ func NewAuthHandler(authService services.AuthService) *AuthHandler {
 }
 
 type LoginPayload struct {
-	Email    string `json:"email" binding:"required,email"`
+	Login    string `json:"login" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -42,11 +42,11 @@ type Verify2FAPayload struct {
 func (h *AuthHandler) LoginHandler(c *gin.Context) {
 	var payload LoginPayload
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Некорректный формат email или пароля."})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Некорректный формат логина или пароля."})
 		return
 	}
 
-	token, is2FARequired, err := h.authService.Login(payload.Email, payload.Password)
+	token, is2FARequired, err := h.authService.Login(payload.Login, payload.Password)
 	if err != nil {
 		c.Error(err)
 		return
@@ -126,7 +126,7 @@ func (h *AuthHandler) LogoutHandler(c *gin.Context) {
 }
 
 type BotAuthInitiatePayload struct {
-	Email    string `json:"email" binding:"required,email"`
+	Login    string `json:"login" binding:"required"`
 	Password string `json:"password" binding:"required"`
 }
 
@@ -151,11 +151,11 @@ type BotAuthCompletePayload struct {
 func (h *AuthHandler) InitiateBotAdminAuthHandler(c *gin.Context) {
 	var payload BotAuthInitiatePayload
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Некорректный формат email или пароля."})
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Некорректный формат логина или пароля."})
 		return
 	}
 
-	authToken, err := h.authService.InitiateBotAdminAuth(payload.Email, payload.Password)
+	authToken, err := h.authService.InitiateBotAdminAuth(payload.Login, payload.Password)
 	if err != nil {
 		c.Error(err)
 		return

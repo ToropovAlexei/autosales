@@ -31,11 +31,9 @@ export const AuditLogTable = ({
   const columns: GridColDef[] = [
     { field: "id", headerName: "Id", width: 90, sortable: false },
     {
-      field: "user_email",
+      field: "user_login",
       headerName: "Логин",
-      width: 250,
       flex: 1,
-      sortable: false,
     },
     {
       field: "action",

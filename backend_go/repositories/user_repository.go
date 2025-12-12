@@ -7,15 +7,15 @@ import (
 )
 
 type UserRepository interface {
-	WithTx(tx *gorm.DB) UserRepository
-	UpdateReferralSettings(user *models.User, enabled bool, percentage float64) error
 	FindByID(id uint) (*models.User, error)
-	FindByEmail(email string) (*models.User, error)
+	FindByLogin(login string) (*models.User, error)
 	FindByTelegramID(telegramID int64) (*models.User, error)
-	GetUsers(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.User], error)
 	Create(user *models.User) error
-	SetUserRole(userID, roleID uint) error
+	Update(user *models.User) error
+	GetUsers(page models.Page, filters []models.Filter) (*models.PaginatedResult[models.User], error)
+	UpdateReferralSettings(user *models.User, enabled bool, percentage float64) error
 	SetTelegramID(userID uint, telegramID int64) error
+	SetUserRole(userID, roleID uint) error
 }
 
 type gormUserRepository struct {
@@ -42,7 +42,6 @@ func (r *gormUserRepository) FindByTelegramID(telegramID int64) (*models.User, e
 	return &user, nil
 }
 
-
 func (r *gormUserRepository) UpdateReferralSettings(user *models.User, enabled bool, percentage float64) error {
 	return r.db.Model(user).Updates(models.User{
 		ReferralProgramEnabled: enabled,
@@ -58,9 +57,9 @@ func (r *gormUserRepository) FindByID(id uint) (*models.User, error) {
 	return &user, nil
 }
 
-func (r *gormUserRepository) FindByEmail(email string) (*models.User, error) {
+func (r *gormUserRepository) FindByLogin(login string) (*models.User, error) {
 	var user models.User
-	if err := r.db.Preload("Roles").Where("email = ?", email).First(&user).Error; err != nil {
+	if err := r.db.Preload("Roles").Where("login = ?", login).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil
@@ -74,6 +73,10 @@ func (r *gormUserRepository) GetUsers(page models.Page, filters []models.Filter)
 
 func (r *gormUserRepository) Create(user *models.User) error {
 	return r.db.Create(user).Error
+}
+
+func (r *gormUserRepository) Update(user *models.User) error {
+	return r.db.Save(user).Error
 }
 
 func (r *gormUserRepository) SetUserRole(userID, roleID uint) error {

@@ -49,7 +49,7 @@ func (m *AuthMiddleware) RequireAuth(c *gin.Context) {
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		user, err := m.userService.GetMeByEmail(claims["sub"].(string))
+		user, err := m.userService.GetMeByLogin(claims["sub"].(string))
 		if err != nil {
 			c.Error(apperrors.New(http.StatusUnauthorized, "User not found", err))
 			c.Abort()

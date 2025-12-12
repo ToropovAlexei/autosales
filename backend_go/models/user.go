@@ -4,7 +4,7 @@ import "database/sql"
 
 type User struct {
 	ID                     uint      `gorm:"primaryKey" json:"id"`
-	Email                  string    `gorm:"uniqueIndex" json:"email"`
+	Login                  string    `gorm:"uniqueIndex" json:"login"`
 	HashedPassword         string    `json:"-"` // Do not expose hashed password
 	IsActive               bool      `gorm:"default:true" json:"is_active"`
 	TelegramID             sql.NullInt64 `gorm:"unique;index"`
@@ -18,7 +18,7 @@ type User struct {
 
 type UserResponse struct {
 	ID                     uint     `json:"id"`
-	Email                  string   `json:"email"`
+	Login                  string   `json:"login"`
 	IsActive               bool     `json:"is_active"`
 	ReferralProgramEnabled bool     `json:"referral_program_enabled"`
 	ReferralPercentage     float64  `json:"referral_percentage"`

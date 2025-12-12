@@ -37,7 +37,7 @@ export const UsersTable = ({
 
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", width: 90, sortable: false },
-    { field: "email", headerName: "Email", flex: 1, sortable: false },
+    { field: "login", headerName: "Логин", flex: 1, sortable: false },
     {
       field: "roles",
       headerName: "Роли",

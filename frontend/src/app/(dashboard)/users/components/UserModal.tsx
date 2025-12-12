@@ -24,7 +24,7 @@ interface UserModalProps {
 }
 
 type CreateUserForm = {
-  email: string;
+  login: string;
   password: string;
   role_id: number;
 };
@@ -63,15 +63,10 @@ export const UserModal = ({
           <FormProvider {...form}>
             <Stack gap={2} py={2}>
               <InputText
-                name="email"
-                label="Email"
-                type="email"
+                name="login"
+                label="Логин"
                 rules={{
-                  validate: (value) => {
-                    const emailRegex =
-                      /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i;
-                    return emailRegex.test(value) || "Некорректный email";
-                  },
+                  required: "Поле обязательно к заполнению",
                 }}
               />
               <InputPassword

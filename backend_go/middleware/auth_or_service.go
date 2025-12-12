@@ -50,7 +50,7 @@ func AuthOrServiceTokenMiddleware(appSettings *config.Config, tokenService servi
 		}
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-			user, err := userRepo.FindByEmail(claims["sub"].(string))
+			user, err := userRepo.FindByLogin(claims["sub"].(string))
 			if err != nil {
 				responses.ErrorResponse(c, http.StatusUnauthorized, "User not found")
 				c.Abort()

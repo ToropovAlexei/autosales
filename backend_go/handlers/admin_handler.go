@@ -99,7 +99,7 @@ func (h *AdminHandler) GetUsersHandler(c *gin.Context) {
 }
 
 type createUserPayload struct {
-	Email    string `json:"email" binding:"required,email"`
+	Login    string `json:"login" binding:"required"`
 	Password string `json:"password" binding:"required,min=8"`
 	RoleID   uint   `json:"role_id" binding:"required"`
 }
@@ -111,7 +111,7 @@ func (h *AdminHandler) CreateUserHandler(c *gin.Context) {
 		return
 	}
 
-	response, err := h.userService.CreateUser(c, json.Email, json.Password, json.RoleID)
+	response, err := h.userService.CreateUser(c, json.Login, json.Password, json.RoleID)
 	if err != nil {
 		c.Error(err)
 		return

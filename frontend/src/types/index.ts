@@ -6,7 +6,7 @@ export * from "./routing";
 export interface IAuditLog {
   id: number;
   user_id: number;
-  user_email: string;
+  user_login: string;
   action: string;
   target_type: string;
   target_id: number;

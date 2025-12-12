@@ -1,7 +1,7 @@
 package models
 
 type Login2FAPayload struct {
-	Email    string `json:"email" binding:"required,email"`
+	Login    string `json:"login" binding:"required"`
 	Password string `json:"password"`
 	Code     string `json:"code"`
 }

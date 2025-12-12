@@ -16,10 +16,10 @@ import (
 )
 
 type TwoFAService interface {
-	GenerateSecret(email string) (string, error)
+	GenerateSecret(login string) (string, error)
 	EncryptSecret(secret string) (string, error)
 	DecryptSecret(encryptedSecret string) (string, error)
-	GenerateQRCode(email, secret string) ([]byte, error)
+	GenerateQRCode(login, secret string) ([]byte, error)
 	ValidateCode(secret, code string) bool
 }
 
@@ -35,10 +35,10 @@ func NewTwoFAService(secretKey string) (TwoFAService, error) {
 	return &twoFAService{secretKey: key}, nil
 }
 
-func (s *twoFAService) GenerateSecret(email string) (string, error) {
+func (s *twoFAService) GenerateSecret(login string) (string, error) {
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      "YourAppName",
-		AccountName: email,
+		AccountName: login,
 	})
 	if err != nil {
 		return "", err
@@ -88,8 +88,8 @@ func (s *twoFAService) DecryptSecret(encryptedSecret string) (string, error) {
 	return fmt.Sprintf("%s", ciphertext), nil
 }
 
-func (s *twoFAService) GenerateQRCode(email, secret string) ([]byte, error) {
-	url := fmt.Sprintf("otpauth://totp/YourAppName:%s?secret=%s&issuer=YourAppName", email, secret)
+func (s *twoFAService) GenerateQRCode(login, secret string) ([]byte, error) {
+	url := fmt.Sprintf("otpauth://totp/YourAppName:%s?secret=%s&issuer=YourAppName", login, secret)
 	return qrcode.Encode(url, qrcode.Medium, 256)
 }
 

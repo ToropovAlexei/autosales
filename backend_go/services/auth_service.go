@@ -17,10 +17,10 @@ import (
 )
 
 type AuthService interface {
-	Login(email, password string) (string, bool, error)
+	Login(login, password string) (string, bool, error)
 	Verify2FA(tempToken, code string) (string, error)
 	Logout(jti string) error
-	InitiateBotAdminAuth(email, password string) (string, error)
+	InitiateBotAdminAuth(login, password string) (string, error)
 	CompleteBotAdminAuth(authToken, tfaCode string, telegramID int64, ctx *gin.Context) error
 }
 
@@ -46,8 +46,8 @@ func NewAuthService(userRepo repositories.UserRepository, userService UserServic
 	}
 }
 
-func (s *authService) InitiateBotAdminAuth(email, password string) (string, error) {
-	user, err := s.userRepo.FindByEmail(email)
+func (s *authService) InitiateBotAdminAuth(login, password string) (string, error) {
+	user, err := s.userRepo.FindByLogin(login)
 	if err != nil {
 		return "", &apperrors.ErrValidation{Message: "incorrect username or password"}
 	}
@@ -60,7 +60,7 @@ func (s *authService) InitiateBotAdminAuth(email, password string) (string, erro
 		return "", apperrors.New(http.StatusForbidden, "2FA is not enabled for this account", nil)
 	}
 
-	return s.tokenService.GenerateTemporaryToken(email)
+	return s.tokenService.GenerateTemporaryToken(login)
 }
 
 func (s *authService) CompleteBotAdminAuth(authToken, tfaCode string, telegramID int64, ctx *gin.Context) error {
@@ -79,8 +79,8 @@ func (s *authService) CompleteBotAdminAuth(authToken, tfaCode string, telegramID
 		return &apperrors.ErrValidation{Message: "invalid or expired authentication token"}
 	}
 
-	email := claims["sub"].(string)
-	user, err := s.userRepo.FindByEmail(email)
+	login := claims["sub"].(string)
+	user, err := s.userRepo.FindByLogin(login)
 	if err != nil {
 		return &apperrors.ErrValidation{Message: "user not found"}
 	}
@@ -101,8 +101,8 @@ func (s *authService) CompleteBotAdminAuth(authToken, tfaCode string, telegramID
 }
 
 
-func (s *authService) Login(email, password string) (string, bool, error) {
-	user, err := s.userRepo.FindByEmail(email)
+func (s *authService) Login(login, password string) (string, bool, error) {
+	user, err := s.userRepo.FindByLogin(login)
 	if err != nil {
 		return "", false, &apperrors.ErrValidation{Message: "incorrect username or password"}
 	}

@@ -180,7 +180,7 @@ export const UserPermissionsModal = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md">
-      <DialogTitle>Настроить права для {user.email}</DialogTitle>
+      <DialogTitle>Настроить права для {user.login}</DialogTitle>
       <DialogContent>
         {isLoading ? (
           <CircularProgress />

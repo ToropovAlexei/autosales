@@ -10,7 +10,7 @@ import (
 type AuditLog struct {
 	ID          uint           `gorm:"primaryKey" json:"id"`
 	UserID      uint           `json:"user_id"`
-	UserEmail   string         `json:"user_email"`
+	UserLogin   string         `json:"user_login"`
 	Action      string         `gorm:"index" json:"action"`
 	TargetType  string         `json:"target_type"`
 	TargetID    uint           `json:"target_id"`
