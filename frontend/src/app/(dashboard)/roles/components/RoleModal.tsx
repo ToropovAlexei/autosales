@@ -15,7 +15,11 @@ import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { Permission, Role } from "@/types";
 import { useEffect, useState } from "react";
-import { translatePermission, translatePermissionGroup } from "@/lib/permissions";
+import {
+  translatePermission,
+  translatePermissionGroup,
+} from "@/lib/permissions";
+import { PERMISSIONS_COLORS } from "./constants";
 
 interface RoleModalProps {
   open: boolean;
@@ -37,18 +41,17 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
   });
 
   const { data: rolePermissions } = useList<Permission>({
-    endpoint: `${ENDPOINTS.ROLES}/${role?.id}/permissions`,
+    endpoint: ENDPOINTS.ROLE_PERMISSIONS,
+    meta: { ":id": role?.id },
     enabled: !!role,
   });
 
   useEffect(() => {
     if (open) {
       setName(role?.name || "");
-      if (rolePermissions?.data) {
-        setSelectedPermissions(rolePermissions.data.map((p) => p.id));
-      } else {
-        setSelectedPermissions([]);
-      }
+      setSelectedPermissions(
+        rolePermissions?.data ? rolePermissions.data.map((p) => p.id) : []
+      );
     }
   }, [open, role, rolePermissions]);
 
@@ -65,14 +68,10 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
     );
   };
 
-  const groupedPermissions = allPermissions?.data?.reduce((acc, permission) => {
-    const group = permission.group || "Other";
-    if (!acc[group]) {
-      acc[group] = [];
-    }
-    acc[group].push(permission);
-    return acc;
-  }, {} as Record<string, Permission[]>);
+  const groupedPermissions = Object.groupBy(
+    allPermissions?.data || [],
+    (permission) => permission.group || "Other"
+  );
 
   return (
     <Dialog open={open} onClose={onClose}>
@@ -92,7 +91,7 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
             <div key={group}>
               <h4>{translatePermissionGroup(group)}</h4>
               <FormGroup>
-                {permissions.map((permission) => (
+                {permissions?.map((permission) => (
                   <FormControlLabel
                     key={permission.id}
                     control={
@@ -102,6 +101,11 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
                       />
                     }
                     label={translatePermission(permission.name)}
+                    slotProps={{
+                      typography: {
+                        color: PERMISSIONS_COLORS[permission.name] || "success",
+                      },
+                    }}
                   />
                 ))}
               </FormGroup>
