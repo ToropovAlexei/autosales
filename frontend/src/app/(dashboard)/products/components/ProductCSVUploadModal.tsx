@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -8,15 +8,11 @@ import {
   DialogActions,
   Button,
   Typography,
-  LinearProgress,
   Alert,
   AlertTitle,
-  Table,
-  TableHead,
-  TableRow,
-  TableCell,
-  TableBody,
+  Box,
 } from "@mui/material";
+import DownloadIcon from "@mui/icons-material/Download";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dataLayer } from "@/lib/dataLayer";
 import { ENDPOINTS } from "@/constants";
@@ -58,14 +54,15 @@ export const ProductCSVUploadModal = ({
         queryKey: queryKeys.list(ENDPOINTS.CATEGORIES),
       });
       setSelectedFile(null);
+      toast.success(`Загружено: ${data.created} товаров`);
     },
     onError: () => {
-      toast.error("Произошла ошибка при загрузке CSV-файла");
+      toast.error("Не удалось загрузить CSV-файл");
     },
   });
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files && event.target.files[0]) {
+    if (event.target.files?.[0]) {
       setSelectedFile(event.target.files[0]);
     } else {
       setSelectedFile(null);
@@ -83,42 +80,85 @@ export const ProductCSVUploadModal = ({
     onClose();
   };
 
+  // 📄 Генерация CSV-шаблона на лету
+  const templateCSV = useMemo(() => {
+    const header = ["name", "category", "price", "initial_stock"].join(",");
+    const example = [
+      "Google Pixel 8", // name
+      "Электроника/Телефоны/Android", // category
+      "59999.99", // price
+      "10", // initial_stock
+    ].join(",");
+    return `${header}\n${example}\n`;
+  }, []);
+
+  const downloadTemplate = () => {
+    const blob = new Blob([templateCSV], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "шаблон_товаров.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>Загрузить товары из CSV</DialogTitle>
+      <DialogTitle>Добавить товары из CSV</DialogTitle>
       <DialogContent dividers>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Пожалуйста, загрузите CSV-файл со следующими столбцами (в указанном
-          порядке):
+        <Typography variant="body2" color="text.secondary" gutterBottom>
+          Загрузите CSV-файл с товарами. Не уверены, как его сделать? — скачайте
+          шаблон 👇
         </Typography>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              <TableCell>name</TableCell>
-              <TableCell>category</TableCell>
-              <TableCell>price</TableCell>
-              <TableCell>initial_stock</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            <TableRow>
-              <TableCell>Google Pixel</TableCell>
-              <TableCell>Электроника/Телефоны/Android/Google</TableCell>
-              <TableCell>30000</TableCell>
-              <TableCell>10</TableCell>
-            </TableRow>
-          </TableBody>
-        </Table>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-          Разделитель категорий вложенности: <code>/</code> (например,{" "}
-          <code>Электроника/Телефоны/Android</code>)
+
+        <Box sx={{ display: "flex", gap: 1, my: 2 }}>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={downloadTemplate}
+            size="small"
+          >
+            Скачать шаблон CSV
+          </Button>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ alignSelf: "center" }}
+          >
+            Откройте в Excel / Google Таблицах → заполните → сохраните как CSV
+          </Typography>
+        </Box>
+
+        <Typography variant="subtitle2" gutterBottom>
+          📋 Требования к файлу:
         </Typography>
+        <Typography variant="body2" color="text.secondary" component="div">
+          <ul>
+            <li>
+              Первая строка — заголовки:{" "}
+              <code>name,category,price,initial_stock</code>
+            </li>
+            <li>
+              <strong>category</strong> — путь через <code>/</code> (например:{" "}
+              <code>Телефоны/Android</code>)
+            </li>
+            <li>
+              <strong>price</strong> — число с точкой: <code>199.99</code>
+            </li>
+            <li>
+              <strong>initial_stock</strong> — целое число ≥ 0
+            </li>
+          </ul>
+        </Typography>
+
         <UploadBtn
           onFileChange={handleFileChange}
           accept=".csv"
           loading={isPending}
         >
-          {selectedFile ? `Выбран ${selectedFile.name}` : "Выбрать CSV файл"}
+          {selectedFile ? `Выбрано: ${selectedFile.name}` : "Выбрать CSV файл"}
         </UploadBtn>
 
         {data && (
@@ -126,22 +166,34 @@ export const ProductCSVUploadModal = ({
             severity={data.failed > 0 ? "error" : "success"}
             sx={{ mt: 2 }}
           >
-            <AlertTitle>Результат загрузки</AlertTitle>
-            <Typography>Успешно создано: {data.created}</Typography>
-            <Typography>Пропущено: {data.skipped}</Typography>
-            <Typography>Ошибок: {data.failed}</Typography>
-            {(data.errors?.length || 0) > 0 && (
-              <ul>
-                {data.errors?.map((err, index) => (
-                  <li key={index}>{err}</li>
+            <AlertTitle>
+              {data.failed > 0 ? "Есть ошибки" : "Готово!"}
+            </AlertTitle>
+            <Typography variant="body2">
+              ✅ Успешно: {data.created} &nbsp; ⚠️ Пропущено: {data.skipped}{" "}
+              &nbsp; ❌ Ошибок: {data.failed}
+            </Typography>
+            {data.errors?.length ? (
+              <Box component="ul" sx={{ pl: 2, mb: 0 }}>
+                {data.errors.slice(0, 3).map((err, i) => (
+                  <li key={i}>
+                    <Typography variant="caption">{err}</Typography>
+                  </li>
                 ))}
-              </ul>
-            )}
+                {data.errors.length > 3 && (
+                  <li>
+                    <Typography variant="caption">
+                      и ещё {data.errors.length - 3} ошибок…
+                    </Typography>
+                  </li>
+                )}
+              </Box>
+            ) : null}
           </Alert>
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleClose}>Отмена</Button>
+        <Button onClick={handleClose}>Закрыть</Button>
         <Button
           onClick={handleUploadClick}
           disabled={!selectedFile}
