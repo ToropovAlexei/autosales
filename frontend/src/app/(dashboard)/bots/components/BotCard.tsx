@@ -148,9 +148,21 @@ export const BotCard = ({
             </IconButton>
           </Stack>
           <div>
-            <Typography variant="body2" color="text.secondary">
-              Токен: ...{bot.token.slice(-8)}
-            </Typography>
+            <Stack direction="row" alignItems="center" gap={1}>
+              <Typography variant="body2" color="text.secondary">
+                Токен: ...{bot.token.slice(-8)}
+              </Typography>
+              <IconButton
+                onClick={() =>
+                  navigator.clipboard.writeText(bot.token).then(() => {
+                    toast.success("Токен скопирован в буфер обмена");
+                  })
+                }
+                size="small"
+              >
+                <ContentCopyIcon fontSize="small" />
+              </IconButton>
+            </Stack>
             {bot.type === "referral" && (
               <>
                 <Typography variant="body2" color="text.secondary">

@@ -143,6 +143,8 @@ export const ProductCSVUploadModal = ({
             <li>
               <strong>category</strong> — путь через <code>/</code> (например:{" "}
               <code>Телефоны/Android</code>)
+              <br />
+              Если категория не существует, она будет создана
             </li>
             <li>
               <strong>price</strong> — число с точкой: <code>199.99</code>
