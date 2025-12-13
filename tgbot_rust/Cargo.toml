@@ -5,7 +5,7 @@ edition = "2024"
 
 [dependencies]
 anyhow = "1.0.100"
-axum = { version = "0.8.6", features = ["macros"] }
+axum = { version = "0.8.7", features = ["macros"] }
 base64 = "0.22.1"
 bytes = "1.10.1"
 chrono = { version = "0.4.42", features = ["serde"] }
@@ -17,9 +17,9 @@ grammers-mtsender = "0.8.1"
 grammers-session = { version = "0.8.0", features = ["impl-serde"] }
 grammers-tl-types = "0.8.0"
 rand = "0.9.2"
-redis = "0.32.7"
+redis = "1.0.1"
 regex = "1.12.2"
-reqwest = "0.12.24"
+reqwest = "0.12.25"
 serde = "1.0.228"
 serde_json = "1.0.145"
 serde_qs = "0.15.0"
@@ -27,11 +27,11 @@ teloxide = { version = "0.17.0", features = ["macros", "redis-storage"] }
 thiserror = "2.0.17"
 tokio = "1.48.0"
 tokio-stream = "0.1.17"
-tokio-util = "0.7.16"
-tower-http = { version = "0.6.6", features = ["trace"] }
-tracing = "0.1.41"
-tracing-appender = "0.2.3"
-tracing-subscriber = { version = "0.3.20", features = [
+tokio-util = "0.7.17"
+tower-http = { version = "0.6.8", features = ["trace"] }
+tracing = "0.1.43"
+tracing-appender = "0.2.4"
+tracing-subscriber = { version = "0.3.22", features = [
     "env-filter",
     "fmt",
     "time",
