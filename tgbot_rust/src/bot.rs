@@ -74,13 +74,6 @@ pub struct InvoiceData {
     pub details: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-pub struct DialogueData {
-    pub state: BotState,
-    #[serde(default)]
-    pub referral_bot_id: Option<i64>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "t", content = "c")]
 pub enum BotState {
@@ -200,7 +193,7 @@ pub enum Command {
     MyBots,
 }
 
-type MyDialogue = Dialogue<DialogueData, RedisStorage<Json>>; 
+type MyDialogue = Dialogue<BotState, RedisStorage<Json>>;
 
 pub async fn run_bot(bot_token: String, app_state: AppState) -> AppResult<()> {
     let bot = Bot::new(bot_token);
@@ -221,7 +214,7 @@ pub async fn run_bot(bot_token: String, app_state: AppState) -> AppResult<()> {
     ));
 
     let handler = Update::filter_message()
-        .enter_dialogue::<Message, RedisStorage<Json>, DialogueData>()
+        .enter_dialogue::<Message, RedisStorage<Json>, BotState>()
         .branch(
             dptree::entry()
                 .filter_command::<Command>()
@@ -260,10 +253,7 @@ pub async fn run_bot(bot_token: String, app_state: AppState) -> AppResult<()> {
                 }
                 CallbackData::SelectGateway { gateway } => {
                     dialogue
-                        .update(DialogueData {
-                            state: BotState::DepositSelectAmount { gateway },
-                            ..dialogue.get().await?.unwrap_or_default()
-                        })
+                        .update(BotState::DepositSelectAmount { gateway })
                         .await
                         .map_err(AppError::from)?;
                     deposit_amount_handler(bot, dialogue, q, username, api_client, bot_state)
@@ -280,99 +270,69 @@ pub async fn run_bot(bot_token: String, app_state: AppState) -> AppResult<()> {
                         invoice: None,
                     };
                     dialogue
-                        .update(DialogueData {
-                            state: new_state.clone(),
-                            ..dialogue.get().await?.unwrap_or_default()
-                        })
+                        .update(new_state.clone())
                         .await
                         .map_err(AppError::from)?;
                     deposit_confirm_handler(bot, q, dialogue, api_client, new_state).await?;
                 }
                 CallbackData::ToMainMenu => {
                     dialogue
-                        .update(DialogueData {
-                            state: BotState::MainMenu,
-                            ..dialogue.get().await?.unwrap_or_default()
-                        })
+                        .update(BotState::MainMenu)
                         .await
                         .map_err(AppError::from)?;
                     main_menu_handler(bot, dialogue, q, username, api_client).await?;
                 }
                 CallbackData::ToDepositSelectGateway => {
                     dialogue
-                        .update(DialogueData {
-                            state: BotState::DepositSelectGateway,
-                            ..dialogue.get().await?.unwrap_or_default()
-                        })
+                        .update(BotState::DepositSelectGateway)
                         .await
                         .map_err(AppError::from)?;
                     deposit_gateway_handler(bot, dialogue, q, username.clone(), api_client).await?;
                 }
                 CallbackData::ToBalance => {
                     dialogue
-                        .update(DialogueData {
-                            state: BotState::Balance,
-                            ..dialogue.get().await?.unwrap_or_default()
-                        })
+                        .update(BotState::Balance)
                         .await
                         .map_err(AppError::from)?;
                     balance_handler(bot, dialogue, q, username, api_client).await?;
                 }
                 CallbackData::ToMyOrders => {
                     dialogue
-                        .update(DialogueData {
-                            state: BotState::MyOrders,
-                            ..dialogue.get().await?.unwrap_or_default()
-                        })
+                        .update(BotState::MyOrders)
                         .await
                         .map_err(AppError::from)?;
                     my_orders_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToMySubscriptions => {
                     dialogue
-                        .update(DialogueData {
-                            state: BotState::MySubscriptions,
-                            ..dialogue.get().await?.unwrap_or_default()
-                        })
+                        .update(BotState::MySubscriptions)
                         .await
                         .map_err(AppError::from)?;
                     my_subscriptions_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToReferralProgram => {
                     dialogue
-                        .update(DialogueData {
-                            state: BotState::ReferralProgram,
-                            ..dialogue.get().await?.unwrap_or_default()
-                        })
+                        .update(BotState::ReferralProgram)
                         .await
                         .map_err(AppError::from)?;
                 }
                 CallbackData::ToSupport => {
                     dialogue
-                        .update(DialogueData {
-                            state: BotState::Support,
-                            ..dialogue.get().await?.unwrap_or_default()
-                        })
+                        .update(BotState::Support)
                         .await
                         .map_err(AppError::from)?;
                     support_handler(bot, dialogue, q, username, api_client).await?;
                 }
                 CallbackData::ToCategory { category_id } => {
                     dialogue
-                        .update(DialogueData {
-                            state: BotState::Category { category_id },
-                            ..dialogue.get().await?.unwrap_or_default()
-                        })
+                        .update(BotState::Category { category_id })
                         .await
                         .map_err(AppError::from)?;
                     catalog_handler(bot, dialogue, q, username, api_client, category_id).await?;
                 }
                 CallbackData::ToProduct { id } => {
                     dialogue
-                        .update(DialogueData {
-                            state: BotState::Product { id },
-                            ..dialogue.get().await?.unwrap_or_default()
-                        })
+                        .update(BotState::Product { id })
                         .await
                         .map_err(AppError::from)?;
                     product_handler(bot, q, api_client, id).await?;
@@ -387,7 +347,7 @@ pub async fn run_bot(bot_token: String, app_state: AppState) -> AppResult<()> {
     );
 
     let callback_query_handler = Update::filter_callback_query()
-        .enter_dialogue::<CallbackQuery, RedisStorage<Json>, DialogueData>()
+        .enter_dialogue::<CallbackQuery, RedisStorage<Json>, BotState>()
         .branch(callback_router);
 
     let mut dispatcher = Dispatcher::builder(
@@ -429,10 +389,7 @@ async fn command_handler(
 ) -> AppResult<()> {
     match cmd {
         Command::Start => {
-            dialogue.update(DialogueData {
-                state: BotState::Initial,
-                ..dialogue.get().await?.unwrap_or_default()
-            }).await?;
+            dialogue.update(BotState::Initial).await?;
             start_handler(
                 bot,
                 dialogue,
@@ -445,10 +402,7 @@ async fn command_handler(
         }
         Command::MyBots => {
             dialogue
-                .update(DialogueData {
-                    state: BotState::WaitingForReferralBotToken,
-                    ..dialogue.get().await?.unwrap_or_default()
-                })
+                .update(BotState::WaitingForReferralBotToken)
                 .await?;
             my_bots_handler(bot, dialogue, app_state).await
         }

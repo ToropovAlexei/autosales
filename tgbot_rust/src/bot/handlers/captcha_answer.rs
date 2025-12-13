@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::api::captcha_api::CaptchaApi;
 use crate::bot::keyboards::captcha::captcha_keyboard_inline;
 use crate::bot::keyboards::main_menu::main_menu_inline_keyboard;
-use crate::bot::{BotState, CallbackData, DialogueData, generate_captcha_and_options};
+use crate::bot::{BotState, CallbackData, generate_captcha_and_options};
 use crate::{api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult};
 use teloxide::Bot;
 use teloxide::payloads::EditMessageMediaSetters;
@@ -20,7 +20,7 @@ pub async fn captcha_answer_handler(
     captcha_api_client: Arc<CaptchaApi>,
 ) -> AppResult<()> {
     let state_data = dialogue.get().await?.unwrap_or_default();
-    let correct_answer = match &state_data.state {
+    let correct_answer = match &state_data {
         BotState::WaitingForCaptcha { correct_answer } => correct_answer.clone(),
         _ => return Ok(()),
     };
@@ -93,11 +93,8 @@ pub async fn captcha_answer_handler(
                 }
             };
         dialogue
-            .update(DialogueData {
-                state: BotState::WaitingForCaptcha {
-                    correct_answer: new_correct_answer,
-                },
-                ..state_data
+            .update(BotState::WaitingForCaptcha {
+                correct_answer: new_correct_answer,
             })
             .await?;
 

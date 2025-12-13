@@ -19,15 +19,6 @@ pub async fn start_handler(
     api_client: Arc<BackendApi>,
     captcha_api_client: Arc<CaptchaApi>,
 ) -> AppResult<()> {
-    let mut dialogue_data = dialogue.get().await?.unwrap_or_default();
-
-    let args: Vec<&str> = msg.text().unwrap_or("").split_whitespace().collect();
-    if args.len() > 1 {
-        if let Ok(referral_bot_id) = args[1].parse::<i64>() {
-            dialogue_data.referral_bot_id = Some(referral_bot_id);
-        }
-    }
-
     let user_id = msg.chat.id;
     let user = match api_client.register_user(user_id.0, &username).await {
         Ok(res) => res,
@@ -71,15 +62,15 @@ pub async fn start_handler(
             .reply_markup(keyboard)
             .await?;
 
-        dialogue_data.state = BotState::WaitingForCaptcha {
-            correct_answer: captcha_text,
-        };
-        dialogue.update(dialogue_data).await?;
+        dialogue
+            .update(BotState::WaitingForCaptcha {
+                correct_answer: captcha_text,
+            })
+            .await?;
         return Ok(());
     }
 
-    dialogue_data.state = BotState::MainMenu;
-    dialogue.update(dialogue_data).await?;
+    dialogue.update(BotState::MainMenu).await?;
 
     let referral_program_enabled = api_client.is_referral_program_enabled().await;
     let welcome_message = if user.is_new {

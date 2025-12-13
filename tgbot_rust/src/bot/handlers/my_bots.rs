@@ -1,9 +1,9 @@
-use teloxide::prelude::*;
 use crate::{
-    bot::{DialogueData, MyDialogue},
-    errors::AppResult,
     AppState,
+    bot::{BotState, MyDialogue},
+    errors::AppResult,
 };
+use teloxide::prelude::*;
 
 pub async fn my_bots_handler(
     bot: Bot,
@@ -12,10 +12,9 @@ pub async fn my_bots_handler(
 ) -> AppResult<()> {
     bot.send_message(dialogue.chat_id(), "Please send me the token of your bot.")
         .await?;
-    dialogue.update(DialogueData {
-        state: crate::bot::BotState::WaitingForReferralBotToken,
-        ..dialogue.get().await?.unwrap_or_default()
-    }).await?;
+    dialogue
+        .update(BotState::WaitingForReferralBotToken)
+        .await?;
     Ok(())
 }
 
@@ -29,15 +28,20 @@ pub async fn referral_bot_token_handler(
     let telegram_id = msg.chat.id.0;
     match app_state.api.create_referral_bot(telegram_id, token).await {
         Ok(_) => {
-            bot.send_message(dialogue.chat_id(), "Your referral bot has been created successfully!").await?;
+            bot.send_message(
+                dialogue.chat_id(),
+                "Your referral bot has been created successfully!",
+            )
+            .await?;
         }
         Err(e) => {
-            bot.send_message(dialogue.chat_id(), format!("Failed to create referral bot: {}", e)).await?;
+            bot.send_message(
+                dialogue.chat_id(),
+                format!("Failed to create referral bot: {}", e),
+            )
+            .await?;
         }
     }
-    dialogue.update(DialogueData {
-        state: crate::bot::BotState::MainMenu,
-        ..dialogue.get().await?.unwrap_or_default()
-    }).await?;
+    dialogue.update(BotState::MainMenu).await?;
     Ok(())
 }
