@@ -1,5 +1,5 @@
 use axum::{Json, extract::State, http::HeaderMap, response::IntoResponse};
-use redis::AsyncCommands;
+use deadpool_redis::redis::AsyncCommands;
 
 use crate::{
     AppState,

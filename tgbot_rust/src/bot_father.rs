@@ -1,11 +1,12 @@
-use std::{
-    io::{BufReader, BufWriter},
-    path::Path,
-    sync::Arc,
-};
+use anyhow::Context;
 use anyhow::anyhow;
-use grammers_client::{Client, Config, InitParams, SignInError};
-use grammers_session::SqliteSession;
+use grammers_client::{Client, SignInError};
+use grammers_mtsender::SenderPool;
+use grammers_session::storages::SqliteSession;
+use std::io::{BufRead, Write};
+use std::sync::Arc;
+use std::time::SystemTime;
+use std::time::UNIX_EPOCH;
 
 use crate::api::backend_api::BackendApi;
 use crate::errors::AppResult;
@@ -75,7 +76,7 @@ impl BotFather {
             .await?
             .ok_or_else(|| anyhow!("Could not find BotFather"))?;
 
-        let msg = client.send_message(bot_father_peer, "/newbot").await?;
+        let msg = client.send_message(bot_father_peer.clone(), "/newbot").await?;
         let reply = client
             .get_reply_to_message(&msg)
             .await?
@@ -89,7 +90,7 @@ impl BotFather {
             "My Monitored Bot {}",
             SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs()
         );
-        let msg = client.send_message(bot_father_peer, bot_name).await?;
+        let msg = client.send_message(bot_father_peer.clone(), bot_name).await?;
         let reply = client
             .get_reply_to_message(&msg)
             .await?
@@ -111,6 +112,8 @@ impl BotFather {
             .get_reply_to_message(&msg)
             .await?
             .ok_or_else(|| anyhow!("No reply from BotFather"))?;
+
+        Ok(true)
     }
 }
 

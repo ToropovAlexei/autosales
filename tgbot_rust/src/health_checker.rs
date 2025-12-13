@@ -1,6 +1,5 @@
-use std::{sync::Arc, time::Duration};
-use tokio::sync::Mutex;
 use crate::bot_manager::BotManager;
+use std::{sync::Arc, time::Duration};
 
 pub struct HealthChecker {
     bot_manager: Arc<tokio::sync::Mutex<BotManager>>,
