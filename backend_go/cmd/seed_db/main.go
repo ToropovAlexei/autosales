@@ -2,12 +2,9 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"log"
-	"log/slog"
 	"math/rand"
-	"net/http"
 	"time"
 
 	"frbktg/backend_go/config"
@@ -37,215 +34,44 @@ func main() {
 		log.Fatalf("could not create 2FA service: %v", err)
 	}
 
-	logger := slog.Default()
-
-	logger.Info("Loaded appSettings", "settings", appSettings)
-
-	fmt.Println("Starting to seed the database...")
-	seedData(db, twoFAService, appSettings, logger)
+	fmt.Println("Starting to seed the database with test data...")
+	seedData(db, twoFAService)
 	fmt.Println("Database seeding completed successfully!")
 }
 
-func seedData(db *gorm.DB, twoFAService services.TwoFAService, appSettings *config.Config, logger *slog.Logger) {
-	dropAllTables(db)
-	autoMigrate(db)
-	createMainBots(db, appSettings, logger)
-	permissions := createRbacData(db)
-	adminUser := createAdmin(db, twoFAService)
-	assignAdminRole(db, adminUser)
+func seedData(db *gorm.DB, twoFAService services.TwoFAService) {
+	permissions := getPermissions(db)
+	createTestRoles(db)
 	createTestUsers(db, permissions, twoFAService)
 	users := createBotUsers(db, 50)
 	categories := createCategories(db)
 	products := createProducts(db, categories, 100)
 	createInitialStock(db, products)
 	createOrdersAndTransactions(db, users, products, 500)
-	createDefaultSettings(db)
 }
 
-func getBotUsername(token string) (string, error) {
-	if token == "" {
-		return "", nil
-	}
-	resp, err := http.Get(fmt.Sprintf("https://api.telegram.org/bot%s/getMe", token))
-	if err != nil {
-		return "", err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("telegram api returned non-200 status code: %d", resp.StatusCode)
-	}
-
-	var result struct {
-		OK     bool `json:"ok"`
-		Result struct {
-			Username string `json:"username"`
-		} `json:"result"`
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", err
-	}
-
-	if !result.OK {
-		return "", fmt.Errorf("telegram api returned ok=false")
-	}
-
-	return result.Result.Username, nil
-}
-
-func createMainBots(db *gorm.DB, appSettings *config.Config, logger *slog.Logger) {
-	logger.Info("Creating main and fallback bots...")
-
-	if appSettings.MainBotToken != "" {
-		username, err := getBotUsername(appSettings.MainBotToken)
-		if err != nil {
-			logger.Error("failed to get main bot username", "error", err)
-			username = appSettings.MainBotName
-		}
-
-		bot := models.Bot{
-			Token:     appSettings.MainBotToken,
-			Username:  username,
-			Type:      "main",
-			IsPrimary: true,
-		}
-		db.FirstOrCreate(&bot, models.Bot{Token: bot.Token})
-		logger.Info("Created main bot", "username", bot.Username)
-	}
-
-	if appSettings.FallbackBotToken != "" {
-		username, err := getBotUsername(appSettings.FallbackBotToken)
-		if err != nil {
-			logger.Error("failed to get fallback bot username", "error", err)
-			username = appSettings.FallbackBotName
-		}
-		bot := models.Bot{
-			Token:     appSettings.FallbackBotToken,
-			Username:  username,
-			Type:      "main",
-			IsPrimary: false,
-		}
-		db.FirstOrCreate(&bot, models.Bot{Token: bot.Token})
-		logger.Info("Created fallback bot", "username", bot.Username)
-	}
-}
-
-func createDefaultSettings(db *gorm.DB) {
-	fmt.Println("Creating default settings...")
-	settings := []models.Setting{
-		{Key: "support_message", Value: "Здравствуйте! Чем могу помочь? Наша служба поддержки работает с 9:00 до 18:00 по будням."},
-		{Key: "new_user_welcome_message", Value: `Добро пожаловать, {username}!
-                    Я - ваш личный помощник для покупок. Здесь вы можете:
-                    - 🛍️ Смотреть каталог товаров
-                    - 💰 Пополнять баланс
-                    - 💳 Проверять свой счет
-                    Выберите действие в меню ниже:`},
-		{Key: "returning_user_welcome_message", Value: `Добро пожаловать, {username}! Чем могу помочь?`},
-		{Key: "GLOBAL_PRICE_MARKUP", Value: "10"},
-		{Key: "GATEWAY_COMMISSION_mock_provider", Value: "5"},
-		{Key: "GATEWAY_COMMISSION_platform_card", Value: "3"},
-		{Key: "GATEWAY_COMMISSION_platform_sbp", Value: "2"},
-		{Key: "PLATFORM_COMMISSION_PERCENTAGE", Value: "1.5"},
-	}
-	for _, setting := range settings {
-		db.FirstOrCreate(&setting, models.Setting{Key: setting.Key})
-	}
-}
-
-func dropAllTables(db *gorm.DB) {
-	fmt.Println("Dropping all tables...")
-	tables := []interface{}{
-		&models.UserSubscription{}, &models.RefTransaction{}, &models.Bot{},
-		&models.StockMovement{}, &models.Order{}, &models.Transaction{},
-		&models.Product{}, &models.Category{}, &models.BotUser{}, &models.User{},
-		&models.PaymentInvoice{}, &models.Image{}, &models.UserPermission{},
-		&models.UserRole{}, &models.RolePermission{}, &models.Permission{}, &models.Role{},
-		&models.ActiveToken{},
-		&models.TemporaryToken{},
-		&models.Setting{},
-		&models.StoreBalance{},
-	}
-	if err := db.Migrator().DropTable(tables...); err != nil {
-		log.Fatalf("Failed to drop tables: %v", err)
-	}
-}
-
-func autoMigrate(db *gorm.DB) {
-	fmt.Println("Auto-migrating tables...")
-	if err := db.AutoMigrate(
-		&models.User{}, &models.BotUser{}, &models.Category{}, &models.Product{},
-		&models.Order{}, &models.Transaction{}, &models.StockMovement{},
-		&models.Bot{}, &models.RefTransaction{}, &models.UserSubscription{},
-		&models.PaymentInvoice{}, &models.Image{}, &models.Role{}, &models.Permission{},
-		&models.RolePermission{}, &models.UserRole{}, &models.UserPermission{}, &models.Setting{},
-		&models.ActiveToken{},
-		&models.TemporaryToken{},
-		&models.StoreBalance{},
-	); err != nil {
-		log.Fatalf("Failed to auto-migrate: %v", err)
-	}
-}
-
-func createRbacData(db *gorm.DB) map[string]models.Permission {
-	fmt.Println("Creating permissions and roles...")
-	permissionsList := []models.Permission{
-		{Name: "rbac:manage", Group: "RBAC"},
-		{Name: "dashboard:read", Group: "Dashboard"},
-		{Name: "pricing:read", Group: "Pricing"},
-		{Name: "pricing:edit", Group: "Pricing"},
-		{Name: "products:read", Group: "Products"}, {Name: "products:create", Group: "Products"}, {Name: "products:update", Group: "Products"}, {Name: "products:delete", Group: "Products"},
-		{Name: "categories:read", Group: "Categories"}, {Name: "categories:create", Group: "Categories"}, {Name: "categories:update", Group: "Categories"}, {Name: "categories:delete", Group: "Categories"},
-		{Name: "orders:read", Group: "Orders"},
-		{Name: "users:read", Group: "Users"}, {Name: "users:create", Group: "Users"}, {Name: "users:update", Group: "Users"}, {Name: "users:delete", Group: "Users"},
-		{Name: "settings:read", Group: "Settings"}, {Name: "settings:edit", Group: "Settings"},
-		{Name: "images:read", Group: "Images"}, {Name: "images:upload", Group: "Images"}, {Name: "images:delete", Group: "Images"},
-		{Name: "referrals:read", Group: "Referrals"}, {Name: "referrals:update", Group: "Referrals"},
-		{Name: "transactions:read", Group: "Transactions"},
-		{Name: "store_balance:read", Group: "Balance"},
-		{Name: "stock:read", Group: "Stock"}, {Name: "stock:update", Group: "Stock"},
-		{Name: "audit_log:read", Group: "AuditLog"},
-		{Name: "store_balance:manage", Group: "Balance"},
-	}
+func getPermissions(db *gorm.DB) map[string]models.Permission {
+	var permissionsList []models.Permission
+	db.Find(&permissionsList)
 	permissionsMap := make(map[string]models.Permission)
 	for _, p := range permissionsList {
-		db.FirstOrCreate(&p, models.Permission{Name: p.Name})
 		permissionsMap[p.Name] = p
 	}
-
-	db.FirstOrCreate(&models.Role{Name: "admin", IsSuper: true}, models.Role{Name: "admin"})
-	db.FirstOrCreate(&models.Role{Name: "бухгалтер"}, models.Role{Name: "бухгалтер"})
-	db.FirstOrCreate(&models.Role{Name: "менеджер"}, models.Role{Name: "менеджер"})
-
 	return permissionsMap
 }
 
-func createAdmin(db *gorm.DB, twoFAService services.TwoFAService) models.User {
-	fmt.Println("Creating admin user...")
-	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
-
-	secret := "QO4C6IF3RRNNUXLKAIVLOQPVYM5W3XEV" // Use constant secret for test@example.com
-	encryptedSecret, _ := twoFAService.EncryptSecret(secret)
-
-	admin := models.User{
-		Login:          "test@example.com",
-		HashedPassword: string(hashedPassword),
-		IsActive:       true,
-		TwoFASecret:    &encryptedSecret,
-	}
-	db.FirstOrCreate(&admin, models.User{Login: admin.Login})
-
-	fmt.Printf("Admin user created: test@example.com, 2FA Secret: %s\n", secret)
-
-	return admin
+func createTestRoles(db *gorm.DB) {
+	fmt.Println("Creating test roles...")
+	db.FirstOrCreate(&models.Role{Name: "бухгалтер"}, models.Role{Name: "бухгалтер"})
+	db.FirstOrCreate(&models.Role{Name: "менеджер"}, models.Role{Name: "менеджер"})
+	db.FirstOrCreate(&models.Role{Name: "godlike"}, models.Role{Name: "godlike"})
 }
 
-func assignAdminRole(db *gorm.DB, user models.User) {
-	fmt.Println("Assigning admin role...")
-	var adminRole models.Role
-	db.First(&adminRole, "name = ?", "admin")
-	if adminRole.ID != 0 {
-		userRole := models.UserRole{UserID: user.ID, RoleID: adminRole.ID}
+func assignUserRole(db *gorm.DB, user models.User, roleName string) {
+	var role models.Role
+	db.First(&role, "name = ?", roleName)
+	if role.ID != 0 {
+		userRole := models.UserRole{UserID: user.ID, RoleID: role.ID}
 		db.FirstOrCreate(&userRole, userRole)
 	}
 }
@@ -254,18 +80,26 @@ func createTestUsers(db *gorm.DB, permissions map[string]models.Permission, twoF
 	fmt.Println("Creating test users...")
 	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
 
-	// admin@gmail.com user with admin role
-	secretAdmin, _ := twoFAService.GenerateSecret("admin@gmail.com")
-	encryptedSecretAdmin, _ := twoFAService.EncryptSecret(secretAdmin)
-	admin2 := models.User{Login: "admin@gmail.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretAdmin}
-	db.FirstOrCreate(&admin2, models.User{Login: admin2.Login})
-	assignAdminRole(db, admin2)
-	fmt.Printf("User created: admin@gmail.com, 2FA Secret: %s\n", secretAdmin)
+	// admin_dev user with admin role (static credentials for development)
+	secretAdminDev := "QO4C6IF3RRNNUXLKAIVLOQPVYM5W3XEV" // Static 2FA secret for dev
+	encryptedSecretAdminDev, _ := twoFAService.EncryptSecret(secretAdminDev)
+	adminDevUser := models.User{Login: "admin_dev", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretAdminDev}
+	db.FirstOrCreate(&adminDevUser, models.User{Login: adminDevUser.Login})
+	assignUserRole(db, adminDevUser, "admin")
+	fmt.Printf("User created: admin_dev, 2FA Secret: %s\n", secretAdminDev)
+
+	// admin_test user with admin role
+	secretAdminTest, _ := twoFAService.GenerateSecret("admin_test")
+	encryptedSecretAdminTest, _ := twoFAService.EncryptSecret(secretAdminTest)
+	adminTestUser := models.User{Login: "admin_test", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretAdminTest}
+	db.FirstOrCreate(&adminTestUser, models.User{Login: adminTestUser.Login})
+	assignUserRole(db, adminTestUser, "admin")
+	fmt.Printf("User created: admin_test, 2FA Secret: %s\n", secretAdminTest)
 
 	// Accountant
-	secretAccountant, _ := twoFAService.GenerateSecret("accountant@example.com")
+	secretAccountant, _ := twoFAService.GenerateSecret("accountant_test")
 	encryptedSecretAccountant, _ := twoFAService.EncryptSecret(secretAccountant)
-	accountant := models.User{Login: "accountant@example.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretAccountant}
+	accountant := models.User{Login: "accountant_test", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretAccountant}
 	db.FirstOrCreate(&accountant, models.User{Login: accountant.Login})
 	var accountantRole models.Role
 	db.First(&accountantRole, "name = ?", "бухгалтер")
@@ -274,12 +108,12 @@ func createTestUsers(db *gorm.DB, permissions map[string]models.Permission, twoF
 		db.Create(&models.RolePermission{RoleID: accountantRole.ID, PermissionID: permissions["transactions:read"].ID})
 		db.Create(&models.RolePermission{RoleID: accountantRole.ID, PermissionID: permissions["store_balance:read"].ID})
 	}
-	fmt.Printf("User created: accountant@example.com, 2FA Secret: %s\n", secretAccountant)
+	fmt.Printf("User created: accountant_test, 2FA Secret: %s\n", secretAccountant)
 
 	// Manager
-	secretManager, _ := twoFAService.GenerateSecret("manager@example.com")
+	secretManager, _ := twoFAService.GenerateSecret("manager_test")
 	encryptedSecretManager, _ := twoFAService.EncryptSecret(secretManager)
-	manager := models.User{Login: "manager@example.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretManager}
+	manager := models.User{Login: "manager_test", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretManager}
 	db.FirstOrCreate(&manager, models.User{Login: manager.Login})
 	var managerRole models.Role
 	db.First(&managerRole, "name = ?", "менеджер")
@@ -294,20 +128,22 @@ func createTestUsers(db *gorm.DB, permissions map[string]models.Permission, twoF
 			db.Create(&models.RolePermission{RoleID: managerRole.ID, PermissionID: permissions[pName].ID})
 		}
 	}
-	fmt.Printf("User created: manager@example.com, 2FA Secret: %s\n", secretManager)
+	fmt.Printf("User created: manager_test, 2FA Secret: %s\n", secretManager)
 
 	// Godlike user
-	secretGod, _ := twoFAService.GenerateSecret("god@example.com")
+	secretGod, _ := twoFAService.GenerateSecret("god_test")
 	encryptedSecretGod, _ := twoFAService.EncryptSecret(secretGod)
-	godlikeUser := models.User{Login: "god@example.com", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretGod}
+	godlikeUser := models.User{Login: "god_test", HashedPassword: string(hashedPassword), IsActive: true, TwoFASecret: &encryptedSecretGod}
 	db.FirstOrCreate(&godlikeUser, models.User{Login: godlikeUser.Login})
-	godlikeRole := models.Role{Name: "godlike", IsSuper: false}
-	db.FirstOrCreate(&godlikeRole, models.Role{Name: godlikeRole.Name})
-	db.Create(&models.UserRole{UserID: godlikeUser.ID, RoleID: godlikeRole.ID})
-	for _, p := range permissions {
-		db.Create(&models.RolePermission{RoleID: godlikeRole.ID, PermissionID: p.ID})
+	var godlikeRole models.Role
+	db.First(&godlikeRole, "name = ?", "godlike")
+	if godlikeRole.ID != 0 {
+		db.Create(&models.UserRole{UserID: godlikeUser.ID, RoleID: godlikeRole.ID})
+		for _, p := range permissions {
+			db.Create(&models.RolePermission{RoleID: godlikeRole.ID, PermissionID: p.ID})
+		}
 	}
-	fmt.Printf("User created: god@example.com, 2FA Secret: %s\n", secretGod)
+	fmt.Printf("User created: god_test, 2FA Secret: %s\n", secretGod)
 }
 
 func createBotUsers(db *gorm.DB, count int) []models.BotUser {
@@ -481,7 +317,6 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 
 			purchaseStoreBalanceDelta := product.Price
 			totalStoreBalanceDelta += purchaseStoreBalanceDelta
-			fmt.Printf("Purchase StoreBalanceDelta: %.2f (Product Price: %.2f)\n", purchaseStoreBalanceDelta, product.Price)
 
 			allPurchaseTransactions = append(allPurchaseTransactions, models.Transaction{
 				UserID:            user.ID,
@@ -505,16 +340,6 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 	db.Create(&allPurchaseTransactions)
 	db.Create(&allStockMovements)
 
-	// Create a final transaction to make the balance negative
-	negativeTransaction := models.Transaction{
-		Type:              models.Withdrawal,
-		Amount:            0,
-		Description:       "Manual adjustment for testing",
-		StoreBalanceDelta: -2000.0, // A large negative number
-	}
-	db.Create(&negativeTransaction)
-	fmt.Println("Created a negative transaction to test balance check.")
-
 	fmt.Println("Phase 3: Updating user balances.")
 	for userID, balance := range userBalances {
 		db.Model(&models.BotUser{}).Where("id = ?", userID).Update("balance", balance)
@@ -524,11 +349,10 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 	var finalStoreBalance float64
 	db.Model(&models.Transaction{}).Select("sum(store_balance_delta)").Row().Scan(&finalStoreBalance)
 
-	// Ensure the balance record exists and is zeroed out before setting the final calculated balance.
-	db.Exec("DELETE FROM store_balances")
-	balance := models.StoreBalance{CurrentBalance: finalStoreBalance}
-	balance.ID = 1
-	if err := db.Create(&balance).Error; err != nil {
+	balance := models.StoreBalance{}
+	db.First(&balance, 1)
+	balance.CurrentBalance += finalStoreBalance
+	if err := db.Save(&balance).Error; err != nil {
 		log.Fatalf("Failed to create and set store balance: %v", err)
 	}
 	fmt.Printf("Final store balance set to: %.2f\n", finalStoreBalance)

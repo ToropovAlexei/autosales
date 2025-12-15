@@ -72,13 +72,14 @@ services:
       PLATFORM_PAYMENT_SYSTEM_LOGIN: ${PLATFORM_PAYMENT_SYSTEM_LOGIN}
       PLATFORM_PAYMENT_SYSTEM_PASSWORD: ${PLATFORM_PAYMENT_SYSTEM_PASSWORD}
       PLATFORM_PAYMENT_SYSTEM_2FA_KEY: ${PLATFORM_PAYMENT_SYSTEM_2FA_KEY}
+      RUN_SEED_DB: ${RUN_SEED_DB:-false}
 
     depends_on:
       db:
         condition: service_healthy
     ports:
       - "8000:8000"
-    command: sh -c "./init_db && ./seed_db && ./main"
+    command: sh -c "./init_db && if [ "$RUN_SEED_DB" = "true" ]; then ./seed_db; fi && ./main"
     networks:
       - default_network
 
