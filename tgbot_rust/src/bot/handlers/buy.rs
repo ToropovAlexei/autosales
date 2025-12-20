@@ -10,6 +10,7 @@ use teloxide::{
     types::{CallbackQuery, ParseMode},
 };
 
+use crate::api::api_errors::ApiClientError;
 use crate::bot::BotUsername;
 use crate::{
     api::backend_api::BackendApi,
@@ -59,7 +60,7 @@ pub async fn buy_handler(
         }
         Err(e) => {
             let error_message = match e {
-                crate::errors::AppError::BadRequest(msg) => {
+                ApiClientError::Unsuccessful(msg) => {
                     if msg.contains("Insufficient Balance") {
                         "😔 Недостаточно средств на балансе для совершения покупки. Пожалуйста, пополните баланс.".to_string()
                     } else if msg.contains("Product out of stock") {

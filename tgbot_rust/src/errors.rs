@@ -11,6 +11,8 @@ use serde::Serialize;
 use teloxide::{RequestError, dispatching::dialogue::RedisStorageError};
 use thiserror::Error;
 
+use crate::api::api_errors::ApiClientError;
+
 #[derive(Debug, Error)]
 pub enum AppError {
     #[error("Authentication error: {0}")]
@@ -37,6 +39,8 @@ pub enum AppError {
     ReqwestError(#[from] reqwest::Error),
     #[error("Invalid header value: {0}")]
     InvalidHeaderValue(#[from] reqwest::header::InvalidHeaderValue),
+    #[error("API client error: {0}")]
+    ApiClient(#[from] ApiClientError),
     #[error("Other error: {0}")]
     OtherError(#[from] Box<dyn std::error::Error + Send + Sync>),
     #[error("IO error: {0}")]
@@ -90,6 +94,9 @@ impl IntoResponse for AppError {
                         (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
                     }
                     AppError::OtherError(msg) => {
+                        (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
+                    }
+                    AppError::ApiClient(msg) => {
                         (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
                     }
                     AppError::RedisInfallibleStorageError(msg) => {

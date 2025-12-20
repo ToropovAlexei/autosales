@@ -3,7 +3,7 @@ use bytes::Bytes;
 use reqwest::{Client, Method, RequestBuilder, Response, Url};
 use serde::{Serialize, de::DeserializeOwned};
 
-use crate::errors::{AppError, AppResult};
+use super::api_errors::{ApiClientError, ApiClientResult};
 
 pub struct ApiClient {
     base_url: Url,
@@ -11,7 +11,7 @@ pub struct ApiClient {
 }
 
 impl ApiClient {
-    pub fn new(base_url: &str, headers: HeaderMap) -> AppResult<Self> {
+    pub fn new(base_url: &str, headers: HeaderMap) -> ApiClientResult<Self> {
         let client = Client::builder()
             .default_headers(headers)
             .user_agent(format!("tgbot/{}", env!("CARGO_PKG_VERSION")))
@@ -21,7 +21,7 @@ impl ApiClient {
         Ok(Self { client, base_url })
     }
 
-    pub async fn get<T>(&self, endpoint: &str) -> AppResult<T>
+    pub async fn get<T>(&self, endpoint: &str) -> ApiClientResult<T>
     where
         T: DeserializeOwned + Send + 'static,
     {
@@ -30,13 +30,13 @@ impl ApiClient {
         Self::parse_response(response).await
     }
 
-    pub async fn get_bytes(&self, endpoint: &str) -> AppResult<Bytes> {
+    pub async fn get_bytes(&self, endpoint: &str) -> ApiClientResult<Bytes> {
         let url = self.base_url.join(endpoint)?;
         let response = self.client.get(url).send().await?;
         response.bytes().await.map_err(Into::into)
     }
 
-    pub async fn post_with_body<T, B>(&self, endpoint: &str, body: &B) -> AppResult<T>
+    pub async fn post_with_body<T, B>(&self, endpoint: &str, body: &B) -> ApiClientResult<T>
     where
         T: DeserializeOwned + Send + 'static,
         B: Serialize + ?Sized,
@@ -46,7 +46,7 @@ impl ApiClient {
         Self::parse_response(response).await
     }
 
-    pub async fn post<T>(&self, endpoint: &str) -> AppResult<T>
+    pub async fn post<T>(&self, endpoint: &str) -> ApiClientResult<T>
     where
         T: DeserializeOwned + Send + 'static,
     {
@@ -55,7 +55,7 @@ impl ApiClient {
         Self::parse_response(response).await
     }
 
-    pub async fn put_with_body<T, B>(&self, endpoint: &str, body: &B) -> AppResult<T>
+    pub async fn put_with_body<T, B>(&self, endpoint: &str, body: &B) -> ApiClientResult<T>
     where
         T: DeserializeOwned + Send + 'static,
         B: Serialize + ?Sized,
@@ -65,7 +65,7 @@ impl ApiClient {
         Self::parse_response(response).await
     }
 
-    pub async fn patch_with_body<T, B>(&self, endpoint: &str, body: &B) -> AppResult<T>
+    pub async fn patch_with_body<T, B>(&self, endpoint: &str, body: &B) -> ApiClientResult<T>
     where
         T: DeserializeOwned + Send + 'static,
         B: Serialize + ?Sized,
@@ -75,23 +75,29 @@ impl ApiClient {
         Self::parse_response(response).await
     }
 
-    async fn parse_response<T>(response: Response) -> AppResult<T>
+    async fn parse_response<T>(response: Response) -> ApiClientResult<T>
     where
         T: DeserializeOwned,
     {
         let status = response.status();
+        let body = response.text().await?;
 
         if status.is_success() {
-            let parsed = response.json::<T>().await?;
-            Ok(parsed)
+            match serde_json::from_str::<T>(&body) {
+                Ok(parsed) => Ok(parsed),
+                Err(err) => {
+                    tracing::error!("Failed to parse response body: {body}");
+                    Err(ApiClientError::Json(err))
+                }
+            }
         } else {
-            Err(AppError::from(reqwest::Error::from(
-                response.error_for_status().unwrap_err(),
+            Err(ApiClientError::Unsuccessful(format!(
+                "HTTP error: {status} {body}"
             )))
         }
     }
 
-    pub fn request(&self, method: Method, endpoint: &str) -> AppResult<RequestBuilder> {
+    pub fn request(&self, method: Method, endpoint: &str) -> ApiClientResult<RequestBuilder> {
         let url = self.base_url.join(endpoint)?;
         Ok(self.client.request(method, url))
     }

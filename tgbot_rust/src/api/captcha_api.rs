@@ -19,6 +19,6 @@ impl CaptchaApi {
     }
 
     pub async fn get_captcha(&self) -> AppResult<CaptchaResponse> {
-        self.api_client.get::<CaptchaResponse>("captcha").await
+        Ok(self.api_client.get::<CaptchaResponse>("captcha").await?)
     }
 }

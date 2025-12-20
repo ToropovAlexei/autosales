@@ -73,7 +73,8 @@ pub async fn start_handler(
     dialogue.update(BotState::MainMenu).await?;
 
     let referral_program_enabled = api_client.is_referral_program_enabled().await;
-    let welcome_message = if user.is_new {
+    // TODO Не has_passed_captcha, а юзер пришел еще раз
+    let welcome_message = if !user.has_passed_captcha {
         match api_client.get_new_user_welcome_msg().await {
             Some(m) => m.replace(
                 "{username}",

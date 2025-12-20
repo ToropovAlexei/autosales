@@ -186,7 +186,7 @@ impl From<String> for CallbackData {
     }
 }
 
-#[derive(Clone, BotCommands)]
+#[derive(Debug, Clone, BotCommands)]
 #[command(rename_rule = "lowercase")]
 pub enum Command {
     Start,
