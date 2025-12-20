@@ -28,7 +28,16 @@ export const MENU_ITEMS = [
   { label: "Администраторы", Icon: GroupIcon, route: AppRoute.Users },
   { label: "Изображения", Icon: PhotoLibraryIcon, route: AppRoute.Images },
   { label: "Журнал аудита", Icon: HistoryIcon, route: AppRoute.AuditLog },
-  { label: "Настройки", Icon: SettingsIcon, route: AppRoute.Settings },
+  {
+    label: "Приветственные сообщения",
+    Icon: SettingsIcon,
+    route: AppRoute.WelcomeMessages,
+  },
+  {
+    label: "Управление рефералами",
+    Icon: SettingsIcon,
+    route: AppRoute.ReferralManagement,
+  },
   {
     label: "Управление Балансом",
     Icon: AccountBalanceWalletIcon,

@@ -13,7 +13,8 @@ export const ROUTES_ACCESS_MAP: Record<AppRoute, PermissionName> = {
   [AppRoute.Users]: PermissionName.RbacManage,
   [AppRoute.Images]: PermissionName.ImagesUpload,
   [AppRoute.AuditLog]: PermissionName.AuditLogRead,
-  [AppRoute.Settings]: PermissionName.SettingsRead,
   [AppRoute.Pricing]: PermissionName.PricingRead,
   [AppRoute.Balance]: PermissionName.StoreBalanceManage,
+  [AppRoute.WelcomeMessages]: PermissionName.SettingsRead,
+  [AppRoute.ReferralManagement]: PermissionName.SettingsRead,
 };

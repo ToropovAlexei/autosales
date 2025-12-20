@@ -11,7 +11,8 @@ export enum AppRoute {
   Users,
   Images,
   AuditLog,
-  Settings,
   Pricing,
   Balance,
+  WelcomeMessages,
+  ReferralManagement,
 }

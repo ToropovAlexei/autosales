@@ -13,9 +13,10 @@ export const APP_ROUTES: Record<AppRoute, string> = {
   [AppRoute.Users]: "/users",
   [AppRoute.Images]: "/images",
   [AppRoute.AuditLog]: "/audit-log",
-  [AppRoute.Settings]: "/settings",
   [AppRoute.Pricing]: "/pricing",
   [AppRoute.Balance]: "/balance",
+  [AppRoute.WelcomeMessages]: "/welcome-messages",
+  [AppRoute.ReferralManagement]: "/referral-management",
 };
 
 export const ROUTE_BY_PATHNAME = Object.fromEntries(
