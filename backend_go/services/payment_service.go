@@ -358,13 +358,24 @@ func (s *paymentService) HandleWebhook(gatewayName string, r *http.Request) erro
 
 func (s *paymentService) NotifyUnfinishedPayments() error {
 	invoices, err := s.invoiceRepo.FindUnfinished()
+	slog.Info("found unfinished invoices", "count", len(invoices))
 	if err != nil {
 		return err
 	}
 
-	for _, invoice := range invoices {
-		if err := s.webhookService.SendUnfinishedPaymentNotification(invoice.BotUser.TelegramID, invoice.Amount, invoice.BotMessageID); err != nil {
+	for i := range invoices {
+		invoice := &invoices[i] // Use a pointer to modify the original element
+		if err := s.webhookService.SendUnfinishedPaymentNotification(invoice.BotUser.RegisteredWithBot, invoice.BotUser.TelegramID, invoice.Amount, invoice.BotMessageID); err != nil {
 			slog.Error("failed to send unfinished payment notification", "error", err, "user_id", invoice.BotUserID)
+			continue
+		}
+
+		// If sending was successful, update the flag
+		invoice.WasNotificationSent = true
+		if err := s.invoiceRepo.Update(invoice); err != nil {
+			slog.Error("failed to update WasNotificationSent flag for invoice", "error", err, "invoice_id", invoice.ID)
+			// Decide if you want to continue or return the error.
+			// Continuing will prevent one failed update from stopping the whole loop.
 		}
 	}
 

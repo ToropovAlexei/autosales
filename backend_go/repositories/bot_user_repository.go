@@ -17,6 +17,7 @@ type BotUserRepository interface {
 	UpdateBalance(userID uint, amount float64) error
 	GetUserBalance(userID uint) (float64, error)
 	GetUserTransactions(userID uint) ([]models.Transaction, error)
+	UpdateBotUserStatus(telegramID int64, updates map[string]interface{}) error
 }
 
 type gormBotUserRepository struct {
@@ -79,4 +80,8 @@ func (r *gormBotUserRepository) GetUserTransactions(userID uint) ([]models.Trans
 	var transactions []models.Transaction
 	err := r.db.Where("user_id = ?", userID).Order("created_at desc").Find(&transactions).Error
 	return transactions, err
+}
+
+func (r *gormBotUserRepository) UpdateBotUserStatus(telegramID int64, updates map[string]interface{}) error {
+	return r.db.Model(&models.BotUser{}).Where("telegram_id = ?", telegramID).Updates(updates).Error
 }

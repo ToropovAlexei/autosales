@@ -160,14 +160,15 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 	}
 
 	userResponse := models.BotUserResponse{
-		ID:                user.ID,
-		TelegramID:        user.TelegramID,
-		IsBlocked:         user.IsBlocked,
-		HasPassedCaptcha:  user.HasPassedCaptcha,
-		Balance:           balance,
-		RegisteredWithBot: user.RegisteredWithBot,
-		LastSeenWithBot:   user.LastSeenWithBot,
-		LastSeenAt:        user.LastSeenAt,
+		ID:                 user.ID,
+		TelegramID:         user.TelegramID,
+		IsBlocked:          user.IsBlocked,
+		HasPassedCaptcha:   user.HasPassedCaptcha,
+		Balance:            balance,
+		RegisteredWithBot:  user.RegisteredWithBot,
+		LastSeenWithBot:    user.LastSeenWithBot,
+		LastSeenAt:         user.LastSeenAt,
+		BotIsBlockedByUser: user.BotIsBlockedByUser,
 	}
 
 	status := http.StatusOK
@@ -276,6 +277,39 @@ func (h *UserHandler) UpdateUserCaptchaStatusHandler(c *gin.Context) {
 	}
 
 	responses.SuccessResponse(c, http.StatusOK, responses.MessageResponse{Message: "Captcha status updated successfully"})
+}
+
+// @Summary      Update Bot User Status
+// @Description  Partially updates a bot user's status fields, such as block status.
+// @Tags         Users
+// @Accept       json
+// @Produce      json
+// @Param        telegram_id path int true "User Telegram ID"
+// @Param        status body models.UpdateBotUserStatusPayload true "Status fields to update"
+// @Success      200 {object} responses.ResponseSchema[responses.MessageResponse]
+// @Failure      400 {object} responses.ErrorResponseSchema
+// @Failure      404 {object} responses.ErrorResponseSchema
+// @Router       /users/{telegram_id}/status [patch]
+// @Security     ServiceApiKeyAuth
+func (h *UserHandler) UpdateBotUserStatusHandler(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("telegram_id"), 10, 64)
+	if err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: "Invalid user ID"})
+		return
+	}
+
+	var payload models.UpdateBotUserStatusPayload
+	if err := c.ShouldBindJSON(&payload); err != nil {
+		c.Error(&apperrors.ErrValidation{Base: apperrors.New(400, "", err), Message: err.Error()})
+		return
+	}
+
+	if err := h.userService.UpdateBotUserStatus(id, payload); err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, responses.MessageResponse{Message: "User status updated successfully"})
 }
 
 // @Summary      Get User Subscriptions

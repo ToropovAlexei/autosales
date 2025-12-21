@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+	"frbktg/backend_go/config"
 	"frbktg/backend_go/models"
 	"time"
 
@@ -22,15 +23,16 @@ type PaymentInvoiceRepository interface {
 }
 
 type gormPaymentInvoiceRepository struct {
-	db *gorm.DB
+	db     *gorm.DB
+	config *config.Config
 }
 
-func NewPaymentInvoiceRepository(db *gorm.DB) PaymentInvoiceRepository {
-	return &gormPaymentInvoiceRepository{db: db}
+func NewPaymentInvoiceRepository(db *gorm.DB, config *config.Config) PaymentInvoiceRepository {
+	return &gormPaymentInvoiceRepository{db: db, config: config}
 }
 
 func (r *gormPaymentInvoiceRepository) WithTx(tx *gorm.DB) PaymentInvoiceRepository {
-	return &gormPaymentInvoiceRepository{db: tx}
+	return &gormPaymentInvoiceRepository{db: tx, config: r.config}
 }
 
 func (r *gormPaymentInvoiceRepository) Create(invoice *models.PaymentInvoice) error {
@@ -105,7 +107,7 @@ func (r *gormPaymentInvoiceRepository) GetPendingInvoices() ([]models.PaymentInv
 }
 
 func (r *gormPaymentInvoiceRepository) FindUnfinished() ([]models.PaymentInvoice, error) {
-	return r.GetPendingInvoicesOlderThan(60)
+	return r.GetPendingInvoicesOlderThan(r.config.PaymentNotificationMinutes)
 }
 
 func (r *gormPaymentInvoiceRepository) FindPendingPollable() ([]models.PaymentInvoice, error) {

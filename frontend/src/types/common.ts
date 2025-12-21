@@ -26,6 +26,7 @@ export interface BotUser {
   telegram_id: number;
   balance: number;
   is_blocked: boolean;
+  bot_is_blocked_by_user: boolean;
   registered_with_bot: string;
   last_seen_with_bot: string;
   created_at: string;

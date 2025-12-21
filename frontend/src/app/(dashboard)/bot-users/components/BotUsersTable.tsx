@@ -59,6 +59,18 @@ export const BotUsersTable = ({
         ),
     },
     {
+      field: "bot_is_blocked_by_user",
+      headerName: "Блок от юзера",
+      width: 140,
+      sortable: false,
+      renderCell: (params) =>
+        params.value ? (
+          <Chip label="Да" color="warning" size="small" />
+        ) : (
+          <Chip label="Нет" color="default" size="small" />
+        ),
+    },
+    {
       field: "balance",
       headerName: "Баланс",
       type: "number",

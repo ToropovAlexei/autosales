@@ -22,6 +22,7 @@ func RegisterUserRoutes(router *gin.Engine, userHandler *handlers.UserHandler, a
 		users.GET("/:telegram_id/orders", userHandler.GetUserOrdersHandler)
 		users.GET("/:telegram_id/invoices", userHandler.GetUserInvoicesHandler)
 		users.PUT("/:telegram_id/captcha-status", userHandler.UpdateUserCaptchaStatusHandler)
+		users.PATCH("/:telegram_id/status", userHandler.UpdateBotUserStatusHandler)
 	}
 
 	// Admin/Seller API for their own data

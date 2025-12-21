@@ -33,15 +33,16 @@ func (s *adminService) GetBotUsersWithBalance(page models.Page, filters []models
 		}
 
 		response = append(response, models.BotUserResponse{
-			ID:                u.ID,
-			TelegramID:        u.TelegramID,
-			IsBlocked:         u.IsBlocked,
-			HasPassedCaptcha:  u.HasPassedCaptcha,
-			Balance:           balance,
-			RegisteredWithBot: u.RegisteredWithBot,
-			LastSeenWithBot:   u.LastSeenWithBot,
-			CreatedAt:         u.CreatedAt,
-			LastSeenAt:        u.LastSeenAt,
+			ID:                 u.ID,
+			TelegramID:         u.TelegramID,
+			IsBlocked:          u.IsBlocked,
+			HasPassedCaptcha:   u.HasPassedCaptcha,
+			Balance:            balance,
+			RegisteredWithBot:  u.RegisteredWithBot,
+			LastSeenWithBot:    u.LastSeenWithBot,
+			CreatedAt:          u.CreatedAt,
+			LastSeenAt:         u.LastSeenAt,
+			BotIsBlockedByUser: u.BotIsBlockedByUser,
 		})
 	}
 

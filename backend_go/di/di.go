@@ -131,7 +131,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	stockRepo := repositories.NewStockRepository(db)
 	adminRepo := repositories.NewAdminRepository(db)
 	userSubscriptionRepo := repositories.NewUserSubscriptionRepository(db)
-	paymentInvoiceRepo := repositories.NewPaymentInvoiceRepository(db)
+	paymentInvoiceRepo := repositories.NewPaymentInvoiceRepository(db, appSettings)
 	imageRepo := repositories.NewImageRepository(db)
 	settingRepo := repositories.NewSettingRepository(db)
 	roleRepo := repositories.NewRoleRepository(db)

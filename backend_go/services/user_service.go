@@ -32,6 +32,7 @@ type UserService interface {
 	GetUserOrdersByTelegramID(telegramID int64) ([]models.Order, error)
 	UpdateUserCaptchaStatus(id uint, hasPassed bool) error
 	UpdateUserCaptchaStatusByTelegramID(telegramID int64, hasPassed bool) error
+	UpdateBotUserStatus(telegramID int64, payload models.UpdateBotUserStatusPayload) error
 }
 
 type userService struct {
@@ -240,6 +241,29 @@ func (s *userService) UpdateUserCaptchaStatusByTelegramID(telegramID int64, hasP
 		return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "BotUser", ID: uint(telegramID)}
 	}
 	return s.botUserRepo.UpdateCaptchaStatus(user, hasPassed)
+}
+
+func (s *userService) UpdateBotUserStatus(telegramID int64, payload models.UpdateBotUserStatusPayload) error {
+	updates := make(map[string]interface{})
+
+	if payload.BotIsBlockedByUser != nil {
+		updates["BotIsBlockedByUser"] = *payload.BotIsBlockedByUser
+	}
+	if payload.IsBlocked != nil {
+		updates["IsBlocked"] = *payload.IsBlocked
+	}
+
+	if len(updates) == 0 {
+		return nil // Nothing to update
+	}
+
+	// Make sure user exists before trying to update
+	_, err := s.botUserRepo.FindByTelegramID(telegramID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "BotUser", ID: uint(telegramID)}
+	}
+
+	return s.botUserRepo.UpdateBotUserStatus(telegramID, updates)
 }
 
 func (s *userService) CreateUser(ctx *gin.Context, login, password string, roleID uint) (*models.CreateUserResponse, error) {
