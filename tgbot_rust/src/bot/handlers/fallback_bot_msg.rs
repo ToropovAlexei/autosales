@@ -10,10 +10,9 @@ pub async fn fallback_bot_msg(
     let chat = bot.get_chat(chat_id).await?;
     if let Some(pinned) = chat.pinned_message
         && let Some(text) = &pinned.text()
+        && text == &new_text
     {
-        if text == &new_text {
-            return Ok(());
-        }
+        return Ok(());
     }
 
     if let Err(err) = bot.unpin_all_chat_messages(chat_id).await {

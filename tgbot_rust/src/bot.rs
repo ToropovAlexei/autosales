@@ -425,12 +425,11 @@ async fn handle_msg(bot: Bot, payload: DispatchMessagePayload) -> AppResult<()> 
     }
 
     let text = payload.message;
-    let parse_mode = ParseMode::Html;
 
     if let Some(msg_id) = payload.message_to_edit {
         match bot
             .edit_message_text(chat_id, MessageId(msg_id), text.clone())
-            .parse_mode(parse_mode.clone())
+            .parse_mode(ParseMode::Html)
             .reply_markup(back_to_main_menu_inline_keyboard())
             .send()
             .await
@@ -444,7 +443,7 @@ async fn handle_msg(bot: Bot, payload: DispatchMessagePayload) -> AppResult<()> 
                 );
                 if let Err(e) = bot
                     .send_message(chat_id, text)
-                    .parse_mode(parse_mode)
+                    .parse_mode(ParseMode::Html)
                     .reply_markup(back_to_main_menu_inline_keyboard())
                     .send()
                     .await
@@ -462,7 +461,7 @@ async fn handle_msg(bot: Bot, payload: DispatchMessagePayload) -> AppResult<()> 
 
     if let Err(e) = bot
         .send_message(chat_id, text)
-        .parse_mode(parse_mode)
+        .parse_mode(ParseMode::Html)
         .reply_markup(back_to_main_menu_inline_keyboard())
         .send()
         .await
@@ -485,7 +484,7 @@ pub async fn generate_captcha_and_options(
     let captcha = api_client.get_captcha().await?;
 
     let image = STANDARD.decode(
-        &captcha
+        captcha
             .image_data
             .split_once(',')
             // TODO Refactor it
