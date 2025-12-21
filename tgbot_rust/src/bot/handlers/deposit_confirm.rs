@@ -107,11 +107,12 @@ pub async fn deposit_confirm_handler(
     };
 
     let mut keyboard: Vec<Vec<InlineKeyboardButton>> = vec![];
-    if let Some(pay_url) = &invoice_data.pay_url {
-        if let Ok(pay_url) = Url::parse(pay_url) {
-            keyboard.push(vec![InlineKeyboardButton::url("Оплатить", pay_url)]);
-        }
+    if let Some(pay_url) = &invoice_data.pay_url
+        && let Ok(pay_url) = Url::parse(pay_url)
+    {
+        keyboard.push(vec![InlineKeyboardButton::url("Оплатить", pay_url)]);
     }
+
     keyboard.push(vec![InlineKeyboardButton::callback(
         "⬅️ Назад",
         CallbackData::ToMainMenu,

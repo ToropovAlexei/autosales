@@ -166,7 +166,7 @@ impl BackendApi {
 
     pub async fn get_payment_gateways(&self) -> Vec<PaymentGateway> {
         self.api_client
-            .get::<BackendResponse<Vec<PaymentGateway>>>(&"gateways")
+            .get::<BackendResponse<Vec<PaymentGateway>>>("gateways")
             .await
             .map(|res| res.data)
             .unwrap_or_default()
@@ -244,7 +244,7 @@ impl BackendApi {
 
     pub async fn get_categories(&self) -> ApiClientResult<Vec<Category>> {
         self.api_client
-            .get::<BackendResponse<Vec<Category>>>(&"categories")
+            .get::<BackendResponse<Vec<Category>>>("categories")
             .await
             .and_then(|res| {
                 res.data.ok_or_else(|| {

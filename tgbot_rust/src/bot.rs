@@ -73,9 +73,10 @@ pub struct InvoiceData {
     pub details: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(tag = "t", content = "c")]
 pub enum BotState {
+    #[default]
     Initial,
     WaitingForCaptcha {
         correct_answer: String,
@@ -102,12 +103,6 @@ pub enum BotState {
     Product {
         id: i64,
     },
-}
-
-impl Default for BotState {
-    fn default() -> Self {
-        Self::Initial
-    }
 }
 
 impl BotState {
@@ -400,12 +395,12 @@ async fn start_redis_listener(bot: Bot, redis_url: String, bot_username: String)
     let mut msg_stream = pubsub.on_message();
 
     while let Some(msg) = msg_stream.next().await {
-        if let Ok(payload_str) = msg.get_payload::<String>() {
-            if let Ok(parsed) = serde_json::from_str::<DispatchMessagePayload>(&payload_str) {
-                let res = handle_msg(bot.clone(), parsed).await;
-                if let Err(e) = res {
-                    tracing::error!("Error handling message: {e}");
-                }
+        if let Ok(payload_str) = msg.get_payload::<String>()
+            && let Ok(parsed) = serde_json::from_str::<DispatchMessagePayload>(&payload_str)
+        {
+            let res = handle_msg(bot.clone(), parsed).await;
+            if let Err(e) = res {
+                tracing::error!("Error handling message: {e}");
             }
         }
     }

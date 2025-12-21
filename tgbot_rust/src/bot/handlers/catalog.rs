@@ -139,11 +139,12 @@ fn find_category_by_id(categories: &[Category], category_id: i64) -> Option<&Cat
         if category.id == category_id {
             return Some(category);
         }
-        if let Some(sub) = &category.sub_categories {
-            if let Some(found) = find_category_by_id(sub, category_id) {
-                return Some(found);
-            }
+        if let Some(sub) = &category.sub_categories
+            && let Some(found) = find_category_by_id(sub, category_id)
+        {
+            return Some(found);
         }
+
         None
     })
 }

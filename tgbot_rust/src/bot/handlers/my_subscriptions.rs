@@ -51,23 +51,21 @@ pub async fn my_subscriptions_handler(
                 response_text.push_str(&format!("🔹 {}\n", bold(&product_name)));
                 response_text.push_str(&format!("   {} {}\n", status, italic(&expires_formatted)));
 
-                if let Some(details) = sub.details {
-                    if let Some(details_map) = details.as_object() {
-                        response_text.push_str(&format!("   {}\n", bold("Данные для доступа:")));
-                        if let Some(username) = details_map.get("username").and_then(|v| v.as_str())
-                        {
-                            response_text
-                                .push_str(&format!("     - Логин: {}\n", code_block(username)));
-                        }
-                        if let Some(password) = details_map.get("password").and_then(|v| v.as_str())
-                        {
-                            response_text
-                                .push_str(&format!("     - Пароль: {}\n", code_block(password)));
-                        }
+                if let Some(details) = sub.details
+                    && let Some(details_map) = details.as_object()
+                {
+                    response_text.push_str(&format!("   {}\n", bold("Данные для доступа:")));
+                    if let Some(username) = details_map.get("username").and_then(|v| v.as_str()) {
+                        response_text
+                            .push_str(&format!("     - Логин: {}\n", code_block(username)));
+                    }
+                    if let Some(password) = details_map.get("password").and_then(|v| v.as_str()) {
+                        response_text
+                            .push_str(&format!("     - Пароль: {}\n", code_block(password)));
                     }
                 }
 
-                response_text.push_str("\n");
+                response_text.push('\n');
             }
 
             bot.edit_message_text(chat_id, message_id, response_text)

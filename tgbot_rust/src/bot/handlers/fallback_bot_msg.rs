@@ -8,11 +8,11 @@ pub async fn fallback_bot_msg(
 ) -> AppResult<()> {
     let new_text: String = format!("🤖 Наш резервный бот: @{}", fallback_bot_username.0);
     let chat = bot.get_chat(chat_id).await?;
-    if let Some(pinned) = chat.pinned_message {
-        if let Some(text) = &pinned.text() {
-            if text == &new_text {
-                return Ok(());
-            }
+    if let Some(pinned) = chat.pinned_message
+        && let Some(text) = &pinned.text()
+    {
+        if text == &new_text {
+            return Ok(());
         }
     }
 

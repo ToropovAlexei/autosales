@@ -58,7 +58,7 @@ pub async fn my_orders_handler(
                     ));
                 }
 
-                response_text.push_str("\n");
+                response_text.push('\n');
             }
 
             bot.edit_message_text(chat_id, message_id, response_text)

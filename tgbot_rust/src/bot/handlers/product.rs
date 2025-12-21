@@ -82,7 +82,7 @@ async fn display_product(
         product.name, product.price
     );
 
-    let reply_markup = product_card_inline_keyboard(&product);
+    let reply_markup = product_card_inline_keyboard(product);
 
     let image_bytes = if let Some(image_id) = &product.image_id {
         match api_client.get_image_bytes(image_id).await {

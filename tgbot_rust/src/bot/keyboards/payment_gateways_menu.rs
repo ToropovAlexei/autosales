@@ -55,5 +55,5 @@ pub fn payment_gateways_menu(
         "⬅️ Назад",
         CallbackData::ToMainMenu,
     )]);
-    return InlineKeyboardMarkup::new(buttons);
+    InlineKeyboardMarkup::new(buttons)
 }
