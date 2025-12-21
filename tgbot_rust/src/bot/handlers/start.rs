@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::api::captcha_api::CaptchaApi;
 use crate::bot::keyboards::captcha::captcha_keyboard_inline;
 use crate::bot::keyboards::main_menu::main_menu_inline_keyboard;
 use crate::bot::{BotState, generate_captcha_and_options};
@@ -17,7 +16,6 @@ pub async fn start_handler(
     msg: Message,
     username: String,
     api_client: Arc<BackendApi>,
-    captcha_api_client: Arc<CaptchaApi>,
 ) -> AppResult<()> {
     let user_id = msg.chat.id;
     let user = match api_client.register_user(user_id.0, &username).await {
@@ -44,7 +42,7 @@ pub async fn start_handler(
 
     if !user.has_passed_captcha {
         let (png_bytes, captcha_text, options) =
-            match generate_captcha_and_options(captcha_api_client, 6, 12).await {
+            match generate_captcha_and_options(api_client).await {
                 Ok((i, a, o)) => (i, a, o),
                 Err(e) => {
                     tracing::error!("Error generating captcha: {e}");

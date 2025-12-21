@@ -1,3 +1,4 @@
+pub mod common;
 pub mod user;
 
 use serde::{Deserialize, Serialize};
@@ -16,12 +17,6 @@ pub struct BackendResponse<T> {
     pub success: bool,
     pub data: Option<T>,
     pub error: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CaptchaResponse {
-    pub image: String,
-    pub solution: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

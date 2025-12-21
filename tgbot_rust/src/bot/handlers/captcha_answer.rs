@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use crate::api::captcha_api::CaptchaApi;
 use crate::bot::keyboards::captcha::captcha_keyboard_inline;
 use crate::bot::keyboards::main_menu::main_menu_inline_keyboard;
 use crate::bot::{BotState, CallbackData, generate_captcha_and_options};
@@ -17,7 +16,6 @@ pub async fn captcha_answer_handler(
     q: CallbackQuery,
     _username: String,
     api_client: Arc<BackendApi>,
-    captcha_api_client: Arc<CaptchaApi>,
 ) -> AppResult<()> {
     let state_data = dialogue.get().await?.unwrap_or_default();
     let correct_answer = match &state_data {
@@ -81,7 +79,7 @@ pub async fn captcha_answer_handler(
             .await?;
 
         let (captcha_image, new_correct_answer, options) =
-            match generate_captcha_and_options(captcha_api_client, 6, 12).await {
+            match generate_captcha_and_options(api_client).await {
                 Ok((i, a, o)) => (i, a, o),
                 Err(e) => {
                     tracing::error!("Error generating captcha: {e}");

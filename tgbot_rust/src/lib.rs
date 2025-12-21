@@ -1,12 +1,12 @@
 pub mod api;
 pub mod bot;
+pub mod bot_father;
+pub mod bot_manager;
 pub mod config;
 pub mod errors;
+pub mod health_checker;
 pub mod models;
 pub mod webhook;
-pub mod bot_manager;
-pub mod health_checker;
-pub mod bot_father;
 
 use std::{io, sync::Arc};
 
@@ -21,26 +21,23 @@ use tracing_subscriber::{
 };
 
 use crate::api::backend_api::BackendApi;
-use crate::api::captcha_api::CaptchaApi;
 
 #[derive(Clone)]
 pub struct AppState {
     pub redis_pool: Pool,
     pub config: Arc<Config>,
     pub api: Arc<BackendApi>,
-    pub captcha_api: Arc<CaptchaApi>,
 }
 
 impl AppState {
     pub fn new(config: Arc<Config>) -> Self {
         let redis_pool = create_redis_pool(&config);
-        let api = Arc::new(BackendApi::new(&config.backend_api_url, &config.service_token).unwrap());
-        let captcha_api = Arc::new(CaptchaApi::new(&config.captcha_api_url, &config.service_token).unwrap());
+        let api =
+            Arc::new(BackendApi::new(&config.backend_api_url, &config.service_token).unwrap());
         Self {
             config,
             redis_pool,
             api,
-            captcha_api,
         }
     }
 }

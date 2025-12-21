@@ -13,7 +13,7 @@ use crate::{
     bot::BotUsername,
     models::{
         BackendResponse, BalanceResponse, BuyResponse, Category, InvoiceResponse, PaymentGateway,
-        Product, UserOrder, UserSubscription, user::BotUser,
+        Product, UserOrder, UserSubscription, common::CaptchaResponse, user::BotUser,
     },
 };
 
@@ -354,6 +354,19 @@ impl BackendApi {
                 "bots/main",
                 &json!({"token": token, "username": username}),
             )
+            .await
+            .and_then(|res| {
+                res.data.ok_or_else(|| {
+                    ApiClientError::Unsuccessful(
+                        res.error.unwrap_or_else(|| "Unknown error".to_string()),
+                    )
+                })
+            })
+    }
+
+    pub async fn get_captcha(&self) -> ApiClientResult<CaptchaResponse> {
+        self.api_client
+            .get::<BackendResponse<CaptchaResponse>>(&"captcha")
             .await
             .and_then(|res| {
                 res.data.ok_or_else(|| {

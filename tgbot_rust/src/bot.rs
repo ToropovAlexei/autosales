@@ -19,7 +19,7 @@ use tokio_stream::StreamExt;
 
 use crate::{
     AppState,
-    api::{backend_api::BackendApi, captcha_api::CaptchaApi},
+    api::backend_api::BackendApi,
     bot::{
         handlers::{
             balance::balance_handler, buy::buy_handler, captcha_answer::captcha_answer_handler,
@@ -231,8 +231,7 @@ pub async fn run_bot(bot_token: String, app_state: AppState) -> AppResult<()> {
                     bot: Bot,
                     username: String,
                     api_client: Arc<BackendApi>,
-                    bot_state: BotState,
-                    captcha_api_client: Arc<CaptchaApi>|
+                    bot_state: BotState|
                     -> AppResult<()> {
             let data = match CallbackData::from_query(&q) {
                 Some(data) => data,
@@ -241,15 +240,7 @@ pub async fn run_bot(bot_token: String, app_state: AppState) -> AppResult<()> {
 
             match data {
                 CallbackData::AnswerCaptcha { .. } => {
-                    captcha_answer_handler(
-                        bot,
-                        dialogue,
-                        q,
-                        username,
-                        api_client,
-                        captcha_api_client,
-                    )
-                    .await?;
+                    captcha_answer_handler(bot, dialogue, q, username, api_client).await?;
                 }
                 CallbackData::SelectGateway { gateway } => {
                     dialogue
@@ -360,8 +351,7 @@ pub async fn run_bot(bot_token: String, app_state: AppState) -> AppResult<()> {
         app_state.clone(),
         storage,
         username.clone(),
-        app_state.api.clone(),
-        app_state.captcha_api.clone()
+        app_state.api.clone()
     ])
     .default_handler(|upd| async move {
         tracing::warn!("Unhandled update: {upd:?}");
@@ -384,21 +374,12 @@ async fn command_handler(
     dialogue: MyDialogue,
     username: String,
     api_client: Arc<BackendApi>,
-    captcha_api_client: Arc<CaptchaApi>,
     app_state: AppState,
 ) -> AppResult<()> {
     match cmd {
         Command::Start => {
             dialogue.update(BotState::Initial).await?;
-            start_handler(
-                bot,
-                dialogue,
-                msg,
-                username.clone(),
-                api_client,
-                captcha_api_client,
-            )
-            .await
+            start_handler(bot, dialogue, msg, username.clone(), api_client).await
         }
         Command::MyBots => {
             dialogue
@@ -505,28 +486,18 @@ async fn handle_msg(bot: Bot, payload: DispatchMessagePayload) -> AppResult<()> 
 }
 
 pub async fn generate_captcha_and_options(
-    captcha_api_client: Arc<CaptchaApi>,
-    chars: u8,
-    answers: u8,
+    api_client: Arc<BackendApi>,
 ) -> AppResult<(Vec<u8>, String, Vec<String>)> {
-    let captcha = captcha_api_client.get_captcha().await?;
-    let mut options = vec![captcha.solution.clone()];
-    let mut rng = rand::rng();
+    let captcha = api_client.get_captcha().await?;
 
-    while options.len() < answers as usize {
-        let option: String = (0..chars)
-            .map(|_| {
-                let c = rng.sample(Alphanumeric) as char;
-                c.to_ascii_uppercase()
-            })
-            .collect();
-
-        if !options.contains(&option) {
-            options.push(option);
-        }
-    }
-
-    options.shuffle(&mut rng);
-    let image = STANDARD.decode(&captcha.image)?;
-    Ok((image, captcha.solution, options))
+    let image = STANDARD.decode(
+        &captcha
+            .image_data
+            .split_once(',')
+            // TODO Refactor it
+            .ok_or("Invalid data URL")
+            .unwrap_or(("", ""))
+            .1,
+    )?;
+    Ok((image, captcha.answer, captcha.variants))
 }
