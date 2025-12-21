@@ -64,58 +64,37 @@ pub struct ValidationErrorResponse {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         tracing::error!("Error occurred: {}", self.to_string());
-
-        match self {
-            _ => {
-                let (status, message) = match self {
-                    AppError::AuthenticationError(msg) => (StatusCode::UNAUTHORIZED, msg),
-                    AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
-                    AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
-                    AppError::InternalServerError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
-                    AppError::RedisPoolError(msg) => {
-                        (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
-                    }
-                    AppError::RedisError(msg) => {
-                        (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
-                    }
-                    AppError::RequestError(msg) => {
-                        (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
-                    }
-                    AppError::RedisStorageError(msg) => {
-                        (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
-                    }
-                    AppError::UrlParseError(msg) => {
-                        (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
-                    }
-                    AppError::ReqwestError(msg) => {
-                        (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
-                    }
-                    AppError::InvalidHeaderValue(msg) => {
-                        (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
-                    }
-                    AppError::OtherError(msg) => {
-                        (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
-                    }
-                    AppError::ApiClient(msg) => {
-                        (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
-                    }
-                    AppError::RedisInfallibleStorageError(msg) => {
-                        (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
-                    }
-                    AppError::IOError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string()),
-                    AppError::CaptchaError(msg) => {
-                        (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
-                    }
-                    AppError::Base64DecodeError(msg) => {
-                        (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
-                    }
-                };
-
-                let body = Json(ErrorResponse { error: message });
-
-                (status, body).into_response()
+        let (status, message) = match self {
+            AppError::AuthenticationError(msg) => (StatusCode::UNAUTHORIZED, msg),
+            AppError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
+            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
+            AppError::InternalServerError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+            AppError::RedisPoolError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string()),
+            AppError::RedisError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string()),
+            AppError::RequestError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string()),
+            AppError::RedisStorageError(msg) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
             }
-        }
+            AppError::UrlParseError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string()),
+            AppError::ReqwestError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string()),
+            AppError::InvalidHeaderValue(msg) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
+            }
+            AppError::OtherError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string()),
+            AppError::ApiClient(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string()),
+            AppError::RedisInfallibleStorageError(msg) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
+            }
+            AppError::IOError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string()),
+            AppError::CaptchaError(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string()),
+            AppError::Base64DecodeError(msg) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
+            }
+        };
+
+        let body = Json(ErrorResponse { error: message });
+
+        (status, body).into_response()
     }
 }
 
