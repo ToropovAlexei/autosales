@@ -357,26 +357,66 @@ func (s *paymentService) HandleWebhook(gatewayName string, r *http.Request) erro
 }
 
 func (s *paymentService) NotifyUnfinishedPayments() error {
-	invoices, err := s.invoiceRepo.FindUnfinished()
-	slog.Info("found unfinished invoices", "count", len(invoices))
-	if err != nil {
-		return err
+	minutes := s.config.PaymentNotificationMinutes
+	if minutes <= 0 {
+		slog.Debug("payment notification is disabled")
+		return nil
 	}
 
-	for i := range invoices {
-		invoice := &invoices[i] // Use a pointer to modify the original element
-		if err := s.webhookService.SendUnfinishedPaymentNotification(invoice.BotUser.RegisteredWithBot, invoice.BotUser.TelegramID, invoice.Amount, invoice.BotMessageID); err != nil {
-			slog.Error("failed to send unfinished payment notification", "error", err, "user_id", invoice.BotUserID)
-			continue
-		}
+	invoices, err := s.invoiceRepo.GetPendingInvoicesOlderThan(minutes)
+	if err != nil {
+		return fmt.Errorf("failed to get pending invoices: %w", err)
+	}
 
-		// If sending was successful, update the flag
-		invoice.WasNotificationSent = true
-		if err := s.invoiceRepo.Update(invoice); err != nil {
-			slog.Error("failed to update WasNotificationSent flag for invoice", "error", err, "invoice_id", invoice.ID)
-			// Decide if you want to continue or return the error.
-			// Continuing will prevent one failed update from stopping the whole loop.
-		}
+	if len(invoices) == 0 {
+		return nil
+	}
+
+	slog.Info("found unfinished payments to notify", "count", len(invoices))
+
+	for _, invoice := range invoices {
+		// Use a copy of the invoice in the goroutine
+		invoiceCopy := invoice
+
+		go func() {
+			message := fmt.Sprintf(
+				"Вы недавно пытались пополнить баланс на %.2f ₽. Возникли ли у вас какие-либо проблемы с оплатой?",
+				invoiceCopy.Amount,
+			)
+
+			var keyboard [][]InlineKeyboardButton
+			if invoiceCopy.Gateway == "platform_card" || invoiceCopy.Gateway == "platform_sbp" {
+				keyboard = [][]InlineKeyboardButton{
+					{
+						{Text: "Я все оплатил", CallbackData: fmt.Sprintf("payment_confirm:%s", invoiceCopy.OrderID)},
+						{Text: "Отменить платеж", CallbackData: fmt.Sprintf("payment_cancel:%s", invoiceCopy.OrderID)},
+					},
+				}
+			}
+
+			// Send notification
+			err := s.webhookService.SendNotification(
+				invoiceCopy.BotUser.LastSeenWithBot,
+				invoiceCopy.BotUser.TelegramID,
+				message,
+				nil, // No message to edit
+				nil, // No message to delete
+				keyboard,
+			)
+			if err != nil {
+				slog.Error("failed to send payment notification", "invoice_id", invoiceCopy.ID, "error", err)
+				// Continue to next invoice even if one fails
+				return
+			}
+
+			// Mark invoice as notified
+			invoiceCopy.WasNotificationSent = true
+			if err := s.invoiceRepo.Update(&invoiceCopy); err != nil {
+				slog.Error("failed to update invoice notification status", "invoice_id", invoiceCopy.ID, "error", err)
+			} else {
+				slog.Info("successfully sent unfinished payment notification", "invoice_id", invoiceCopy.ID, "user_id", invoiceCopy.BotUserID)
+			}
+		}()
 	}
 
 	return nil
