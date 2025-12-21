@@ -2,9 +2,11 @@ use std::sync::Arc;
 
 use teloxide::{
     Bot,
-    payloads::{EditMessageTextSetters, SendMessageSetters},
+    payloads::{EditMessageMediaSetters, EditMessageTextSetters, SendMessageSetters},
     prelude::Request,
-    types::{CallbackQuery, InputFile, MaybeInaccessibleMessage, ParseMode},
+    types::{
+        CallbackQuery, InputFile, InputMedia, InputMediaPhoto, MaybeInaccessibleMessage, ParseMode,
+    },
 };
 
 use crate::{
@@ -38,8 +40,8 @@ pub async fn catalog_handler(
             return Ok(());
         }
     };
-    let message_id = match &q.message {
-        Some(MaybeInaccessibleMessage::Regular(msg)) => msg.id,
+    let (message_id, has_photo) = match &q.message {
+        Some(MaybeInaccessibleMessage::Regular(msg)) => (msg.id, msg.photo().is_some()),
         Some(MaybeInaccessibleMessage::Inaccessible(_)) => {
             tracing::error!("Inaccessible message found");
             return Ok(());
@@ -117,19 +119,35 @@ pub async fn catalog_handler(
         category_id,
         category.and_then(|x| x.parent_id).unwrap_or_default(),
     );
-    bot.delete_message(chat_id, message_id).await.ok();
 
     if let Some(image_bytes) = image_bytes {
-        bot.send_photo(chat_id, InputFile::memory(image_bytes))
-            .caption(caption)
-            .reply_markup(reply_markup)
-            .parse_mode(ParseMode::Html)
-            .await?;
+        if has_photo {
+            let input_media = InputMediaPhoto::new(InputFile::memory(image_bytes))
+                .caption(caption)
+                .parse_mode(ParseMode::Html);
+            bot.edit_message_media(chat_id, message_id, InputMedia::Photo(input_media))
+                .reply_markup(reply_markup)
+                .await?;
+        } else {
+            bot.send_photo(chat_id, InputFile::memory(image_bytes))
+                .caption(caption)
+                .reply_markup(reply_markup)
+                .await?;
+            bot.delete_message(chat_id, message_id).await?;
+        }
     } else {
-        bot.send_message(chat_id, caption)
-            .reply_markup(reply_markup)
-            .parse_mode(ParseMode::Html)
-            .await?;
+        if !has_photo {
+            bot.edit_message_text(chat_id, message_id, caption)
+                .reply_markup(reply_markup)
+                .parse_mode(ParseMode::Html)
+                .await?;
+        } else {
+            bot.send_message(chat_id, caption)
+                .reply_markup(reply_markup)
+                .parse_mode(ParseMode::Html)
+                .await?;
+            bot.delete_message(chat_id, message_id).await?;
+        }
     }
     Ok(())
 }
