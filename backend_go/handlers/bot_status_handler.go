@@ -22,7 +22,7 @@ func NewBotStatusHandler(service services.BotStatusService) *BotStatusHandler {
 // @Tags Bot
 // @Produce  json
 // @Success 200 {object} responses.ResponseSchema[models.BotStatusResponse]
-// @Failure 500 {object} responses.ErrorResponse
+// @Failure 500 {object} responses.ErrorResponseSchema
 // @Router /bot/status [get]
 // @Security ServiceApiKeyAuth
 func (h *BotStatusHandler) GetBotStatus(c *gin.Context) {

@@ -23,7 +23,7 @@ func NewStoreBalanceHandler(service services.StoreBalanceService) *StoreBalanceH
 // @Accept  json
 // @Produce  json
 // @Success 200 {object} responses.ResponseSchema[models.StoreBalanceResponse]
-// @Failure 500 {object} responses.ErrorResponse
+// @Failure 500 {object} responses.ErrorResponseSchema
 // @Router /admin/store-balance [get]
 // @Security ApiKeyAuth
 func (h *StoreBalanceHandler) GetStoreBalance(c *gin.Context) {

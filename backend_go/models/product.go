@@ -16,10 +16,10 @@ type Product struct {
 	Image                  *Image         `gorm:"foreignKey:ImageID" json:"image"`
 	Type                   string         `gorm:"default:'item'" json:"type"`
 	SubscriptionPeriodDays int            `gorm:"default:0" json:"subscription_period_days"`
-	Details                sql.NullString `gorm:"type:jsonb" json:"details"`
+	Details                sql.NullString `gorm:"type:jsonb" json:"details" swaggertype:"string" example:"some details"`
 	Visible                bool           `gorm:"default:true" json:"visible"`
-	FulfillmentText        sql.NullString `gorm:"type:text" json:"fulfillment_text"`     // The text content to be delivered
-	FulfillmentImageID     *uuid.UUID     `gorm:"type:uuid" json:"fulfillment_image_id"` // The image ID to be delivered
+	FulfillmentText        sql.NullString `gorm:"type:text" json:"fulfillment_text" swaggertype:"string" example:"some text"` // The text content to be delivered
+	FulfillmentImageID     *uuid.UUID     `gorm:"type:uuid" json:"fulfillment_image_id"`                                      // The image ID to be delivered
 	FulfillmentImage       *Image         `gorm:"foreignKey:FulfillmentImageID" json:"fulfillment_image"`
 	ProviderName           *string        `gorm:"index" json:"provider_name"`
 	ExternalID             *string        `gorm:"index" json:"external_id"`
