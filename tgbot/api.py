@@ -126,6 +126,9 @@ class APIClient:
     async def update_user_captcha_status(self, telegram_id: int, status: bool):
         return await self._request("PUT", f"/users/{telegram_id}/captcha-status", json={"has_passed_captcha": status})
 
+    async def update_user_status(self, telegram_id: int, payload: dict):
+        return await self._request("PATCH", f"/users/{telegram_id}/status", json=payload)
+
     async def get_referral_bots(self):
         return await self._request("GET", "/referrals")
 

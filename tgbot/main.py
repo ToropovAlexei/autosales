@@ -4,6 +4,7 @@ import json
 
 from aiogram import Bot, Dispatcher, BaseMiddleware
 from aiogram.client.default import DefaultBotProperties
+from aiogram.exceptions import TelegramForbiddenError
 from aiogram.fsm.storage.redis import RedisStorage
 from aiogram.types import TelegramObject, InlineKeyboardButton, InlineKeyboardMarkup
 from typing import Callable, Dict, Any, Awaitable
@@ -16,6 +17,7 @@ from handlers import start, balance, catalog, buy, referral, my_bots, my_subscri
 from api import APIClient
 from logging_config import setup_logging
 from middleware.block_check import BlockCheckMiddleware
+from middleware.unblock_user import UnblockUserMiddleware
 
 # Global flag to control bot operation
 BOT_CAN_OPERATE = True
@@ -48,7 +50,7 @@ async def check_bot_status(api_client: APIClient):
         await asyncio.sleep(30)
 
 
-async def redis_listener(bot: Bot, redis_client: redis.Redis, bot_username: str):
+async def redis_listener(bot: Bot, redis_client: redis.Redis, bot_username: str, api_client: APIClient):
     pubsub = redis_client.pubsub()
     channel = f"bot-notifications:{bot_username}"
     await pubsub.subscribe(channel)
@@ -86,8 +88,8 @@ async def redis_listener(bot: Bot, redis_client: redis.Redis, bot_username: str)
                     logging.warning(f"Could not delete message {message_to_delete} for user {telegram_id}. It might have been deleted already. Error: {e}")
 
             if telegram_id and text:
-                if message_to_edit:
-                    try:
+                try:
+                    if message_to_edit:
                         await bot.edit_message_text(
                             chat_id=telegram_id, 
                             message_id=message_to_edit, 
@@ -95,12 +97,21 @@ async def redis_listener(bot: Bot, redis_client: redis.Redis, bot_username: str)
                             reply_markup=reply_markup
                         )
                         logging.info(f"Edited message {message_to_edit} for user {telegram_id}")
-                    except Exception as e:
-                        logging.warning(f"Could not edit message {message_to_edit}, sending new one. Error: {e}")
+                    else:
                         await bot.send_message(chat_id=telegram_id, text=text, reply_markup=reply_markup)
-                else:
-                    await bot.send_message(chat_id=telegram_id, text=text, reply_markup=reply_markup)
-                    logging.info(f"Sent notification to user {telegram_id}")
+                        logging.info(f"Sent notification to user {telegram_id}")
+                except TelegramForbiddenError:
+                    logging.warning(f"User {telegram_id} has blocked the bot. Marking as blocked.")
+                    try:
+                        await api_client.update_user_status(telegram_id, {"bot_is_blocked_by_user": True})
+                    except Exception as api_err:
+                        logging.error(f"Failed to update block status for user {telegram_id}: {api_err}")
+                except Exception as e:
+                    logging.warning(f"Could not send/edit message for user {telegram_id}. Error: {e}")
+                    # In case of editing error, we are not trying to send a new one anymore
+                    # as it might be a block error disguised as something else.
+                    # The TelegramForbiddenError should catch most block cases.
+
 
         except asyncio.CancelledError:
             logging.info("Redis listener task cancelled.")
@@ -125,6 +136,7 @@ async def main():
     api_client = APIClient(me.username)
     dp = Dispatcher(storage=storage, api_client=api_client, bot=bot)
 
+    dp.update.middleware(UnblockUserMiddleware())
     dp.update.middleware(BlockCheckMiddleware())
     dp.update.middleware(CanOperateMiddleware()) # Register the new middleware
 
@@ -144,7 +156,7 @@ async def main():
     await bot.delete_webhook(drop_pending_updates=True)
     
     # Start background tasks
-    listener_task = asyncio.create_task(redis_listener(bot, redis_client, me.username))
+    listener_task = asyncio.create_task(redis_listener(bot, redis_client, me.username, api_client))
     status_check_task = asyncio.create_task(check_bot_status(api_client))
 
 

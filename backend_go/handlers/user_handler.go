@@ -432,14 +432,15 @@ func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
 	}
 
 	response := models.BotUserResponse{
-		ID:                user.ID,
-		TelegramID:        user.TelegramID,
-		IsBlocked:         user.IsBlocked,
-		HasPassedCaptcha:  user.HasPassedCaptcha,
-		Balance:           balance,
-		RegisteredWithBot: user.RegisteredWithBot,
-		LastSeenWithBot:   user.LastSeenWithBot,
-		LastSeenAt:        user.LastSeenAt,
+		ID:                 user.ID,
+		TelegramID:         user.TelegramID,
+		IsBlocked:          user.IsBlocked,
+		HasPassedCaptcha:   user.HasPassedCaptcha,
+		Balance:            balance,
+		RegisteredWithBot:  user.RegisteredWithBot,
+		LastSeenWithBot:    user.LastSeenWithBot,
+		LastSeenAt:         user.LastSeenAt,
+		BotIsBlockedByUser: user.BotIsBlockedByUser,
 	}
 
 	responses.SuccessResponse(c, http.StatusOK, response)
