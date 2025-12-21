@@ -366,7 +366,7 @@ impl BackendApi {
 
     pub async fn get_captcha(&self) -> ApiClientResult<CaptchaResponse> {
         self.api_client
-            .get::<BackendResponse<CaptchaResponse>>(&"captcha")
+            .get::<BackendResponse<CaptchaResponse>>("captcha")
             .await
             .and_then(|res| {
                 res.data.ok_or_else(|| {

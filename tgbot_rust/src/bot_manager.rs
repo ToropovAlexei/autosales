@@ -1,8 +1,8 @@
+use crate::AppState;
+use crate::bot::run_bot;
+use crate::bot_father::BotFather;
 use std::collections::HashMap;
 use tokio::task::JoinHandle;
-use crate::bot::run_bot;
-use crate::AppState;
-use crate::bot_father::BotFather;
 
 pub struct BotManager {
     bots: HashMap<String, JoinHandle<()>>,
@@ -11,7 +11,10 @@ pub struct BotManager {
 
 impl BotManager {
     pub fn new(app_state: AppState) -> Self {
-        Self { bots: HashMap::new(), app_state }
+        Self {
+            bots: HashMap::new(),
+            app_state,
+        }
     }
 
     pub async fn start_bots(&mut self) -> anyhow::Result<()> {
@@ -24,7 +27,7 @@ impl BotManager {
             self.start_bot(main_bot.token.clone());
         } else {
             tracing::warn!("No active main bots found, requesting a new one...");
-            
+
             let bot_father = BotFather::new(
                 self.app_state.api.clone(),
                 &self.app_state.config.telegram_api_id,
@@ -33,7 +36,9 @@ impl BotManager {
 
             match bot_father.request_new_main_bot_token().await {
                 Ok(true) => {
-                    tracing::info!("Successfully requested and created a new bot. The bot manager will pick it up in the next health check cycle.");
+                    tracing::info!(
+                        "Successfully requested and created a new bot. The bot manager will pick it up in the next health check cycle."
+                    );
                 }
                 Ok(false) => {
                     tracing::error!("BotFather interaction finished, but no bot was created.");

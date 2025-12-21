@@ -76,7 +76,9 @@ impl BotFather {
             .await?
             .ok_or_else(|| anyhow!("Could not find BotFather"))?;
 
-        let msg = client.send_message(bot_father_peer.clone(), "/newbot").await?;
+        let msg = client
+            .send_message(bot_father_peer.clone(), "/newbot")
+            .await?;
         let reply = client
             .get_reply_to_message(&msg)
             .await?
@@ -90,7 +92,9 @@ impl BotFather {
             "My Monitored Bot {}",
             SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs()
         );
-        let msg = client.send_message(bot_father_peer.clone(), bot_name).await?;
+        let msg = client
+            .send_message(bot_father_peer.clone(), bot_name)
+            .await?;
         let reply = client
             .get_reply_to_message(&msg)
             .await?

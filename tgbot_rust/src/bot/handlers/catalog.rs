@@ -78,7 +78,7 @@ pub async fn catalog_handler(
 
     let image_bytes = match category {
         Some(category) => match &category.image_id {
-            Some(image_id) => match api_client.get_image_bytes(&image_id).await {
+            Some(image_id) => match api_client.get_image_bytes(image_id).await {
                 Ok(image_bytes) => Some(image_bytes),
                 Err(err) => {
                     tracing::error!("Error getting image: {}", err);

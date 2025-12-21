@@ -1,7 +1,6 @@
 use std::{result::Result::Ok, sync::Arc};
 
 use base64::{Engine as _, engine::general_purpose::STANDARD};
-use rand::{Rng, distr::Alphanumeric, prelude::SliceRandom};
 use serde::{Deserialize, Serialize};
 use teloxide::{
     Bot,
