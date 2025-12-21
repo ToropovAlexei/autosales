@@ -53,7 +53,7 @@ func (h *CaptchaHandler) GetCaptchaHandler(c *gin.Context) {
 	}
 
 	// Configure captcha
-	source := "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	source := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 	driver := base64Captcha.NewDriverString(height, width, 0, base64Captcha.OptionShowHollowLine, length, source, nil, nil, nil)
 	captcha := base64Captcha.NewCaptcha(driver, base64Captcha.DefaultMemStore)
 
@@ -70,7 +70,7 @@ func (h *CaptchaHandler) GetCaptchaHandler(c *gin.Context) {
 	}
 
 	responses.SuccessResponse(c, http.StatusOK, gin.H{
-		"imageData": content,
+		"image_data": content,
 		"answer":    answer,
 	})
 }

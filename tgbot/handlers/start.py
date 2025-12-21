@@ -83,7 +83,7 @@ async def start_handler(message: Message, state: FSMContext, api_client: APIClie
 
                 captcha_data = captcha_response["data"]
                 correct_answer = captcha_data["answer"]
-                image_data_b64 = captcha_data["imageData"].split(",")[1]
+                image_data_b64 = captcha_data["image_data"].split(",")[1]
                 image_bytes = base64.b64decode(image_data_b64)
 
                 options = generate_options(correct_answer)
@@ -238,7 +238,7 @@ async def captcha_answer_handler(callback_query: CallbackQuery, state: FSMContex
 
         captcha_data = captcha_response["data"]
         correct_answer = captcha_data["answer"]
-        image_data_b64 = captcha_data["imageData"].split(",")[1]
+        image_data_b64 = captcha_data["image_data"].split(",")[1]
         image_bytes = base64.b64decode(image_data_b64)
 
         options = generate_options(correct_answer)
