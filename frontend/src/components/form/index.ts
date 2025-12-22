@@ -1,6 +1,7 @@
 export * from "./InputText";
 export * from "./InputPassword";
 export * from "./InputDate";
+export * from "./InputDateTime";
 export * from "./InputSelect";
 export * from "./InputNumber";
 export * from "./InputSwitch";
