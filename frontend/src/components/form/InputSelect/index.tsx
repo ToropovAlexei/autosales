@@ -28,7 +28,9 @@ export const InputSelect = ({ name, label, options, rules }: IProps) => {
 
   return (
     <FormControl error={!!error}>
-      <InputLabel id={name}>{label ?? name}</InputLabel>
+      <InputLabel id={name} size="small">
+        {label ?? name}
+      </InputLabel>
       <Select
         labelId={name}
         value={value}
