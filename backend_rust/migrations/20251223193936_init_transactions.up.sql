@@ -77,3 +77,23 @@ CREATE TRIGGER trigger_calculate_balances
     BEFORE INSERT ON transactions
     FOR EACH ROW
     EXECUTE FUNCTION calculate_balances();
+
+CREATE OR REPLACE FUNCTION update_bot_user_balance()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.user_id IS NOT NULL THEN
+        UPDATE bot_users
+        SET 
+            balance = NEW.user_balance_after,
+            updated_at = NOW()
+        WHERE id = NEW.user_id;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_bot_user_balance
+    AFTER INSERT ON transactions
+    FOR EACH ROW
+    EXECUTE FUNCTION update_bot_user_balance();
