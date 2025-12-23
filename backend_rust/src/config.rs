@@ -15,13 +15,6 @@ pub struct Config {
 impl Config {
     pub fn from_env() -> Self {
         dotenv().expect("Failed to load .env file");
-
-        println!("--- ENV DUMP ---");
-        for (k, v) in std::env::vars() {
-            println!("{k}={v}");
-        }
-        println!("----------------");
-
         envy::from_env::<Config>().expect("Failed to load config from environment variables")
     }
 }
