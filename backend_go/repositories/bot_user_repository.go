@@ -18,6 +18,8 @@ type BotUserRepository interface {
 	GetUserBalance(userID uint) (float64, error)
 	GetUserTransactions(userID uint) ([]models.Transaction, error)
 	UpdateBotUserStatus(telegramID int64, updates map[string]interface{}) error
+	GetBotUsersForBroadcast(filters models.BroadcastFilters, page models.Page) (*models.PaginatedResult[models.BotUser], error)
+	GetAllBotUsersForBroadcast(filters models.BroadcastFilters) ([]models.BotUser, error)
 }
 
 type gormBotUserRepository struct {
@@ -85,3 +87,94 @@ func (r *gormBotUserRepository) GetUserTransactions(userID uint) ([]models.Trans
 func (r *gormBotUserRepository) UpdateBotUserStatus(telegramID int64, updates map[string]interface{}) error {
 	return r.db.Model(&models.BotUser{}).Where("telegram_id = ?", telegramID).Updates(updates).Error
 }
+
+func (r *gormBotUserRepository) GetBotUsersForBroadcast(filters models.BroadcastFilters, page models.Page) (*models.PaginatedResult[models.BotUser], error) {
+	var users []models.BotUser
+	var total int64
+
+	query := r.db.Model(&models.BotUser{})
+
+	// Always exclude blocked users
+	query = query.Where("is_blocked = ? AND bot_is_blocked_by_user = ?", false, false)
+
+	// Apply filters
+	if filters.BalanceMin != nil {
+		query = query.Where("balance >= ?", *filters.BalanceMin)
+	}
+	if filters.BalanceMax != nil {
+		query = query.Where("balance <= ?", *filters.BalanceMax)
+	}
+	if filters.RegisteredAfter != nil {
+		query = query.Where("created_at >= ?", *filters.RegisteredAfter)
+	}
+	if filters.RegisteredBefore != nil {
+		query = query.Where("created_at <= ?", *filters.RegisteredBefore)
+	}
+	if filters.LastSeenAfter != nil {
+		query = query.Where("last_seen_at >= ?", *filters.LastSeenAfter)
+	}
+	if filters.LastSeenBefore != nil {
+		query = query.Where("last_seen_at <= ?", *filters.LastSeenBefore)
+	}
+	if filters.BotName != nil && *filters.BotName != "" {
+		// Assuming we filter by the bot they registered with
+		query = query.Where("registered_with_bot = ?", *filters.BotName)
+	}
+
+	// Count total records that match the filters
+	if err := query.Count(&total).Error; err != nil {
+		return nil, err
+	}
+
+	// Apply pagination
+	offset := (page.Page - 1) * page.PageSize
+	if err := query.Limit(page.PageSize).Offset(offset).Find(&users).Error; err != nil {
+		return nil, err
+	}
+
+	return &models.PaginatedResult[models.BotUser]{
+		Data:  users,
+		Total: total,
+	}, nil
+}
+
+func (r *gormBotUserRepository) GetAllBotUsersForBroadcast(filters models.BroadcastFilters) ([]models.BotUser, error) {
+	var users []models.BotUser
+
+	query := r.db.Model(&models.BotUser{})
+
+	// Always exclude blocked users
+	query = query.Where("is_blocked = ? AND bot_is_blocked_by_user = ?", false, false)
+
+	// Apply filters
+	if filters.BalanceMin != nil {
+		query = query.Where("balance >= ?", *filters.BalanceMin)
+	}
+	if filters.BalanceMax != nil {
+		query = query.Where("balance <= ?", *filters.BalanceMax)
+	}
+	if filters.RegisteredAfter != nil {
+		query = query.Where("created_at >= ?", *filters.RegisteredAfter)
+	}
+	if filters.RegisteredBefore != nil {
+		query = query.Where("created_at <= ?", *filters.RegisteredBefore)
+	}
+	if filters.LastSeenAfter != nil {
+		query = query.Where("last_seen_at >= ?", *filters.LastSeenAfter)
+	}
+	if filters.LastSeenBefore != nil {
+		query = query.Where("last_seen_at <= ?", *filters.LastSeenBefore)
+	}
+	if filters.BotName != nil && *filters.BotName != "" {
+		// Assuming we filter by the bot they registered with
+		query = query.Where("registered_with_bot = ?", *filters.BotName)
+	}
+
+	if err := query.Find(&users).Error; err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
+

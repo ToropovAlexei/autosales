@@ -4,6 +4,7 @@ export * from "./Sidebar";
 export * from "./ConfirmModal";
 export * from "./NavBar";
 export * from "./SelectImage";
+export * from "./ImageSelect";
 export * from "./UploadBtn";
 export * from "./StoreBalance";
 export * from "./PermissionsSelector";

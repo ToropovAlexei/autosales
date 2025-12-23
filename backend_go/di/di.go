@@ -2,7 +2,7 @@ package di
 
 import (
 	"frbktg/backend_go/config"
-	"frbktg/backend_go/db"
+	database "frbktg/backend_go/db"
 	"frbktg/backend_go/external_providers"
 	"frbktg/backend_go/external_providers/contms"
 	"frbktg/backend_go/external_providers/platform_payment_system"
@@ -15,12 +15,14 @@ import (
 	"frbktg/backend_go/workers"
 	"log/slog"
 
+	"github.com/go-redis/redis/v8"
 	"gorm.io/gorm"
 )
 
 // Container holds all the dependencies of the application.
 type Container struct {
 	DB                     *gorm.DB
+	RedisClient            *redis.Client
 	AppSettings            *config.Config
 	Logger                 *slog.Logger
 	ProviderRegistry       *external_providers.ProviderRegistry
@@ -47,6 +49,7 @@ type Container struct {
 	AuditLogService        services.AuditLogService
 	BotStatusService       services.BotStatusService
 	StoreBalanceService    services.StoreBalanceService
+	BroadcastService       services.BroadcastService
 	UserRepo               repositories.UserRepository
 	TemporaryTokenRepo     repositories.TemporaryTokenRepository
 	AuthHandler            *handlers.AuthHandler
@@ -69,6 +72,7 @@ type Container struct {
 	CaptchaHandler         *handlers.CaptchaHandler
 	BotStatusHandler       *handlers.BotStatusHandler
 	StoreBalanceHandler    *handlers.StoreBalanceHandler
+	BroadcastHandler       *handlers.BroadcastHandler
 	AuthMiddleware         *middleware.AuthMiddleware
 	SubscriptionWorker     *workers.SubscriptionWorker
 	PaymentWorker          *workers.PaymentWorker
@@ -77,10 +81,12 @@ type Container struct {
 
 // NewContainer creates a new dependency container.
 func NewContainer(appSettings *config.Config) (*Container, error) {
-	db, err := db.InitDB(appSettings)
+	db, err := database.InitDB(appSettings)
 	if err != nil {
 		return nil, err
 	}
+
+	redisClient := database.InitRedis(appSettings)
 
 	logger := slog.Default()
 
@@ -167,6 +173,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo, botUserRepo, webhookService, settingService, appSettings, storeBalanceService)
 	imageService := services.NewImageService(db, imageRepo, appSettings)
 	roleService := services.NewRoleService(roleRepo, auditLogService)
+	broadcastService := services.NewBroadcastService(botUserRepo, redisClient)
 
 	// Init workers
 	subscriptionWorker := workers.NewSubscriptionWorker(orderService, userSubscriptionRepo, logger)
@@ -194,11 +201,13 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	captchaHandler := handlers.NewCaptchaHandler()
 	botStatusHandler := handlers.NewBotStatusHandler(botStatusService)
 	storeBalanceHandler := handlers.NewStoreBalanceHandler(storeBalanceService)
+	broadcastHandler := handlers.NewBroadcastHandler(broadcastService)
 
 	authMiddleware := middleware.NewAuthMiddleware(tokenService, userService, appSettings)
 
 	return &Container{
 		DB:                     db,
+		RedisClient:            redisClient,
 		AppSettings:            appSettings,
 		Logger:                 logger,
 		ProviderRegistry:       providerRegistry,
@@ -225,6 +234,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 		AuditLogService:        auditLogService,
 		BotStatusService:       botStatusService,
 		StoreBalanceService:    storeBalanceService,
+		BroadcastService:       broadcastService,
 		UserRepo:               userRepo,
 		TemporaryTokenRepo:     temporaryTokenRepo,
 		AuthHandler:            authHandler,
@@ -247,6 +257,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 		CaptchaHandler:         captchaHandler,
 		BotStatusHandler:       botStatusHandler,
 		StoreBalanceHandler:    storeBalanceHandler,
+		BroadcastHandler:       broadcastHandler,
 		AuthMiddleware:         authMiddleware,
 		SubscriptionWorker:     subscriptionWorker,
 		PaymentWorker:          paymentWorker,

@@ -17,6 +17,7 @@ export const APP_ROUTES: Record<AppRoute, string> = {
   [AppRoute.Balance]: "/balance",
   [AppRoute.WelcomeMessages]: "/welcome-messages",
   [AppRoute.ReferralManagement]: "/referral-management",
+  [AppRoute.Broadcasts]: "/broadcasts",
 };
 
 export const ROUTE_BY_PATHNAME = Object.fromEntries(

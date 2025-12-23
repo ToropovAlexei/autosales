@@ -34,6 +34,7 @@ type Config struct {
 	PlatformPaymentSystemLogin    string
 	PlatformPaymentSystemPassword string
 	PlatformPaymentSystem2FAKey   string
+	RedisAddr                     string
 }
 
 func (c *Config) GetDBConnStr() string {
@@ -66,6 +67,7 @@ func LoadConfig() (*Config, error) {
 		PlatformPaymentSystemLogin:    os.Getenv("PLATFORM_PAYMENT_SYSTEM_LOGIN"),
 		PlatformPaymentSystemPassword: os.Getenv("PLATFORM_PAYMENT_SYSTEM_PASSWORD"),
 		PlatformPaymentSystem2FAKey:   os.Getenv("PLATFORM_PAYMENT_SYSTEM_2FA_KEY"),
+		RedisAddr:                     os.Getenv("REDIS_ADDR"),
 	}
 
 	// AccessTokenExpireMinutes

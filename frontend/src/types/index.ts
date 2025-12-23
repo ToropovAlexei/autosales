@@ -52,6 +52,7 @@ export interface IFilter {
     op: string;
     value: any;
   }[];
+  [key: string]: any;
 }
 
 export interface IImage {

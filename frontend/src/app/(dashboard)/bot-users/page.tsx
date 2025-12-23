@@ -1,7 +1,7 @@
 "use client";
 
 import { useDataGrid } from "@/hooks";
-import { ENDPOINTS } from "@/constants";
+import { APP_ROUTES, ENDPOINTS } from "@/constants";
 import { ConfirmModal } from "@/components";
 import { queryKeys } from "@/utils/query";
 import { dataLayer } from "@/lib/dataLayer";
@@ -11,6 +11,8 @@ import { BotUser } from "@/types/common";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button, Stack } from "@mui/material";
+import Link from "next/link";
+import { AppRoute } from "@/types";
 
 export default function BotUsersPage() {
   const queryClient = useQueryClient();
@@ -66,8 +68,11 @@ export default function BotUsersPage() {
 
   return (
     <PageLayout title="Пользователи бота">
-      <Stack direction="row" mb={2}>
+      <Stack direction="row" mb={2} gap={2}>
         <Button onClick={() => refetch()}>Обновить</Button>
+        <Button LinkComponent={Link} href={APP_ROUTES[AppRoute.Broadcasts]} variant="outlined">
+          Сделать рекламную рассылку
+        </Button>
       </Stack>
       <BotUsersTable
         users={botUsers}

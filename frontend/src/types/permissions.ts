@@ -29,4 +29,5 @@ export enum PermissionName {
   AuditLogRead = "audit_log:read",
   PricingRead = "pricing:read",
   PricingEdit = "pricing:edit",
+  BroadcastsManage = "broadcasts:manage",
 }

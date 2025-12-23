@@ -207,6 +207,7 @@ func createRbacData(db *gorm.DB) {
 		{Name: "stock:read", Group: "Stock"}, {Name: "stock:update", Group: "Stock"},
 		{Name: "audit_log:read", Group: "AuditLog"},
 		{Name: "store_balance:manage", Group: "Balance"},
+		{Name: "broadcasts:manage", Group: "Broadcasts"},
 	}
 	for _, p := range permissionsList {
 		db.FirstOrCreate(&p, models.Permission{Name: p.Name})

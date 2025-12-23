@@ -32,3 +32,17 @@ export interface BotUser {
   created_at: string;
   last_seen_at: string;
 }
+
+export interface Bot {
+  id: number;
+  owner_telegram_id: number;
+  token: string;
+  username: string;
+  created_at: string;
+  type: "main" | "referral";
+  is_active: boolean;
+  is_primary: boolean;
+  turnover: number;
+  accruals: number;
+  referral_percentage: number;
+}

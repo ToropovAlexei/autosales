@@ -117,6 +117,7 @@ func main() {
 	routers.RegisterAdminUserRoutes(r, container.RoleHandler, container.AdminHandler, container.AuthMiddleware)
 	routers.RegisterAdminReferralRoutes(r, container.BotHandler, container.AuthMiddleware)
 	routers.RegisterStoreBalanceRoutes(r, container.StoreBalanceHandler, container.AuthMiddleware)
+	routers.RegisterBroadcastRoutes(r, container.BroadcastHandler, container.AuthMiddleware)
 	routers.SetupAuditLogRoutes(r.Group("/api"), container)
 
 	r.GET("/api/captcha", container.CaptchaHandler.GetCaptchaHandler)

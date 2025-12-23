@@ -18,9 +18,16 @@ interface IProps {
   label?: string;
   disabled?: boolean;
   rules?: RegisterOptions;
+  withNone?: boolean;
 }
 
-export const InputSelect = ({ name, label, options, rules }: IProps) => {
+export const InputSelect = ({
+  name,
+  label,
+  options,
+  rules,
+  withNone,
+}: IProps) => {
   const {
     field: { value, onChange },
     fieldState: { error },
@@ -38,6 +45,7 @@ export const InputSelect = ({ name, label, options, rules }: IProps) => {
         size="small"
         label={label ?? name}
       >
+        {withNone && <MenuItem value="">Не выбрано</MenuItem>}
         {options?.map(({ value, label }) => (
           <MenuItem key={value} value={value}>
             {label}

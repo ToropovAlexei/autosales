@@ -20,7 +20,7 @@ export const InputNumber = ({
     fieldState: { error },
   } = useController({
     name,
-    defaultValue: 0,
+    defaultValue: null,
     rules: {
       required: required && "Поле обязательно к заполнению",
       ...rules,

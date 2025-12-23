@@ -1,0 +1,16 @@
+.container {
+  display: grid;
+  gap: 1rem;
+}
+
+.inputs {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 0.4fr 1fr;
+}
+
+@media (width < 1024px) {
+  .inputs {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,0 +1,16 @@
+.selectImg {
+  display: grid;
+  gap: 1rem;
+  place-items: center;
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+.img {
+  border-radius: var(--mui-shape-borderRadius);
+}
+
+.send {
+  display: grid;
+  place-items: center;
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
@@ -8,26 +9,30 @@ import { queryKeys } from "@/utils/query";
 import { BotCard } from "./components/BotCard";
 import classes from "./styles.module.css";
 import { PageLayout } from "@/components/PageLayout";
-
-interface Bot {
-  id: number;
-  owner_telegram_id: number;
-  token: string;
-  username: string;
-  created_at: string;
-  type: "main" | "referral";
-  is_active: boolean;
-  is_primary: boolean;
-  turnover: number;
-  accruals: number;
-  referral_percentage: number;
-}
+import { Button } from "@mui/material";
+import { BotFormModal } from "./components/BotFormModal";
+import { Bot } from "@/types";
 
 export default function BotsPage() {
   const queryClient = useQueryClient();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: bots } = useList<Bot>({
     endpoint: ENDPOINTS.ADMIN_REFERRAL_BOTS,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (params: { token: string }) =>
+      dataLayer.create({
+        url: ENDPOINTS.ADMIN_REFERRAL_BOTS,
+        params,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.ADMIN_REFERRAL_BOTS),
+      });
+      setIsModalOpen(false);
+    },
   });
 
   const updateStatusMutation = useMutation({
@@ -86,6 +91,13 @@ export default function BotsPage() {
 
   return (
     <PageLayout title="Управление ботами">
+      <Button
+        variant="contained"
+        sx={{ mb: 2 }}
+        onClick={() => setIsModalOpen(true)}
+      >
+        Добавить бота
+      </Button>
       <div className={classes.grid}>
         {bots?.data?.map((bot: Bot) => (
           <BotCard
@@ -100,6 +112,12 @@ export default function BotsPage() {
           />
         ))}
       </div>
+      <BotFormModal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onConfirm={createMutation.mutate}
+        isCreating={createMutation.isPending}
+      />
     </PageLayout>
   );
 }

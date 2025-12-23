@@ -52,6 +52,7 @@ export const PERMISSION_TRANSLATIONS: Record<PermissionName, string> = {
   [PermissionName.AuditLogRead]: "Просмотр журнала аудита",
   [PermissionName.PricingRead]: "Просмотр ценообразования",
   [PermissionName.PricingEdit]: "Редактирование ценообразования",
+  [PermissionName.BroadcastsManage]: "Управление рассылками",
 };
 
 export const translatePermission = (permission: PermissionName) =>

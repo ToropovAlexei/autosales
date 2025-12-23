@@ -51,13 +51,13 @@ func (h *AdminHandler) GetBotUser(c *gin.Context) {
 		return
 	}
 
-	user, balance, err := h.userService.GetBotUser(uint(id))
+	user, err := h.userService.GetBotUser(uint(id))
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	responses.SuccessResponse(c, http.StatusOK, gin.H{"user": user, "balance": balance})
+	responses.SuccessResponse(c, http.StatusOK, user)
 }
 
 func (h *AdminHandler) ToggleBlockUser(c *gin.Context) {

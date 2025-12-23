@@ -22,9 +22,9 @@ type UserService interface {
 	CreateUser(ctx *gin.Context, login, password string, roleID uint) (*models.CreateUserResponse, error)
 	UpdateReferralSettings(ctx *gin.Context, user *models.User, enabled bool, percentage float64) error
 	SetTelegramID(ctx *gin.Context, userID uint, telegramID int64) error
-	RegisterBotUser(telegramID int64, botName string) (*models.BotUser, float64, bool, bool, error)
-	GetBotUser(id uint) (*models.BotUser, float64, error)
-	GetBotUserByTelegramID(telegramID int64, botName string) (*models.BotUser, float64, error)
+	RegisterBotUser(telegramID int64, botName string) (*models.BotUser, bool, bool, error)
+	GetBotUser(id uint) (*models.BotUser, error)
+	GetBotUserByTelegramID(telegramID int64, botName string) (*models.BotUser, error)
 	ToggleBlockUser(ctx *gin.Context, telegramID int64) error
 	GetUserBalance(telegramID int64) (float64, error)
 	GetUserTransactions(telegramID int64) ([]models.Transaction, error)
@@ -116,32 +116,28 @@ func (s *userService) UpdateReferralSettings(ctx *gin.Context, user *models.User
 	return nil
 }
 
-func (s *userService) RegisterBotUser(telegramID int64, botName string) (*models.BotUser, float64, bool, bool, error) {
+func (s *userService) RegisterBotUser(telegramID int64, botName string) (*models.BotUser, bool, bool, error) {
 	existingUser, err := s.botUserRepo.FindByTelegramID(telegramID)
 
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, 0, false, false, apperrors.New(500, "Failed to find bot user", err)
+		return nil, false, false, apperrors.New(500, "Failed to find bot user", err)
 	}
 
 	// If user exists
 	if existingUser != nil {
 		// If user is blocked, do nothing and return their status
 		if existingUser.IsBlocked {
-			return existingUser, 0, false, existingUser.HasPassedCaptcha, nil
+			return existingUser, false, existingUser.HasPassedCaptcha, nil
 		}
 
 		// Otherwise, update their last seen info
 		existingUser.LastSeenWithBot = botName
 		existingUser.LastSeenAt = time.Now()
 
-		balance, err := s.botUserRepo.GetUserBalance(existingUser.ID)
-		if err != nil {
-			return nil, 0, false, false, apperrors.New(500, "Failed to get user balance", err)
-		}
 		if err := s.botUserRepo.Update(existingUser); err != nil {
-			return nil, 0, false, false, apperrors.New(500, "Failed to update bot user", err)
+			return nil, false, false, apperrors.New(500, "Failed to update bot user", err)
 		}
-		return existingUser, balance, false, existingUser.HasPassedCaptcha, nil
+		return existingUser, false, existingUser.HasPassedCaptcha, nil
 	}
 
 	// If user does not exist, create a new one
@@ -153,10 +149,10 @@ func (s *userService) RegisterBotUser(telegramID int64, botName string) (*models
 		LastSeenAt:        time.Now(),
 	}
 	if err := s.botUserRepo.Create(newUser); err != nil {
-		return nil, 0, false, false, apperrors.New(500, "Failed to create bot user", err)
+		return nil, false, false, apperrors.New(500, "Failed to create bot user", err)
 	}
 
-	return newUser, 0, true, false, nil
+	return newUser, true, false, nil
 }
 
 func (s *userService) ToggleBlockUser(ctx *gin.Context, telegramID int64) error {
@@ -177,38 +173,27 @@ func (s *userService) ToggleBlockUser(ctx *gin.Context, telegramID int64) error 
 	return nil
 }
 
-func (s *userService) GetBotUser(id uint) (*models.BotUser, float64, error) {
+func (s *userService) GetBotUser(id uint) (*models.BotUser, error) {
 	user, err := s.botUserRepo.FindByID(id)
 	if err != nil {
-		return nil, 0, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "BotUser", ID: id}
+		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "BotUser", ID: id}
 	}
-
-	balance, err := s.botUserRepo.GetUserBalance(user.ID)
-	if err != nil {
-		return nil, 0, apperrors.New(500, "Failed to get user balance", err)
-	}
-
-	return user, balance, nil
+	return user, nil
 }
 
-func (s *userService) GetBotUserByTelegramID(telegramID int64, botName string) (*models.BotUser, float64, error) {
+func (s *userService) GetBotUserByTelegramID(telegramID int64, botName string) (*models.BotUser, error) {
 	user, err := s.botUserRepo.FindByTelegramID(telegramID)
 	if err != nil {
-		return nil, 0, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "BotUser", ID: uint(telegramID)}
+		return nil, &apperrors.ErrNotFound{Base: apperrors.New(404, "", err), Resource: "BotUser", ID: uint(telegramID)}
 	}
 
 	user.LastSeenWithBot = botName
 	user.LastSeenAt = time.Now()
 	if err := s.botUserRepo.Update(user); err != nil {
-		return nil, 0, apperrors.New(500, "Failed to update bot user", err)
+		return nil, apperrors.New(500, "Failed to update bot user", err)
 	}
 
-	balance, err := s.botUserRepo.GetUserBalance(user.ID)
-	if err != nil {
-		return nil, 0, apperrors.New(500, "Failed to get user balance", err)
-	}
-
-	return user, balance, nil
+	return user, nil
 }
 
 func (s *userService) GetUserBalance(telegramID int64) (float64, error) {

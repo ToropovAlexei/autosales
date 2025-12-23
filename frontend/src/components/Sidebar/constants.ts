@@ -12,6 +12,7 @@ import AdminPanelSettingsIcon from "@mui/icons-material/AdminPanelSettings";
 import HistoryIcon from "@mui/icons-material/History";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import PriceCheckIcon from "@mui/icons-material/PriceCheck";
+import CampaignIcon from "@mui/icons-material/Campaign";
 import { AppRoute } from "@/types";
 
 export const MENU_ITEMS = [
@@ -20,6 +21,11 @@ export const MENU_ITEMS = [
   { label: "Ценообразование", Icon: PriceCheckIcon, route: AppRoute.Pricing },
   { label: "Товары", Icon: ShoppingCartIcon, route: AppRoute.Products },
   { label: "Пользователи бота", Icon: GroupIcon, route: AppRoute.BotUsers },
+  {
+    label: "Управление рекламой",
+    Icon: CampaignIcon,
+    route: AppRoute.Broadcasts,
+  },
   { label: "Транзакции", Icon: ReceiptIcon, route: AppRoute.Transactions },
   { label: "Покупки", Icon: LocalMallIcon, route: AppRoute.Orders },
   { label: "Склад", Icon: InventoryIcon, route: AppRoute.Stock },

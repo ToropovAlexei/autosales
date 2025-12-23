@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher, BaseMiddleware
 from aiogram.client.default import DefaultBotProperties
 from aiogram.exceptions import TelegramForbiddenError
 from aiogram.fsm.storage.redis import RedisStorage
-from aiogram.types import TelegramObject, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import TelegramObject, InlineKeyboardButton, InlineKeyboardMarkup, BufferedInputFile
 from typing import Callable, Dict, Any, Awaitable
 import redis.asyncio as redis
 
@@ -64,12 +64,19 @@ async def redis_listener(bot: Bot, redis_client: redis.Redis, bot_username: str,
 
             logging.info(f"Received message from Redis: {message}")
             message_data = json.loads(message['data'])
+            
             telegram_id = message_data.get('telegram_id')
-            text = message_data.get('message')
+            if not telegram_id:
+                logging.warning("Received message from Redis without telegram_id")
+                continue
+
+            # Action variables
+            text = message_data.get('text') or message_data.get('text')
+            image_id = message_data.get('image_id')
             message_to_edit = message_data.get('message_to_edit')
             message_to_delete = message_data.get('message_to_delete')
             inline_keyboard_data = message_data.get('inline_keyboard')
-
+            
             reply_markup = None
             if inline_keyboard_data:
                 buttons = [
@@ -77,48 +84,55 @@ async def redis_listener(bot: Bot, redis_client: redis.Redis, bot_username: str,
                     for row in inline_keyboard_data
                 ]
                 reply_markup = InlineKeyboardMarkup(inline_keyboard=buttons)
-            elif text and text.startswith("✅ Ваш баланс успешно пополнен на"):
-                reply_markup = back_to_main_menu_keyboard()
 
-            if message_to_delete:
-                try:
+            try:
+                # Priority 1: Delete a message
+                if message_to_delete:
                     await bot.delete_message(chat_id=telegram_id, message_id=message_to_delete)
                     logging.info(f"Deleted message {message_to_delete} for user {telegram_id}")
-                except Exception as e:
-                    logging.warning(f"Could not delete message {message_to_delete} for user {telegram_id}. It might have been deleted already. Error: {e}")
 
-            if telegram_id and text:
-                try:
-                    if message_to_edit:
-                        await bot.edit_message_text(
-                            chat_id=telegram_id, 
-                            message_id=message_to_edit, 
-                            text=text, 
+                # Priority 2: Edit a message
+                if message_to_edit:
+                    await bot.edit_message_text(
+                        chat_id=telegram_id,
+                        message_id=message_to_edit,
+                        text=text,
+                        reply_markup=reply_markup
+                    )
+                    logging.info(f"Edited message {message_to_edit} for user {telegram_id}")
+                
+                # Priority 3: Send a new message (broadcast or simple notification)
+                elif image_id:
+                    image_path = f"/images/{image_id}"
+                    image_data = await api_client.get_image(image_path)
+                    if image_data:
+                        input_file = BufferedInputFile(image_data, filename="image.png")
+                        await bot.send_photo(
+                            chat_id=telegram_id,
+                            photo=input_file,
+                            caption=text, # Use text as caption
                             reply_markup=reply_markup
                         )
-                        logging.info(f"Edited message {message_to_edit} for user {telegram_id}")
-                    else:
+                        logging.info(f"Sent photo to user {telegram_id}")
+                    elif text: # Fallback to text if image fails
                         await bot.send_message(chat_id=telegram_id, text=text, reply_markup=reply_markup)
-                        logging.info(f"Sent notification to user {telegram_id}")
-                except TelegramForbiddenError:
-                    logging.warning(f"User {telegram_id} has blocked the bot. Marking as blocked.")
-                    try:
-                        await api_client.update_user_status(telegram_id, {"bot_is_blocked_by_user": True})
-                    except Exception as api_err:
-                        logging.error(f"Failed to update block status for user {telegram_id}: {api_err}")
-                except Exception as e:
-                    logging.warning(f"Could not send/edit message for user {telegram_id}. Error: {e}")
-                    # In case of editing error, we are not trying to send a new one anymore
-                    # as it might be a block error disguised as something else.
-                    # The TelegramForbiddenError should catch most block cases.
+                        logging.warning(f"Sent text-only message to user {telegram_id} (image fetch failed)")
+                elif text:
+                    await bot.send_message(chat_id=telegram_id, text=text, reply_markup=reply_markup)
+                    logging.info(f"Sent text message to user {telegram_id}")
 
+            except TelegramForbiddenError:
+                logging.warning(f"User {telegram_id} has blocked the bot. Marking as blocked.")
+                await api_client.update_user_status(telegram_id, {"bot_is_blocked_by_user": True})
+            except Exception as e:
+                logging.error(f"Failed to process message for user {telegram_id}: {e}")
 
         except asyncio.CancelledError:
             logging.info("Redis listener task cancelled.")
             break
         except Exception as e:
-            logging.exception("Error in Redis listener")
-            await asyncio.sleep(5) # Avoid spamming logs on persistent errors
+            logging.exception("Error in Redis listener main loop")
+            await asyncio.sleep(5)
 
 async def main():
     setup_logging()

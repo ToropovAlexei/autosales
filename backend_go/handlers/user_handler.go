@@ -141,7 +141,7 @@ type registerBotUserPayload struct {
 // @Accept       json
 // @Produce      json
 // @Param        user body registerBotUserPayload true "User Telegram ID and Bot Name"
-// @Success      201 {object} responses.ResponseSchema[responses.RegisterBotUserResponse]
+// @Success      201 {object} responses.ResponseSchema[object]
 // @Failure      400 {object} responses.ErrorResponseSchema
 // @Failure      500 {object} responses.ErrorResponseSchema
 // @Router       /users/register [post]
@@ -153,22 +153,10 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 		return
 	}
 
-	user, balance, isNew, _, err := h.userService.RegisterBotUser(json.TelegramID, json.BotName)
+	user, isNew, hasPassedCaptcha, err := h.userService.RegisterBotUser(json.TelegramID, json.BotName)
 	if err != nil {
 		c.Error(err)
 		return
-	}
-
-	userResponse := models.BotUserResponse{
-		ID:                 user.ID,
-		TelegramID:         user.TelegramID,
-		IsBlocked:          user.IsBlocked,
-		HasPassedCaptcha:   user.HasPassedCaptcha,
-		Balance:            balance,
-		RegisteredWithBot:  user.RegisteredWithBot,
-		LastSeenWithBot:    user.LastSeenWithBot,
-		LastSeenAt:         user.LastSeenAt,
-		BotIsBlockedByUser: user.BotIsBlockedByUser,
 	}
 
 	status := http.StatusOK
@@ -176,7 +164,17 @@ func (h *UserHandler) RegisterBotUserHandler(c *gin.Context) {
 		status = http.StatusCreated
 	}
 
-	responses.SuccessResponse(c, status, userResponse)
+	response := struct {
+		models.BotUser
+		IsNew            bool `json:"is_new"`
+		HasPassedCaptcha bool `json:"has_passed_captcha"`
+	}{
+		BotUser:          *user,
+		IsNew:            isNew,
+		HasPassedCaptcha: hasPassedCaptcha,
+	}
+
+	responses.SuccessResponse(c, status, response)
 }
 
 // @Summary      Get User Balance
@@ -425,25 +423,13 @@ func (h *UserHandler) GetBotUserHandler(c *gin.Context) {
 		return
 	}
 
-	user, balance, err := h.userService.GetBotUserByTelegramID(id, botName)
+	user, err := h.userService.GetBotUserByTelegramID(id, botName)
 	if err != nil {
 		c.Error(err)
 		return
 	}
 
-	response := models.BotUserResponse{
-		ID:                 user.ID,
-		TelegramID:         user.TelegramID,
-		IsBlocked:          user.IsBlocked,
-		HasPassedCaptcha:   user.HasPassedCaptcha,
-		Balance:            balance,
-		RegisteredWithBot:  user.RegisteredWithBot,
-		LastSeenWithBot:    user.LastSeenWithBot,
-		LastSeenAt:         user.LastSeenAt,
-		BotIsBlockedByUser: user.BotIsBlockedByUser,
-	}
-
-	responses.SuccessResponse(c, http.StatusOK, response)
+	responses.SuccessResponse(c, http.StatusOK, user)
 }
 
 // @Summary      Toggle Block Status of a Bot User

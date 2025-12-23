@@ -25,7 +25,7 @@ func BotUserAuthMiddleware(userService services.UserService) gin.HandlerFunc {
 			return
 		}
 
-		botUser, _, err := userService.GetBotUserByTelegramID(telegramID, "") // botName is not used here
+		botUser, err := userService.GetBotUserByTelegramID(telegramID, "") // botName is not used here
 		if err != nil {
 			c.Error(apperrors.New(http.StatusUnauthorized, "Bot user not found", err))
 			c.Abort()

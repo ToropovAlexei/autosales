@@ -1,8 +1,6 @@
 package responses
 
 import (
-	"frbktg/backend_go/models"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -29,12 +27,6 @@ type TokenResponse struct {
 
 type MessageResponse struct {
 	Message string `json:"message"`
-}
-
-type RegisterBotUserResponse struct {
-	User             models.BotUserResponse `json:"user"`
-	IsNew            bool                   `json:"is_new"`
-	HasPassedCaptcha bool                   `json:"has_passed_captcha"`
 }
 
 type BalanceResponse struct {
