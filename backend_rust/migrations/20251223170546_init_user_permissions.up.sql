@@ -12,7 +12,7 @@ CREATE TABLE user_permissions (
 
 ALTER TABLE user_permissions
     ADD CONSTRAINT fk_user_permissions_user
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES admin_users(id) ON DELETE CASCADE,
     ADD CONSTRAINT fk_user_permissions_permission
         FOREIGN KEY (permission_id) REFERENCES permissions(id) ON DELETE CASCADE;
 
