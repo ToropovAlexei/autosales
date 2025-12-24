@@ -41,3 +41,9 @@ pub fn init_tracing() {
         .with(tracing_subscriber::fmt::layer().with_writer(std::io::stdout))
         .init();
 }
+
+/// Run database migrations
+pub async fn run_migrations(pool: &sqlx::PgPool) -> Result<(), sqlx::migrate::MigrateError> {
+    tracing::info!("Running database migrations");
+    sqlx::migrate!("./migrations").run(pool).await
+}

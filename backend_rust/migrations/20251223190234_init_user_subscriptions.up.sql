@@ -1,6 +1,6 @@
 CREATE TABLE user_subscriptions (
     id BIGSERIAL PRIMARY KEY,
-    bot_user_id BIGINT NOT NULL,
+    customer_id BIGINT NOT NULL,
     product_id BIGINT,
     order_id BIGINT NOT NULL,
 
@@ -21,7 +21,7 @@ CREATE TABLE user_subscriptions (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
     CONSTRAINT fk_user_subscriptions_bot_user
-        FOREIGN KEY (bot_user_id) REFERENCES bot_users(id) ON DELETE RESTRICT,
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT,
     CONSTRAINT fk_user_subscriptions_product
         FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE SET NULL,
     CONSTRAINT fk_user_subscriptions_order
@@ -35,7 +35,7 @@ CREATE TABLE user_subscriptions (
         CHECK (next_charge_at IS NULL OR next_charge_at >= expires_at)
 );
 
-CREATE INDEX IF NOT EXISTS idx_user_subscriptions_bot_user_id ON user_subscriptions (bot_user_id);
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_customer_id ON user_subscriptions (customer_id);
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_expires_at ON user_subscriptions (expires_at);
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_active ON user_subscriptions (expires_at)
     WHERE cancelled_at IS NULL AND expires_at > NOW();

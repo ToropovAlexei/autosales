@@ -21,7 +21,7 @@ CREATE TABLE audit_logs (
     id BIGSERIAL PRIMARY KEY,
 
     admin_user_id BIGINT,
-    bot_user_id BIGINT,
+    customer_id BIGINT,
 
     action audit_action NOT NULL,
     status audit_status NOT NULL DEFAULT 'success',
@@ -41,9 +41,9 @@ CREATE TABLE audit_logs (
 
     CONSTRAINT chk_user_exclusive
         CHECK (
-            (admin_user_id IS NOT NULL AND bot_user_id IS NULL) OR
-            (admin_user_id IS NULL AND bot_user_id IS NOT NULL) OR
-            (admin_user_id IS NULL AND bot_user_id IS NULL)
+            (admin_user_id IS NOT NULL AND customer_id IS NULL) OR
+            (admin_user_id IS NULL AND customer_id IS NOT NULL) OR
+            (admin_user_id IS NULL AND customer_id IS NULL)
         ),
     CONSTRAINT chk_values_consistency
         CHECK (
@@ -55,7 +55,7 @@ CREATE TABLE audit_logs (
 );
 
 CREATE INDEX IF NOT EXISTS idx_audit_logs_admin_user ON audit_logs (admin_user_id) WHERE admin_user_id IS NOT NULL;
-CREATE INDEX IF NOT EXISTS idx_audit_logs_bot_user ON audit_logs (bot_user_id) WHERE bot_user_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_audit_logs_bot_user ON audit_logs (customer_id) WHERE customer_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs (action);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_status ON audit_logs (status);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_target ON audit_logs (target_table, target_id);

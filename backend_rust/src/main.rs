@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use backend_rust::{config::Config, create_app, db::Database, init_tracing, state::AppState};
+use backend_rust::{
+    config::Config, create_app, db::Database, init_tracing, run_migrations, state::AppState,
+};
 use tokio::signal;
 
 #[tokio::main]
@@ -16,6 +18,7 @@ async fn main() -> anyhow::Result<()> {
         config.database_name,
     ))
     .await;
+    run_migrations(&pool.pool).await?;
     let app_state = Arc::new(AppState::new(pool, config.clone()));
     let app = create_app(app_state.clone());
 

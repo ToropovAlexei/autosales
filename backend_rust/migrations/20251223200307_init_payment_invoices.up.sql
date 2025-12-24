@@ -8,7 +8,7 @@ CREATE TYPE invoice_status AS ENUM (
 
 CREATE TABLE payment_invoices (
     id BIGSERIAL PRIMARY KEY,
-    bot_user_id BIGINT NOT NULL,
+    customer_id BIGINT NOT NULL,
 
     original_amount NUMERIC(12,2) NOT NULL CHECK (original_amount > 0),
     amount NUMERIC(12,2) NOT NULL CHECK (amount >= original_amount),
@@ -30,10 +30,10 @@ CREATE TABLE payment_invoices (
     notification_sent_at TIMESTAMPTZ,
 
     CONSTRAINT fk_payment_invoices_bot_user
-        FOREIGN KEY (bot_user_id) REFERENCES bot_users(id) ON DELETE RESTRICT
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT
 );
 
-CREATE INDEX IF NOT EXISTS idx_payment_invoices_bot_user_id ON payment_invoices (bot_user_id);
+CREATE INDEX IF NOT EXISTS idx_payment_invoices_customer_id ON payment_invoices (customer_id);
 CREATE INDEX IF NOT EXISTS idx_payment_invoices_deleted_at ON payment_invoices (deleted_at) WHERE deleted_at IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_payment_invoices_gateway ON payment_invoices (gateway);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_payment_invoices_gateway_invoice_id ON payment_invoices (gateway, gateway_invoice_id);

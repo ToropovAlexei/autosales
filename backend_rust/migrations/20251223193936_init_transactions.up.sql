@@ -9,7 +9,7 @@ CREATE TYPE transaction_type AS ENUM (
 
 CREATE TABLE transactions (
     id BIGSERIAL PRIMARY KEY,
-    user_id BIGINT,
+    customer_id BIGINT,
     order_id BIGINT,
 
     type transaction_type NOT NULL,
@@ -28,21 +28,21 @@ CREATE TABLE transactions (
     details JSONB,
 
     CONSTRAINT fk_transactions_user
-        FOREIGN KEY (user_id) REFERENCES bot_users(id) ON DELETE SET NULL,
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
     CONSTRAINT fk_transactions_order
         FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
 
     CONSTRAINT chk_user_balance_requires_user
-        CHECK (user_id IS NOT NULL = (user_balance_after IS NOT NULL))
+        CHECK (customer_id IS NOT NULL = (user_balance_after IS NOT NULL))
 );
 
-CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions (user_id);
+CREATE INDEX IF NOT EXISTS idx_transactions_customer_id ON transactions (customer_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_order_id ON transactions (order_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_type ON transactions (type);
 CREATE INDEX IF NOT EXISTS idx_transactions_created_at ON transactions (created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_last_balance
-    ON transactions (user_id, id DESC) INCLUDE (user_balance_after)
-    WHERE user_id IS NOT NULL;
+    ON transactions (customer_id, id DESC) INCLUDE (user_balance_after)
+    WHERE customer_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_transactions_store_last_balance
     ON transactions (id DESC) INCLUDE (store_balance_after);
 
@@ -52,11 +52,11 @@ DECLARE
     last_user_balance NUMERIC(12,2) := 0;
     last_store_balance NUMERIC(12,2) := 0;
 BEGIN
-    IF NEW.user_id IS NOT NULL THEN
+    IF NEW.customer_id IS NOT NULL THEN
         SELECT COALESCE(user_balance_after, 0)
         INTO last_user_balance
         FROM transactions
-        WHERE user_id = NEW.user_id
+        WHERE customer_id = NEW.customer_id
         ORDER BY id DESC
         LIMIT 1;
         NEW.user_balance_after := last_user_balance + NEW.amount;
@@ -81,12 +81,12 @@ CREATE TRIGGER trigger_calculate_balances
 CREATE OR REPLACE FUNCTION update_bot_user_balance()
 RETURNS TRIGGER AS $$
 BEGIN
-    IF NEW.user_id IS NOT NULL THEN
-        UPDATE bot_users
+    IF NEW.customer_id IS NOT NULL THEN
+        UPDATE customers
         SET 
             balance = NEW.user_balance_after,
             updated_at = NOW()
-        WHERE id = NEW.user_id;
+        WHERE id = NEW.customer_id;
     END IF;
 
     RETURN NEW;
