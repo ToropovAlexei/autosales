@@ -17,11 +17,10 @@ CREATE TABLE categories (
     CONSTRAINT fk_categories_image
         FOREIGN KEY (image_id) REFERENCES images(id) ON DELETE SET NULL,
     CONSTRAINT fk_categories_created_by
-        FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE RESTRICT,
+        FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE RESTRICT
 );
 
 CREATE INDEX IF NOT EXISTS idx_categories_parent_id ON categories (parent_id);
-CREATE INDEX IF NOT EXISTS idx_categories_slug ON categories (slug);
 CREATE INDEX IF NOT EXISTS idx_categories_is_active ON categories (is_active);
 CREATE INDEX IF NOT EXISTS idx_categories_position ON categories (parent_id, position);
 
