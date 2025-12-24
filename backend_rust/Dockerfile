@@ -13,7 +13,7 @@ RUN cargo build --release
 FROM debian:bookworm-slim
 
 RUN apt-get update \
-  && apt-get install --no-install-recommends -y ca-certificates \
+  && apt-get install --no-install-recommends -y ca-certificates curl \
   && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /app/target/release/backend_rust /usr/local/bin/backend_rust

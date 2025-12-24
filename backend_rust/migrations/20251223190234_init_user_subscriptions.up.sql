@@ -37,8 +37,6 @@ CREATE TABLE user_subscriptions (
 
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_customer_id ON user_subscriptions (customer_id);
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_expires_at ON user_subscriptions (expires_at);
-CREATE INDEX IF NOT EXISTS idx_user_subscriptions_active ON user_subscriptions (expires_at)
-    WHERE cancelled_at IS NULL AND expires_at > NOW();
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_order_id ON user_subscriptions (order_id);
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_product_id ON user_subscriptions (product_id);
 

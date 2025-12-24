@@ -23,7 +23,7 @@ CREATE TABLE audit_logs (
     admin_user_id BIGINT,
     customer_id BIGINT,
 
-    action audit_action NOT NULL,
+    "action" audit_action NOT NULL,
     status audit_status NOT NULL DEFAULT 'success',
 
     target_table TEXT NOT NULL,
@@ -44,13 +44,6 @@ CREATE TABLE audit_logs (
             (admin_user_id IS NOT NULL AND customer_id IS NULL) OR
             (admin_user_id IS NULL AND customer_id IS NOT NULL) OR
             (admin_user_id IS NULL AND customer_id IS NULL)
-        ),
-    CONSTRAINT chk_values_consistency
-        CHECK (
-            (action LIKE '%_create' AND old_values IS NULL) OR
-            (action LIKE '%_delete' AND new_values IS NULL) OR
-            (action LIKE '%_update' AND old_values IS NOT NULL AND new_values IS NOT NULL) OR
-            (action IN ('user_login', 'user_logout', 'bot_start') AND old_values IS NULL AND new_values IS NULL)
         )
 );
 
@@ -60,4 +53,4 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_action ON audit_logs (action);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_status ON audit_logs (status);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_target ON audit_logs (target_table, target_id);
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON audit_logs (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_audit_logs_ip ON audit_logs USING GIN (ip_address inet_ops);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_ip ON audit_logs USING GiST (ip_address inet_ops);
