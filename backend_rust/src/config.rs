@@ -14,7 +14,7 @@ pub struct Config {
 
 impl Config {
     pub fn from_env() -> Self {
-        dotenv().expect("Failed to load .env file");
+        dotenv().ok();
         envy::from_env::<Config>().expect("Failed to load config from environment variables")
     }
 }

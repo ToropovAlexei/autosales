@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::{Router, http::HeaderValue};
+use axum::{Router, http::HeaderValue, routing::get};
 use tower_http::cors::CorsLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
@@ -9,6 +9,10 @@ use crate::state::AppState;
 pub mod config;
 pub mod db;
 pub mod state;
+
+pub async fn healthz() -> &'static str {
+    "healthy"
+}
 
 pub fn create_app(app_state: Arc<AppState>) -> Router {
     use axum::http::Method;
@@ -33,7 +37,7 @@ pub fn create_app(app_state: Arc<AppState>) -> Router {
         .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
         .allow_credentials(true);
 
-    Router::new().layer(cors)
+    Router::new().route("/healthz", get(healthz)).layer(cors)
 }
 
 pub fn init_tracing() {
