@@ -1,4 +1,4 @@
-use sqlx::{PgPool, postgres::PgPoolOptions};
+use sqlx::{postgres::PgPoolOptions, PgPool};
 
 #[derive(Clone)]
 pub struct Database {
@@ -13,5 +13,9 @@ impl Database {
             .await
             .expect("Failed to create Postgres pool.");
         Self { pool }
+    }
+
+    pub fn get_pool(&self) -> &PgPool {
+        &self.pool
     }
 }

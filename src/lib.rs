@@ -1,37 +1,37 @@
-pub mod config;
-pub mod db;
-pub mod errors;
-pub mod infrastructure;
-pub mod middlewares;
-pub mod models;
-pub mod presentation;
-pub mod services;
-pub mod state;
-
+// Temporary comment to force re-evaluation
 use std::sync::Arc;
 
-use axum::{Router, http, routing::get};
+use axum::{
+    http::{header, HeaderValue, Method},
+    routing::get,
+    Router,
+};
 use tower_http::cors::CorsLayer;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
-use crate::state::AppState;
+use crate::{api::v1, state::AppState};
+
+pub mod api;
+pub mod config;
+pub mod db;
+pub mod errors;
+pub mod models;
+pub mod repositories;
+pub mod services;
+pub mod state;
 
 pub async fn healthz() -> &'static str {
     "healthy"
 }
 
 pub fn create_app(app_state: Arc<AppState>) -> Router {
-    use axum::http::Method;
-    use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
-
     let cors = CorsLayer::new()
-        // .allow_origin(Any)
         .allow_origin(
             app_state
                 .config
                 .cors_origins
-                .parse::<http::HeaderValue>()
-                .unwrap(),
+                .parse::<HeaderValue>()
+                .expect("Invalid CORS origin"),
         )
         .allow_methods([
             Method::GET,
@@ -41,14 +41,16 @@ pub fn create_app(app_state: Arc<AppState>) -> Router {
             Method::PATCH,
             Method::OPTIONS,
         ])
-        .allow_headers([AUTHORIZATION, ACCEPT, CONTENT_TYPE])
+        .allow_headers([header::AUTHORIZATION, header::ACCEPT, header::CONTENT_TYPE])
         .allow_credentials(true);
+
+    let api_v1_routes = Router::new().nest("/categories", v1::category::category_routes());
 
     Router::new()
         .route("/healthz", get(healthz))
-        .merge(presentation::handlers::category::router())
-        .layer(cors)
+        .nest("/api/v1", api_v1_routes)
         .with_state(app_state)
+        .layer(cors)
 }
 
 pub fn init_tracing() {

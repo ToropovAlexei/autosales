@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     config::{self, Config},
     db,
@@ -11,6 +13,7 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(db: db::Database, config: Config) -> Self {
+        let db_pool = Arc::new(db.get_pool().clone());
         Self { db, config }
     }
 }
