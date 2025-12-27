@@ -9,8 +9,8 @@ pub enum TemporaryTokenPurpose {
     PasswordReset,
 }
 
-#[derive(FromRow)]
-pub struct TemporaryToken {
+#[derive(Debug, FromRow)]
+pub struct TemporaryTokenRow {
     pub token: Uuid,
     pub user_id: i64,
     pub purpose: TemporaryTokenPurpose,

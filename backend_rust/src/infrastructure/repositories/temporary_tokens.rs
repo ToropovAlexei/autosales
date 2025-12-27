@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use crate::{
     errors::repository::RepositoryResult,
-    models::temporary_token::{TemporaryToken, TemporaryTokenPurpose},
+    models::temporary_token::{TemporaryTokenPurpose, TemporaryTokenRow},
 };
 
 #[async_trait]
@@ -22,7 +22,7 @@ pub trait TemporaryTokenRepositoryTrait {
         &self,
         token: &Uuid,
         purpose: TemporaryTokenPurpose,
-    ) -> RepositoryResult<Option<TemporaryToken>>;
+    ) -> RepositoryResult<Option<TemporaryTokenRow>>;
     async fn mark_as_used(&self, token: &Uuid) -> RepositoryResult<bool>;
     async fn delete_expired(&self) -> RepositoryResult<u64>;
 }
@@ -66,9 +66,9 @@ impl TemporaryTokenRepositoryTrait for TemporaryTokenRepository {
         &self,
         token: &Uuid,
         purpose: TemporaryTokenPurpose,
-    ) -> RepositoryResult<Option<TemporaryToken>> {
+    ) -> RepositoryResult<Option<TemporaryTokenRow>> {
         let res = sqlx::query_as!(
-            TemporaryToken,
+            TemporaryTokenRow,
             r#"
             SELECT token, user_id, purpose as "purpose: _", expires_at, created_at, used_at
             FROM temporary_tokens
