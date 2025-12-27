@@ -1,11 +1,13 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use ts_rs::TS;
 use uuid::Uuid;
 use validator::Validate;
 
 use crate::models::category::CategoryRow;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS)]
+#[ts(export, export_to = "category.ts", rename = "Category")]
 pub struct CategoryResponse {
     pub id: i64,
     pub name: String,
@@ -34,7 +36,8 @@ impl From<CategoryRow> for CategoryResponse {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS)]
+#[ts(export, export_to = "category.ts", rename = "NewCategory")]
 pub struct NewCategoryRequest {
     #[validate(length(
         min = 2,
@@ -46,7 +49,8 @@ pub struct NewCategoryRequest {
     pub image_id: Option<Uuid>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Validate)]
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS)]
+#[ts(export, export_to = "category.ts", rename = "UpdateCategory")]
 pub struct UpdateCategoryRequest {
     #[validate(length(
         min = 2,
