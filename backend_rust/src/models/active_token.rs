@@ -4,7 +4,7 @@ use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize)]
-#[sqlx(type_name = "token_type", rename_all = "lowercase")]
+#[sqlx(type_name = "token_type", rename_all = "snake_case")]
 pub enum TokenType {
     Refresh,
     Access,
