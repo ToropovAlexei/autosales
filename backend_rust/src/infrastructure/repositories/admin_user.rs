@@ -31,9 +31,12 @@ impl AdminUserRepository {
 #[async_trait]
 impl AdminUserRepositoryTrait for AdminUserRepository {
     async fn get_list(&self) -> RepositoryResult<Vec<AdminUserRow>> {
-        let result = sqlx::query_as!(AdminUserRow, "SELECT * FROM admin_users")
-            .fetch_all(&*self.pool)
-            .await?;
+        let result = sqlx::query_as!(
+            AdminUserRow,
+            "SELECT * FROM admin_users WHERE deleted_at IS NULL"
+        )
+        .fetch_all(&*self.pool)
+        .await?;
         Ok(result)
     }
 
@@ -58,9 +61,13 @@ impl AdminUserRepositoryTrait for AdminUserRepository {
     }
 
     async fn get_by_id(&self, id: i64) -> RepositoryResult<AdminUserRow> {
-        let result = sqlx::query_as!(AdminUserRow, "SELECT * FROM admin_users WHERE id = $1", id)
-            .fetch_one(&*self.pool)
-            .await?;
+        let result = sqlx::query_as!(
+            AdminUserRow,
+            "SELECT * FROM admin_users WHERE id = $1 AND deleted_at IS NULL",
+            id
+        )
+        .fetch_one(&*self.pool)
+        .await?;
 
         Ok(result)
     }
@@ -91,7 +98,7 @@ impl AdminUserRepositoryTrait for AdminUserRepository {
 
         query_builder.push(" WHERE id = ");
         query_builder.push_bind(id);
-        query_builder.push(" RETURNING *");
+        query_builder.push(" AND deleted_at IS NULL RETURNING *");
 
         let query = query_builder.build_query_as::<AdminUserRow>();
 
@@ -102,9 +109,12 @@ impl AdminUserRepositoryTrait for AdminUserRepository {
     }
 
     async fn delete(&self, id: i64) -> RepositoryResult<()> {
-        sqlx::query!("DELETE FROM admin_users WHERE id = $1", id)
-            .execute(&*self.pool)
-            .await?;
+        sqlx::query!(
+            "UPDATE admin_users SET deleted_at = NOW() WHERE id = $1",
+            id
+        )
+        .execute(&*self.pool)
+        .await?;
         Ok(())
     }
 }
