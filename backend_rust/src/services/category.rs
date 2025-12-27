@@ -41,9 +41,9 @@ impl CategoryServiceTrait for CategoryService<CategoryRepository> {
 
     async fn create(&self, category: NewCategory) -> ApiResult<CategoryRow> {
         if let Some(parent_id) = category.parent_id {
-            let parent = self.repo.get_by_id(parent_id).await?;
+            let parent = self.repo.get_by_id(parent_id).await;
 
-            if parent.is_none() {
+            if parent.is_err() {
                 return Err(ApiError::BadRequest(
                     "Parent category does not exist".to_string(),
                 ));
@@ -56,10 +56,8 @@ impl CategoryServiceTrait for CategoryService<CategoryRepository> {
     }
 
     async fn get_by_id(&self, id: i64) -> ApiResult<CategoryRow> {
-        self.repo
-            .get_by_id(id)
-            .await?
-            .ok_or(ApiError::NotFound(format!("Item {id} not found")))
+        let res = self.repo.get_by_id(id).await?;
+        Ok(res)
     }
 
     async fn update(&self, id: i64, category: UpdateCategory) -> ApiResult<CategoryRow> {
@@ -80,9 +78,9 @@ impl CategoryServiceTrait for CategoryService<CategoryRepository> {
                     "Cannot set parent to self".to_string(),
                 ));
             }
-            let parent = self.repo.get_by_id(new_parent_id).await?;
+            let parent = self.repo.get_by_id(new_parent_id).await;
 
-            if parent.is_none() {
+            if parent.is_err() {
                 return Err(ApiError::BadRequest(
                     "Parent category does not exist".to_string(),
                 ));

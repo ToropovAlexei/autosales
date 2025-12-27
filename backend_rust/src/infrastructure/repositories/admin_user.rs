@@ -12,7 +12,7 @@ use crate::{
 pub trait AdminUserRepositoryTrait {
     async fn get_list(&self) -> RepositoryResult<Vec<AdminUserRow>>;
     async fn create(&self, admin_user: NewAdminUser) -> RepositoryResult<AdminUserRow>;
-    async fn get_by_id(&self, id: i64) -> RepositoryResult<Option<AdminUserRow>>;
+    async fn get_by_id(&self, id: i64) -> RepositoryResult<AdminUserRow>;
     async fn update(&self, id: i64, admin_user: UpdateAdminUser) -> RepositoryResult<AdminUserRow>;
     async fn delete(&self, id: i64) -> RepositoryResult<()>;
 }
@@ -57,9 +57,9 @@ impl AdminUserRepositoryTrait for AdminUserRepository {
         Ok(result)
     }
 
-    async fn get_by_id(&self, id: i64) -> RepositoryResult<Option<AdminUserRow>> {
+    async fn get_by_id(&self, id: i64) -> RepositoryResult<AdminUserRow> {
         let result = sqlx::query_as!(AdminUserRow, "SELECT * FROM admin_users WHERE id = $1", id)
-            .fetch_optional(&*self.pool)
+            .fetch_one(&*self.pool)
             .await?;
 
         Ok(result)

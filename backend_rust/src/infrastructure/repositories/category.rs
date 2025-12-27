@@ -12,7 +12,7 @@ use crate::{
 pub trait CategoryRepositoryTrait {
     async fn get_list(&self) -> RepositoryResult<Vec<CategoryRow>>;
     async fn create(&self, category: NewCategory) -> RepositoryResult<CategoryRow>;
-    async fn get_by_id(&self, id: i64) -> RepositoryResult<Option<CategoryRow>>;
+    async fn get_by_id(&self, id: i64) -> RepositoryResult<CategoryRow>;
     async fn update(&self, id: i64, category: UpdateCategory) -> RepositoryResult<CategoryRow>;
     async fn delete(&self, id: i64) -> RepositoryResult<()>;
     async fn get_by_parent_id(&self, parent_id: i64) -> RepositoryResult<Vec<CategoryRow>>;
@@ -60,9 +60,9 @@ impl CategoryRepositoryTrait for CategoryRepository {
         Ok(result)
     }
 
-    async fn get_by_id(&self, id: i64) -> RepositoryResult<Option<CategoryRow>> {
+    async fn get_by_id(&self, id: i64) -> RepositoryResult<CategoryRow> {
         let result = sqlx::query_as!(CategoryRow, "SELECT * FROM categories WHERE id = $1", id)
-            .fetch_optional(&*self.pool)
+            .fetch_one(&*self.pool)
             .await?;
 
         Ok(result)
