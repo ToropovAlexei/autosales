@@ -1,13 +1,18 @@
-use axum::{extract::FromRequestParts, http::request::Parts};
+use std::sync::Arc;
+
+use axum::{
+    extract::{FromRequest, FromRequestParts, Request},
+    http::request::Parts,
+};
 
 use crate::{errors::api::ApiError, services::auth::AuthUser, state::AppState};
 
-impl FromRequestParts<AppState> for AuthUser {
+impl FromRequestParts<Arc<AppState>> for AuthUser {
     type Rejection = ApiError;
 
     async fn from_request_parts(
         parts: &mut Parts,
-        state: &AppState,
+        state: &Arc<AppState>,
     ) -> Result<Self, Self::Rejection> {
         let auth_header = parts
             .headers
@@ -28,5 +33,18 @@ impl FromRequestParts<AppState> for AuthUser {
             .authenticate(token)
             .await
             .map_err(|e| ApiError::AuthenticationError(e.to_string()))
+    }
+}
+
+impl<S> FromRequest<S> for AuthUser
+where
+    S: Send + Sync,
+    AuthUser: FromRequestParts<S>,
+{
+    type Rejection = <AuthUser as FromRequestParts<S>>::Rejection;
+
+    async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
+        let (mut parts, _) = req.into_parts();
+        AuthUser::from_request_parts(&mut parts, state).await
     }
 }

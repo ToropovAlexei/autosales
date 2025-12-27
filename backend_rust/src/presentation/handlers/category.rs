@@ -1,4 +1,4 @@
-use axum::http;
+use axum::http::StatusCode;
 use std::sync::Arc;
 
 use axum::{
@@ -8,8 +8,11 @@ use axum::{
 };
 
 use crate::{
+    errors::api::ApiResult,
     middlewares::validator::ValidatedJson,
+    models::category::{NewCategory, UpdateCategory},
     presentation::dtos::category::{CategoryResponse, NewCategoryRequest, UpdateCategoryRequest},
+    services::{auth::AuthUser, category::CategoryServiceTrait},
     state::AppState,
 };
 
@@ -26,33 +29,26 @@ pub fn router() -> Router<Arc<AppState>> {
 
 async fn create_category(
     State(state): State<Arc<AppState>>,
+    user: AuthUser,
     ValidatedJson(payload): ValidatedJson<NewCategoryRequest>,
-) -> Result<Json<CategoryResponse>, http::StatusCode> {
-    //
-    // TODO: get user from context
-    let created_by = 1;
+) -> ApiResult<Json<CategoryResponse>> {
     let category = state
         .category_service
-        .create(
-            payload.name,
-            payload.parent_id,
-            payload.image_id,
-            created_by,
-        )
-        .await
-        .map_err(|_| http::StatusCode::INTERNAL_SERVER_ERROR)?;
+        .create(NewCategory {
+            created_by: user.id,
+            image_id: payload.image_id,
+            name: payload.name,
+            parent_id: payload.parent_id,
+        })
+        .await?;
 
     Ok(Json(category.into()))
 }
 
 async fn list_categories(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<Vec<CategoryResponse>>, http::StatusCode> {
-    let categories = state
-        .category_service
-        .get_all()
-        .await
-        .map_err(|_| http::StatusCode::INTERNAL_SERVER_ERROR)?;
+) -> ApiResult<Json<Vec<CategoryResponse>>> {
+    let categories = state.category_service.get_list().await?;
 
     let categories_dto = categories.into_iter().map(CategoryResponse::from).collect();
 
@@ -62,38 +58,30 @@ async fn list_categories(
 async fn get_category(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
-) -> Result<Json<CategoryResponse>, http::StatusCode> {
-    let category = state
-        .category_service
-        .get_by_id(id)
-        .await
-        .map_err(|_| http::StatusCode::INTERNAL_SERVER_ERROR)?;
+) -> ApiResult<Json<CategoryResponse>> {
+    let category = state.category_service.get_by_id(id).await?;
 
-    match category {
-        Some(category) => Ok(Json(category.into())),
-        None => Err(http::StatusCode::NOT_FOUND),
-    }
+    Ok(Json(CategoryResponse::from(category)))
 }
 
 async fn update_category(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
+    _user: AuthUser,
     ValidatedJson(payload): ValidatedJson<UpdateCategoryRequest>,
-) -> Result<Json<CategoryResponse>, http::StatusCode> {
-    // TODO: get user from context
-    let created_by = 1;
-
+) -> ApiResult<Json<CategoryResponse>> {
     let category = state
         .category_service
         .update(
             id,
-            payload.name,
-            payload.parent_id,
-            payload.image_id,
-            created_by,
+            UpdateCategory {
+                image_id: payload.image_id,
+                name: payload.name,
+                parent_id: payload.parent_id,
+                position: payload.position,
+            },
         )
-        .await
-        .map_err(|_| http::StatusCode::INTERNAL_SERVER_ERROR)?;
+        .await?;
 
     Ok(Json(category.into()))
 }
@@ -101,12 +89,8 @@ async fn update_category(
 async fn delete_category(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
-) -> Result<(), http::StatusCode> {
-    state
-        .category_service
-        .delete(id)
-        .await
-        .map_err(|_| http::StatusCode::INTERNAL_SERVER_ERROR)?;
+) -> ApiResult<StatusCode> {
+    state.category_service.delete(id).await?;
 
-    Ok(())
+    Ok(StatusCode::NO_CONTENT)
 }

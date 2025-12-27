@@ -15,6 +15,7 @@ pub trait CategoryRepositoryTrait {
     async fn get_by_id(&self, id: i64) -> RepositoryResult<Option<CategoryRow>>;
     async fn update(&self, id: i64, category: UpdateCategory) -> RepositoryResult<CategoryRow>;
     async fn delete(&self, id: i64) -> RepositoryResult<()>;
+    async fn get_by_parent_id(&self, parent_id: i64) -> RepositoryResult<Vec<CategoryRow>>;
 }
 
 #[derive(Clone)]
@@ -107,5 +108,17 @@ impl CategoryRepositoryTrait for CategoryRepository {
             .execute(&*self.pool)
             .await?;
         Ok(())
+    }
+
+    async fn get_by_parent_id(&self, parent_id: i64) -> RepositoryResult<Vec<CategoryRow>> {
+        let result = sqlx::query_as!(
+            CategoryRow,
+            "SELECT * FROM categories WHERE parent_id = $1 ORDER BY position ASC",
+            parent_id
+        )
+        .fetch_all(&*self.pool)
+        .await?;
+
+        Ok(result)
     }
 }
