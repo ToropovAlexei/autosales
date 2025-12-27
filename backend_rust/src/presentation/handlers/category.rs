@@ -20,7 +20,7 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/categories", post(create_category).get(list_categories))
         .route(
-            "/categories/:id",
+            "/categories/{id}",
             get(get_category)
                 .patch(update_category)
                 .delete(delete_category),
