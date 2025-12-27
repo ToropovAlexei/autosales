@@ -61,9 +61,6 @@ impl CategoryServiceTrait for CategoryService<CategoryRepository> {
     }
 
     async fn update(&self, id: i64, category: UpdateCategory) -> ApiResult<CategoryRow> {
-        // Check if category exists
-        let _current = self.get_by_id(id).await?;
-
         if let Some(ref name) = category.name
             && name.trim().is_empty()
         {
