@@ -66,12 +66,12 @@ impl CategoryServiceTrait for CategoryService<CategoryRepository> {
         // Check if category exists
         let _current = self.get_by_id(id).await?;
 
-        if let Some(ref name) = category.name {
-            if name.trim().is_empty() {
-                return Err(ApiError::BadRequest(
-                    "Category name cannot be empty or whitespace only".to_string(),
-                ));
-            }
+        if let Some(ref name) = category.name
+            && name.trim().is_empty()
+        {
+            return Err(ApiError::BadRequest(
+                "Category name cannot be empty or whitespace only".to_string(),
+            ));
         }
 
         if let Some(Some(new_parent_id)) = category.parent_id {
@@ -95,7 +95,7 @@ impl CategoryServiceTrait for CategoryService<CategoryRepository> {
     }
 
     async fn delete(&self, id: i64) -> ApiResult<()> {
-        if self.repo.get_by_parent_id(id).await?.len() > 0 {
+        if !self.repo.get_by_parent_id(id).await?.is_empty() {
             return Err(ApiError::BadRequest(
                 "Cannot delete category with child categories".to_string(),
             ));
