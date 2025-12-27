@@ -27,6 +27,19 @@ pub fn router() -> Router<Arc<AppState>> {
         )
 }
 
+#[utoipa::path(
+    post,
+    path = "/categories",
+    tag = "Categories",
+    request_body = NewCategoryRequest,
+    responses(
+        (status = 200, description = "Category created", body = CategoryResponse),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn create_category(
     State(state): State<Arc<AppState>>,
     user: AuthUser,
@@ -45,6 +58,18 @@ async fn create_category(
     Ok(Json(category.into()))
 }
 
+#[utoipa::path(
+    get,
+    path = "/categories",
+    tag = "Categories",
+    responses(
+        (status = 200, description = "List of categories", body = Vec<CategoryResponse>),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn list_categories(
     State(state): State<Arc<AppState>>,
 ) -> ApiResult<Json<Vec<CategoryResponse>>> {
@@ -55,6 +80,18 @@ async fn list_categories(
     Ok(Json(categories_dto))
 }
 
+#[utoipa::path(
+    get,
+    path = "/categories/{id}",
+    tag = "Categories",
+    responses(
+        (status = 200, description = "Category details", body = CategoryResponse),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn get_category(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
@@ -64,6 +101,19 @@ async fn get_category(
     Ok(Json(CategoryResponse::from(category)))
 }
 
+#[utoipa::path(
+    patch,
+    path = "/categories/{id}",
+    tag = "Categories",
+    request_body = UpdateCategoryRequest,
+    responses(
+        (status = 200, description = "Category updated", body = CategoryResponse),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn update_category(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
@@ -86,6 +136,18 @@ async fn update_category(
     Ok(Json(category.into()))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/categories/{id}",
+    tag = "Categories",
+    responses(
+        (status = 204, description = "Category deleted"),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn delete_category(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
