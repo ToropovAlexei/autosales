@@ -10,6 +10,7 @@ pub struct Config {
     pub database_password: String,
     pub database_name: String,
     pub cors_origins: String,
+    pub jwt_secret: String,
 }
 
 impl Config {

@@ -6,8 +6,6 @@ use axum::{
     extract::{Path, State},
     routing::{get, post},
 };
-use serde::Deserialize;
-use uuid::Uuid;
 
 use crate::{
     middlewares::validator::ValidatedJson,
