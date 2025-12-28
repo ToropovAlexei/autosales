@@ -11,7 +11,9 @@ use crate::{
     errors::api::ApiResult,
     middlewares::validator::ValidatedJson,
     models::category::{NewCategory, UpdateCategory},
-    presentation::dtos::category::{CategoryResponse, NewCategoryRequest, UpdateCategoryRequest},
+    presentation::admin::dtos::category::{
+        CategoryResponse, NewCategoryRequest, UpdateCategoryRequest,
+    },
     services::{auth::AuthUser, category::CategoryServiceTrait},
     state::AppState,
 };
@@ -29,7 +31,7 @@ pub fn router() -> Router<Arc<AppState>> {
 
 #[utoipa::path(
     post,
-    path = "/categories",
+    path = "/api/admin/categories",
     tag = "Categories",
     request_body = NewCategoryRequest,
     responses(
@@ -60,7 +62,7 @@ async fn create_category(
 
 #[utoipa::path(
     get,
-    path = "/categories",
+    path = "/api/admin/categories",
     tag = "Categories",
     responses(
         (status = 200, description = "List of categories", body = Vec<CategoryResponse>),
@@ -82,7 +84,7 @@ async fn list_categories(
 
 #[utoipa::path(
     get,
-    path = "/categories/{id}",
+    path = "/api/admin/categories/{id}",
     tag = "Categories",
     responses(
         (status = 200, description = "Category details", body = CategoryResponse),
@@ -103,7 +105,7 @@ async fn get_category(
 
 #[utoipa::path(
     patch,
-    path = "/categories/{id}",
+    path = "/api/admin/categories/{id}",
     tag = "Categories",
     request_body = UpdateCategoryRequest,
     responses(
@@ -138,7 +140,7 @@ async fn update_category(
 
 #[utoipa::path(
     delete,
-    path = "/categories/{id}",
+    path = "/api/admin/categories/{id}",
     tag = "Categories",
     responses(
         (status = 204, description = "Category deleted"),

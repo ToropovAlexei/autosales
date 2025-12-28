@@ -1,2 +1,2 @@
-pub mod dtos;
-pub mod handlers;
+pub mod admin;
+pub mod bot;

@@ -5,7 +5,7 @@ use axum::{Json, Router, extract::State, routing::post};
 use crate::{
     errors::api::ApiResult,
     middlewares::validator::ValidatedJson,
-    presentation::dtos::auth::{
+    presentation::admin::dtos::auth::{
         LoginStep1Request, LoginStep1Response, LoginStep2Request, LoginStep2Response,
     },
     state::AppState,
@@ -19,7 +19,7 @@ pub fn router() -> Router<Arc<AppState>> {
 
 #[utoipa::path(
     post,
-    path = "auth/login",
+    path = "/api/admin/auth/login",
     tag = "Auth",
     request_body = LoginStep1Request,
     responses(
@@ -46,7 +46,7 @@ async fn login_step1(
 
 #[utoipa::path(
     post,
-    path = "auth/login/2fa",
+    path = "/api/admin/auth/login/2fa",
     tag = "Auth",
     request_body = LoginStep2Request,
     responses(
