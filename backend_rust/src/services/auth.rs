@@ -14,7 +14,7 @@ use crate::{
         active_token::{ActiveTokenRow, NewToken, TokenType},
         temporary_token::{TemporaryTokenPurpose, TemporaryTokenRow},
     },
-    services::{jwt::JwtService, topt_encryptor::TotpEncryptor},
+    services::topt_encryptor::TotpEncryptor,
 };
 
 pub struct AuthUser {
@@ -30,7 +30,6 @@ pub struct Claims {
 }
 
 pub struct AuthService<S, T, R> {
-    jwt: JwtService,
     tokens: Arc<S>,
     temp_tokens: Arc<T>,
     admin_user_repo: Arc<R>,
@@ -64,7 +63,6 @@ where
         config: AuthServiceConfig,
     ) -> Self {
         Self {
-            jwt: JwtService::new(config.jwt_secret.clone()),
             tokens,
             temp_tokens,
             admin_user_repo,
@@ -72,24 +70,14 @@ where
             config,
         }
     }
-    pub async fn authenticate(&self, token: &str) -> AuthResult<AuthUser> {
-        let claims = self.jwt.decode(token)?;
-
-        if claims.token_type != TokenType::Access {
-            return Err(AuthError::InvalidToken);
-        }
-
-        let is_active = self
+    pub async fn authenticate(&self, token: Uuid) -> AuthResult<AuthUser> {
+        let token = self
             .tokens
-            .is_token_active(claims.jti, TokenType::Access)
+            .get_active_token(token, TokenType::Access)
             .await
             .map_err(|_| AuthError::InvalidToken)?;
 
-        if !is_active {
-            return Err(AuthError::TokenRevoked);
-        }
-
-        Ok(AuthUser { id: claims.sub })
+        Ok(AuthUser { id: token.user_id })
     }
 
     pub fn verify_password(&self, plain: &str, hash: &str) -> AuthResult<bool> {

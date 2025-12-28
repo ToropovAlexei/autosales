@@ -1,6 +1,7 @@
-use std::sync::Arc;
+use std::{str::FromStr, sync::Arc};
 
 use axum::{extract::FromRequestParts, http::request::Parts};
+use uuid::Uuid;
 
 use crate::{errors::api::ApiError, services::auth::AuthUser, state::AppState};
 
@@ -19,11 +20,10 @@ impl FromRequestParts<Arc<AppState>> for AuthUser {
                 "Missing auth header".to_string(),
             ))?;
 
-        let token = auth_header
-            .strip_prefix("Bearer ")
-            .ok_or(ApiError::AuthenticationError(
-                "Invalid auth header".to_string(),
-            ))?;
+        let token = Uuid::from_str(auth_header.strip_prefix("Bearer ").ok_or(
+            ApiError::AuthenticationError("Invalid auth header".to_string()),
+        )?)
+        .map_err(|_| ApiError::AuthenticationError("Invalid auth header".to_string()))?;
 
         state
             .auth_service

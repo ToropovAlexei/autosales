@@ -10,7 +10,9 @@ use crate::{
 };
 
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new().route("/", get(get_me))
+    Router::new()
+        .route("/", get(get_me))
+        .route("/permissions", get(get_me_permissions))
 }
 
 #[utoipa::path(
@@ -26,6 +28,14 @@ pub fn router() -> Router<Arc<AppState>> {
     )
 )]
 async fn get_me(
+    State(state): State<Arc<AppState>>,
+    user: AuthUser,
+) -> ApiResult<Json<AdminUserResponse>> {
+    let admin_user = state.admin_user_service.get_by_id(user.id).await?;
+    Ok(Json(AdminUserResponse::from(admin_user)))
+}
+
+async fn get_me_permissions(
     State(state): State<Arc<AppState>>,
     user: AuthUser,
 ) -> ApiResult<Json<AdminUserResponse>> {

@@ -13,7 +13,11 @@ use crate::{
 #[async_trait]
 pub trait ActiveTokenRepositoryTrait {
     async fn insert_token(&self, token: NewToken) -> RepositoryResult<ActiveTokenRow>;
-    async fn is_token_active(&self, jti: Uuid, token_type: TokenType) -> RepositoryResult<bool>;
+    async fn get_active_token(
+        &self,
+        jti: Uuid,
+        token_type: TokenType,
+    ) -> RepositoryResult<ActiveTokenRow>;
     async fn revoke_token(&self, jti: Uuid) -> RepositoryResult<()>;
     async fn delete_expired(&self) -> RepositoryResult<u64>;
 }
@@ -50,25 +54,27 @@ impl ActiveTokenRepositoryTrait for ActiveTokenRepository {
         Ok(rec)
     }
 
-    async fn is_token_active(&self, jti: Uuid, token_type: TokenType) -> RepositoryResult<bool> {
-        let exists = sqlx::query_scalar!(
+    async fn get_active_token(
+        &self,
+        jti: Uuid,
+        token_type: TokenType,
+    ) -> RepositoryResult<ActiveTokenRow> {
+        let token = sqlx::query_as!(
+            ActiveTokenRow,
             r#"
-        SELECT EXISTS (
-            SELECT 1
-            FROM active_tokens
+            SELECT jti, user_id, token_type as "token_type: _", expires_at, created_at, revoked_at FROM active_tokens
             WHERE jti = $1
               AND token_type = $2
               AND revoked_at IS NULL
               AND expires_at > NOW()
-        )
-        "#,
+            "#,
             jti,
             token_type as TokenType,
         )
         .fetch_one(&*self.pool)
         .await?;
 
-        Ok(exists.unwrap_or_default())
+        Ok(token)
     }
 
     async fn revoke_token(&self, jti: Uuid) -> RepositoryResult<()> {
