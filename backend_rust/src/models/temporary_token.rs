@@ -3,9 +3,11 @@ use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, sqlx::Type)]
-#[sqlx(type_name = "temporary_token_purpose", rename_all = "snake_case")]
+#[sqlx(type_name = "temporary_token_purpose")]
 pub enum TemporaryTokenPurpose {
+    #[sqlx(rename = "2fa")]
     TwoFa,
+    #[sqlx(rename = "password_reset")]
     PasswordReset,
 }
 
