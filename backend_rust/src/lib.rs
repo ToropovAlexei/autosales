@@ -25,7 +25,6 @@ pub fn create_app(app_state: Arc<AppState>) -> Router {
     use axum::http::header::{ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 
     let cors = CorsLayer::new()
-        // .allow_origin(Any)
         .allow_origin(
             app_state
                 .config
