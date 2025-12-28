@@ -2,11 +2,22 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
 use uuid::Uuid;
+use validator::Validate;
 
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse, Validate)]
 #[ts(export, export_to = "auth.ts", rename = "LoginStep1")]
 pub struct LoginStep1Request {
+    #[validate(length(
+        min = 3,
+        max = 20,
+        message = "Login must be between 3 and 20 characters"
+    ))]
     pub login: String,
+    #[validate(length(
+        min = 6,
+        max = 20,
+        message = "Password must be between 6 and 20 characters"
+    ))]
     pub password: String,
 }
 
@@ -16,15 +27,16 @@ pub struct LoginStep1Response {
     pub temp_token: Uuid,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
+#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse, Validate)]
 #[ts(export, export_to = "auth.ts", rename = "LoginStep2")]
 pub struct LoginStep2Request {
     pub temp_token: Uuid,
+    #[validate(length(min = 6, max = 6, message = "Code must be 6 characters"))]
     pub code: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "auth.ts", rename = "LoginStep2Response")]
 pub struct LoginStep2Response {
-    pub token: String,
+    pub token: Uuid,
 }
