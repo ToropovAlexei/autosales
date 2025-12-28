@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 
 use crate::{
-    errors::api::{ApiError, ApiResult},
+    errors::api::ApiResult,
     infrastructure::repositories::admin_user::{AdminUserRepository, AdminUserRepositoryTrait},
     models::admin_user::{AdminUserRow, NewAdminUser, UpdateAdminUser},
     services::topt_encryptor::TotpEncryptor,
@@ -56,13 +56,11 @@ impl AdminUserServiceTrait for AdminUserService<AdminUserRepository> {
             .create(NewAdminUser {
                 login: admin_user.login,
                 created_by: admin_user.created_by,
-                hashed_password: bcrypt::hash(&admin_user.password, bcrypt::DEFAULT_COST)
-                    .map_err(|_e| ApiError::InternalServerError)?,
+                hashed_password: bcrypt::hash(&admin_user.password, bcrypt::DEFAULT_COST)?,
                 telegram_id: None,
                 two_fa_secret: self
                     .totp_encryptor
-                    .encrypt(&totp_rs::Secret::generate_secret().to_string())
-                    .map_err(|_| ApiError::InternalServerError)?, // TODO check this
+                    .encrypt(&totp_rs::Secret::generate_secret().to_string())?,
             })
             .await?;
         Ok(created)

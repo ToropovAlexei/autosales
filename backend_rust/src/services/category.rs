@@ -33,10 +33,7 @@ where
 #[async_trait]
 impl CategoryServiceTrait for CategoryService<CategoryRepository> {
     async fn get_list(&self) -> ApiResult<Vec<CategoryRow>> {
-        self.repo
-            .get_list()
-            .await
-            .map_err(|_| ApiError::InternalServerError)
+        self.repo.get_list().await.map_err(ApiError::from)
     }
 
     async fn create(&self, category: NewCategory) -> ApiResult<CategoryRow> {

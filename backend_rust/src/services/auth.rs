@@ -96,20 +96,21 @@ where
         bcrypt::verify(plain, hash).map_err(|_| AuthError::InvalidToken)
     }
 
-    pub fn verify_totp_code(&self, secret: &str, code: &str) -> bool {
+    pub fn verify_totp_code(&self, secret: &str, code: &str) -> AuthResult<bool> {
         let totp = totp_rs::TOTP::new(
             self.config.totp_algorithm,
             self.config.totp_digits,
             self.config.totp_skew,
             self.config.totp_step,
-            secret.as_bytes().to_vec(),
-            // TODO Check this
+            totp_rs::Secret::Encoded(secret.to_string())
+                .to_bytes()
+                .map_err(|e| AuthError::InternalServerError(e.to_string()))?,
             None,
             "".to_string(),
         )
         .expect("Failed to create TOTP");
 
-        totp.check_current(code).unwrap_or_default()
+        Ok(totp.check_current(code).unwrap_or_default())
     }
 
     pub async fn login_step1(
@@ -134,8 +135,7 @@ where
                 TemporaryTokenPurpose::TwoFa,
                 self.config.two_fa_token_ttl,
             )
-            .await
-            .map_err(|_e| AuthError::InternalServerError)?;
+            .await?;
 
         Ok(temp_token)
     }
@@ -151,26 +151,19 @@ where
             .await
             .map_err(|_e| AuthError::InvalidCredentials)?;
 
-        let user = self
-            .admin_user_repo
-            .get_by_id(temp_token.user_id)
-            .await
-            .map_err(|_e| AuthError::InternalServerError)?;
+        let user = self.admin_user_repo.get_by_id(temp_token.user_id).await?;
 
         if !self.verify_totp_code(
             &self
                 .totp_encryptor
                 .decrypt(&user.two_fa_secret)
-                .map_err(|_e| AuthError::InternalServerError)?,
+                .map_err(|e| AuthError::InternalServerError(e.to_string()))?,
             code,
-        ) {
+        )? {
             return Err(AuthError::Invalid2FACode);
         }
 
-        self.temp_tokens
-            .mark_as_used(&temp_token.token)
-            .await
-            .map_err(|_e| AuthError::InternalServerError)?;
+        self.temp_tokens.mark_as_used(&temp_token.token).await?;
 
         self.tokens
             .insert_token(NewToken {
@@ -179,6 +172,6 @@ where
                 ttl: self.config.access_token_ttl,
             })
             .await
-            .map_err(|_e| AuthError::InternalServerError)
+            .map_err(AuthError::from)
     }
 }

@@ -4,12 +4,15 @@ use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
 };
+use bcrypt::BcryptError;
 use serde::Serialize;
 use thiserror::Error;
 use utoipa::ToSchema;
 use validator::ValidationErrors;
 
-use crate::errors::{auth::AuthError, repository::RepositoryError};
+use crate::errors::{
+    auth::AuthError, repository::RepositoryError, totp_encryptor::TotpEncryptorError,
+};
 
 #[derive(Debug, Error)]
 pub enum ApiError {
@@ -23,8 +26,8 @@ pub enum ApiError {
     NotFound(String),
     #[error("Bad request: {0}")]
     BadRequest(String),
-    #[error("Internal server error")]
-    InternalServerError,
+    #[error("Internal server error: {0}")]
+    InternalServerError(String),
 }
 
 #[derive(Serialize)]
@@ -44,9 +47,23 @@ impl From<RepositoryError> for ApiError {
             RepositoryError::ForeignKeyViolation(msg) => ApiError::BadRequest(msg),
             RepositoryError::UniqueViolation(msg) => ApiError::BadRequest(msg),
             RepositoryError::Validation(msg) => ApiError::BadRequest(msg),
-            RepositoryError::OptimisticLockViolation => ApiError::InternalServerError,
-            RepositoryError::QueryFailed(_err) => ApiError::InternalServerError,
+            RepositoryError::OptimisticLockViolation => {
+                ApiError::InternalServerError("Optimistic lock violation".to_string())
+            }
+            RepositoryError::QueryFailed(err) => ApiError::InternalServerError(err.to_string()),
         }
+    }
+}
+
+impl From<BcryptError> for ApiError {
+    fn from(err: BcryptError) -> Self {
+        ApiError::InternalServerError(err.to_string())
+    }
+}
+
+impl From<TotpEncryptorError> for ApiError {
+    fn from(err: TotpEncryptorError) -> Self {
+        ApiError::InternalServerError(err.to_string())
     }
 }
 
@@ -62,7 +79,7 @@ impl From<AuthError> for ApiError {
                 ApiError::AuthenticationError("Invalid 2FA code".to_string())
             }
             AuthError::MissingToken => ApiError::AuthenticationError("Missing token".to_string()),
-            AuthError::InternalServerError => ApiError::InternalServerError,
+            AuthError::InternalServerError(msg) => ApiError::InternalServerError(msg),
         }
     }
 }
@@ -101,7 +118,7 @@ impl IntoResponse for ApiError {
                     ApiError::AuthorizationError(msg) => (StatusCode::FORBIDDEN, msg),
                     ApiError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
                     ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
-                    ApiError::InternalServerError => (
+                    ApiError::InternalServerError(_msg) => (
                         StatusCode::INTERNAL_SERVER_ERROR,
                         "Internal server error".to_string(),
                     ),

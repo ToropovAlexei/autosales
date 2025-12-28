@@ -1,5 +1,7 @@
 use thiserror::Error;
 
+use crate::errors::repository::RepositoryError;
+
 pub type AuthResult<T> = Result<T, AuthError>;
 
 #[derive(Debug, Error)]
@@ -14,6 +16,15 @@ pub enum AuthError {
     InvalidCredentials,
     #[error("invalid 2FA code")]
     Invalid2FACode,
-    #[error("internal server error")]
-    InternalServerError,
+    #[error("{0}")]
+    InternalServerError(String),
+}
+
+impl From<RepositoryError> for AuthError {
+    fn from(err: RepositoryError) -> Self {
+        match err {
+            RepositoryError::NotFound(_msg) => AuthError::InvalidCredentials,
+            _ => AuthError::InternalServerError(err.to_string()),
+        }
+    }
 }
