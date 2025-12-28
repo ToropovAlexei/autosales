@@ -24,14 +24,15 @@ impl TotpEncryptor {
         Ok(Self { cipher })
     }
 
-    fn nonce_for_user(user_id: i64) -> Nonce<U12> {
-        let mut bytes = [0u8; 12];
-        bytes[0..8].copy_from_slice(&user_id.to_be_bytes());
+    fn nonce_for_user() -> Nonce<U12> {
+        let bytes = [0u8; 12];
+        // TODO: cant use user_id because user is not created
+        // bytes[0..8].copy_from_slice(&user_id.to_be_bytes());
         *Nonce::from_slice(&bytes)
     }
 
-    pub fn encrypt(&self, user_id: i64, secret: &str) -> TotpEncryptorResult<String> {
-        let nonce_bytes = Self::nonce_for_user(user_id);
+    pub fn encrypt(&self, secret: &str) -> TotpEncryptorResult<String> {
+        let nonce_bytes = Self::nonce_for_user();
         let ciphertext: Vec<u8> = self
             .cipher
             .encrypt(&nonce_bytes, Payload::from(secret.as_bytes()))
@@ -39,8 +40,8 @@ impl TotpEncryptor {
         Ok(general_purpose::STANDARD.encode(&ciphertext))
     }
 
-    pub fn decrypt(&self, user_id: i64, encrypted_b64: &str) -> TotpEncryptorResult<String> {
-        let nonce = Self::nonce_for_user(user_id);
+    pub fn decrypt(&self, encrypted_b64: &str) -> TotpEncryptorResult<String> {
+        let nonce = Self::nonce_for_user();
         let ciphertext = general_purpose::STANDARD
             .decode(encrypted_b64)
             .map_err(|_e| TotpEncryptorError::DecodeError("Failed to decode".to_string()))?;

@@ -103,6 +103,9 @@ where
             self.config.totp_skew,
             self.config.totp_step,
             secret.as_bytes().to_vec(),
+            // TODO Check this
+            None,
+            "".to_string(),
         )
         .expect("Failed to create TOTP");
 
@@ -157,7 +160,7 @@ where
         if !self.verify_totp_code(
             &self
                 .totp_encryptor
-                .decrypt(temp_token.user_id, &user.two_fa_secret)
+                .decrypt(&user.two_fa_secret)
                 .map_err(|_e| AuthError::InternalServerError)?,
             code,
         ) {

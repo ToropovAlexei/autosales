@@ -19,7 +19,7 @@ pub struct AdminUserRow {
 pub struct NewAdminUser {
     pub login: String,
     pub hashed_password: String,
-    pub two_fa_secret: Option<String>,
+    pub two_fa_secret: String,
     pub telegram_id: Option<i64>,
     pub created_by: i64,
 }
