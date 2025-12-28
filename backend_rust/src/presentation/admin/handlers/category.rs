@@ -20,9 +20,9 @@ use crate::{
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/categories", post(create_category).get(list_categories))
+        .route("/", post(create_category).get(list_categories))
         .route(
-            "/categories/{id}",
+            "/{id}",
             get(get_category)
                 .patch(update_category)
                 .delete(delete_category),
@@ -74,6 +74,7 @@ async fn create_category(
 )]
 async fn list_categories(
     State(state): State<Arc<AppState>>,
+    _user: AuthUser,
 ) -> ApiResult<Json<Vec<CategoryResponse>>> {
     let categories = state.category_service.get_list().await?;
 
@@ -97,6 +98,7 @@ async fn list_categories(
 async fn get_category(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
+    _user: AuthUser,
 ) -> ApiResult<Json<CategoryResponse>> {
     let category = state.category_service.get_by_id(id).await?;
 
@@ -153,6 +155,7 @@ async fn update_category(
 async fn delete_category(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
+    _user: AuthUser,
 ) -> ApiResult<StatusCode> {
     state.category_service.delete(id).await?;
 
