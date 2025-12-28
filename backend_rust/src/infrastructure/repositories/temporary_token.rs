@@ -17,12 +17,12 @@ pub trait TemporaryTokenRepositoryTrait {
         user_id: i64,
         purpose: TemporaryTokenPurpose,
         ttl: Duration,
-    ) -> RepositoryResult<Uuid>;
+    ) -> RepositoryResult<TemporaryTokenRow>;
     async fn find_unused_by_token_and_purpose(
         &self,
         token: &Uuid,
         purpose: TemporaryTokenPurpose,
-    ) -> RepositoryResult<Option<TemporaryTokenRow>>;
+    ) -> RepositoryResult<TemporaryTokenRow>;
     async fn mark_as_used(&self, token: &Uuid) -> RepositoryResult<bool>;
     async fn delete_expired(&self) -> RepositoryResult<u64>;
 }
@@ -45,13 +45,14 @@ impl TemporaryTokenRepositoryTrait for TemporaryTokenRepository {
         user_id: i64,
         purpose: TemporaryTokenPurpose,
         ttl: Duration,
-    ) -> RepositoryResult<Uuid> {
+    ) -> RepositoryResult<TemporaryTokenRow> {
         let expires_at = Utc::now() + ttl;
-        let token = sqlx::query_scalar!(
+        let token = sqlx::query_as!(
+            TemporaryTokenRow,
             r#"
             INSERT INTO temporary_tokens (user_id, purpose, expires_at)
             VALUES ($1, $2, $3)
-            RETURNING token
+            RETURNING token, user_id, purpose as "purpose: _", expires_at, created_at, used_at
             "#,
             user_id,
             purpose as TemporaryTokenPurpose,
@@ -66,7 +67,7 @@ impl TemporaryTokenRepositoryTrait for TemporaryTokenRepository {
         &self,
         token: &Uuid,
         purpose: TemporaryTokenPurpose,
-    ) -> RepositoryResult<Option<TemporaryTokenRow>> {
+    ) -> RepositoryResult<TemporaryTokenRow> {
         let res = sqlx::query_as!(
             TemporaryTokenRow,
             r#"
@@ -80,7 +81,7 @@ impl TemporaryTokenRepositoryTrait for TemporaryTokenRepository {
             token,
             purpose as TemporaryTokenPurpose
         )
-        .fetch_optional(&*self.pool)
+        .fetch_one(&*self.pool)
         .await?;
 
         Ok(res)

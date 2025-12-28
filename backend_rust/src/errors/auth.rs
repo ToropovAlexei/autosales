@@ -10,4 +10,10 @@ pub enum AuthError {
     InvalidToken,
     #[error("token revoked")]
     TokenRevoked,
+    #[error("invalid credentials")]
+    InvalidCredentials,
+    #[error("invalid 2FA code")]
+    Invalid2FACode,
+    #[error("internal server error")]
+    InternalServerError,
 }

@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use serde::Deserialize;
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
@@ -24,5 +24,5 @@ pub struct ActiveTokenRow {
 pub struct NewToken {
     pub user_id: i64,
     pub token_type: TokenType,
-    pub expires_at: DateTime<Utc>,
+    pub ttl: Duration,
 }

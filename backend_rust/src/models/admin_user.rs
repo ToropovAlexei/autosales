@@ -6,7 +6,7 @@ pub struct AdminUserRow {
     pub id: i64,
     pub login: String,
     pub hashed_password: String,
-    pub two_fa_secret: Option<String>,
+    pub two_fa_secret: String,
     pub telegram_id: Option<i64>,
     pub is_system: bool,
     pub created_at: DateTime<Utc>,

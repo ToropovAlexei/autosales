@@ -11,6 +11,10 @@ pub struct Config {
     pub database_name: String,
     pub cors_origins: String,
     pub jwt_secret: String,
+    pub totp_encode_secret: String,
+    pub two_fa_token_ttl_minutes: i64,
+    pub access_token_ttl_minutes: i64,
+    pub refresh_token_ttl_minutes: i64,
 }
 
 impl Config {

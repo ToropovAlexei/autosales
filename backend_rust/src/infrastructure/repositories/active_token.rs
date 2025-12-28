@@ -1,17 +1,18 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
     errors::repository::RepositoryResult,
-    models::active_token::{NewToken, TokenType},
+    models::active_token::{ActiveTokenRow, NewToken, TokenType},
 };
 
 #[async_trait]
 pub trait ActiveTokenRepositoryTrait {
-    async fn insert_token(&self, token: NewToken) -> RepositoryResult<Uuid>;
+    async fn insert_token(&self, token: NewToken) -> RepositoryResult<ActiveTokenRow>;
     async fn is_token_active(&self, jti: Uuid, token_type: TokenType) -> RepositoryResult<bool>;
     async fn revoke_token(&self, jti: Uuid) -> RepositoryResult<()>;
     async fn delete_expired(&self) -> RepositoryResult<u64>;
@@ -30,21 +31,23 @@ impl ActiveTokenRepository {
 
 #[async_trait]
 impl ActiveTokenRepositoryTrait for ActiveTokenRepository {
-    async fn insert_token(&self, token: NewToken) -> RepositoryResult<Uuid> {
-        let rec = sqlx::query!(
+    async fn insert_token(&self, token: NewToken) -> RepositoryResult<ActiveTokenRow> {
+        let expires_at = Utc::now() + token.ttl;
+        let rec = sqlx::query_as!(
+            ActiveTokenRow,
             r#"
         INSERT INTO active_tokens (user_id, token_type, expires_at)
         VALUES ($1, $2, $3)
-        RETURNING jti
+        RETURNING jti, user_id, token_type as "token_type: _", expires_at, created_at, revoked_at
         "#,
             token.user_id,
             token.token_type as TokenType,
-            token.expires_at,
+            expires_at,
         )
         .fetch_one(&*self.pool)
         .await?;
 
-        Ok(rec.jti)
+        Ok(rec)
     }
 
     async fn is_token_active(&self, jti: Uuid, token_type: TokenType) -> RepositoryResult<bool> {

@@ -13,6 +13,7 @@ pub trait AdminUserRepositoryTrait {
     async fn get_list(&self) -> RepositoryResult<Vec<AdminUserRow>>;
     async fn create(&self, admin_user: NewAdminUser) -> RepositoryResult<AdminUserRow>;
     async fn get_by_id(&self, id: i64) -> RepositoryResult<AdminUserRow>;
+    async fn get_by_login(&self, login: &str) -> RepositoryResult<AdminUserRow>;
     async fn update(&self, id: i64, admin_user: UpdateAdminUser) -> RepositoryResult<AdminUserRow>;
     async fn delete(&self, id: i64) -> RepositoryResult<()>;
 }
@@ -65,6 +66,18 @@ impl AdminUserRepositoryTrait for AdminUserRepository {
             AdminUserRow,
             "SELECT * FROM admin_users WHERE id = $1 AND deleted_at IS NULL",
             id
+        )
+        .fetch_one(&*self.pool)
+        .await?;
+
+        Ok(result)
+    }
+
+    async fn get_by_login(&self, login: &str) -> RepositoryResult<AdminUserRow> {
+        let result = sqlx::query_as!(
+            AdminUserRow,
+            "SELECT * FROM admin_users WHERE login = $1 AND deleted_at IS NULL",
+            login
         )
         .fetch_one(&*self.pool)
         .await?;

@@ -9,7 +9,7 @@ use thiserror::Error;
 use utoipa::ToSchema;
 use validator::ValidationErrors;
 
-use crate::errors::repository::RepositoryError;
+use crate::errors::{auth::AuthError, repository::RepositoryError};
 
 #[derive(Debug, Error)]
 pub enum ApiError {
@@ -46,6 +46,23 @@ impl From<RepositoryError> for ApiError {
             RepositoryError::Validation(msg) => ApiError::BadRequest(msg),
             RepositoryError::OptimisticLockViolation => ApiError::InternalServerError,
             RepositoryError::QueryFailed(_err) => ApiError::InternalServerError,
+        }
+    }
+}
+
+impl From<AuthError> for ApiError {
+    fn from(err: AuthError) -> Self {
+        match err {
+            AuthError::InvalidToken => ApiError::AuthenticationError("Invalid token".to_string()),
+            AuthError::TokenRevoked => ApiError::AuthenticationError("Token revoked".to_string()),
+            AuthError::InvalidCredentials => {
+                ApiError::AuthenticationError("Invalid credentials".to_string())
+            }
+            AuthError::Invalid2FACode => {
+                ApiError::AuthenticationError("Invalid 2FA code".to_string())
+            }
+            AuthError::MissingToken => ApiError::AuthenticationError("Missing token".to_string()),
+            AuthError::InternalServerError => ApiError::InternalServerError,
         }
     }
 }

@@ -13,6 +13,7 @@ pub trait AdminUserServiceTrait: Send + Sync {
     async fn get_list(&self) -> ApiResult<Vec<AdminUserRow>>;
     async fn create(&self, admin_user: NewAdminUser) -> ApiResult<AdminUserRow>;
     async fn get_by_id(&self, id: i64) -> ApiResult<AdminUserRow>;
+    async fn get_by_login(&self, login: &str) -> ApiResult<AdminUserRow>;
     async fn update(&self, id: i64, admin_user: UpdateAdminUser) -> ApiResult<AdminUserRow>;
     async fn delete(&self, id: i64) -> ApiResult<()>;
 }
@@ -44,6 +45,11 @@ impl AdminUserServiceTrait for AdminUserService<AdminUserRepository> {
 
     async fn get_by_id(&self, id: i64) -> ApiResult<AdminUserRow> {
         let res = self.repo.get_by_id(id).await?;
+        Ok(res)
+    }
+
+    async fn get_by_login(&self, login: &str) -> ApiResult<AdminUserRow> {
+        let res = self.repo.get_by_login(login).await?;
         Ok(res)
     }
 
