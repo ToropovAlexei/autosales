@@ -5,6 +5,7 @@ use backend_rust::{
     db::Database,
     infrastructure::repositories::{
         admin_user::{AdminUserRepository, AdminUserRepositoryTrait},
+        category::{CategoryRepository, CategoryRepositoryTrait},
         permission::{PermissionRepository, PermissionRepositoryTrait},
         role::{RoleRepository, RoleRepositoryTrait},
         role_permission::{RolePermissionRepository, RolePermissionRepositoryTrait},
@@ -12,8 +13,8 @@ use backend_rust::{
     },
     init_tracing,
     models::{
-        admin_user::NewAdminUser, role::NewRole, role_permission::NewRolePermission,
-        user_role::NewUserRole,
+        admin_user::NewAdminUser, category::NewCategory, role::NewRole,
+        role_permission::NewRolePermission, user_role::NewUserRole,
     },
     run_migrations,
     services::topt_encryptor::TotpEncryptor,
@@ -44,7 +45,8 @@ async fn main() -> anyhow::Result<()> {
     let role_repo = Arc::new(RoleRepository::new(db_pool.clone()));
     let permission_repo = Arc::new(PermissionRepository::new(db_pool.clone()));
     let role_permission_repo = Arc::new(RolePermissionRepository::new(db_pool.clone()));
-    let user_role_repo = Arc::new(UserRoleRepository::new(db_pool));
+    let user_role_repo = Arc::new(UserRoleRepository::new(db_pool.clone()));
+    let category_repo = Arc::new(CategoryRepository::new(db_pool.clone()));
     let admin_id = create_dev_admin_if_not_exists(&admin_user_repo, &totp_encryptor).await;
     println!("Admin Id: {}", admin_id);
     let admin_role_id = create_dev_admin_role_if_not_exists(&role_repo).await;
@@ -58,6 +60,8 @@ async fn main() -> anyhow::Result<()> {
     println!("Assigned permissions: {}", assigned_permissions);
     assign_admin_role_to_admin_user(admin_id, admin_role_id, &user_role_repo).await;
     println!("Admin user role assigned");
+    seed_categories(&category_repo).await;
+    println!("Test categories created");
 
     Ok(())
 }
@@ -149,4 +153,102 @@ async fn assign_admin_role_to_admin_user(
             .await
             .unwrap();
     }
+}
+
+async fn seed_categories(category_repo: &Arc<CategoryRepository>) {
+    println!("🌱 Seeding test categories...");
+
+    let existing = category_repo.get_list().await.unwrap();
+    let existing_names: std::collections::HashSet<_> =
+        existing.iter().map(|c| c.name.as_str()).collect();
+
+    let create_if_not_exists = async |name: &str, parent_id: Option<i64>| {
+        if !existing_names.contains(name) {
+            println!("  ➕ {}", name);
+            let cat = category_repo
+                .create(NewCategory {
+                    name: name.to_string(),
+                    parent_id,
+                    image_id: None,
+                    created_by: 1, // System
+                })
+                .await
+                .unwrap();
+            Some(cat.id)
+        } else {
+            println!("  ✅ {} (уже есть)", name);
+            existing.iter().find(|c| c.name == name).map(|c| c.id)
+        }
+    };
+
+    // --- 1. Корневые категории ---
+    let electronics_id = create_if_not_exists("Электроника", None).await.unwrap();
+    let books_id = create_if_not_exists("Книги", None).await.unwrap();
+    let clothes_id = create_if_not_exists("Одежда и обувь", None).await.unwrap();
+    let home_id = create_if_not_exists("Дом и сад", None).await.unwrap();
+    let sport_id = create_if_not_exists("Спорт и отдых", None).await.unwrap();
+
+    // --- 2. Электроника ---
+    let phones_id = create_if_not_exists("Смартфоны", Some(electronics_id))
+        .await
+        .unwrap();
+    create_if_not_exists("Ноутбуки", Some(electronics_id))
+        .await
+        .unwrap();
+    create_if_not_exists("Наушники", Some(electronics_id))
+        .await
+        .unwrap();
+
+    // --- 3. 📱 Смартфоны ---
+    create_if_not_exists("Android", Some(phones_id))
+        .await
+        .unwrap();
+    create_if_not_exists("iOS", Some(phones_id)).await.unwrap();
+
+    // --- 4. Книги ---
+    create_if_not_exists("Художественная литература", Some(books_id))
+        .await
+        .unwrap();
+    create_if_not_exists("Научная литература", Some(books_id))
+        .await
+        .unwrap();
+    create_if_not_exists("Детские книги", Some(books_id))
+        .await
+        .unwrap();
+
+    // --- 5. Одежда и обувь ---
+    let mens_id = create_if_not_exists("Мужская одежда", Some(clothes_id))
+        .await
+        .unwrap();
+    create_if_not_exists("Женская одежда", Some(clothes_id))
+        .await
+        .unwrap();
+    create_if_not_exists("Обувь", Some(clothes_id))
+        .await
+        .unwrap();
+
+    // --- 6. Мужская одежда → 3-й уровень ---
+    create_if_not_exists("Футболки", Some(mens_id))
+        .await
+        .unwrap();
+    create_if_not_exists("Джинсы", Some(mens_id)).await.unwrap();
+
+    // --- 7. Дом и сад ---
+    create_if_not_exists("Мебель", Some(home_id)).await.unwrap();
+    create_if_not_exists("Освещение", Some(home_id))
+        .await
+        .unwrap();
+    create_if_not_exists("Садовый инвентарь", Some(home_id))
+        .await
+        .unwrap();
+
+    // --- 8. Спорт и отдых ---
+    create_if_not_exists("Фитнес", Some(sport_id))
+        .await
+        .unwrap();
+    create_if_not_exists("Туризм", Some(sport_id))
+        .await
+        .unwrap();
+
+    println!("✅ Categories seeded successfully!");
 }
