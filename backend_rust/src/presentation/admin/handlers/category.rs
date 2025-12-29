@@ -9,7 +9,13 @@ use axum::{
 
 use crate::{
     errors::api::ApiResult,
-    middlewares::validator::ValidatedJson,
+    middlewares::{
+        require_permission::{
+            CategoriesCreatePermission, CategoriesDeletePermission, CategoriesReadPermission,
+            CategoriesUpdatePermission, RequirePermission,
+        },
+        validator::ValidatedJson,
+    },
     models::category::{NewCategory, UpdateCategory},
     presentation::admin::dtos::{
         category::{CategoryResponse, NewCategoryRequest, UpdateCategoryRequest},
@@ -46,6 +52,7 @@ pub fn router() -> Router<Arc<AppState>> {
 async fn create_category(
     State(state): State<Arc<AppState>>,
     user: AuthUser,
+    _perm: RequirePermission<CategoriesCreatePermission>,
     ValidatedJson(payload): ValidatedJson<NewCategoryRequest>,
 ) -> ApiResult<Json<CategoryResponse>> {
     let category = state
@@ -76,6 +83,7 @@ async fn create_category(
 async fn list_categories(
     State(state): State<Arc<AppState>>,
     _user: AuthUser,
+    _perm: RequirePermission<CategoriesReadPermission>,
 ) -> ApiResult<Json<ListResponse<CategoryResponse>>> {
     let categories = state.category_service.get_list().await?;
 
@@ -101,6 +109,7 @@ async fn get_category(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
     _user: AuthUser,
+    _perm: RequirePermission<CategoriesReadPermission>,
 ) -> ApiResult<Json<CategoryResponse>> {
     let category = state.category_service.get_by_id(id).await?;
 
@@ -124,6 +133,7 @@ async fn update_category(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
     _user: AuthUser,
+    _perm: RequirePermission<CategoriesUpdatePermission>,
     ValidatedJson(payload): ValidatedJson<UpdateCategoryRequest>,
 ) -> ApiResult<Json<CategoryResponse>> {
     let category = state
@@ -158,6 +168,7 @@ async fn delete_category(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
     _user: AuthUser,
+    _perm: RequirePermission<CategoriesDeletePermission>,
 ) -> ApiResult<StatusCode> {
     state.category_service.delete(id).await?;
 

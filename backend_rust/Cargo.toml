@@ -16,6 +16,7 @@ bytes = "1.10"
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
 envy = "0.4"
+paste = "1.0.15"
 serde = { version = "1.0", features = ["derive"] }
 sqlx = { version = "0.8", features = [
     "postgres",
