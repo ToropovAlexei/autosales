@@ -69,12 +69,13 @@ impl CategoryRepositoryTrait for CategoryRepository {
     }
 
     async fn update(&self, id: i64, category: UpdateCategory) -> RepositoryResult<CategoryRow> {
-        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new("UPDATE categories SET ");
-
-        if let Some(name) = category.name {
-            query_builder.push(", name = ");
-            query_builder.push_bind(name);
-        }
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            r#"
+        UPDATE categories
+        SET name = COALESCE($1, name),
+             "#,
+        );
+        query_builder.push_bind(category.name);
 
         if let Some(parent_id) = category.parent_id {
             query_builder.push(", parent_id = ");
