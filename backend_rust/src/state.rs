@@ -8,7 +8,8 @@ use crate::{
     db,
     infrastructure::repositories::{
         active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
-        category::CategoryRepository, temporary_token::TemporaryTokenRepository,
+        category::CategoryRepository, effective_permission::EffectivePermissionRepository,
+        temporary_token::TemporaryTokenRepository,
     },
     services::{
         admin_user::AdminUserService,
@@ -22,8 +23,14 @@ use crate::{
 pub struct AppState {
     pub db: db::Database,
     pub config: config::Config,
-    pub auth_service:
-        Arc<AuthService<ActiveTokenRepository, TemporaryTokenRepository, AdminUserRepository>>,
+    pub auth_service: Arc<
+        AuthService<
+            ActiveTokenRepository,
+            TemporaryTokenRepository,
+            AdminUserRepository,
+            EffectivePermissionRepository,
+        >,
+    >,
     pub category_service: Arc<CategoryService<CategoryRepository>>,
     pub admin_user_service: Arc<AdminUserService<AdminUserRepository>>,
 }
@@ -34,6 +41,8 @@ impl AppState {
         let active_token_repo = Arc::new(ActiveTokenRepository::new(db_pool.clone()));
         let temp_token_repo = Arc::new(TemporaryTokenRepository::new(db_pool.clone()));
         let admin_user_repo = Arc::new(AdminUserRepository::new(db_pool.clone()));
+        let effective_permission_repo =
+            Arc::new(EffectivePermissionRepository::new(db_pool.clone()));
         let totp_encryptor = Arc::new(
             TotpEncryptor::new(&config.totp_encode_secret.clone())
                 .expect("Failed to init totp_encryptor"),
@@ -42,6 +51,7 @@ impl AppState {
             active_token_repo,
             temp_token_repo,
             admin_user_repo.clone(),
+            effective_permission_repo,
             totp_encryptor.clone(),
             AuthServiceConfig {
                 jwt_secret: config.jwt_secret.clone(),

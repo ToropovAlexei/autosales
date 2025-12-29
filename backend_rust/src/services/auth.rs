@@ -8,10 +8,12 @@ use crate::{
     errors::auth::{AuthError, AuthResult},
     infrastructure::repositories::{
         active_token::ActiveTokenRepositoryTrait, admin_user::AdminUserRepositoryTrait,
+        effective_permission::EffectivePermissionRepositoryTrait,
         temporary_token::TemporaryTokenRepositoryTrait,
     },
     models::{
         active_token::{ActiveTokenRow, NewToken, TokenType},
+        permission::Permission,
         temporary_token::{TemporaryTokenPurpose, TemporaryTokenRow},
     },
     services::topt_encryptor::TotpEncryptor,
@@ -29,10 +31,11 @@ pub struct Claims {
     pub exp: usize,
 }
 
-pub struct AuthService<S, T, R> {
+pub struct AuthService<S, T, R, E> {
     tokens: Arc<S>,
     temp_tokens: Arc<T>,
     admin_user_repo: Arc<R>,
+    effective_permission_repo: Arc<E>,
     totp_encryptor: Arc<TotpEncryptor>,
     config: AuthServiceConfig,
 }
@@ -49,16 +52,18 @@ pub struct AuthServiceConfig {
     pub two_fa_token_ttl: Duration,
 }
 
-impl<S, T, R> AuthService<S, T, R>
+impl<S, T, R, E> AuthService<S, T, R, E>
 where
     S: ActiveTokenRepositoryTrait + Send + Sync,
     T: TemporaryTokenRepositoryTrait + Send + Sync,
     R: AdminUserRepositoryTrait + Send + Sync,
+    E: EffectivePermissionRepositoryTrait + Send + Sync,
 {
     pub fn new(
         tokens: Arc<S>,
         temp_tokens: Arc<T>,
         admin_user_repo: Arc<R>,
+        effective_permission_repo: Arc<E>,
         totp_encryptor: Arc<TotpEncryptor>,
         config: AuthServiceConfig,
     ) -> Self {
@@ -66,6 +71,7 @@ where
             tokens,
             temp_tokens,
             admin_user_repo,
+            effective_permission_repo,
             totp_encryptor,
             config,
         }
@@ -159,6 +165,24 @@ where
                 user_id: temp_token.user_id,
                 ttl: self.config.access_token_ttl,
             })
+            .await
+            .map_err(AuthError::from)
+    }
+
+    pub async fn get_user_permissions(&self, admin_user_id: i64) -> Result<Vec<String>, AuthError> {
+        self.effective_permission_repo
+            .get_for_user(admin_user_id)
+            .await
+            .map_err(AuthError::from)
+    }
+
+    pub async fn has_permission(
+        &self,
+        admin_user_id: i64,
+        permission: Permission,
+    ) -> Result<bool, AuthError> {
+        self.effective_permission_repo
+            .has_permission(admin_user_id, permission)
             .await
             .map_err(AuthError::from)
     }
