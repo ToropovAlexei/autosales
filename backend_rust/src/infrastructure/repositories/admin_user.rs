@@ -86,28 +86,18 @@ impl AdminUserRepositoryTrait for AdminUserRepository {
     }
 
     async fn update(&self, id: i64, admin_user: UpdateAdminUser) -> RepositoryResult<AdminUserRow> {
-        let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new("UPDATE admin_users SET ");
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            r#"UPDATE admin_users
+            SET hashed_password = COALESCE($1, hashed_password),
+            login = COALESCE($2, login),
+            telegram_id = COALESCE($3, telegram_id),
+            two_fa_secret = COALESCE($4, two_fa_secret)"#,
+        );
 
-        if let Some(hashed_password) = admin_user.hashed_password {
-            query_builder.push(", hashed_password = ");
-            query_builder.push_bind(hashed_password);
-        }
-
-        if let Some(login) = admin_user.login {
-            query_builder.push(", login = ");
-            query_builder.push_bind(login);
-        }
-
-        if let Some(telegram_id) = admin_user.telegram_id {
-            query_builder.push(", telegram_id = ");
-            query_builder.push_bind(telegram_id);
-        }
-
-        if let Some(two_fa_secret) = admin_user.two_fa_secret {
-            query_builder.push(", two_fa_secret = ");
-            query_builder.push_bind(two_fa_secret);
-        }
+        query_builder.push_bind(admin_user.hashed_password);
+        query_builder.push_bind(admin_user.login);
+        query_builder.push_bind(admin_user.telegram_id);
+        query_builder.push_bind(admin_user.two_fa_secret);
 
         query_builder.push(" WHERE id = ");
         query_builder.push_bind(id);
