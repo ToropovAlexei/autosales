@@ -11,8 +11,9 @@ use crate::{
     errors::api::ApiResult,
     middlewares::validator::ValidatedJson,
     models::category::{NewCategory, UpdateCategory},
-    presentation::admin::dtos::category::{
-        CategoryResponse, NewCategoryRequest, UpdateCategoryRequest,
+    presentation::admin::dtos::{
+        category::{CategoryResponse, NewCategoryRequest, UpdateCategoryRequest},
+        list_response::ListResponse,
     },
     services::{auth::AuthUser, category::CategoryServiceTrait},
     state::AppState,
@@ -75,12 +76,13 @@ async fn create_category(
 async fn list_categories(
     State(state): State<Arc<AppState>>,
     _user: AuthUser,
-) -> ApiResult<Json<Vec<CategoryResponse>>> {
+) -> ApiResult<Json<ListResponse<CategoryResponse>>> {
     let categories = state.category_service.get_list().await?;
 
-    let categories_dto = categories.into_iter().map(CategoryResponse::from).collect();
-
-    Ok(Json(categories_dto))
+    Ok(Json(ListResponse {
+        total: categories.len() as i64,
+        items: categories.into_iter().map(CategoryResponse::from).collect(),
+    }))
 }
 
 #[utoipa::path(
