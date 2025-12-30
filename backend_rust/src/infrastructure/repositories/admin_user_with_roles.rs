@@ -68,3 +68,137 @@ impl AdminUserWithRolesRepositoryTrait for AdminUserWithRolesRepository {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sqlx::PgPool;
+
+    async fn setup_test_data(pool: &PgPool) -> (i64, i64) {
+        let mut tx = pool.begin().await.unwrap();
+
+        let role_id = sqlx::query!(
+            r#"INSERT INTO roles (name, created_by) VALUES ($1, $2) RETURNING id"#,
+            "admin",
+            1
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap()
+        .id;
+
+        let user_id = sqlx::query!(
+            r#"INSERT INTO admin_users 
+                (login, hashed_password, two_fa_secret, is_system, created_by) 
+                VALUES ($1, $2, $3, $4, $5) 
+                RETURNING id"#,
+            "testuser",
+            "hash",
+            "secret",
+            false,
+            1i64
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap()
+        .id;
+
+        sqlx::query!(
+            r#"INSERT INTO user_roles (user_id, role_id, created_by) VALUES ($1, $2, $3)"#,
+            user_id,
+            role_id,
+            1
+        )
+        .execute(&mut *tx)
+        .await
+        .unwrap();
+
+        let user_no_roles_id = sqlx::query!(
+            r#"INSERT INTO admin_users 
+                (login, hashed_password, two_fa_secret, is_system, created_by) 
+                VALUES ($1, $2, $3, $4, $5) 
+                RETURNING id"#,
+            "noroles",
+            "hash2",
+            "secret2",
+            false,
+            1i64
+        )
+        .fetch_one(&mut *tx)
+        .await
+        .unwrap()
+        .id;
+
+        tx.commit().await.unwrap();
+        (user_id, user_no_roles_id)
+    }
+
+    #[sqlx::test]
+    async fn test_get_list_returns_users_with_roles(pool: PgPool) -> Result<(), sqlx::Error> {
+        let (user_id, user_no_roles_id) = setup_test_data(&pool).await;
+
+        let repo = AdminUserWithRolesRepository::new(Arc::new(pool.clone()));
+        let rows = repo.get_list().await.unwrap();
+
+        assert_eq!(rows.len(), 2);
+
+        let user_with_roles = rows.iter().find(|u| u.login == "testuser").unwrap();
+        let user_no_roles = rows.iter().find(|u| u.login == "noroles").unwrap();
+
+        assert_eq!(user_with_roles.roles.len(), 1);
+        assert_eq!(user_with_roles.roles[0].name, "admin");
+        assert_eq!(user_with_roles.id, user_id);
+
+        assert_eq!(user_no_roles.roles.len(), 0);
+        assert_eq!(user_no_roles.id, user_no_roles_id);
+
+        assert!(!user_with_roles.is_system);
+        assert!(user_with_roles.hashed_password.contains("hash"));
+
+        Ok(())
+    }
+
+    #[sqlx::test]
+    async fn test_get_list_excludes_deleted_and_system_users(
+        pool: PgPool,
+    ) -> Result<(), sqlx::Error> {
+        let mut tx = pool.begin().await?;
+
+        sqlx::query!(
+            r#"INSERT INTO admin_users 
+                (login, hashed_password, two_fa_secret, is_system, created_by, deleted_at) 
+                VALUES ($1, $2, $3, $4, $5, NOW())"#,
+            "deleted_user",
+            "hash",
+            "secret",
+            false,
+            1i64
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        sqlx::query!(
+            r#"INSERT INTO admin_users 
+                (login, hashed_password, two_fa_secret, is_system, created_by) 
+                VALUES ($1, $2, $3, $4, $5)"#,
+            "system_user",
+            "",
+            "",
+            true,
+            1i64
+        )
+        .execute(&mut *tx)
+        .await?;
+
+        tx.commit().await?;
+
+        let repo = AdminUserWithRolesRepository::new(Arc::new(pool.clone()));
+        let rows = repo.get_list().await.unwrap();
+
+        let logins: Vec<_> = rows.iter().map(|u| u.login.clone()).collect();
+        assert!(!logins.contains(&"deleted_user".to_string()));
+        assert!(!logins.contains(&"system_user".to_string()));
+
+        Ok(())
+    }
+}
