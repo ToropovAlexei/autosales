@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::Router;
 
 use crate::{
-    presentation::admin::handlers::{admin_user, auth, category, me, role},
+    presentation::admin::handlers::{admin_user, auth, category, me, permission, role},
     state::AppState,
 };
 
@@ -14,4 +14,5 @@ pub fn router() -> Router<Arc<AppState>> {
         .nest("/me", me::router())
         .nest("/admin-users", admin_user::router())
         .nest("/roles", role::router())
+        .nest("/permissions", permission::router())
 }
