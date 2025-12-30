@@ -14,6 +14,18 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new().route("/", get(list_permissions))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/admin/permissions",
+    tag = "Permissions",
+    responses(
+        (status = 200, description = "Admin user permissions", body = ListResponse<PermissionResponse>),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn list_permissions(
     State(state): State<Arc<AppState>>,
     _user: AuthUser,
