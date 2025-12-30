@@ -8,7 +8,8 @@ use crate::{
     db,
     infrastructure::repositories::{
         active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
-        category::CategoryRepository, effective_permission::EffectivePermissionRepository,
+        admin_user_with_roles::AdminUserWithRolesRepository, category::CategoryRepository,
+        effective_permission::EffectivePermissionRepository,
         temporary_token::TemporaryTokenRepository,
     },
     services::{
@@ -32,7 +33,8 @@ pub struct AppState {
         >,
     >,
     pub category_service: Arc<CategoryService<CategoryRepository>>,
-    pub admin_user_service: Arc<AdminUserService<AdminUserRepository>>,
+    pub admin_user_service:
+        Arc<AdminUserService<AdminUserRepository, AdminUserWithRolesRepository>>,
 }
 
 impl AppState {
@@ -41,6 +43,8 @@ impl AppState {
         let active_token_repo = Arc::new(ActiveTokenRepository::new(db_pool.clone()));
         let temp_token_repo = Arc::new(TemporaryTokenRepository::new(db_pool.clone()));
         let admin_user_repo = Arc::new(AdminUserRepository::new(db_pool.clone()));
+        let admin_user_with_roles_repo =
+            Arc::new(AdminUserWithRolesRepository::new(db_pool.clone()));
         let effective_permission_repo =
             Arc::new(EffectivePermissionRepository::new(db_pool.clone()));
         let totp_encryptor = Arc::new(
@@ -67,7 +71,11 @@ impl AppState {
         ));
         let category_repo = Arc::new(CategoryRepository::new(db_pool.clone()));
         let category_service = Arc::new(CategoryService::new(category_repo));
-        let admin_user_service = Arc::new(AdminUserService::new(admin_user_repo, totp_encryptor));
+        let admin_user_service = Arc::new(AdminUserService::new(
+            admin_user_repo,
+            admin_user_with_roles_repo,
+            totp_encryptor,
+        ));
 
         Self {
             db,

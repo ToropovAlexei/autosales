@@ -34,7 +34,7 @@ impl AdminUserRepositoryTrait for AdminUserRepository {
     async fn get_list(&self) -> RepositoryResult<Vec<AdminUserRow>> {
         let result = sqlx::query_as!(
             AdminUserRow,
-            "SELECT * FROM admin_users WHERE deleted_at IS NULL"
+            "SELECT * FROM admin_users WHERE deleted_at IS NULL AND is_system = false"
         )
         .fetch_all(&*self.pool)
         .await?;
@@ -64,7 +64,7 @@ impl AdminUserRepositoryTrait for AdminUserRepository {
     async fn get_by_id(&self, id: i64) -> RepositoryResult<AdminUserRow> {
         let result = sqlx::query_as!(
             AdminUserRow,
-            "SELECT * FROM admin_users WHERE id = $1 AND deleted_at IS NULL",
+            "SELECT * FROM admin_users WHERE id = $1 AND deleted_at IS NULL AND is_system = false",
             id
         )
         .fetch_one(&*self.pool)
@@ -76,7 +76,7 @@ impl AdminUserRepositoryTrait for AdminUserRepository {
     async fn get_by_login(&self, login: &str) -> RepositoryResult<AdminUserRow> {
         let result = sqlx::query_as!(
             AdminUserRow,
-            "SELECT * FROM admin_users WHERE login = $1 AND deleted_at IS NULL",
+            "SELECT * FROM admin_users WHERE login = $1 AND deleted_at IS NULL AND is_system = false",
             login
         )
         .fetch_one(&*self.pool)
@@ -101,7 +101,7 @@ impl AdminUserRepositoryTrait for AdminUserRepository {
 
         query_builder.push(" WHERE id = ");
         query_builder.push_bind(id);
-        query_builder.push(" AND deleted_at IS NULL RETURNING *");
+        query_builder.push(" AND deleted_at IS NULL AND is_system = false RETURNING *");
 
         let query = query_builder.build_query_as::<AdminUserRow>();
 
@@ -113,7 +113,7 @@ impl AdminUserRepositoryTrait for AdminUserRepository {
 
     async fn delete(&self, id: i64) -> RepositoryResult<()> {
         sqlx::query!(
-            "UPDATE admin_users SET deleted_at = NOW() WHERE id = $1",
+            "UPDATE admin_users SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL AND is_system = false",
             id
         )
         .execute(&*self.pool)
