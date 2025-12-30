@@ -9,13 +9,14 @@ use crate::{
     infrastructure::repositories::{
         active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
         admin_user_with_roles::AdminUserWithRolesRepository, category::CategoryRepository,
-        effective_permission::EffectivePermissionRepository,
+        effective_permission::EffectivePermissionRepository, role::RoleRepository,
         temporary_token::TemporaryTokenRepository,
     },
     services::{
         admin_user::AdminUserService,
         auth::{AuthService, AuthServiceConfig},
         category::CategoryService,
+        role::RoleService,
         topt_encryptor::TotpEncryptor,
     },
 };
@@ -35,6 +36,7 @@ pub struct AppState {
     pub category_service: Arc<CategoryService<CategoryRepository>>,
     pub admin_user_service:
         Arc<AdminUserService<AdminUserRepository, AdminUserWithRolesRepository>>,
+    pub role_service: Arc<RoleService<RoleRepository>>,
 }
 
 impl AppState {
@@ -76,6 +78,8 @@ impl AppState {
             admin_user_with_roles_repo,
             totp_encryptor,
         ));
+        let role_repo = Arc::new(RoleRepository::new(db_pool.clone()));
+        let role_service = Arc::new(RoleService::new(role_repo));
 
         Self {
             db,
@@ -83,6 +87,7 @@ impl AppState {
             auth_service,
             category_service,
             admin_user_service,
+            role_service,
         }
     }
 }
