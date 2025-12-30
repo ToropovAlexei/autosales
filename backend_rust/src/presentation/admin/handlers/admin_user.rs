@@ -11,7 +11,8 @@ use crate::{
     errors::api::ApiResult,
     middlewares::{
         require_permission::{
-            AdminUsersCreate, AdminUsersDelete, AdminUsersRead, AdminUsersUpdate, RequirePermission,
+            AdminUsersCreate, AdminUsersDelete, AdminUsersRead, AdminUsersUpdate, RbacManage,
+            RequirePermission,
         },
         validator::ValidatedJson,
     },
@@ -21,10 +22,12 @@ use crate::{
             UpdateAdminUserRequest,
         },
         list_response::ListResponse,
+        permission::PermissionResponse,
     },
     services::{
         admin_user::{AdminUserServiceTrait, CreateAdminUser, UpdateAdminUserCommand},
         auth::AuthUser,
+        permission::PermissionServiceTrait,
     },
     state::AppState,
 };
@@ -38,6 +41,7 @@ pub fn router() -> Router<Arc<AppState>> {
                 .patch(update_admin_user)
                 .delete(delete_admin_user),
         )
+        .route("/{id}/permissions", get(get_admin_user_permissions))
 }
 
 #[utoipa::path(
@@ -178,4 +182,33 @@ async fn delete_admin_user(
     state.admin_user_service.delete(id).await?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/admin/admin-users/{id}/permissions",
+    tag = "Admin Users",
+    responses(
+        (status = 200, description = "Admin user permissions", body = ListResponse<PermissionResponse>),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
+async fn get_admin_user_permissions(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<i64>,
+    _user: AuthUser,
+    _perm: RequirePermission<RbacManage>,
+) -> ApiResult<Json<ListResponse<PermissionResponse>>> {
+    let permissions = state.permission_service.get_for_admin_user(id).await?;
+
+    Ok(Json(ListResponse {
+        total: permissions.len() as i64,
+        items: permissions
+            .into_iter()
+            .map(PermissionResponse::from)
+            .collect(),
+    }))
 }

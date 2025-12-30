@@ -1,4 +1,7 @@
-use axum::{http::StatusCode, routing::patch};
+use axum::{
+    http::StatusCode,
+    routing::{get, patch},
+};
 use std::sync::Arc;
 
 use axum::{
@@ -16,9 +19,10 @@ use crate::{
     models::role::{NewRole, UpdateRole},
     presentation::admin::dtos::{
         list_response::ListResponse,
+        permission::PermissionResponse,
         role::{NewRoleRequest, RoleResponse, UpdateRoleRequest},
     },
-    services::{auth::AuthUser, role::RoleServiceTrait},
+    services::{auth::AuthUser, permission::PermissionServiceTrait, role::RoleServiceTrait},
     state::AppState,
 };
 
@@ -26,8 +30,21 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", post(create_role).get(list_roles))
         .route("/{id}", patch(update_role).delete(delete_role))
+        .route("/{id}/permissions", get(get_role_permissions))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/admin/roles",
+    tag = "Roles",
+    responses(
+        (status = 201, description = "Role created", body = RoleResponse),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn create_role(
     State(state): State<Arc<AppState>>,
     user: AuthUser,
@@ -46,6 +63,18 @@ async fn create_role(
     Ok(Json(role.into()))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/admin/roles",
+    tag = "Roles",
+    responses(
+        (status = 200, description = "Admin user roles", body = ListResponse<RoleResponse>),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn list_roles(
     State(state): State<Arc<AppState>>,
     _user: AuthUser,
@@ -59,6 +88,18 @@ async fn list_roles(
     }))
 }
 
+#[utoipa::path(
+    patch,
+    path = "/api/admin/roles/{id}",
+    tag = "Roles",
+    responses(
+        (status = 200, description = "Role updated", body = RoleResponse),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn update_role(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
@@ -80,6 +121,18 @@ async fn update_role(
     Ok(Json(role.into()))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/admin/roles/{id}",
+    tag = "Roles",
+    responses(
+        (status = 204, description = "Role deleted"),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn delete_role(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
@@ -89,4 +142,33 @@ async fn delete_role(
     state.role_service.delete(id).await?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/admin/roles/{id}/permissions",
+    tag = "Roles",
+    responses(
+        (status = 200, description = "Role permissions", body = ListResponse<PermissionResponse>),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
+async fn get_role_permissions(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<i64>,
+    _user: AuthUser,
+    _perm: RequirePermission<RbacManage>,
+) -> ApiResult<Json<ListResponse<PermissionResponse>>> {
+    let permissions = state.permission_service.get_for_role(id).await?;
+
+    Ok(Json(ListResponse {
+        total: permissions.len() as i64,
+        items: permissions
+            .into_iter()
+            .map(PermissionResponse::from)
+            .collect(),
+    }))
 }

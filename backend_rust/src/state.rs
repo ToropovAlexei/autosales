@@ -10,7 +10,8 @@ use crate::{
         active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
         admin_user_with_roles::AdminUserWithRolesRepository, category::CategoryRepository,
         effective_permission::EffectivePermissionRepository, permission::PermissionRepository,
-        role::RoleRepository, temporary_token::TemporaryTokenRepository,
+        role::RoleRepository, role_permission::RolePermissionRepository,
+        temporary_token::TemporaryTokenRepository,
     },
     services::{
         admin_user::AdminUserService,
@@ -18,6 +19,7 @@ use crate::{
         category::CategoryService,
         permission::PermissionService,
         role::RoleService,
+        role_permission::RolePermissionService,
         topt_encryptor::TotpEncryptor,
     },
 };
@@ -39,6 +41,7 @@ pub struct AppState {
         Arc<AdminUserService<AdminUserRepository, AdminUserWithRolesRepository>>,
     pub role_service: Arc<RoleService<RoleRepository>>,
     pub permission_service: Arc<PermissionService<PermissionRepository>>,
+    pub role_permission_service: Arc<RolePermissionService<RolePermissionRepository>>,
 }
 
 impl AppState {
@@ -84,6 +87,8 @@ impl AppState {
         let role_service = Arc::new(RoleService::new(role_repo));
         let permission_repo = Arc::new(PermissionRepository::new(db_pool.clone()));
         let permission_service = Arc::new(PermissionService::new(permission_repo));
+        let role_permission_repo = Arc::new(RolePermissionRepository::new(db_pool.clone()));
+        let role_permission_service = Arc::new(RolePermissionService::new(role_permission_repo));
 
         Self {
             db,
@@ -93,6 +98,7 @@ impl AppState {
             admin_user_service,
             role_service,
             permission_service,
+            role_permission_service,
         }
     }
 }
