@@ -45,22 +45,23 @@ pub trait PermissionMarker {
     const PERMISSION: Permission;
 }
 
-macro_rules! permission_marker {
-    ($($variant:ident),* $(,)?) => {
+macro_rules! define_permission_markers {
+    (
+        $( $(#[$meta:meta])* $variant:ident ),* $(,)?
+    ) => {
         $(
-            paste::paste! {
-                #[derive(Debug, Clone, Copy, Default)]
-                pub struct [<$variant Permission>];
+            $(#[$meta])*
+            #[derive(Debug, Clone, Copy, Default)]
+            pub struct $variant;
 
-                impl PermissionMarker for [<$variant Permission>] {
-                    const PERMISSION: Permission = Permission::$variant;
-                }
+            impl PermissionMarker for $variant {
+                const PERMISSION: Permission = Permission::$variant;
             }
         )*
     };
 }
 
-permission_marker! {
+define_permission_markers! {
     RbacManage,
     DashboardRead,
     ProductsCreate, ProductsRead, ProductsUpdate, ProductsDelete,
