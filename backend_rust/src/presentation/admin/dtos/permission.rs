@@ -5,7 +5,7 @@ use utoipa::{ToResponse, ToSchema};
 use crate::models::permission::PermissionRow;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "auth.ts", rename = "NewCategory")]
+#[ts(export, export_to = "auth.ts", rename = "PermissionResponse")]
 pub struct PermissionResponse {
     pub id: i64,
     pub name: String,
