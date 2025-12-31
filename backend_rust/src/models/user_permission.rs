@@ -6,6 +6,7 @@ use utoipa::ToSchema;
 
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]
 #[sqlx(type_name = "permission_effect", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum PermissionEffect {
     Allow,
     Deny,

@@ -24,7 +24,7 @@ use crate::{
         },
         list_response::ListResponse,
         permission::PermissionResponse,
-        user_permission::UpdateUserPermissionsRequest,
+        user_permission::{UpdateUserPermissionsRequest, UserPermissionResponse},
     },
     services::{
         admin_user::{AdminUserServiceTrait, CreateAdminUser, UpdateAdminUserCommand},
@@ -218,14 +218,17 @@ async fn get_admin_user_permissions(
     Path(id): Path<i64>,
     _user: AuthUser,
     _perm: RequirePermission<RbacManage>,
-) -> ApiResult<Json<ListResponse<PermissionResponse>>> {
+) -> ApiResult<Json<ListResponse<UserPermissionResponse>>> {
     let permissions = state.permission_service.get_for_admin_user(id).await?;
 
     Ok(Json(ListResponse {
         total: permissions.len() as i64,
         items: permissions
             .into_iter()
-            .map(PermissionResponse::from)
+            .map(|p| UserPermissionResponse {
+                effect: p.effect,
+                id: p.permission_id,
+            })
             .collect(),
     }))
 }
@@ -249,7 +252,7 @@ async fn update_admin_user_permissions(
     user: AuthUser,
     _perm: RequirePermission<RbacManage>,
     ValidatedJson(payload): ValidatedJson<UpdateUserPermissionsRequest>,
-) -> ApiResult<Json<ListResponse<PermissionResponse>>> {
+) -> ApiResult<Json<ListResponse<UserPermissionResponse>>> {
     state
         .permission_service
         .update_admin_user_permissions(UpdateUserPermissions {
@@ -273,7 +276,10 @@ async fn update_admin_user_permissions(
         total: permissions.len() as i64,
         items: permissions
             .into_iter()
-            .map(PermissionResponse::from)
+            .map(|p| UserPermissionResponse {
+                effect: p.effect,
+                id: p.permission_id,
+            })
             .collect(),
     }))
 }
