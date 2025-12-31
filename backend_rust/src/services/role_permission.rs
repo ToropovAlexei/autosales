@@ -7,7 +7,7 @@ use crate::{
     infrastructure::repositories::role_permission::{
         RolePermissionRepository, RolePermissionRepositoryTrait,
     },
-    models::role_permission::{NewRolePermission, RolePermissionRow},
+    models::role_permission::{NewRolePermission, RolePermissionRow, UpdateRolePermissions},
 };
 
 #[async_trait]
@@ -15,6 +15,7 @@ pub trait RolePermissionServiceTrait: Send + Sync {
     async fn get_for_role(&self, role_id: i64) -> ApiResult<Vec<RolePermissionRow>>;
     async fn create(&self, permission: NewRolePermission) -> ApiResult<RolePermissionRow>;
     async fn delete(&self, role_id: i64, permission_id: i64) -> ApiResult<()>;
+    async fn update_role_permissions(&self, permissions: UpdateRolePermissions) -> ApiResult<()>;
 }
 
 pub struct RolePermissionService<R> {
@@ -50,5 +51,9 @@ impl RolePermissionServiceTrait for RolePermissionService<RolePermissionReposito
             .repo
             .delete_role_permission(role_id, permission_id)
             .await?)
+    }
+
+    async fn update_role_permissions(&self, permissions: UpdateRolePermissions) -> ApiResult<()> {
+        Ok(self.repo.update_role_permissions(permissions).await?)
     }
 }

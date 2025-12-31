@@ -5,17 +5,19 @@ edition = "2024"
 default-run = "backend_rust"
 
 [dependencies]
-aes-gcm = "0.10.3"
+aes-gcm = "0.10"
 anyhow = "1.0"
 async-trait = "0.1"
 axum = { version = "0.8", features = ["macros"] }
 axum-extra = { version = "0.12", features = ["multipart"] }
-base64 = "0.22.1"
-bcrypt = "0.17.1"
+base64 = "0.22"
+bcrypt = "0.17"
 bytes = "1.10"
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
 envy = "0.4"
+image = { version = "0.25", default-features = false, features = ["png"] }
+qrcode = "0.14"
 serde = { version = "1.0", features = ["derive"] }
 sqlx = { version = "0.8", features = [
     "postgres",
@@ -27,11 +29,11 @@ sqlx = { version = "0.8", features = [
 ] }
 thiserror = "2.0"
 tokio = { version = "1.47", features = ["full"] }
-totp-rs = { version = "5.7.0", features = ["otpauth", "gen_secret"] }
+totp-rs = { version = "5.7", features = ["otpauth", "gen_secret"] }
 tower-http = { version = "0.6", features = ["cors"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["time"] }
-ts-rs = { version = "11.1.0", features = ["uuid-impl", "chrono-impl"] }
-utoipa = { version = "5.4.0", features = ["uuid", "chrono"] }
-uuid = { version = "1.19.0", features = ["serde"] }
+ts-rs = { version = "11.1", features = ["uuid-impl", "chrono-impl"] }
+utoipa = { version = "5.4", features = ["uuid", "chrono"] }
+uuid = { version = "1.19", features = ["serde"] }
 validator = { version = "0.20", features = ["derive"] }

@@ -23,7 +23,6 @@ pub trait UserPermissionRepositoryTrait {
     async fn update_user_permission(
         &self,
         admin_user_id: i64,
-        permission_id: i64,
         user_permission: UpdateUserPermission,
     ) -> RepositoryResult<UserPermissionRow>;
     async fn delete_user_permission(
@@ -91,7 +90,6 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
     async fn update_user_permission(
         &self,
         admin_user_id: i64,
-        permission_id: i64,
         user_permission: UpdateUserPermission,
     ) -> RepositoryResult<UserPermissionRow> {
         let result = sqlx::query_as!(
@@ -100,7 +98,7 @@ impl UserPermissionRepositoryTrait for UserPermissionRepository {
              RETURNING user_id, permission_id, effect as "effect: _", created_at, updated_at, created_by"#,
             user_permission.effect as Option<PermissionEffect>,
             admin_user_id,
-            permission_id
+            user_permission.id
         )
         .fetch_one(&*self.pool)
         .await?;

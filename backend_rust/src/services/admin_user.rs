@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 
 use crate::{
     errors::api::ApiResult,
@@ -23,6 +24,21 @@ pub struct CreateAdminUser {
 }
 
 #[derive(Debug)]
+pub struct CreatedAdminUser {
+    pub id: i64,
+    pub login: String,
+    pub hashed_password: String,
+    pub two_fa_secret: String,
+    pub two_fa_qr_code: String,
+    pub telegram_id: Option<i64>,
+    pub is_system: bool,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub created_by: i64,
+}
+
+#[derive(Debug)]
 pub struct UpdateAdminUserCommand {
     pub login: Option<String>,
     pub password: Option<String>,
@@ -33,7 +49,7 @@ pub struct UpdateAdminUserCommand {
 pub trait AdminUserServiceTrait: Send + Sync {
     async fn get_list(&self) -> ApiResult<Vec<AdminUserRow>>;
     async fn get_all_users_with_roles(&self) -> ApiResult<Vec<AdminUserWithRolesRow>>;
-    async fn create(&self, admin_user: CreateAdminUser) -> ApiResult<AdminUserRow>;
+    async fn create(&self, admin_user: CreateAdminUser) -> ApiResult<CreatedAdminUser>;
     async fn get_by_id(&self, id: i64) -> ApiResult<AdminUserRow>;
     async fn get_by_login(&self, login: &str) -> ApiResult<AdminUserRow>;
     async fn update(&self, id: i64, admin_user: UpdateAdminUserCommand) -> ApiResult<AdminUserRow>;
@@ -76,7 +92,8 @@ impl AdminUserServiceTrait for AdminUserService<AdminUserRepository, AdminUserWi
         Ok(res)
     }
 
-    async fn create(&self, admin_user: CreateAdminUser) -> ApiResult<AdminUserRow> {
+    async fn create(&self, admin_user: CreateAdminUser) -> ApiResult<CreatedAdminUser> {
+        let secret = totp_rs::Secret::generate_secret().to_encoded().to_string();
         let created = self
             .repo
             .create(NewAdminUser {
@@ -84,12 +101,24 @@ impl AdminUserServiceTrait for AdminUserService<AdminUserRepository, AdminUserWi
                 created_by: admin_user.created_by,
                 hashed_password: bcrypt::hash(&admin_user.password, bcrypt::DEFAULT_COST)?,
                 telegram_id: None,
-                two_fa_secret: self
-                    .totp_encryptor
-                    .encrypt(&totp_rs::Secret::generate_secret().to_string())?,
+                two_fa_secret: self.totp_encryptor.encrypt(&secret)?,
             })
             .await?;
-        Ok(created)
+        Ok(CreatedAdminUser {
+            created_at: created.created_at,
+            created_by: created.created_by,
+            id: created.id,
+            is_system: created.is_system,
+            two_fa_qr_code: self
+                .totp_encryptor
+                .generate_qr_code(&created.login, &secret)?,
+            login: created.login,
+            telegram_id: created.telegram_id,
+            updated_at: created.updated_at,
+            two_fa_secret: secret.to_string(),
+            hashed_password: created.hashed_password,
+            deleted_at: created.deleted_at,
+        })
     }
 
     async fn get_by_id(&self, id: i64) -> ApiResult<AdminUserRow> {

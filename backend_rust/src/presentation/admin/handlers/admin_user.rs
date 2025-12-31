@@ -16,13 +16,15 @@ use crate::{
         },
         validator::ValidatedJson,
     },
+    models::user_permission::{UpdateUserPermissions, UpsertUserPermission},
     presentation::admin::dtos::{
         admin_user::{
             AdminUserResponse, AdminUserWithRolesResponse, NewAdminUserRequest,
-            UpdateAdminUserRequest,
+            NewAdminUserResponse, UpdateAdminUserRequest,
         },
         list_response::ListResponse,
         permission::PermissionResponse,
+        user_permission::UpdateUserPermissionsRequest,
     },
     services::{
         admin_user::{AdminUserServiceTrait, CreateAdminUser, UpdateAdminUserCommand},
@@ -41,7 +43,10 @@ pub fn router() -> Router<Arc<AppState>> {
                 .patch(update_admin_user)
                 .delete(delete_admin_user),
         )
-        .route("/{id}/permissions", get(get_admin_user_permissions))
+        .route(
+            "/{id}/permissions",
+            get(get_admin_user_permissions).patch(update_admin_user_permissions),
+        )
 }
 
 #[utoipa::path(
@@ -62,7 +67,7 @@ async fn create_admin_user(
     user: AuthUser,
     _perm: RequirePermission<AdminUsersCreate>,
     ValidatedJson(payload): ValidatedJson<NewAdminUserRequest>,
-) -> ApiResult<Json<AdminUserResponse>> {
+) -> ApiResult<Json<NewAdminUserResponse>> {
     let admin_user = state
         .admin_user_service
         .create(CreateAdminUser {
@@ -72,7 +77,17 @@ async fn create_admin_user(
         })
         .await?;
 
-    Ok(Json(admin_user.into()))
+    Ok(Json(NewAdminUserResponse {
+        id: admin_user.id,
+        created_at: admin_user.created_at,
+        created_by: admin_user.created_by,
+        deleted_at: admin_user.deleted_at,
+        login: admin_user.login,
+        telegram_id: admin_user.telegram_id,
+        two_fa_qr_code: admin_user.two_fa_qr_code,
+        two_fa_secret: admin_user.two_fa_secret,
+        updated_at: admin_user.updated_at,
+    }))
 }
 
 #[utoipa::path(
@@ -202,6 +217,54 @@ async fn get_admin_user_permissions(
     _user: AuthUser,
     _perm: RequirePermission<RbacManage>,
 ) -> ApiResult<Json<ListResponse<PermissionResponse>>> {
+    let permissions = state.permission_service.get_for_admin_user(id).await?;
+
+    Ok(Json(ListResponse {
+        total: permissions.len() as i64,
+        items: permissions
+            .into_iter()
+            .map(PermissionResponse::from)
+            .collect(),
+    }))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/api/admin/admin-users/{id}/permissions",
+    tag = "Admin Users",
+    request_body = UpdateUserPermissionsRequest,
+    responses(
+        (status = 200, description = "Admin user permissions updated", body = ListResponse<PermissionResponse>),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
+async fn update_admin_user_permissions(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<i64>,
+    user: AuthUser,
+    _perm: RequirePermission<RbacManage>,
+    ValidatedJson(payload): ValidatedJson<UpdateUserPermissionsRequest>,
+) -> ApiResult<Json<ListResponse<PermissionResponse>>> {
+    state
+        .permission_service
+        .update_admin_user_permissions(UpdateUserPermissions {
+            user_id: id,
+            created_by: user.id,
+            removed: payload.removed,
+            upserted: payload
+                .upserted
+                .iter()
+                .map(|x| UpsertUserPermission {
+                    id: x.id,
+                    effect: x.effect,
+                })
+                .collect(),
+        })
+        .await?;
+
     let permissions = state.permission_service.get_for_admin_user(id).await?;
 
     Ok(Json(ListResponse {

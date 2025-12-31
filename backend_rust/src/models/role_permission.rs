@@ -15,3 +15,11 @@ pub struct NewRolePermission {
     pub permission_id: i64,
     pub created_by: i64,
 }
+
+#[derive(Debug)]
+pub struct UpdateRolePermissions {
+    pub role_id: i64,
+    pub added: Vec<i64>,
+    pub removed: Vec<i64>,
+    pub created_by: i64,
+}

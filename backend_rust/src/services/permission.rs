@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use crate::{
     errors::api::ApiResult,
     infrastructure::repositories::permission::{PermissionRepository, PermissionRepositoryTrait},
-    models::permission::PermissionRow,
+    models::{permission::PermissionRow, user_permission::UpdateUserPermissions},
 };
 
 #[async_trait]
@@ -13,6 +13,10 @@ pub trait PermissionServiceTrait: Send + Sync {
     async fn get_list(&self) -> ApiResult<Vec<PermissionRow>>;
     async fn get_for_role(&self, role_id: i64) -> ApiResult<Vec<PermissionRow>>;
     async fn get_for_admin_user(&self, admin_user_id: i64) -> ApiResult<Vec<PermissionRow>>;
+    async fn update_admin_user_permissions(
+        &self,
+        permissions: UpdateUserPermissions,
+    ) -> ApiResult<()>;
 }
 
 pub struct PermissionService<R> {
@@ -43,5 +47,12 @@ impl PermissionServiceTrait for PermissionService<PermissionRepository> {
     async fn get_for_admin_user(&self, admin_user_id: i64) -> ApiResult<Vec<PermissionRow>> {
         let res = self.repo.get_for_admin_user(admin_user_id).await?;
         Ok(res)
+    }
+
+    async fn update_admin_user_permissions(
+        &self,
+        permissions: UpdateUserPermissions,
+    ) -> ApiResult<()> {
+        Ok(self.repo.update_admin_user_permissions(permissions).await?)
     }
 }

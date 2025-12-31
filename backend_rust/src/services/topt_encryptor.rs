@@ -4,6 +4,8 @@ use aes_gcm::{
 };
 use base64::Engine;
 use base64::engine::general_purpose;
+use image::Luma;
+use qrcode::QrCode;
 
 use crate::errors::totp_encryptor::{TotpEncryptorError, TotpEncryptorResult};
 
@@ -51,5 +53,20 @@ impl TotpEncryptor {
             .map_err(|_e| TotpEncryptorError::DecodeError("Failed to decrypt".to_string()))?;
         String::from_utf8(plaintext)
             .map_err(|_e| TotpEncryptorError::DecodeError("Failed to decode".to_string()))
+    }
+
+    pub fn generate_qr_code(&self, login: &str, secret: &str) -> TotpEncryptorResult<String> {
+        let url = format!("otpauth://totp/backend:{login}?secret={secret}&issuer=backend");
+        let code = QrCode::new(url).map_err(|e| TotpEncryptorError::QrCodeError(e.to_string()))?;
+        let image = code.render::<Luma<u8>>().build();
+        let mut png_bytes = Vec::new();
+        image::DynamicImage::ImageLuma8(image)
+            .write_to(
+                &mut std::io::Cursor::new(&mut png_bytes),
+                image::ImageFormat::Png,
+            )
+            .map_err(|e| TotpEncryptorError::QrCodeError(e.to_string()))?;
+
+        Ok(general_purpose::STANDARD.encode(png_bytes))
     }
 }

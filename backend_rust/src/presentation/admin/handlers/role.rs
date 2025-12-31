@@ -16,13 +16,20 @@ use crate::{
         require_permission::{RbacManage, RequirePermission},
         validator::ValidatedJson,
     },
-    models::role::{NewRole, UpdateRole},
+    models::{
+        role::{NewRole, UpdateRole},
+        role_permission::UpdateRolePermissions,
+    },
     presentation::admin::dtos::{
         list_response::ListResponse,
         permission::PermissionResponse,
         role::{NewRoleRequest, RoleResponse, UpdateRoleRequest},
+        role_permission::UpdateRolePermissionsRequest,
     },
-    services::{auth::AuthUser, permission::PermissionServiceTrait, role::RoleServiceTrait},
+    services::{
+        auth::AuthUser, permission::PermissionServiceTrait, role::RoleServiceTrait,
+        role_permission::RolePermissionServiceTrait,
+    },
     state::AppState,
 };
 
@@ -30,7 +37,10 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", post(create_role).get(list_roles))
         .route("/{id}", patch(update_role).delete(delete_role))
-        .route("/{id}/permissions", get(get_role_permissions))
+        .route(
+            "/{id}/permissions",
+            get(get_role_permissions).patch(update_role_permissions),
+        )
 }
 
 #[utoipa::path(
@@ -162,6 +172,46 @@ async fn get_role_permissions(
     _user: AuthUser,
     _perm: RequirePermission<RbacManage>,
 ) -> ApiResult<Json<ListResponse<PermissionResponse>>> {
+    let permissions = state.permission_service.get_for_role(id).await?;
+
+    Ok(Json(ListResponse {
+        total: permissions.len() as i64,
+        items: permissions
+            .into_iter()
+            .map(PermissionResponse::from)
+            .collect(),
+    }))
+}
+
+#[utoipa::path(
+    patch,
+    path = "/api/admin/roles/{id}/permissions",
+    tag = "Roles",
+    responses(
+        (status = 200, description = "Role permissions updated", body = ListResponse<PermissionResponse>),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
+async fn update_role_permissions(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<i64>,
+    user: AuthUser,
+    _perm: RequirePermission<RbacManage>,
+    ValidatedJson(payload): ValidatedJson<UpdateRolePermissionsRequest>,
+) -> ApiResult<Json<ListResponse<PermissionResponse>>> {
+    state
+        .role_permission_service
+        .update_role_permissions(UpdateRolePermissions {
+            added: payload.added,
+            removed: payload.removed,
+            created_by: user.id,
+            role_id: id,
+        })
+        .await?;
+
     let permissions = state.permission_service.get_for_role(id).await?;
 
     Ok(Json(ListResponse {

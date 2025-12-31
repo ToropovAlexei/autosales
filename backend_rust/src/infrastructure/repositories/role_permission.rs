@@ -5,7 +5,7 @@ use sqlx::PgPool;
 
 use crate::{
     errors::repository::RepositoryResult,
-    models::role_permission::{NewRolePermission, RolePermissionRow},
+    models::role_permission::{NewRolePermission, RolePermissionRow, UpdateRolePermissions},
 };
 
 #[async_trait]
@@ -19,6 +19,10 @@ pub trait RolePermissionRepositoryTrait {
         &self,
         role_id: i64,
         permission_id: i64,
+    ) -> RepositoryResult<()>;
+    async fn update_role_permissions(
+        &self,
+        update_role_permissions: UpdateRolePermissions,
     ) -> RepositoryResult<()>;
 }
 
@@ -76,6 +80,47 @@ impl RolePermissionRepositoryTrait for RolePermissionRepository {
         )
         .execute(&*self.pool)
         .await?;
+        Ok(())
+    }
+
+    async fn update_role_permissions(
+        &self,
+        update_role_permissions: UpdateRolePermissions,
+    ) -> RepositoryResult<()> {
+        let mut tx = self.pool.begin().await?;
+
+        if !update_role_permissions.added.is_empty() {
+            sqlx::query!(
+                r#"
+            INSERT INTO role_permissions (role_id, permission_id, created_by)
+            SELECT $1, p.id, $2
+            FROM unnest($3::BIGINT[]) AS p(id)
+            ON CONFLICT (role_id, permission_id) DO NOTHING
+            "#,
+                update_role_permissions.role_id,
+                update_role_permissions.created_by,
+                &update_role_permissions.added[..]
+            )
+            .execute(tx.as_mut())
+            .await?;
+        }
+
+        if !update_role_permissions.removed.is_empty() {
+            sqlx::query!(
+                r#"
+            DELETE FROM role_permissions
+            WHERE role_id = $1
+              AND permission_id = ANY($2)
+            "#,
+                update_role_permissions.role_id,
+                &update_role_permissions.removed[..]
+            )
+            .execute(tx.as_mut())
+            .await?;
+        }
+
+        tx.commit().await?;
+
         Ok(())
     }
 }

@@ -8,4 +8,6 @@ pub enum TotpEncryptorError {
     MissingSecret,
     #[error("Decode error: {0}")]
     DecodeError(String),
+    #[error("QR code error: {0}")]
+    QrCodeError(String),
 }

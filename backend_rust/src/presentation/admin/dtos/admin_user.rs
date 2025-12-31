@@ -49,6 +49,20 @@ pub struct NewAdminUserRequest {
     pub password: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
+#[ts(export, export_to = "admin_user.ts", rename = "NewAdminUserResponse")]
+pub struct NewAdminUserResponse {
+    pub id: i64,
+    pub login: String,
+    pub telegram_id: Option<i64>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub created_by: i64,
+    pub two_fa_secret: String,
+    pub two_fa_qr_code: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "admin_user.ts", rename = "UpdateAdminUser")]
 pub struct UpdateAdminUserRequest {
