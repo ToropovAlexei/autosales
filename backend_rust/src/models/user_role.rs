@@ -15,3 +15,10 @@ pub struct NewUserRole {
     pub role_id: i64,
     pub created_by: i64,
 }
+
+#[derive(Debug)]
+pub struct AssignUserRoles {
+    pub user_id: i64,
+    pub roles: Vec<i64>,
+    pub created_by: i64,
+}

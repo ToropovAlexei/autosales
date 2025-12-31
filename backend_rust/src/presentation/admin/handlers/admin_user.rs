@@ -74,6 +74,7 @@ async fn create_admin_user(
             login: payload.login,
             password: payload.password,
             created_by: user.id,
+            roles: payload.roles,
         })
         .await?;
 
@@ -169,6 +170,7 @@ async fn update_admin_user(
                 login: payload.login,
                 password: payload.password,
                 telegram_id: payload.telegram_id,
+                roles: payload.roles,
             },
         )
         .await?;

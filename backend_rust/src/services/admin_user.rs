@@ -8,10 +8,12 @@ use crate::{
     infrastructure::repositories::{
         admin_user::{AdminUserRepository, AdminUserRepositoryTrait},
         admin_user_with_roles::{AdminUserWithRolesRepository, AdminUserWithRolesRepositoryTrait},
+        user_role::{UserRoleRepository, UserRoleRepositoryTrait},
     },
     models::{
         admin_user::{AdminUserRow, NewAdminUser, UpdateAdminUser},
         admin_user_with_roles::AdminUserWithRolesRow,
+        user_role::AssignUserRoles,
     },
     services::topt_encryptor::TotpEncryptor,
 };
@@ -21,6 +23,7 @@ pub struct CreateAdminUser {
     pub login: String,
     pub password: String,
     pub created_by: i64,
+    pub roles: Vec<i64>,
 }
 
 #[derive(Debug)]
@@ -43,6 +46,7 @@ pub struct UpdateAdminUserCommand {
     pub login: Option<String>,
     pub password: Option<String>,
     pub telegram_id: Option<i64>,
+    pub roles: Option<Vec<i64>>,
 }
 
 #[async_trait]
@@ -56,32 +60,38 @@ pub trait AdminUserServiceTrait: Send + Sync {
     async fn delete(&self, id: i64) -> ApiResult<()>;
 }
 
-pub struct AdminUserService<R, T> {
+pub struct AdminUserService<R, T, S> {
     repo: Arc<R>,
     admin_user_with_roles_repo: Arc<T>,
+    user_role_repo: Arc<S>,
     totp_encryptor: Arc<TotpEncryptor>,
 }
 
-impl<R, T> AdminUserService<R, T>
+impl<R, T, S> AdminUserService<R, T, S>
 where
     R: AdminUserRepositoryTrait + Send + Sync,
     T: AdminUserWithRolesRepositoryTrait + Send + Sync,
+    S: UserRoleRepositoryTrait + Send + Sync,
 {
     pub fn new(
         repo: Arc<R>,
         admin_user_with_roles_repo: Arc<T>,
+        user_role_repo: Arc<S>,
         totp_encryptor: Arc<TotpEncryptor>,
     ) -> Self {
         Self {
             repo,
             admin_user_with_roles_repo,
             totp_encryptor,
+            user_role_repo,
         }
     }
 }
 
 #[async_trait]
-impl AdminUserServiceTrait for AdminUserService<AdminUserRepository, AdminUserWithRolesRepository> {
+impl AdminUserServiceTrait
+    for AdminUserService<AdminUserRepository, AdminUserWithRolesRepository, UserRoleRepository>
+{
     async fn get_list(&self) -> ApiResult<Vec<AdminUserRow>> {
         let res = self.repo.get_list().await?;
         Ok(res)
@@ -102,6 +112,13 @@ impl AdminUserServiceTrait for AdminUserService<AdminUserRepository, AdminUserWi
                 hashed_password: bcrypt::hash(&admin_user.password, bcrypt::DEFAULT_COST)?,
                 telegram_id: None,
                 two_fa_secret: self.totp_encryptor.encrypt(&secret)?,
+            })
+            .await?;
+        self.user_role_repo
+            .assign_roles_to_admin_user(AssignUserRoles {
+                created_by: admin_user.created_by,
+                user_id: created.id,
+                roles: admin_user.roles,
             })
             .await?;
         Ok(CreatedAdminUser {
@@ -147,6 +164,15 @@ impl AdminUserServiceTrait for AdminUserService<AdminUserRepository, AdminUserWi
                 },
             )
             .await?;
+        if let Some(roles) = admin_user.roles {
+            self.user_role_repo
+                .assign_roles_to_admin_user(AssignUserRoles {
+                    created_by: res.created_by,
+                    user_id: res.id,
+                    roles,
+                })
+                .await?;
+        }
         Ok(res)
     }
 

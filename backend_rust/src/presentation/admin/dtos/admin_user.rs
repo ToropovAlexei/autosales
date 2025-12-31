@@ -47,6 +47,8 @@ pub struct NewAdminUserRequest {
         message = "Password must be at least 8 characters long and at most 20 characters long"
     ))]
     pub password: String,
+    #[validate(length(min = 1, message = "At least one role must be selected"))]
+    pub roles: Vec<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
@@ -79,6 +81,8 @@ pub struct UpdateAdminUserRequest {
     ))]
     pub password: Option<String>,
     pub telegram_id: Option<i64>,
+    #[validate(length(min = 1, message = "At least one role must be selected"))]
+    pub roles: Option<Vec<i64>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
