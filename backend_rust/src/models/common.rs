@@ -1,19 +1,12 @@
 use serde::{Deserialize, Serialize};
+use serde_with::DisplayFromStr;
+use serde_with::serde_as;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize)]
 pub struct PaginatedResult<T> {
     pub items: Vec<T>,
     pub total: i64,
-}
-
-pub trait Orderable {
-    type OrderField: Sized
-        + Clone
-        + PartialEq
-        + std::fmt::Debug
-        + Serialize
-        + for<'de> Deserialize<'de>;
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -24,10 +17,13 @@ pub enum OrderDir {
     Asc,
 }
 
+#[serde_as]
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Pagination {
+    #[serde_as(as = "DisplayFromStr")]
     #[serde(default = "default_page")]
     pub page: u32,
+    #[serde_as(as = "DisplayFromStr")]
     #[serde(default = "default_page_size")]
     pub page_size: u32,
 }
@@ -87,12 +83,4 @@ pub enum Operator {
     Like,
     Contains,
     In,
-}
-
-pub trait FilterField {
-    fn column(&self) -> &'static str;
-}
-
-pub trait OrderField {
-    fn column(&self) -> &'static str;
 }

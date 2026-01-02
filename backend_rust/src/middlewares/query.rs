@@ -9,9 +9,7 @@ where
     type Rejection = ApiError;
 
     async fn from_request(req: Request, _state: &S) -> Result<Self, Self::Rejection> {
-        let Some(query) = req.uri().query() else {
-            return Ok(ListQuery::default());
-        };
+        let query = req.uri().query().unwrap_or_default();
         match serde_qs::from_str(query) {
             Ok(query) => Ok(query),
             Err(err) => Err(ApiError::BadRequest(err.to_string())),
