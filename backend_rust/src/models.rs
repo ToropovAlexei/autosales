@@ -4,6 +4,7 @@ pub mod admin_user_with_roles;
 pub mod category;
 pub mod common;
 pub mod permission;
+pub mod product;
 pub mod role;
 pub mod role_permission;
 pub mod temporary_token;

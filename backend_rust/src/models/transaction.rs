@@ -7,6 +7,7 @@ use utoipa::ToSchema;
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]
 #[sqlx(type_name = "transaction_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
+#[ts(export, export_to = "transaction.ts")]
 pub enum TransactionType {
     Deposit,
     Purchase,

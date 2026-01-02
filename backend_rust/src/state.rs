@@ -10,15 +10,17 @@ use crate::{
         active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
         admin_user_with_roles::AdminUserWithRolesRepository, category::CategoryRepository,
         effective_permission::EffectivePermissionRepository, permission::PermissionRepository,
-        role::RoleRepository, role_permission::RolePermissionRepository,
-        temporary_token::TemporaryTokenRepository, transaction::TransactionRepository,
-        user_permission::UserPermissionRepository, user_role::UserRoleRepository,
+        products::ProductRepository, role::RoleRepository,
+        role_permission::RolePermissionRepository, temporary_token::TemporaryTokenRepository,
+        transaction::TransactionRepository, user_permission::UserPermissionRepository,
+        user_role::UserRoleRepository,
     },
     services::{
         admin_user::AdminUserService,
         auth::{AuthService, AuthServiceConfig},
         category::CategoryService,
         permission::PermissionService,
+        product::ProductService,
         role::RoleService,
         role_permission::RolePermissionService,
         topt_encryptor::TotpEncryptor,
@@ -46,6 +48,7 @@ pub struct AppState {
     pub permission_service: Arc<PermissionService<PermissionRepository, UserPermissionRepository>>,
     pub role_permission_service: Arc<RolePermissionService<RolePermissionRepository>>,
     pub transaction_service: Arc<TransactionService<TransactionRepository>>,
+    pub product_service: Arc<ProductService<ProductRepository>>,
 }
 
 impl AppState {
@@ -101,6 +104,8 @@ impl AppState {
         let role_permission_service = Arc::new(RolePermissionService::new(role_permission_repo));
         let transaction_repo = Arc::new(TransactionRepository::new(db_pool.clone()));
         let transaction_service = Arc::new(TransactionService::new(transaction_repo));
+        let product_repo = Arc::new(ProductRepository::new(db_pool.clone()));
+        let product_service = Arc::new(ProductService::new(product_repo));
 
         Self {
             db,
@@ -112,6 +117,7 @@ impl AppState {
             permission_service,
             role_permission_service,
             transaction_service,
+            product_service,
         }
     }
 }

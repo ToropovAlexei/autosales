@@ -38,7 +38,12 @@ totp-rs = { version = "5.7", features = ["otpauth", "gen_secret"] }
 tower-http = { version = "0.6", features = ["cors"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["time"] }
-ts-rs = { version = "11.1", features = ["uuid-impl", "chrono-impl"] }
+ts-rs = { version = "11.1", features = [
+    "uuid-impl",
+    "chrono-impl",
+    "serde-json-impl",
+    "bigdecimal-impl",
+] }
 utoipa = { version = "5.4", features = ["uuid", "chrono", "decimal"] }
 uuid = { version = "1.19", features = ["serde"] }
 validator = { version = "0.20", features = ["derive"] }
