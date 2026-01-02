@@ -224,6 +224,7 @@ dependencies = [
  "image",
  "infer",
  "qrcode",
+ "rand 0.9.2",
  "serde",
  "serde_json",
  "serde_qs",
