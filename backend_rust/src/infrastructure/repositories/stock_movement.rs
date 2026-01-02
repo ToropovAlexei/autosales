@@ -107,3 +107,57 @@ impl StockMovementRepositoryTrait for StockMovementRepository {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::models::product::ProductType;
+
+    use super::*;
+    use bigdecimal::BigDecimal;
+    use sqlx::query;
+
+    #[sqlx::test]
+    async fn test_balance_after_trigger(pool: PgPool) {
+        let product = query!(
+            r#"INSERT INTO products (name, price, type, created_by, provider_name) VALUES ($1, $2, $3, $4, $5) RETURNING id"#,
+            "test_product_stock",
+            BigDecimal::from(10),
+            ProductType::Item as _,
+            1, // System
+            "internal"
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+
+        let repo = StockMovementRepository::new(Arc::new(pool));
+
+        let first_movement = NewStockMovement {
+            order_id: None,
+            product_id: product.id,
+            r#type: StockMovementType::Initial,
+            quantity: 100,
+            created_by: 1, // System
+            description: Some("Initial stock".to_string()),
+            reference_id: None,
+        };
+
+        let result1 = repo.create(first_movement).await.unwrap();
+
+        assert_eq!(result1.balance_after, 100);
+
+        let second_movement = NewStockMovement {
+            order_id: None,
+            product_id: product.id,
+            r#type: StockMovementType::Adjustment,
+            quantity: -15,
+            created_by: 1,
+            description: Some("Adjustment".to_string()),
+            reference_id: None,
+        };
+
+        let result2 = repo.create(second_movement).await.unwrap();
+
+        assert_eq!(result2.balance_after, 85);
+    }
+}
