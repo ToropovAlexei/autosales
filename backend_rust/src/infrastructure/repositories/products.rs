@@ -50,7 +50,7 @@ impl ProductRepositoryTrait for ProductRepository {
 
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"SELECT
-                id, name, price, category_id, image_id, type as "type: _",
+                id, name, price, category_id, image_id, type,
                 subscription_period_days, details, fulfillment_text, fulfillment_image_id,
                 provider_name, external_id, created_by, created_at, updated_at, deleted_at
             FROM products"#,
@@ -163,7 +163,7 @@ impl ProductRepositoryTrait for ProductRepository {
 
         query_builder.push(" WHERE id = ");
         query_builder.push_bind(id);
-        query_builder.push("AND deleted_at IS NULL RETURNING *");
+        query_builder.push(" AND deleted_at IS NULL RETURNING *");
 
         let query = query_builder.build_query_as::<ProductRow>();
 

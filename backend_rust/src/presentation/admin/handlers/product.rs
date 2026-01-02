@@ -16,12 +16,15 @@ use crate::{
         },
         validator::ValidatedJson,
     },
-    models::product::{NewProduct, ProductListQuery, UpdateProduct},
+    models::product::ProductListQuery,
     presentation::admin::dtos::{
         list_response::ListResponse,
         product::{NewProductRequest, ProductResponse, UpdateProductRequest},
     },
-    services::{auth::AuthUser, product::ProductServiceTrait},
+    services::{
+        auth::AuthUser,
+        product::{CreateProduct, ProductServiceTrait, UpdateProductCommand},
+    },
     state::AppState,
 };
 
@@ -57,7 +60,7 @@ async fn create_product(
 ) -> ApiResult<Json<ProductResponse>> {
     let category = state
         .product_service
-        .create(NewProduct {
+        .create(CreateProduct {
             category_id: payload.category_id,
             created_by: user.id,
             details: payload.details,
@@ -66,11 +69,12 @@ async fn create_product(
             fulfillment_text: payload.fulfillment_text,
             image_id: payload.image_id,
             name: payload.name,
-            price: bigdecimal::BigDecimal::from_f64(payload.price)
+            price: bigdecimal::BigDecimal::from_f64(payload.base_price)
                 .ok_or_else(|| ApiError::BadRequest("invalid price".into()))?,
-            provider_name: "Internal".to_string(),
+            provider_name: "internal".to_string(),
             subscription_period_days: payload.subscription_period_days,
             r#type: payload.r#type,
+            initial_stock: payload.initial_stock,
         })
         .await?;
 
@@ -152,7 +156,7 @@ async fn update_product(
         .product_service
         .update(
             id,
-            UpdateProduct {
+            UpdateProductCommand {
                 category_id: payload.category_id,
                 details: payload.details,
                 external_id: payload.external_id,
@@ -161,7 +165,7 @@ async fn update_product(
                 image_id: payload.image_id,
                 name: payload.name,
                 price: payload
-                    .price
+                    .base_price
                     .map(|price| {
                         BigDecimal::from_f64(price)
                             .ok_or_else(|| ApiError::BadRequest("invalid price".into()))
@@ -169,6 +173,7 @@ async fn update_product(
                     .transpose()?,
                 subscription_period_days: payload.subscription_period_days,
                 r#type: payload.r#type,
+                stock: payload.stock,
             },
         )
         .await?;

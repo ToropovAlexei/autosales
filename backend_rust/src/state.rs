@@ -11,9 +11,9 @@ use crate::{
         admin_user_with_roles::AdminUserWithRolesRepository, category::CategoryRepository,
         effective_permission::EffectivePermissionRepository, image::ImageRepository,
         permission::PermissionRepository, products::ProductRepository, role::RoleRepository,
-        role_permission::RolePermissionRepository, temporary_token::TemporaryTokenRepository,
-        transaction::TransactionRepository, user_permission::UserPermissionRepository,
-        user_role::UserRoleRepository,
+        role_permission::RolePermissionRepository, stock_movement::StockMovementRepository,
+        temporary_token::TemporaryTokenRepository, transaction::TransactionRepository,
+        user_permission::UserPermissionRepository, user_role::UserRoleRepository,
     },
     services::{
         admin_user::AdminUserService,
@@ -49,7 +49,7 @@ pub struct AppState {
     pub permission_service: Arc<PermissionService<PermissionRepository, UserPermissionRepository>>,
     pub role_permission_service: Arc<RolePermissionService<RolePermissionRepository>>,
     pub transaction_service: Arc<TransactionService<TransactionRepository>>,
-    pub product_service: Arc<ProductService<ProductRepository>>,
+    pub product_service: Arc<ProductService<ProductRepository, StockMovementRepository>>,
     pub image_service: Arc<ImageService<ImageRepository>>,
 }
 
@@ -107,7 +107,8 @@ impl AppState {
         let transaction_repo = Arc::new(TransactionRepository::new(db_pool.clone()));
         let transaction_service = Arc::new(TransactionService::new(transaction_repo));
         let product_repo = Arc::new(ProductRepository::new(db_pool.clone()));
-        let product_service = Arc::new(ProductService::new(product_repo));
+        let stock_movement_repo = Arc::new(StockMovementRepository::new(db_pool.clone()));
+        let product_service = Arc::new(ProductService::new(product_repo, stock_movement_repo));
         let image_repo = Arc::new(ImageRepository::new(db_pool.clone()));
         let image_service = Arc::new(ImageService::new(
             image_repo,

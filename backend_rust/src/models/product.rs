@@ -10,6 +10,7 @@ use crate::define_list_query;
 
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[sqlx(type_name = "product_type", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 #[ts(export, export_to = "product.ts")]
 pub enum ProductType {
     Item,
@@ -24,7 +25,7 @@ pub struct ProductRow {
     pub category_id: Option<i64>,
     pub image_id: Option<Uuid>,
     pub r#type: ProductType,
-    pub subscription_period_days: Option<i16>,
+    pub subscription_period_days: i16,
     pub details: Option<serde_json::Value>,
     pub deleted_at: Option<DateTime<Utc>>,
     pub fulfillment_text: Option<String>,
@@ -43,7 +44,7 @@ pub struct NewProduct {
     pub category_id: i64,
     pub image_id: Option<Uuid>,
     pub r#type: ProductType,
-    pub subscription_period_days: Option<i16>,
+    pub subscription_period_days: i16,
     pub details: Option<serde_json::Value>,
     pub fulfillment_text: Option<String>,
     pub fulfillment_image_id: Option<Uuid>,
@@ -59,7 +60,7 @@ pub struct UpdateProduct {
     pub category_id: Option<i64>,
     pub image_id: Option<Option<Uuid>>,
     pub r#type: Option<ProductType>,
-    pub subscription_period_days: Option<Option<i16>>,
+    pub subscription_period_days: Option<i16>,
     pub details: Option<Option<serde_json::Value>>,
     pub fulfillment_text: Option<Option<String>>,
     pub fulfillment_image_id: Option<Option<Uuid>>,

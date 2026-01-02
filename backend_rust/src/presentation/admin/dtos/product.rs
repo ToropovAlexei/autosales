@@ -18,7 +18,7 @@ pub struct ProductResponse {
     pub category_id: Option<i64>,
     pub image_id: Option<Uuid>,
     pub r#type: ProductType,
-    pub subscription_period_days: Option<i16>,
+    pub subscription_period_days: i16,
     pub details: Option<serde_json::Value>,
     pub deleted_at: Option<DateTime<Utc>>,
     pub fulfillment_text: Option<String>,
@@ -69,7 +69,7 @@ pub struct NewProductRequest {
         max = 999999.99,
         message = "Price must be between 0.01 and 999999.99"
     ))]
-    pub price: f64,
+    pub base_price: f64,
     pub category_id: i64,
     pub image_id: Option<Uuid>,
     pub r#type: ProductType,
@@ -77,6 +77,7 @@ pub struct NewProductRequest {
     pub details: Option<serde_json::Value>,
     pub fulfillment_text: Option<String>,
     pub fulfillment_image_id: Option<Uuid>,
+    pub initial_stock: Option<i64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
@@ -93,13 +94,14 @@ pub struct UpdateProductRequest {
         max = 999999.99,
         message = "Price must be between 0.01 and 999999.99"
     ))]
-    pub price: Option<f64>,
+    pub base_price: Option<f64>,
     pub category_id: Option<i64>,
     pub image_id: Option<Option<Uuid>>,
     pub r#type: Option<ProductType>,
-    pub subscription_period_days: Option<Option<i16>>,
+    pub subscription_period_days: Option<i16>,
     pub details: Option<Option<serde_json::Value>>,
     pub fulfillment_text: Option<Option<String>>,
     pub fulfillment_image_id: Option<Option<Uuid>>,
     pub external_id: Option<Option<String>>,
+    pub stock: Option<i64>,
 }

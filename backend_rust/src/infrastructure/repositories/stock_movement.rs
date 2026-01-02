@@ -20,6 +20,7 @@ pub trait StockMovementRepositoryTrait {
         query: ProductListQuery,
     ) -> RepositoryResult<PaginatedResult<StockMovementRow>>;
     async fn create(&self, stock_movement: NewStockMovement) -> RepositoryResult<StockMovementRow>;
+    async fn get_last_by_product_id(&self, product_id: i64) -> RepositoryResult<StockMovementRow>;
 }
 
 #[derive(Clone)]
@@ -49,7 +50,7 @@ impl StockMovementRepositoryTrait for StockMovementRepository {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"
         SELECT
-            id, order_id, product_id, type as "type: _",
+            id, order_id, product_id, type,
             quantity, created_by, source, description, reference_id,
             balance_after, created_at
         FROM stock_movements"#,
@@ -79,6 +80,27 @@ impl StockMovementRepositoryTrait for StockMovementRepository {
             stock_movement.source,
             stock_movement.description,
             stock_movement.reference_id
+        )
+        .fetch_one(&*self.pool)
+        .await?;
+
+        Ok(result)
+    }
+
+    async fn get_last_by_product_id(&self, product_id: i64) -> RepositoryResult<StockMovementRow> {
+        let result = sqlx::query_as!(
+            StockMovementRow,
+            r#"
+            SELECT
+                id, order_id, product_id, type as "type: _",
+                quantity, created_by, source, description, reference_id,
+                balance_after, created_at
+            FROM stock_movements
+            WHERE product_id = $1
+            ORDER BY created_at DESC
+            LIMIT 1
+            "#,
+            product_id
         )
         .fetch_one(&*self.pool)
         .await?;

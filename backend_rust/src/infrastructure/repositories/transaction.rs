@@ -48,7 +48,7 @@ impl TransactionRepositoryTrait for TransactionRepository {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"
         SELECT
-            id, customer_id, order_id, type as "type: _", amount, store_balance_delta,
+            id, customer_id, order_id, type, amount, store_balance_delta,
             platform_commission, gateway_commission, description, payment_gateway,
             details, created_at, store_balance_after, user_balance_after
         FROM transactions"#,
