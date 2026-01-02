@@ -7,7 +7,8 @@ use crate::{
     errors::repository::RepositoryResult,
     infrastructure::lib::query::{apply_filters, apply_list_query},
     models::{
-        common::{ListQuery, PaginatedResult},
+        common::PaginatedResult,
+        product::ProductListQuery,
         stock_movement::{NewStockMovement, StockMovementRow, StockMovementType},
     },
 };
@@ -16,7 +17,7 @@ use crate::{
 pub trait StockMovementRepositoryTrait {
     async fn get_list(
         &self,
-        query: ListQuery,
+        query: ProductListQuery,
     ) -> RepositoryResult<PaginatedResult<StockMovementRow>>;
     async fn create(&self, stock_movement: NewStockMovement) -> RepositoryResult<StockMovementRow>;
 }
@@ -36,7 +37,7 @@ impl StockMovementRepository {
 impl StockMovementRepositoryTrait for StockMovementRepository {
     async fn get_list(
         &self,
-        query: ListQuery,
+        query: ProductListQuery,
     ) -> RepositoryResult<PaginatedResult<StockMovementRow>> {
         let mut count_qb: QueryBuilder<Postgres> =
             QueryBuilder::new("SELECT COUNT(*) FROM stock_movements");
@@ -48,7 +49,7 @@ impl StockMovementRepositoryTrait for StockMovementRepository {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"
         SELECT
-            id, order_id, product_id, type as "type: _", 
+            id, order_id, product_id, type as "type: _",
             quantity, created_by, source, description, reference_id,
             balance_after, created_at
         FROM stock_movements"#,
@@ -65,8 +66,8 @@ impl StockMovementRepositoryTrait for StockMovementRepository {
             r#"
             INSERT INTO stock_movements (order_id, product_id, type, quantity, created_by, source, description, reference_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING 
-                id, order_id, product_id, type as "type: _", 
+            RETURNING
+                id, order_id, product_id, type as "type: _",
                 quantity, created_by, source, description, reference_id,
                 balance_after, created_at
             "#,

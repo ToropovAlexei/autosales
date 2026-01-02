@@ -12,7 +12,7 @@ use uuid::Uuid;
 use crate::{
     errors::api::{ApiError, ApiResult},
     middlewares::require_permission::{ImagesCreate, ImagesDelete, ImagesRead, RequirePermission},
-    models::common::ListQuery,
+    models::image::ImageListQuery,
     presentation::admin::dtos::{image::ImageResponse, list_response::ListResponse},
     services::{
         auth::AuthUser,
@@ -49,9 +49,9 @@ async fn list_images(
     State(state): State<Arc<AppState>>,
     _user: AuthUser,
     _perm: RequirePermission<ImagesRead>,
-    query: ListQuery,
+    query: ImageListQuery,
 ) -> ApiResult<Json<ListResponse<ImageResponse>>> {
-    let categories = state.image_service.get_list(query).await?;
+    let categories = state.image_service.get_list(&query).await?;
 
     Ok(Json(ListResponse {
         total: categories.total,

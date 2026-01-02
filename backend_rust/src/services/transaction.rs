@@ -8,14 +8,17 @@ use crate::{
         TransactionRepository, TransactionRepositoryTrait,
     },
     models::{
-        common::{ListQuery, PaginatedResult},
-        transaction::{NewTransaction, TransactionRow},
+        common::PaginatedResult,
+        transaction::{NewTransaction, TransactionListQuery, TransactionRow},
     },
 };
 
 #[async_trait]
 pub trait TransactionServiceTrait: Send + Sync {
-    async fn get_list(&self, query: ListQuery) -> ApiResult<PaginatedResult<TransactionRow>>;
+    async fn get_list(
+        &self,
+        query: TransactionListQuery,
+    ) -> ApiResult<PaginatedResult<TransactionRow>>;
     async fn create(&self, transaction: NewTransaction) -> ApiResult<TransactionRow>;
 }
 
@@ -34,7 +37,10 @@ where
 
 #[async_trait]
 impl TransactionServiceTrait for TransactionService<TransactionRepository> {
-    async fn get_list(&self, query: ListQuery) -> ApiResult<PaginatedResult<TransactionRow>> {
+    async fn get_list(
+        &self,
+        query: TransactionListQuery,
+    ) -> ApiResult<PaginatedResult<TransactionRow>> {
         self.repo.get_list(query).await.map_err(ApiError::from)
     }
 

@@ -16,10 +16,7 @@ use crate::{
         },
         validator::ValidatedJson,
     },
-    models::{
-        common::ListQuery,
-        product::{NewProduct, UpdateProduct},
-    },
+    models::product::{NewProduct, ProductListQuery, UpdateProduct},
     presentation::admin::dtos::{
         list_response::ListResponse,
         product::{NewProductRequest, ProductResponse, UpdateProductRequest},
@@ -95,7 +92,7 @@ async fn list_products(
     State(state): State<Arc<AppState>>,
     _user: AuthUser,
     _perm: RequirePermission<ProductsRead>,
-    query: ListQuery,
+    query: ProductListQuery,
 ) -> ApiResult<Json<ListResponse<ProductResponse>>> {
     let products = state.product_service.get_list(query).await?;
 

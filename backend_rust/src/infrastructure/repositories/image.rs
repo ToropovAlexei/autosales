@@ -8,14 +8,15 @@ use crate::{
     errors::repository::RepositoryResult,
     infrastructure::lib::query::{apply_filters, apply_list_query},
     models::{
-        common::{ListQuery, PaginatedResult},
-        image::{ImageRow, NewImage},
+        common::PaginatedResult,
+        image::{ImageListQuery, ImageRow, NewImage},
     },
 };
 
 #[async_trait]
 pub trait ImageRepositoryTrait {
-    async fn get_list(&self, query: ListQuery) -> RepositoryResult<PaginatedResult<ImageRow>>;
+    async fn get_list(&self, query: &ImageListQuery)
+    -> RepositoryResult<PaginatedResult<ImageRow>>;
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<ImageRow>;
     async fn create(&self, image: NewImage) -> RepositoryResult<ImageRow>;
     async fn delete(&self, id: Uuid) -> RepositoryResult<()>;
@@ -34,17 +35,20 @@ impl ImageRepository {
 
 #[async_trait]
 impl ImageRepositoryTrait for ImageRepository {
-    async fn get_list(&self, query: ListQuery) -> RepositoryResult<PaginatedResult<ImageRow>> {
+    async fn get_list(
+        &self,
+        query: &ImageListQuery,
+    ) -> RepositoryResult<PaginatedResult<ImageRow>> {
         let mut count_qb: QueryBuilder<Postgres> = QueryBuilder::new("SELECT COUNT(*) FROM images");
-        apply_filters(&mut count_qb, &query);
+        apply_filters(&mut count_qb, query);
 
         let count_query = count_qb.build_query_scalar();
         let total: i64 = count_query.fetch_one(&*self.pool).await?;
 
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new("SELECT * FROM images");
-        apply_list_query(&mut query_builder, &query);
-        let query = query_builder.build_query_as::<ImageRow>();
-        let items = query.fetch_all(&*self.pool).await?;
+        apply_list_query(&mut query_builder, query);
+        let items_query = query_builder.build_query_as::<ImageRow>();
+        let items = items_query.fetch_all(&*self.pool).await?;
         Ok(PaginatedResult { items, total })
     }
 

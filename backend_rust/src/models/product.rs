@@ -6,6 +6,8 @@ use ts_rs::TS;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
+use crate::define_list_query;
+
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[sqlx(type_name = "product_type", rename_all = "snake_case")]
 #[ts(export, export_to = "product.ts")]
@@ -62,4 +64,29 @@ pub struct UpdateProduct {
     pub fulfillment_text: Option<Option<String>>,
     pub fulfillment_image_id: Option<Option<Uuid>>,
     pub external_id: Option<Option<String>>,
+}
+
+define_list_query! {
+    query_name: ProductListQuery,
+    filter_fields: {
+        ProductFilterFields,
+        [
+            Name => "name",
+            CategoryId => "category_id",
+            ProviderName => "provider_name",
+            ExternalId => "external_id",
+            Price => "price",
+        ]
+    },
+    order_fields: {
+        ProductOrderFields,
+        [
+            Id => "id",
+            Name => "name",
+            CategoryId => "category_id",
+            Price => "price",
+            ProviderName => "provider_name",
+            CreatedAt => "created_at",
+        ]
+    }
 }

@@ -4,6 +4,8 @@ use sqlx::{prelude::FromRow, types::BigDecimal};
 use ts_rs::TS;
 use utoipa::ToSchema;
 
+use crate::define_list_query;
+
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]
 #[sqlx(type_name = "transaction_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -47,4 +49,36 @@ pub struct NewTransaction {
     pub description: Option<String>,
     pub payment_gateway: Option<String>,
     pub details: Option<serde_json::Value>,
+}
+
+define_list_query! {
+    query_name: TransactionListQuery,
+    filter_fields: {
+        TransactionFilterFields,
+        [
+            Id => "id",
+            CustomerId => "customer_id",
+            OrderId => "order_id",
+            Type => "type",
+            Amount => "amount",
+            StoreBalanceDelta => "store_balance_delta",
+            PlatformCommission => "platform_commission",
+            GatewayCommission => "gateway_commission",
+            CreatedAt => "created_at",
+        ]
+    },
+    order_fields: {
+        TransactionOrderFields,
+        [
+            Id => "id",
+            CustomerId => "customer_id",
+            OrderId => "order_id",
+            Type => "type",
+            Amount => "amount",
+            StoreBalanceDelta => "store_balance_delta",
+            PlatformCommission => "platform_commission",
+            GatewayCommission => "gateway_commission",
+            CreatedAt => "created_at",
+        ]
+    }
 }

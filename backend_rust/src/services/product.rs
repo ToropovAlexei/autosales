@@ -6,14 +6,14 @@ use crate::{
     errors::api::{ApiError, ApiResult},
     infrastructure::repositories::products::{ProductRepository, ProductRepositoryTrait},
     models::{
-        common::{ListQuery, PaginatedResult},
-        product::{NewProduct, ProductRow, UpdateProduct},
+        common::PaginatedResult,
+        product::{NewProduct, ProductListQuery, ProductRow, UpdateProduct},
     },
 };
 
 #[async_trait]
 pub trait ProductServiceTrait: Send + Sync {
-    async fn get_list(&self, query: ListQuery) -> ApiResult<PaginatedResult<ProductRow>>;
+    async fn get_list(&self, query: ProductListQuery) -> ApiResult<PaginatedResult<ProductRow>>;
     async fn create(&self, product: NewProduct) -> ApiResult<ProductRow>;
     async fn get_by_id(&self, id: i64) -> ApiResult<ProductRow>;
     async fn update(&self, id: i64, product: UpdateProduct) -> ApiResult<ProductRow>;
@@ -35,7 +35,7 @@ where
 
 #[async_trait]
 impl ProductServiceTrait for ProductService<ProductRepository> {
-    async fn get_list(&self, query: ListQuery) -> ApiResult<PaginatedResult<ProductRow>> {
+    async fn get_list(&self, query: ProductListQuery) -> ApiResult<PaginatedResult<ProductRow>> {
         self.repo.get_list(query).await.map_err(ApiError::from)
     }
 

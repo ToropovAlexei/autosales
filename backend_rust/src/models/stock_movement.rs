@@ -4,6 +4,8 @@ use sqlx::prelude::FromRow;
 use ts_rs::TS;
 use utoipa::ToSchema;
 
+use crate::define_list_query;
+
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]
 #[sqlx(type_name = "stock_movement_type", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
@@ -41,4 +43,32 @@ pub struct NewStockMovement {
     pub source: String,
     pub description: Option<String>,
     pub reference_id: Option<String>,
+}
+
+define_list_query! {
+    query_name: StockMovementListQuery,
+    filter_fields: {
+        StockMovementFilterFields,
+        [
+            Id => "id",
+            OrderId => "order_id",
+            ProductId => "product_id",
+            Type => "type",
+            Quantity => "quantity",
+            CreatedAt => "created_at",
+            CreatedBy => "created_by"
+        ]
+    },
+    order_fields: {
+        StockMovementOrderFields,
+        [
+            Id => "id",
+            OrderId => "order_id",
+            ProductId => "product_id",
+            Type => "type",
+            Quantity => "quantity",
+            CreatedAt => "created_at",
+            CreatedBy => "created_by"
+        ]
+    }
 }

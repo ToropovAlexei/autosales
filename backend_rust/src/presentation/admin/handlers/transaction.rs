@@ -5,7 +5,7 @@ use axum::{Json, Router, extract::State, routing::get};
 use crate::{
     errors::api::ApiResult,
     middlewares::require_permission::{RequirePermission, TransactionsRead},
-    models::common::ListQuery,
+    models::transaction::TransactionListQuery,
     presentation::admin::dtos::{list_response::ListResponse, transaction::TransactionResponse},
     services::{auth::AuthUser, transaction::TransactionServiceTrait},
     state::AppState,
@@ -31,7 +31,7 @@ async fn list_transactions(
     State(state): State<Arc<AppState>>,
     _user: AuthUser,
     _perm: RequirePermission<TransactionsRead>,
-    query: ListQuery,
+    query: TransactionListQuery,
 ) -> ApiResult<Json<ListResponse<TransactionResponse>>> {
     let transactions = state.transaction_service.get_list(query).await?;
 

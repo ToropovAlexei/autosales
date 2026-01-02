@@ -13,8 +13,8 @@ use crate::{
     errors::api::{ApiError, ApiResult},
     infrastructure::repositories::image::{ImageRepository, ImageRepositoryTrait},
     models::{
-        common::{ListQuery, PaginatedResult},
-        image::{ImageRow, NewImage},
+        common::PaginatedResult,
+        image::{ImageListQuery, ImageRow, NewImage},
     },
 };
 
@@ -30,7 +30,7 @@ pub struct ImageMetadata {
 
 #[async_trait]
 pub trait ImageServiceTrait: Send + Sync {
-    async fn get_list(&self, query: ListQuery) -> ApiResult<PaginatedResult<ImageRow>>;
+    async fn get_list(&self, query: &ImageListQuery) -> ApiResult<PaginatedResult<ImageRow>>;
     async fn create(&self, image: CreateImage) -> ApiResult<ImageRow>;
     async fn delete(&self, id: Uuid) -> ApiResult<()>;
     async fn get_by_id(&self, id: Uuid) -> ApiResult<ImageRow>;
@@ -61,7 +61,7 @@ pub struct CreateImage {
 
 #[async_trait]
 impl ImageServiceTrait for ImageService<ImageRepository> {
-    async fn get_list(&self, query: ListQuery) -> ApiResult<PaginatedResult<ImageRow>> {
+    async fn get_list(&self, query: &ImageListQuery) -> ApiResult<PaginatedResult<ImageRow>> {
         self.repo.get_list(query).await.map_err(ApiError::from)
     }
 

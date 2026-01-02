@@ -7,15 +7,17 @@ use crate::{
     errors::repository::RepositoryResult,
     infrastructure::lib::query::{apply_filters, apply_list_query},
     models::{
-        common::{ListQuery, PaginatedResult},
-        transaction::{NewTransaction, TransactionRow},
+        common::PaginatedResult,
+        transaction::{NewTransaction, TransactionListQuery, TransactionRow},
     },
 };
 
 #[async_trait]
 pub trait TransactionRepositoryTrait {
-    async fn get_list(&self, query: ListQuery)
-    -> RepositoryResult<PaginatedResult<TransactionRow>>;
+    async fn get_list(
+        &self,
+        query: TransactionListQuery,
+    ) -> RepositoryResult<PaginatedResult<TransactionRow>>;
     async fn create(&self, category: NewTransaction) -> RepositoryResult<TransactionRow>;
 }
 
@@ -34,7 +36,7 @@ impl TransactionRepository {
 impl TransactionRepositoryTrait for TransactionRepository {
     async fn get_list(
         &self,
-        query: ListQuery,
+        query: TransactionListQuery,
     ) -> RepositoryResult<PaginatedResult<TransactionRow>> {
         let mut count_qb: QueryBuilder<Postgres> =
             QueryBuilder::new("SELECT COUNT(*) FROM transactions");
@@ -46,7 +48,7 @@ impl TransactionRepositoryTrait for TransactionRepository {
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"
         SELECT
-            id, customer_id, order_id, type as "type: _", amount, store_balance_delta, 
+            id, customer_id, order_id, type as "type: _", amount, store_balance_delta,
             platform_commission, gateway_commission, description, payment_gateway,
             details, created_at, store_balance_after, user_balance_after
         FROM transactions"#,
@@ -62,13 +64,13 @@ impl TransactionRepositoryTrait for TransactionRepository {
             TransactionRow,
             r#"
             INSERT INTO transactions (
-                customer_id, order_id, type, amount, store_balance_delta, 
+                customer_id, order_id, type, amount, store_balance_delta,
                 platform_commission, gateway_commission,
                 description, payment_gateway, details
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-            RETURNING 
-                id, customer_id, order_id, type as "type: _", amount, store_balance_delta, 
+            RETURNING
+                id, customer_id, order_id, type as "type: _", amount, store_balance_delta,
                 platform_commission, gateway_commission, description, payment_gateway,
                 details, created_at, store_balance_after, user_balance_after
             "#,

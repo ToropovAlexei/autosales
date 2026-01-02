@@ -7,14 +7,17 @@ use crate::{
     errors::repository::{RepositoryError, RepositoryResult},
     infrastructure::lib::query::{apply_filters, apply_list_query},
     models::{
-        common::{ListQuery, PaginatedResult},
-        product::{NewProduct, ProductRow, ProductType, UpdateProduct},
+        common::PaginatedResult,
+        product::{NewProduct, ProductListQuery, ProductRow, ProductType, UpdateProduct},
     },
 };
 
 #[async_trait]
 pub trait ProductRepositoryTrait {
-    async fn get_list(&self, query: ListQuery) -> RepositoryResult<PaginatedResult<ProductRow>>;
+    async fn get_list(
+        &self,
+        query: ProductListQuery,
+    ) -> RepositoryResult<PaginatedResult<ProductRow>>;
     async fn create(&self, product: NewProduct) -> RepositoryResult<ProductRow>;
     async fn get_by_id(&self, id: i64) -> RepositoryResult<ProductRow>;
     async fn update(&self, id: i64, product: UpdateProduct) -> RepositoryResult<ProductRow>;
@@ -34,7 +37,10 @@ impl ProductRepository {
 
 #[async_trait]
 impl ProductRepositoryTrait for ProductRepository {
-    async fn get_list(&self, query: ListQuery) -> RepositoryResult<PaginatedResult<ProductRow>> {
+    async fn get_list(
+        &self,
+        query: ProductListQuery,
+    ) -> RepositoryResult<PaginatedResult<ProductRow>> {
         let mut count_qb: QueryBuilder<Postgres> =
             QueryBuilder::new("SELECT COUNT(*) FROM products");
         apply_filters(&mut count_qb, &query);
@@ -43,8 +49,8 @@ impl ProductRepositoryTrait for ProductRepository {
         let total: i64 = count_query.fetch_one(&*self.pool).await?;
 
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
-            r#"SELECT 
-                id, name, price, category_id, image_id, type as "type: _", 
+            r#"SELECT
+                id, name, price, category_id, image_id, type as "type: _",
                 subscription_period_days, details, fulfillment_text, fulfillment_image_id,
                 provider_name, external_id, created_by, created_at, updated_at, deleted_at
             FROM products"#,
@@ -64,7 +70,7 @@ impl ProductRepositoryTrait for ProductRepository {
                 details, fulfillment_text, fulfillment_image_id,
                 provider_name, external_id, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            RETURNING id, name, price, category_id, image_id, type as "type: _", 
+            RETURNING id, name, price, category_id, image_id, type as "type: _",
                 subscription_period_days, details, fulfillment_text, fulfillment_image_id,
                 provider_name, external_id, created_by, created_at, updated_at, deleted_at
             "#,
@@ -91,7 +97,7 @@ impl ProductRepositoryTrait for ProductRepository {
         let result = sqlx::query_as!(
             ProductRow,
             r#"SELECT
-                id, name, price, category_id, image_id, type as "type: _", 
+                id, name, price, category_id, image_id, type as "type: _",
                 subscription_period_days, details, fulfillment_text, fulfillment_image_id,
                 provider_name, external_id, created_by, created_at, updated_at, deleted_at
             FROM products WHERE id = $1 AND deleted_at IS NULL"#,
