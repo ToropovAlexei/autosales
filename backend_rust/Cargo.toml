@@ -12,6 +12,7 @@ axum = { version = "0.8", features = ["macros"] }
 axum-extra = { version = "0.12", features = ["multipart"] }
 base64 = "0.22"
 bcrypt = "0.17"
+bigdecimal = { version = "0.4.10", features = ["serde-json"] }
 bytes = "1.10"
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
@@ -19,6 +20,8 @@ envy = "0.4"
 image = { version = "0.25", default-features = false, features = ["png"] }
 qrcode = "0.14"
 serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0.148"
+serde_qs = "0.15.0"
 sqlx = { version = "0.8", features = [
     "postgres",
     "runtime-tokio-rustls",
@@ -26,6 +29,7 @@ sqlx = { version = "0.8", features = [
     "migrate",
     "macros",
     "uuid",
+    "bigdecimal",
 ] }
 thiserror = "2.0"
 tokio = { version = "1.47", features = ["full"] }
@@ -34,6 +38,6 @@ tower-http = { version = "0.6", features = ["cors"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["time"] }
 ts-rs = { version = "11.1", features = ["uuid-impl", "chrono-impl"] }
-utoipa = { version = "5.4", features = ["uuid", "chrono"] }
+utoipa = { version = "5.4", features = ["uuid", "chrono", "decimal"] }
 uuid = { version = "1.19", features = ["serde"] }
 validator = { version = "0.20", features = ["derive"] }

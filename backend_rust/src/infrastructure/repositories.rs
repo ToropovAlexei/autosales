@@ -7,5 +7,6 @@ pub mod permission;
 pub mod role;
 pub mod role_permission;
 pub mod temporary_token;
+pub mod transaction;
 pub mod user_permission;
 pub mod user_role;

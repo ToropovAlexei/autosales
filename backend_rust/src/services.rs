@@ -5,3 +5,4 @@ pub mod permission;
 pub mod role;
 pub mod role_permission;
 pub mod topt_encryptor;
+pub mod transaction;

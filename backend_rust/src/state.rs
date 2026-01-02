@@ -11,8 +11,8 @@ use crate::{
         admin_user_with_roles::AdminUserWithRolesRepository, category::CategoryRepository,
         effective_permission::EffectivePermissionRepository, permission::PermissionRepository,
         role::RoleRepository, role_permission::RolePermissionRepository,
-        temporary_token::TemporaryTokenRepository, user_permission::UserPermissionRepository,
-        user_role::UserRoleRepository,
+        temporary_token::TemporaryTokenRepository, transaction::TransactionRepository,
+        user_permission::UserPermissionRepository, user_role::UserRoleRepository,
     },
     services::{
         admin_user::AdminUserService,
@@ -22,6 +22,7 @@ use crate::{
         role::RoleService,
         role_permission::RolePermissionService,
         topt_encryptor::TotpEncryptor,
+        transaction::TransactionService,
     },
 };
 
@@ -44,6 +45,7 @@ pub struct AppState {
     pub role_service: Arc<RoleService<RoleRepository>>,
     pub permission_service: Arc<PermissionService<PermissionRepository, UserPermissionRepository>>,
     pub role_permission_service: Arc<RolePermissionService<RolePermissionRepository>>,
+    pub transaction_service: Arc<TransactionService<TransactionRepository>>,
 }
 
 impl AppState {
@@ -97,6 +99,8 @@ impl AppState {
         ));
         let role_permission_repo = Arc::new(RolePermissionRepository::new(db_pool.clone()));
         let role_permission_service = Arc::new(RolePermissionService::new(role_permission_repo));
+        let transaction_repo = Arc::new(TransactionRepository::new(db_pool.clone()));
+        let transaction_service = Arc::new(TransactionService::new(transaction_repo));
 
         Self {
             db,
@@ -107,6 +111,7 @@ impl AppState {
             role_service,
             permission_service,
             role_permission_service,
+            transaction_service,
         }
     }
 }

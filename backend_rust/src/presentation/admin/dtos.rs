@@ -5,4 +5,5 @@ pub mod list_response;
 pub mod permission;
 pub mod role;
 pub mod role_permission;
+pub mod transaction;
 pub mod user_permission;
