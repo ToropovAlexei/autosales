@@ -9,7 +9,7 @@ CREATE TABLE images (
     width SMALLINT,
     height SMALLINT,
     context TEXT NOT NULL DEFAULT 'product'
-        CHECK (context IN ('product', 'category', 'other')),
+        CHECK (context IN ('product', 'category', 'fulfillment', 'other')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_by BIGINT NOT NULL,
     deleted_at TIMESTAMPTZ,
