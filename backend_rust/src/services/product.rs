@@ -114,7 +114,6 @@ impl ProductServiceTrait for ProductService<ProductRepository, StockMovementRepo
                     order_id: None,
                     description: None,
                     reference_id: None,
-                    source: "".to_string(),
                 })
                 .await?;
         }
@@ -168,7 +167,6 @@ impl ProductServiceTrait for ProductService<ProductRepository, StockMovementRepo
                     order_id: None,
                     description: None,
                     reference_id: None,
-                    source: "".to_string(),
                 })
                 .await?;
         }

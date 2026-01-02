@@ -65,11 +65,11 @@ impl StockMovementRepositoryTrait for StockMovementRepository {
         let result = sqlx::query_as!(
             StockMovementRow,
             r#"
-            INSERT INTO stock_movements (order_id, product_id, type, quantity, created_by, source, description, reference_id)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO stock_movements (order_id, product_id, type, quantity, created_by, description, reference_id)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING
                 id, order_id, product_id, type as "type: _",
-                quantity, created_by, source, description, reference_id,
+                quantity, created_by, description, reference_id,
                 balance_after, created_at
             "#,
             stock_movement.order_id,
@@ -77,7 +77,6 @@ impl StockMovementRepositoryTrait for StockMovementRepository {
             stock_movement.r#type as StockMovementType,
             stock_movement.quantity,
             stock_movement.created_by,
-            stock_movement.source,
             stock_movement.description,
             stock_movement.reference_id
         )
@@ -93,7 +92,7 @@ impl StockMovementRepositoryTrait for StockMovementRepository {
             r#"
             SELECT
                 id, order_id, product_id, type as "type: _",
-                quantity, created_by, source, description, reference_id,
+                quantity, created_by, description, reference_id,
                 balance_after, created_at
             FROM stock_movements
             WHERE product_id = $1

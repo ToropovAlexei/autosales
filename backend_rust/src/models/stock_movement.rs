@@ -28,7 +28,6 @@ pub struct StockMovementRow {
     pub balance_after: i64,
     pub created_at: DateTime<Utc>,
     pub created_by: i64,
-    pub source: String,
     pub description: Option<String>,
     pub reference_id: Option<String>,
 }
@@ -40,7 +39,6 @@ pub struct NewStockMovement {
     pub r#type: StockMovementType,
     pub quantity: i64,
     pub created_by: i64,
-    pub source: String,
     pub description: Option<String>,
     pub reference_id: Option<String>,
 }

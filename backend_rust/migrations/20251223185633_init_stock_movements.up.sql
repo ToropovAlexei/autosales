@@ -17,8 +17,6 @@ CREATE TABLE stock_movements (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_by BIGINT NOT NULL,
 
-    source TEXT NOT NULL DEFAULT 'manual'
-        CHECK (source ~ '^[a-z][a-z0-9_]{2,31}$'),
     description TEXT,
     reference_id TEXT,
 
@@ -44,19 +42,18 @@ CREATE INDEX IF NOT EXISTS idx_stock_movements_product_id ON stock_movements (pr
 CREATE INDEX IF NOT EXISTS idx_stock_movements_order_id ON stock_movements (order_id);
 CREATE INDEX IF NOT EXISTS idx_stock_movements_created_at ON stock_movements (created_at);
 CREATE INDEX IF NOT EXISTS idx_stock_movements_type ON stock_movements (type);
-CREATE INDEX IF NOT EXISTS idx_stock_movements_source ON stock_movements (source);
 
 CREATE OR REPLACE FUNCTION update_balance_after()
 RETURNS TRIGGER AS $$
 DECLARE
-    last_balance BIGINT := 0;
+    last_balance BIGINT;
 BEGIN
-    SELECT COALESCE(balance_after, 0)
-    INTO last_balance
-    FROM stock_movements
-    WHERE product_id = NEW.product_id
-    ORDER BY id DESC
-    LIMIT 1;
+    SELECT COALESCE((SELECT balance_after
+                        FROM stock_movements
+                        WHERE product_id = NEW.product_id
+                        ORDER BY id DESC
+                        LIMIT 1), 0)
+    INTO last_balance;
 
     NEW.balance_after := last_balance + NEW.quantity;
     RETURN NEW;
