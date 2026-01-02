@@ -1,7 +1,7 @@
 CREATE TABLE images (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     original_filename TEXT,
-    hash TEXT NOT NULL,
+    hash TEXT NOT NULL UNIQUE,
     mime_type TEXT NOT NULL
         CHECK (mime_type ~ '^image/(jpeg|png|webp|gif|svg\+xml)$'),
     file_size BIGINT NOT NULL

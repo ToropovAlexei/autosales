@@ -9,8 +9,8 @@ use crate::{
     infrastructure::repositories::{
         active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
         admin_user_with_roles::AdminUserWithRolesRepository, category::CategoryRepository,
-        effective_permission::EffectivePermissionRepository, permission::PermissionRepository,
-        products::ProductRepository, role::RoleRepository,
+        effective_permission::EffectivePermissionRepository, image::ImageRepository,
+        permission::PermissionRepository, products::ProductRepository, role::RoleRepository,
         role_permission::RolePermissionRepository, temporary_token::TemporaryTokenRepository,
         transaction::TransactionRepository, user_permission::UserPermissionRepository,
         user_role::UserRoleRepository,
@@ -19,6 +19,7 @@ use crate::{
         admin_user::AdminUserService,
         auth::{AuthService, AuthServiceConfig},
         category::CategoryService,
+        image::ImageService,
         permission::PermissionService,
         product::ProductService,
         role::RoleService,
@@ -49,6 +50,7 @@ pub struct AppState {
     pub role_permission_service: Arc<RolePermissionService<RolePermissionRepository>>,
     pub transaction_service: Arc<TransactionService<TransactionRepository>>,
     pub product_service: Arc<ProductService<ProductRepository>>,
+    pub image_service: Arc<ImageService<ImageRepository>>,
 }
 
 impl AppState {
@@ -106,6 +108,11 @@ impl AppState {
         let transaction_service = Arc::new(TransactionService::new(transaction_repo));
         let product_repo = Arc::new(ProductRepository::new(db_pool.clone()));
         let product_service = Arc::new(ProductService::new(product_repo));
+        let image_repo = Arc::new(ImageRepository::new(db_pool.clone()));
+        let image_service = Arc::new(ImageService::new(
+            image_repo,
+            config.image_upload_path.clone(),
+        ));
 
         Self {
             db,
@@ -118,6 +125,7 @@ impl AppState {
             role_permission_service,
             transaction_service,
             product_service,
+            image_service,
         }
     }
 }

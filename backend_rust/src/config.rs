@@ -15,6 +15,7 @@ pub struct Config {
     pub two_fa_token_ttl_minutes: i64,
     pub access_token_ttl_minutes: i64,
     pub refresh_token_ttl_minutes: i64,
+    pub image_upload_path: String,
 }
 
 impl Config {

@@ -13,11 +13,13 @@ axum-extra = { version = "0.12", features = ["multipart"] }
 base64 = "0.22"
 bcrypt = "0.17"
 bigdecimal = { version = "0.4.10", features = ["serde-json"] }
+blake3 = "1.8.2"
 bytes = "1.10"
 chrono = { version = "0.4", features = ["serde"] }
 dotenvy = "0.15"
 envy = "0.4"
 image = { version = "0.25", default-features = false, features = ["png"] }
+infer = "0.19.0"
 qrcode = "0.14"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0.148"
@@ -34,6 +36,7 @@ sqlx = { version = "0.8", features = [
 ] }
 thiserror = "2.0"
 tokio = { version = "1.47", features = ["full"] }
+tokio-util = { version = "0.7.17", features = ["io"] }
 totp-rs = { version = "5.7", features = ["otpauth", "gen_secret"] }
 tower-http = { version = "0.6", features = ["cors"] }
 tracing = "0.1"
