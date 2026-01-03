@@ -1,6 +1,7 @@
 pub mod admin_user;
 pub mod auth;
 pub mod category;
+pub mod customer;
 pub mod image;
 pub mod me;
 pub mod permission;

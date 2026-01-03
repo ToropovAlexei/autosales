@@ -184,9 +184,9 @@ mod tests {
         let fetched_customer = repo.get_by_id(initial_customer.id).await.unwrap();
 
         assert_eq!(fetched_customer.id, initial_customer.id);
-        assert_eq!(fetched_customer.is_blocked, true);
-        assert_eq!(fetched_customer.bot_is_blocked_by_user, true);
-        assert_eq!(fetched_customer.has_passed_captcha, true);
+        assert!(fetched_customer.is_blocked);
+        assert!(fetched_customer.bot_is_blocked_by_user);
+        assert!(fetched_customer.has_passed_captcha);
         assert_eq!(fetched_customer.last_seen_with_bot, 2);
         assert_eq!(
             fetched_customer.last_seen_at.timestamp(),
@@ -203,12 +203,12 @@ mod tests {
         let last_seen_at_initial = initial_customer.last_seen_at;
 
         // Update some fields with Some, others with None
-        let updated_last_seen_with_bot = Some(4);
+        let updated_last_seen_with_bot = 4;
         let update_data = UpdateCustomer {
             is_blocked: None, // Should remain false
             bot_is_blocked_by_user: Some(true),
             has_passed_captcha: None, // Should remain false
-            last_seen_with_bot: updated_last_seen_with_bot,
+            last_seen_with_bot: Some(updated_last_seen_with_bot),
             last_seen_at: None, // Should remain unchanged
         };
 
@@ -220,14 +220,14 @@ mod tests {
         assert_eq!(fetched_customer.id, initial_customer.id);
         assert_eq!(fetched_customer.telegram_id, initial_customer.telegram_id);
         assert_eq!(fetched_customer.is_blocked, initial_customer.is_blocked); // Should be false
-        assert_eq!(fetched_customer.bot_is_blocked_by_user, true);
+        assert!(fetched_customer.bot_is_blocked_by_user);
         assert_eq!(
             fetched_customer.has_passed_captcha,
             initial_customer.has_passed_captcha
         ); // Should be false
         assert_eq!(
             fetched_customer.last_seen_with_bot,
-            updated_last_seen_with_bot.unwrap()
+            updated_last_seen_with_bot
         );
         // last_seen_at is special because its always updated by COALESCE in the query.
         // It should be close to the time of update, not the initial value.

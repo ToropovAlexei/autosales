@@ -9,16 +9,18 @@ use crate::{
     infrastructure::repositories::{
         active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
         admin_user_with_roles::AdminUserWithRolesRepository, category::CategoryRepository,
-        effective_permission::EffectivePermissionRepository, image::ImageRepository,
-        permission::PermissionRepository, products::ProductRepository, role::RoleRepository,
-        role_permission::RolePermissionRepository, stock_movement::StockMovementRepository,
-        temporary_token::TemporaryTokenRepository, transaction::TransactionRepository,
-        user_permission::UserPermissionRepository, user_role::UserRoleRepository,
+        customer::CustomerRepository, effective_permission::EffectivePermissionRepository,
+        image::ImageRepository, permission::PermissionRepository, products::ProductRepository,
+        role::RoleRepository, role_permission::RolePermissionRepository,
+        stock_movement::StockMovementRepository, temporary_token::TemporaryTokenRepository,
+        transaction::TransactionRepository, user_permission::UserPermissionRepository,
+        user_role::UserRoleRepository,
     },
     services::{
         admin_user::AdminUserService,
         auth::{AuthService, AuthServiceConfig},
         category::CategoryService,
+        customer::CustomerService,
         image::ImageService,
         permission::PermissionService,
         product::ProductService,
@@ -53,6 +55,7 @@ pub struct AppState {
     pub product_service: Arc<ProductService<ProductRepository, StockMovementRepository>>,
     pub image_service: Arc<ImageService<ImageRepository>>,
     pub stock_movement_service: Arc<StockMovementService<StockMovementRepository>>,
+    pub customer_service: Arc<CustomerService<CustomerRepository>>,
 }
 
 impl AppState {
@@ -120,6 +123,8 @@ impl AppState {
             config.image_upload_path.clone(),
         ));
         let stock_movement_service = Arc::new(StockMovementService::new(stock_movement_repo));
+        let customer_repo = Arc::new(CustomerRepository::new(db_pool.clone()));
+        let customer_service = Arc::new(CustomerService::new(customer_repo));
 
         Self {
             db,
@@ -134,6 +139,7 @@ impl AppState {
             product_service,
             image_service,
             stock_movement_service,
+            customer_service,
         }
     }
 }
