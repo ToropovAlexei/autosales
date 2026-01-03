@@ -49,5 +49,5 @@ ts-rs = { version = "11.1", features = [
     "bigdecimal-impl",
 ] }
 utoipa = { version = "5.4", features = ["uuid", "chrono", "decimal"] }
-uuid = { version = "1.19", features = ["serde"] }
+uuid = { version = "1.19", features = ["serde", "v4"] }
 validator = { version = "0.20", features = ["derive"] }
