@@ -74,9 +74,9 @@ impl SettingsRepositoryTrait for SettingsRepository {
                 BigDecimal::zero(),
             ),
 
-            pricing_gateway_commission: get_bigdecimal(
+            pricing_gateway_markup: get_bigdecimal(
                 &map,
-                "pricing_gateway_commission",
+                "pricing_gateway_markup",
                 BigDecimal::zero(),
             ),
 
@@ -179,10 +179,7 @@ impl SettingsRepositoryTrait for SettingsRepository {
             "pricing_platform_commission",
             update.pricing_platform_commission
         );
-        update_setting!(
-            "pricing_gateway_commission",
-            update.pricing_gateway_commission
-        );
+        update_setting!("pricing_gateway_markup", update.pricing_gateway_markup);
         update_setting!(
             "pricing_gateway_bonus_mock_provider",
             update.pricing_gateway_bonus_mock_provider
@@ -197,6 +194,8 @@ impl SettingsRepositoryTrait for SettingsRepository {
         );
         update_setting!("referral_program_enabled", update.referral_program_enabled);
         update_setting!("referral_percentage", update.referral_percentage);
+
+        tx.commit().await?;
 
         Ok(self.load_settings().await?)
     }
