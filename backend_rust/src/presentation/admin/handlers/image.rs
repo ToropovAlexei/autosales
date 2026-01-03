@@ -27,6 +27,18 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/{id}", delete(delete_image))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/admin/images",
+    tag = "Images",
+    responses(
+        (status = 200, description = "Image created", body = ImageResponse),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn create_image(
     State(state): State<Arc<AppState>>,
     user: AuthUser,
@@ -45,6 +57,18 @@ async fn create_image(
     Ok(Json(image.into()))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/admin/images",
+    tag = "Images",
+    responses(
+        (status = 200, description = "List of images", body = Vec<ImageResponse>),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn list_images(
     State(state): State<Arc<AppState>>,
     _user: AuthUser,
@@ -63,6 +87,18 @@ async fn list_images(
     }))
 }
 
+#[utoipa::path(
+    delete,
+    path = "/api/admin/images/{id}",
+    tag = "Images",
+    responses(
+        (status = 204, description = "Image deleted"),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn delete_image(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,

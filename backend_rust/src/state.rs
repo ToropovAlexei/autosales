@@ -24,6 +24,7 @@ use crate::{
         product::ProductService,
         role::RoleService,
         role_permission::RolePermissionService,
+        stock_movement::StockMovementService,
         topt_encryptor::TotpEncryptor,
         transaction::TransactionService,
     },
@@ -51,6 +52,7 @@ pub struct AppState {
     pub transaction_service: Arc<TransactionService<TransactionRepository>>,
     pub product_service: Arc<ProductService<ProductRepository, StockMovementRepository>>,
     pub image_service: Arc<ImageService<ImageRepository>>,
+    pub stock_movement_service: Arc<StockMovementService<StockMovementRepository>>,
 }
 
 impl AppState {
@@ -108,12 +110,16 @@ impl AppState {
         let transaction_service = Arc::new(TransactionService::new(transaction_repo));
         let product_repo = Arc::new(ProductRepository::new(db_pool.clone()));
         let stock_movement_repo = Arc::new(StockMovementRepository::new(db_pool.clone()));
-        let product_service = Arc::new(ProductService::new(product_repo, stock_movement_repo));
+        let product_service = Arc::new(ProductService::new(
+            product_repo,
+            stock_movement_repo.clone(),
+        ));
         let image_repo = Arc::new(ImageRepository::new(db_pool.clone()));
         let image_service = Arc::new(ImageService::new(
             image_repo,
             config.image_upload_path.clone(),
         ));
+        let stock_movement_service = Arc::new(StockMovementService::new(stock_movement_repo));
 
         Self {
             db,
@@ -127,6 +133,7 @@ impl AppState {
             transaction_service,
             product_service,
             image_service,
+            stock_movement_service,
         }
     }
 }

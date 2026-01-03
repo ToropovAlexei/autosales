@@ -8,8 +8,9 @@ use crate::{
     infrastructure::lib::query::{apply_filters, apply_list_query},
     models::{
         common::PaginatedResult,
-        product::ProductListQuery,
-        stock_movement::{NewStockMovement, StockMovementRow, StockMovementType},
+        stock_movement::{
+            NewStockMovement, StockMovementListQuery, StockMovementRow, StockMovementType,
+        },
     },
 };
 
@@ -17,7 +18,7 @@ use crate::{
 pub trait StockMovementRepositoryTrait {
     async fn get_list(
         &self,
-        query: ProductListQuery,
+        query: StockMovementListQuery,
     ) -> RepositoryResult<PaginatedResult<StockMovementRow>>;
     async fn create(&self, stock_movement: NewStockMovement) -> RepositoryResult<StockMovementRow>;
     async fn get_last_by_product_id(&self, product_id: i64) -> RepositoryResult<StockMovementRow>;
@@ -38,7 +39,7 @@ impl StockMovementRepository {
 impl StockMovementRepositoryTrait for StockMovementRepository {
     async fn get_list(
         &self,
-        query: ProductListQuery,
+        query: StockMovementListQuery,
     ) -> RepositoryResult<PaginatedResult<StockMovementRow>> {
         let mut count_qb: QueryBuilder<Postgres> =
             QueryBuilder::new("SELECT COUNT(*) FROM stock_movements");

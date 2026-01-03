@@ -7,5 +7,6 @@ pub mod permission;
 pub mod product;
 pub mod role;
 pub mod role_permission;
+pub mod stock_movement;
 pub mod transaction;
 pub mod user_permission;
