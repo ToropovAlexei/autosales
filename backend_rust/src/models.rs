@@ -3,6 +3,7 @@ pub mod admin_user;
 pub mod admin_user_with_roles;
 pub mod category;
 pub mod common;
+pub mod customer;
 pub mod image;
 pub mod permission;
 pub mod product;

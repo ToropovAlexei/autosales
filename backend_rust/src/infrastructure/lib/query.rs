@@ -132,3 +132,15 @@ pub fn push_bind_scalar<'a>(qb: &mut QueryBuilder<'a, Postgres>, scalar: &'a Sca
         ScalarValue::Uuid(v) => qb.push_bind(v),
     };
 }
+
+#[macro_export]
+macro_rules! push_updates {
+    ($qb:expr, $( $column:ident => $value:expr ),* $(,)?) => {
+        $(
+            if let Some(value) = $value {
+                $qb.push(concat!(", ", stringify!($column), " = "));
+                $qb.push_bind(value);
+            }
+        )*
+    };
+}
