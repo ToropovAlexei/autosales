@@ -52,7 +52,7 @@ impl StockMovementRepositoryTrait for StockMovementRepository {
             r#"
         SELECT
             id, order_id, product_id, type,
-            quantity, created_by, source, description, reference_id,
+            quantity, created_by, description, reference_id,
             balance_after, created_at
         FROM stock_movements"#,
         );
