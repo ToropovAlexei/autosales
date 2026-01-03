@@ -36,7 +36,7 @@ sqlx = { version = "0.8", features = [
     "bigdecimal",
 ] }
 thiserror = "2.0"
-tokio = { version = "1.47", features = ["full"] }
+tokio = { version = "1.49", features = ["full"] }
 tokio-util = { version = "0.7.17", features = ["io"] }
 totp-rs = { version = "5.7", features = ["otpauth", "gen_secret"] }
 tower-http = { version = "0.6", features = ["cors"] }
