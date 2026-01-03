@@ -113,16 +113,16 @@ where
 
     pub async fn login_step1(
         &self,
-        login: String,
-        password: String,
+        login: &str,
+        password: &str,
     ) -> Result<TemporaryTokenRow, AuthError> {
         let user = self
             .admin_user_repo
-            .get_by_login(&login)
+            .get_by_login(login)
             .await
             .map_err(|_e| AuthError::InvalidCredentials)?;
 
-        if !self.verify_password(&password, &user.hashed_password)? {
+        if !self.verify_password(password, &user.hashed_password)? {
             return Err(AuthError::InvalidCredentials);
         }
 

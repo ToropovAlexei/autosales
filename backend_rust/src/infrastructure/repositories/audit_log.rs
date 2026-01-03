@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use sqlx::{PgPool, Postgres, QueryBuilder};
+use sqlx::{PgPool, Postgres, QueryBuilder, types::ipnetwork::IpNetwork};
 
 use crate::{
     errors::repository::RepositoryResult,
@@ -74,9 +74,9 @@ impl AuditLogRepositoryTrait for AuditLogRepository {
             audit_log.target_id,
             audit_log.old_values,
             audit_log.new_values,
-            audit_log.ip_address,
+            audit_log.ip_address.map(|s| IpNetwork::from(s)),
             audit_log.user_agent,
-            audit_log.request_id,
+            audit_log.request_id.map(|s| s.to_string()),
             audit_log.error_message
         )
         .fetch_one(&*self.pool)

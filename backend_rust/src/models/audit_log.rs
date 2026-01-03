@@ -1,8 +1,11 @@
+use std::net::IpAddr;
+
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{prelude::FromRow, types::ipnetwork::IpNetwork};
 use ts_rs::TS;
 use utoipa::ToSchema;
+use uuid::Uuid;
 
 use crate::define_list_query;
 
@@ -71,9 +74,9 @@ pub struct NewAuditLog {
     pub target_id: String,
     pub old_values: Option<serde_json::Value>,
     pub new_values: Option<serde_json::Value>,
-    pub ip_address: Option<IpNetwork>,
+    pub ip_address: Option<IpAddr>,
     pub user_agent: Option<String>,
-    pub request_id: Option<String>,
+    pub request_id: Option<Uuid>,
     pub error_message: Option<String>,
 }
 
