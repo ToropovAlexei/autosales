@@ -10,6 +10,7 @@ use axum::{
 use crate::{
     errors::api::ApiResult,
     middlewares::{
+        context::RequestContext,
         require_permission::{
             AdminUsersCreate, AdminUsersDelete, AdminUsersRead, AdminUsersUpdate, RbacManage,
             RequirePermission,
@@ -27,7 +28,9 @@ use crate::{
         user_permission::{UpdateUserPermissionsRequest, UserPermissionResponse},
     },
     services::{
-        admin_user::{AdminUserServiceTrait, CreateAdminUser, UpdateAdminUserCommand},
+        admin_user::{
+            AdminUserServiceTrait, CreateAdminUser, DeleteAdminUserCommand, UpdateAdminUserCommand,
+        },
         auth::AuthUser,
         permission::PermissionServiceTrait,
     },
@@ -66,16 +69,20 @@ async fn create_admin_user(
     State(state): State<Arc<AppState>>,
     user: AuthUser,
     _perm: RequirePermission<AdminUsersCreate>,
+    ctx: RequestContext,
     ValidatedJson(payload): ValidatedJson<NewAdminUserRequest>,
 ) -> ApiResult<Json<NewAdminUserResponse>> {
     let admin_user = state
         .admin_user_service
-        .create(CreateAdminUser {
-            login: payload.login,
-            password: payload.password,
-            created_by: user.id,
-            roles: payload.roles,
-        })
+        .create(
+            CreateAdminUser {
+                login: payload.login,
+                password: payload.password,
+                created_by: user.id,
+                roles: payload.roles,
+            },
+            ctx,
+        )
         .await?;
 
     Ok(Json(NewAdminUserResponse {
@@ -158,8 +165,9 @@ async fn get_admin_user(
 async fn update_admin_user(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
-    _user: AuthUser,
+    user: AuthUser,
     _perm: RequirePermission<AdminUsersUpdate>,
+    ctx: RequestContext,
     ValidatedJson(payload): ValidatedJson<UpdateAdminUserRequest>,
 ) -> ApiResult<Json<AdminUserResponse>> {
     let admin_user = state
@@ -171,7 +179,9 @@ async fn update_admin_user(
                 password: payload.password,
                 telegram_id: payload.telegram_id,
                 roles: payload.roles,
+                updated_by: user.id,
             },
+            ctx,
         )
         .await?;
 
@@ -193,10 +203,20 @@ async fn update_admin_user(
 async fn delete_admin_user(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
-    _user: AuthUser,
+    user: AuthUser,
     _perm: RequirePermission<AdminUsersDelete>,
+    ctx: RequestContext,
 ) -> ApiResult<StatusCode> {
-    state.admin_user_service.delete(id).await?;
+    state
+        .admin_user_service
+        .delete(
+            DeleteAdminUserCommand {
+                id,
+                deleted_by: user.id,
+            },
+            ctx,
+        )
+        .await?;
 
     Ok(StatusCode::NO_CONTENT)
 }

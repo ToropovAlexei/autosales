@@ -1,7 +1,8 @@
 use chrono::{DateTime, Utc};
+use serde::Serialize;
 use sqlx::prelude::FromRow;
 
-#[derive(Debug, FromRow)]
+#[derive(Debug, FromRow, Serialize, Clone)]
 pub struct AdminUserRow {
     pub id: i64,
     pub login: String,

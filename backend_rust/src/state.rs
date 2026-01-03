@@ -49,7 +49,12 @@ pub struct AppState {
     >,
     pub category_service: Arc<CategoryService<CategoryRepository>>,
     pub admin_user_service: Arc<
-        AdminUserService<AdminUserRepository, AdminUserWithRolesRepository, UserRoleRepository>,
+        AdminUserService<
+            AdminUserRepository,
+            AdminUserWithRolesRepository,
+            UserRoleRepository,
+            AuditLogService<AuditLogRepository>,
+        >,
     >,
     pub role_service: Arc<RoleService<RoleRepository>>,
     pub permission_service: Arc<PermissionService<PermissionRepository, UserPermissionRepository>>,
@@ -66,6 +71,8 @@ pub struct AppState {
 impl AppState {
     pub fn new(db: db::Database, config: Config) -> Self {
         let db_pool = Arc::new(db.get_pool().clone());
+        let audit_log_repo = Arc::new(AuditLogRepository::new(db_pool.clone()));
+        let audit_logs_service = Arc::new(AuditLogService::new(audit_log_repo));
         let active_token_repo = Arc::new(ActiveTokenRepository::new(db_pool.clone()));
         let temp_token_repo = Arc::new(TemporaryTokenRepository::new(db_pool.clone()));
         let admin_user_repo = Arc::new(AdminUserRepository::new(db_pool.clone()));
@@ -103,6 +110,7 @@ impl AppState {
             admin_user_with_roles_repo,
             user_role_repo,
             totp_encryptor,
+            audit_logs_service.clone(),
         ));
         let role_repo = Arc::new(RoleRepository::new(db_pool.clone()));
         let role_service = Arc::new(RoleService::new(role_repo));
@@ -132,9 +140,6 @@ impl AppState {
         let customer_service = Arc::new(CustomerService::new(customer_repo));
         let settings_repo = Arc::new(SettingsRepository::new(db_pool.clone()));
         let settings_service = Arc::new(SettingsService::new(settings_repo));
-        let audit_logs_service = Arc::new(AuditLogService::new(Arc::new(AuditLogRepository::new(
-            db_pool.clone(),
-        ))));
 
         Self {
             db,
