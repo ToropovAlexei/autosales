@@ -34,6 +34,9 @@ pub enum AuditAction {
     InvoiceCreate,
     InvoicePay,
     InvoiceExpire,
+    CategoryCreate,
+    CategoryUpdate,
+    CategoryDelete,
 }
 
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]

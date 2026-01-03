@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
+use serde::Serialize;
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
-#[derive(FromRow, Debug)]
+#[derive(FromRow, Debug, Clone, Serialize)]
 pub struct CategoryRow {
     pub id: i64,
     pub name: String,

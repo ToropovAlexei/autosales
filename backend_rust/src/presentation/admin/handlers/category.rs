@@ -10,17 +10,23 @@ use axum::{
 use crate::{
     errors::api::ApiResult,
     middlewares::{
+        context::RequestContext,
         require_permission::{
             CategoriesCreate, CategoriesDelete, CategoriesRead, CategoriesUpdate, RequirePermission,
         },
         validator::ValidatedJson,
     },
-    models::category::{NewCategory, UpdateCategory},
     presentation::admin::dtos::{
         category::{CategoryResponse, NewCategoryRequest, UpdateCategoryRequest},
         list_response::ListResponse,
     },
-    services::{auth::AuthUser, category::CategoryServiceTrait},
+    services::{
+        auth::AuthUser,
+        category::{
+            CategoryServiceTrait, CreateCategoryCommand, DeleteCategoryCommand,
+            UpdateCategoryCommand,
+        },
+    },
     state::AppState,
 };
 
@@ -52,16 +58,20 @@ async fn create_category(
     State(state): State<Arc<AppState>>,
     user: AuthUser,
     _perm: RequirePermission<CategoriesCreate>,
+    ctx: RequestContext,
     ValidatedJson(payload): ValidatedJson<NewCategoryRequest>,
 ) -> ApiResult<Json<CategoryResponse>> {
     let category = state
         .category_service
-        .create(NewCategory {
-            created_by: user.id,
-            image_id: payload.image_id,
-            name: payload.name,
-            parent_id: payload.parent_id,
-        })
+        .create(
+            CreateCategoryCommand {
+                created_by: user.id,
+                image_id: payload.image_id,
+                name: payload.name,
+                parent_id: payload.parent_id,
+            },
+            ctx,
+        )
         .await?;
 
     Ok(Json(category.into()))
@@ -131,20 +141,23 @@ async fn get_category(
 async fn update_category(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
-    _user: AuthUser,
+    user: AuthUser,
     _perm: RequirePermission<CategoriesUpdate>,
+    ctx: RequestContext,
     ValidatedJson(payload): ValidatedJson<UpdateCategoryRequest>,
 ) -> ApiResult<Json<CategoryResponse>> {
     let category = state
         .category_service
         .update(
-            id,
-            UpdateCategory {
+            UpdateCategoryCommand {
+                id,
                 image_id: payload.image_id,
                 name: payload.name,
                 parent_id: payload.parent_id,
                 position: payload.position,
+                updated_by: user.id,
             },
+            ctx,
         )
         .await?;
 
@@ -166,10 +179,20 @@ async fn update_category(
 async fn delete_category(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
-    _user: AuthUser,
+    user: AuthUser,
+    ctx: RequestContext,
     _perm: RequirePermission<CategoriesDelete>,
 ) -> ApiResult<StatusCode> {
-    state.category_service.delete(id).await?;
+    state
+        .category_service
+        .delete(
+            DeleteCategoryCommand {
+                id,
+                deleted_by: user.id,
+            },
+            ctx,
+        )
+        .await?;
 
     Ok(StatusCode::NO_CONTENT)
 }

@@ -8,7 +8,8 @@ CREATE TYPE audit_action AS ENUM (
     'balance_deposit', 'balance_withdrawal', 'referral_payout',
     'invoice_create', 'invoice_pay', 'invoice_expire',
 
-    'system_settings_update', 'bot_start', 'api_call'
+    'system_settings_update', 'bot_start', 'api_call',
+    'category_create', 'category_update', 'category_delete'
 );
 
 CREATE TYPE audit_status AS ENUM (

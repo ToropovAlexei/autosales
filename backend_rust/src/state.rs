@@ -47,7 +47,8 @@ pub struct AppState {
             EffectivePermissionRepository,
         >,
     >,
-    pub category_service: Arc<CategoryService<CategoryRepository>>,
+    pub category_service:
+        Arc<CategoryService<CategoryRepository, AuditLogService<AuditLogRepository>>>,
     pub admin_user_service: Arc<
         AdminUserService<
             AdminUserRepository,
@@ -103,7 +104,10 @@ impl AppState {
             },
         ));
         let category_repo = Arc::new(CategoryRepository::new(db_pool.clone()));
-        let category_service = Arc::new(CategoryService::new(category_repo));
+        let category_service = Arc::new(CategoryService::new(
+            category_repo,
+            audit_logs_service.clone(),
+        ));
         let user_role_repo = Arc::new(UserRoleRepository::new(db_pool.clone()));
         let admin_user_service = Arc::new(AdminUserService::new(
             admin_user_repo,
