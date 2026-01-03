@@ -183,3 +183,257 @@ impl ProductRepositoryTrait for ProductRepository {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::product::ProductType;
+    use bigdecimal::BigDecimal;
+    use rand::Rng;
+    use sqlx::PgPool;
+    use uuid::Uuid;
+
+    // Helper to create a product for tests
+    async fn create_test_product(
+        pool: &PgPool,
+        name: &str,
+        price: f64,
+        category_id: i64,
+    ) -> ProductRow {
+        sqlx::query_as!(
+            ProductRow,
+            r#"
+            INSERT INTO products (name, price, category_id, type, subscription_period_days, provider_name, created_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id, name, price, category_id, image_id, type as "type: _",
+                subscription_period_days, details, fulfillment_text, fulfillment_image_id,
+                provider_name, external_id, created_by, created_at, updated_at, deleted_at
+            "#,
+            name,
+            BigDecimal::try_from(price).unwrap(),
+            category_id,
+            ProductType::Item as ProductType, // Default type
+            0, // Default subscription_period_days
+            "test_provider", // Default provider
+            1 // Default created_by
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    // Helper to create a category for testing
+    async fn create_test_category(pool: &PgPool, name: &str) -> i64 {
+        sqlx::query!(
+            "INSERT INTO categories (name, created_by) VALUES ($1, $2) RETURNING id",
+            name,
+            1
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+        .id
+    }
+
+    pub fn generate_random_hash() -> String {
+        let mut rng = rand::rng();
+        let chars = "abcdefghijklmnopqrstuvwxyz";
+        let password: String = (0..4)
+            .map(|_| {
+                let idx = rng.random_range(0..chars.len());
+                chars.chars().nth(idx).unwrap()
+            })
+            .collect();
+        password
+    }
+
+    async fn create_test_image(pool: &PgPool) -> Uuid {
+        sqlx::query!(
+            r#"
+            INSERT INTO images (original_filename, hash, mime_type, file_size, width, height, context, created_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING *
+            "#,
+            "test_image.jpg",
+            generate_random_hash(),
+            "image/jpeg",
+            1000,
+            800,
+            600,
+            "product",
+            1
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+        .id
+    }
+
+    #[sqlx::test]
+    async fn test_update_product_all_some(pool: PgPool) {
+        let repo = ProductRepository::new(Arc::new(pool.clone()));
+        let category_id = create_test_category(&pool, "Electronics").await;
+
+        // Create a product
+        let initial_product = create_test_product(&pool, "Laptop", 1200.00, category_id).await;
+        let new_image_id = create_test_image(&pool).await;
+        let new_fulfillment_image_id = create_test_image(&pool).await;
+
+        let update_data = UpdateProduct {
+            name: Some("Gaming Laptop".to_string()),
+            price: Some(BigDecimal::try_from(1500.00).unwrap()),
+            category_id: Some(category_id),
+            image_id: Some(Some(new_image_id)),
+            r#type: Some(ProductType::Subscription),
+            subscription_period_days: Some(30),
+            details: Some(Some(serde_json::json!({"cpu": "i9"}))),
+            fulfillment_text: Some(Some("Digital code via email".to_string())),
+            fulfillment_image_id: Some(Some(new_fulfillment_image_id)),
+            external_id: Some(Some("EXT123".to_string())),
+        };
+
+        let _updated_product = repo.update(initial_product.id, update_data).await.unwrap();
+
+        // Fetch the product again to verify
+        let fetched_product = repo.get_by_id(initial_product.id).await.unwrap();
+
+        assert_eq!(fetched_product.id, initial_product.id);
+        assert_eq!(fetched_product.name, "Gaming Laptop");
+        assert_eq!(
+            fetched_product.price,
+            BigDecimal::try_from(1500.00).unwrap()
+        );
+        assert_eq!(fetched_product.r#type, ProductType::Subscription);
+        assert_eq!(fetched_product.subscription_period_days, 30);
+        assert_eq!(fetched_product.details.unwrap()["cpu"], "i9");
+        assert_eq!(
+            fetched_product.fulfillment_text.unwrap(),
+            "Digital code via email"
+        );
+        assert_eq!(
+            fetched_product.fulfillment_image_id.unwrap(),
+            new_fulfillment_image_id
+        );
+        assert_eq!(fetched_product.external_id.unwrap(), "EXT123");
+        assert_eq!(fetched_product.image_id.unwrap(), new_image_id);
+    }
+
+    #[sqlx::test]
+    async fn test_update_product_some_none_mix(pool: PgPool) {
+        let repo = ProductRepository::new(Arc::new(pool.clone()));
+        let category_id = create_test_category(&pool, "Books").await;
+
+        // Create a product with some initial optional values
+        let initial_image_id = create_test_image(&pool).await;
+        let initial_fulfillment_image_id = create_test_image(&pool).await;
+        let initial_product = sqlx::query_as!(
+            ProductRow,
+            r#"
+            INSERT INTO products (name, price, category_id, image_id, type, subscription_period_days, details, fulfillment_image_id, external_id, provider_name, created_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            RETURNING id, name, price, category_id, image_id, type as "type: _",
+                subscription_period_days, details, fulfillment_text, fulfillment_image_id,
+                provider_name, external_id, created_by, created_at, updated_at, deleted_at
+            "#,
+            "Old Book",
+            BigDecimal::try_from(25.00).unwrap(),
+            category_id,
+            Some(initial_image_id),
+            ProductType::Item as ProductType,
+            0,
+            Some(serde_json::json!({"author": "Unknown"})),
+            Some(initial_fulfillment_image_id),
+            Some("OLDEXT".to_string()),
+            "another_provider",
+            1
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+
+        // Update some fields with Some(value), some with Some(None) (to nullify), some with None (to keep original)
+        let update_data = UpdateProduct {
+            name: Some("Newer Book".to_string()), // Update
+            price: None,                          // Keep original
+            category_id: None,                    // Keep original
+            image_id: Some(None),                 // Set to NULL
+            r#type: None,                         // Keep original
+            subscription_period_days: Some(0),    // Update
+            details: Some(None),                  // Set to NULL
+            fulfillment_text: Some(Some("Download link".to_string())), // Update
+            fulfillment_image_id: None,           // Keep original
+            external_id: None,                    // Keep original
+        };
+
+        let _updated_product = repo.update(initial_product.id, update_data).await.unwrap();
+
+        // Fetch the product again to verify
+        let fetched_product = repo.get_by_id(initial_product.id).await.unwrap();
+
+        assert_eq!(fetched_product.id, initial_product.id);
+        assert_eq!(fetched_product.name, "Newer Book");
+        assert_eq!(fetched_product.price, initial_product.price); // Unchanged
+        assert_eq!(fetched_product.category_id, initial_product.category_id); // Unchanged
+        assert!(fetched_product.image_id.is_none()); // Set to NULL
+        assert_eq!(fetched_product.r#type, initial_product.r#type); // Unchanged
+        assert_eq!(fetched_product.subscription_period_days, 0); // Updated
+        assert!(fetched_product.details.is_none()); // Set to NULL
+        assert_eq!(fetched_product.fulfillment_text.unwrap(), "Download link"); // Updated
+        assert_eq!(
+            fetched_product.fulfillment_image_id,
+            initial_product.fulfillment_image_id
+        ); // Unchanged
+        assert_eq!(fetched_product.external_id, initial_product.external_id); // Unchanged
+    }
+
+    #[sqlx::test]
+    async fn test_update_product_no_updates(pool: PgPool) {
+        let repo = ProductRepository::new(Arc::new(pool.clone()));
+        let category_id = create_test_category(&pool, "Gizmos").await;
+
+        // Create a product
+        let initial_product = create_test_product(&pool, "Widget", 10.00, category_id).await;
+
+        // Update with all None values
+        let update_data = UpdateProduct {
+            name: None,
+            price: None,
+            category_id: None,
+            image_id: None,
+            r#type: None,
+            subscription_period_days: None,
+            details: None,
+            fulfillment_text: None,
+            fulfillment_image_id: None,
+            external_id: None,
+        };
+
+        let _updated_product = repo.update(initial_product.id, update_data).await.unwrap();
+
+        // Fetch the product again to verify
+        let fetched_product = repo.get_by_id(initial_product.id).await.unwrap();
+
+        assert_eq!(fetched_product.id, initial_product.id);
+        assert_eq!(fetched_product.name, initial_product.name);
+        assert_eq!(fetched_product.price, initial_product.price);
+        assert_eq!(fetched_product.category_id, initial_product.category_id);
+        assert_eq!(fetched_product.image_id, initial_product.image_id);
+        assert_eq!(fetched_product.r#type, initial_product.r#type);
+        assert_eq!(
+            fetched_product.subscription_period_days,
+            initial_product.subscription_period_days
+        );
+        assert_eq!(fetched_product.details, initial_product.details);
+        assert_eq!(
+            fetched_product.fulfillment_text,
+            initial_product.fulfillment_text
+        );
+        assert_eq!(
+            fetched_product.fulfillment_image_id,
+            initial_product.fulfillment_image_id
+        );
+        assert_eq!(fetched_product.external_id, initial_product.external_id);
+        // Only updated_at should change
+        assert_ne!(fetched_product.updated_at, initial_product.updated_at);
+    }
+}
