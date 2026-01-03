@@ -21,6 +21,7 @@ use crate::{
 
 pub struct AuthUser {
     pub id: i64,
+    pub token: Uuid,
 }
 
 #[derive(Debug, Deserialize)]
@@ -83,7 +84,7 @@ where
             .await
             .map_err(|_| AuthError::InvalidToken)?;
 
-        Ok(AuthUser { id: token.user_id })
+        Ok(AuthUser { id: token.user_id, token: token.jti })
     }
 
     pub fn verify_password(&self, plain: &str, hash: &str) -> AuthResult<bool> {
@@ -183,6 +184,13 @@ where
     ) -> Result<bool, AuthError> {
         self.effective_permission_repo
             .has_permission(admin_user_id, permission)
+            .await
+            .map_err(AuthError::from)
+    }
+
+    pub async fn logout(&self, token: Uuid) -> Result<(), AuthError> {
+        self.tokens
+            .revoke_token(token)
             .await
             .map_err(AuthError::from)
     }

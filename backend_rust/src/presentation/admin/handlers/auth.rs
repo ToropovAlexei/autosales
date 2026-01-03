@@ -8,6 +8,7 @@ use crate::{
     presentation::admin::dtos::auth::{
         LoginStep1Request, LoginStep1Response, LoginStep2Request, LoginStep2Response,
     },
+    services::auth::AuthUser,
     state::AppState,
 };
 
@@ -15,6 +16,7 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/login", post(login_step1))
         .route("/login/2fa", post(login_step2))
+        .route("/logout", post(logout))
 }
 
 #[utoipa::path(
@@ -69,4 +71,21 @@ async fn login_step2(
     Ok(Json(LoginStep2Response {
         token: access_token.jti,
     }))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/admin/auth/logout",
+    tag = "Auth",
+    responses(
+        (status = 200, description = "Logout successful"),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
+async fn logout(State(state): State<Arc<AppState>>, user: AuthUser) -> ApiResult<()> {
+    state.auth_service.logout(user.token).await?;
+    Ok(())
 }
