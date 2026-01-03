@@ -49,24 +49,24 @@ CREATE INDEX IF NOT EXISTS idx_transactions_store_last_balance
 CREATE OR REPLACE FUNCTION calculate_balances()
 RETURNS TRIGGER AS $$
 DECLARE
-    last_user_balance NUMERIC(12,2) := 0;
-    last_store_balance NUMERIC(12,2) := 0;
+    last_user_balance NUMERIC(12,2);
+    last_store_balance NUMERIC(12,2);
 BEGIN
     IF NEW.customer_id IS NOT NULL THEN
-        SELECT COALESCE(user_balance_after, 0)
-        INTO last_user_balance
-        FROM transactions
-        WHERE customer_id = NEW.customer_id
-        ORDER BY id DESC
-        LIMIT 1;
+        SELECT COALESCE((SELECT user_balance_after
+                        FROM transactions
+                        WHERE customer_id = NEW.customer_id
+                        ORDER BY id DESC
+                        LIMIT 1), 0)
+        INTO last_user_balance;
         NEW.user_balance_after := last_user_balance + NEW.amount;
     END IF;
 
-    SELECT COALESCE(store_balance_after, 0)
-    INTO last_store_balance
-    FROM transactions
-    ORDER BY id DESC
-    LIMIT 1;
+    SELECT COALESCE((SELECT store_balance_after
+                    FROM transactions
+                    ORDER BY id DESC
+                    LIMIT 1), 0)
+    INTO last_store_balance;
     NEW.store_balance_after := last_store_balance + NEW.store_balance_delta;
 
     RETURN NEW;

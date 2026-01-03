@@ -91,3 +91,63 @@ impl TransactionRepositoryTrait for TransactionRepository {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::models::transaction::TransactionType;
+
+    use super::*;
+    use bigdecimal::BigDecimal;
+    use sqlx::query;
+
+    #[sqlx::test]
+    async fn test_balance_calculation_triggers(pool: PgPool) {
+        let customer = query!(
+            r#"INSERT INTO customers (telegram_id, registered_with_bot, last_seen_with_bot) VALUES ($1, $2, $3) RETURNING id"#,
+            12345,
+            1,
+            1
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+
+        let repo = TransactionRepository::new(Arc::new(pool));
+
+        let deposit_tx = NewTransaction {
+            customer_id: Some(customer.id),
+            order_id: None,
+            r#type: TransactionType::Deposit,
+            amount: BigDecimal::from(1000),
+            store_balance_delta: BigDecimal::from(1000),
+            platform_commission: BigDecimal::from(0),
+            gateway_commission: BigDecimal::from(0),
+            description: Some("Test deposit".to_string()),
+            payment_gateway: Some("test_gw".to_string()),
+            details: None,
+        };
+
+        let result1 = repo.create(deposit_tx).await.unwrap();
+
+        assert_eq!(result1.user_balance_after, Some(BigDecimal::from(1000)));
+        assert_eq!(result1.store_balance_after, BigDecimal::from(1000));
+
+        let purchase_tx = NewTransaction {
+            customer_id: Some(customer.id),
+            order_id: None,
+            r#type: TransactionType::Purchase,
+            amount: BigDecimal::from(-150),
+            store_balance_delta: BigDecimal::from(150),
+            platform_commission: BigDecimal::from(0),
+            gateway_commission: BigDecimal::from(0),
+            description: Some("Test purchase".to_string()),
+            payment_gateway: None,
+            details: None,
+        };
+
+        let result2 = repo.create(purchase_tx).await.unwrap();
+
+        assert_eq!(result2.user_balance_after, Some(BigDecimal::from(850))); // 1000 - 150
+        assert_eq!(result2.store_balance_after, BigDecimal::from(1150));
+    }
+}
