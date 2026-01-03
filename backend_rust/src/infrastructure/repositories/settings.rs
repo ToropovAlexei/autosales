@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, str::FromStr, sync::Arc};
 
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, Zero};
@@ -6,7 +6,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::{
-    errors::repository::{RepositoryError, RepositoryResult},
+    errors::repository::RepositoryResult,
     models::settings::{Settings, UpdateSettings},
 };
 
@@ -106,14 +106,13 @@ impl SettingsRepositoryTrait for SettingsRepository {
         macro_rules! update_setting {
         ($key:expr, $value:expr) => {
             if let Some(val) = $value {
-                let json = serde_json::to_string(&val).map_err(|e| RepositoryError::Validation(e.to_string()))?;
                 sqlx::query!(
                     r#"INSERT INTO settings (key, value) 
                        VALUES ($1, $2) 
                        ON CONFLICT (key) DO UPDATE 
                        SET value = $2"#,
                     $key,
-                    json
+                    val.to_string()
                 )
                 .execute(&mut *tx)
                 .await?;
@@ -125,14 +124,13 @@ impl SettingsRepositoryTrait for SettingsRepository {
         ($key:expr, $value:expr) => {
             match $value {
                 Some(Some(v)) => {
-                    let json = serde_json::to_string(&v).map_err(|e| RepositoryError::Validation(e.to_string()))?;
                     sqlx::query!(
                         r#"INSERT INTO settings (key, value) 
                            VALUES ($1, $2) 
                            ON CONFLICT (key) DO UPDATE 
                            SET value = $2"#,
                         $key,
-                        json
+                        v.to_string()
                     )
                     .execute(&mut *tx)
                     .await?;
@@ -224,7 +222,7 @@ fn get_bigdecimal(
 ) -> BigDecimal {
     map.get(key)
         .and_then(|v| v.as_ref())
-        .and_then(|s| s.parse::<BigDecimal>().ok())
+        .and_then(|s| BigDecimal::from_str(s).ok())
         .unwrap_or(default)
 }
 
