@@ -1,4 +1,5 @@
 pub mod admin_user;
+pub mod audit_log;
 pub mod auth;
 pub mod category;
 pub mod customer;

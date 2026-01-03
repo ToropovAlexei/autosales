@@ -8,16 +8,18 @@ use crate::{
     db,
     infrastructure::repositories::{
         active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
-        admin_user_with_roles::AdminUserWithRolesRepository, category::CategoryRepository,
-        customer::CustomerRepository, effective_permission::EffectivePermissionRepository,
-        image::ImageRepository, permission::PermissionRepository, products::ProductRepository,
-        role::RoleRepository, role_permission::RolePermissionRepository,
-        settings::SettingsRepository, stock_movement::StockMovementRepository,
-        temporary_token::TemporaryTokenRepository, transaction::TransactionRepository,
-        user_permission::UserPermissionRepository, user_role::UserRoleRepository,
+        admin_user_with_roles::AdminUserWithRolesRepository, audit_log::AuditLogRepository,
+        category::CategoryRepository, customer::CustomerRepository,
+        effective_permission::EffectivePermissionRepository, image::ImageRepository,
+        permission::PermissionRepository, products::ProductRepository, role::RoleRepository,
+        role_permission::RolePermissionRepository, settings::SettingsRepository,
+        stock_movement::StockMovementRepository, temporary_token::TemporaryTokenRepository,
+        transaction::TransactionRepository, user_permission::UserPermissionRepository,
+        user_role::UserRoleRepository,
     },
     services::{
         admin_user::AdminUserService,
+        audit_log::AuditLogService,
         auth::{AuthService, AuthServiceConfig},
         category::CategoryService,
         customer::CustomerService,
@@ -58,6 +60,7 @@ pub struct AppState {
     pub stock_movement_service: Arc<StockMovementService<StockMovementRepository>>,
     pub customer_service: Arc<CustomerService<CustomerRepository>>,
     pub settings_service: Arc<SettingsService<SettingsRepository>>,
+    pub audit_logs_service: Arc<AuditLogService<AuditLogRepository>>,
 }
 
 impl AppState {
@@ -129,6 +132,9 @@ impl AppState {
         let customer_service = Arc::new(CustomerService::new(customer_repo));
         let settings_repo = Arc::new(SettingsRepository::new(db_pool.clone()));
         let settings_service = Arc::new(SettingsService::new(settings_repo));
+        let audit_logs_service = Arc::new(AuditLogService::new(Arc::new(AuditLogRepository::new(
+            db_pool.clone(),
+        ))));
 
         Self {
             db,
@@ -145,6 +151,7 @@ impl AppState {
             stock_movement_service,
             customer_service,
             settings_service,
+            audit_logs_service,
         }
     }
 }

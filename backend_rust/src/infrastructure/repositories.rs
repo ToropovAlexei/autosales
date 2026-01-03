@@ -1,6 +1,7 @@
 pub mod active_token;
 pub mod admin_user;
 pub mod admin_user_with_roles;
+pub mod audit_log;
 pub mod category;
 pub mod customer;
 pub mod effective_permission;
