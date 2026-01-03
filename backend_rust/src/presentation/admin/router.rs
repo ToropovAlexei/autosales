@@ -4,8 +4,8 @@ use axum::Router;
 
 use crate::{
     presentation::admin::handlers::{
-        admin_user, auth, category, customer, image, me, permission, product, role, stock_movement,
-        transaction,
+        admin_user, auth, category, customer, image, me, permission, product, role, settings,
+        stock_movement, transaction,
     },
     state::AppState,
 };
@@ -23,4 +23,5 @@ pub fn router() -> Router<Arc<AppState>> {
         .nest("/images", image::router())
         .nest("/stock-movements", stock_movement::router())
         .nest("/customers", customer::router())
+        .nest("/settings", settings::router())
 }

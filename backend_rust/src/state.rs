@@ -12,9 +12,9 @@ use crate::{
         customer::CustomerRepository, effective_permission::EffectivePermissionRepository,
         image::ImageRepository, permission::PermissionRepository, products::ProductRepository,
         role::RoleRepository, role_permission::RolePermissionRepository,
-        stock_movement::StockMovementRepository, temporary_token::TemporaryTokenRepository,
-        transaction::TransactionRepository, user_permission::UserPermissionRepository,
-        user_role::UserRoleRepository,
+        settings::SettingsRepository, stock_movement::StockMovementRepository,
+        temporary_token::TemporaryTokenRepository, transaction::TransactionRepository,
+        user_permission::UserPermissionRepository, user_role::UserRoleRepository,
     },
     services::{
         admin_user::AdminUserService,
@@ -26,6 +26,7 @@ use crate::{
         product::ProductService,
         role::RoleService,
         role_permission::RolePermissionService,
+        settings::SettingsService,
         stock_movement::StockMovementService,
         topt_encryptor::TotpEncryptor,
         transaction::TransactionService,
@@ -56,6 +57,7 @@ pub struct AppState {
     pub image_service: Arc<ImageService<ImageRepository>>,
     pub stock_movement_service: Arc<StockMovementService<StockMovementRepository>>,
     pub customer_service: Arc<CustomerService<CustomerRepository>>,
+    pub settings_service: Arc<SettingsService<SettingsRepository>>,
 }
 
 impl AppState {
@@ -125,6 +127,8 @@ impl AppState {
         let stock_movement_service = Arc::new(StockMovementService::new(stock_movement_repo));
         let customer_repo = Arc::new(CustomerRepository::new(db_pool.clone()));
         let customer_service = Arc::new(CustomerService::new(customer_repo));
+        let settings_repo = Arc::new(SettingsRepository::new(db_pool.clone()));
+        let settings_service = Arc::new(SettingsService::new(settings_repo));
 
         Self {
             db,
@@ -140,6 +144,7 @@ impl AppState {
             image_service,
             stock_movement_service,
             customer_service,
+            settings_service,
         }
     }
 }

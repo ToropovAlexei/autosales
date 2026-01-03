@@ -7,5 +7,6 @@ pub mod me;
 pub mod permission;
 pub mod product;
 pub mod role;
+pub mod settings;
 pub mod stock_movement;
 pub mod transaction;

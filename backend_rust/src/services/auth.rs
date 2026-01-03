@@ -84,7 +84,10 @@ where
             .await
             .map_err(|_| AuthError::InvalidToken)?;
 
-        Ok(AuthUser { id: token.user_id, token: token.jti })
+        Ok(AuthUser {
+            id: token.user_id,
+            token: token.jti,
+        })
     }
 
     pub fn verify_password(&self, plain: &str, hash: &str) -> AuthResult<bool> {
