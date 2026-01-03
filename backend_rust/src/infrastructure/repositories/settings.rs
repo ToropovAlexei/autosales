@@ -74,19 +74,9 @@ impl SettingsRepositoryTrait for SettingsRepository {
                 BigDecimal::zero(),
             ),
 
-            pricing_gateway_commission_mock_provider: get_bigdecimal(
+            pricing_gateway_commission: get_bigdecimal(
                 &map,
-                "pricing_gateway_commission_mock_provider",
-                BigDecimal::zero(),
-            ),
-            pricing_gateway_commission_platform_card: get_bigdecimal(
-                &map,
-                "pricing_gateway_commission_platform_card",
-                BigDecimal::zero(),
-            ),
-            pricing_gateway_commission_platform_sbp: get_bigdecimal(
-                &map,
-                "pricing_gateway_commission_platform_sbp",
+                "pricing_gateway_commission",
                 BigDecimal::zero(),
             ),
 
@@ -190,16 +180,8 @@ impl SettingsRepositoryTrait for SettingsRepository {
             update.pricing_platform_commission
         );
         update_setting!(
-            "pricing_gateway_commission_mock_provider",
-            update.pricing_gateway_commission_mock_provider
-        );
-        update_setting!(
-            "pricing_gateway_commission_platform_card",
-            update.pricing_gateway_commission_platform_card
-        );
-        update_setting!(
-            "pricing_gateway_commission_platform_sbp",
-            update.pricing_gateway_commission_platform_sbp
+            "pricing_gateway_commission",
+            update.pricing_gateway_commission
         );
         update_setting!(
             "pricing_gateway_bonus_mock_provider",

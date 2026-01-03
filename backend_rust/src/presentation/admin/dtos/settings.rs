@@ -12,9 +12,7 @@ use crate::models::settings::{Settings, UpdateSettings};
 pub struct PricingSettingsResponse {
     pub pricing_global_markup: f64,
     pub pricing_platform_commission: f64,
-    pub pricing_gateway_commission_mock_provider: f64,
-    pub pricing_gateway_commission_platform_card: f64,
-    pub pricing_gateway_commission_platform_sbp: f64,
+    pub pricing_gateway_commission: f64,
     pub pricing_gateway_bonus_mock_provider: f64,
     pub pricing_gateway_bonus_platform_card: f64,
     pub pricing_gateway_bonus_platform_sbp: f64,
@@ -48,18 +46,7 @@ impl From<Settings> for PricingSettingsResponse {
                 .pricing_gateway_bonus_platform_sbp
                 .to_f64()
                 .unwrap_or_default(),
-            pricing_gateway_commission_mock_provider: r
-                .pricing_gateway_commission_mock_provider
-                .to_f64()
-                .unwrap_or_default(),
-            pricing_gateway_commission_platform_card: r
-                .pricing_gateway_commission_platform_card
-                .to_f64()
-                .unwrap_or_default(),
-            pricing_gateway_commission_platform_sbp: r
-                .pricing_gateway_commission_platform_sbp
-                .to_f64()
-                .unwrap_or_default(),
+            pricing_gateway_commission: r.pricing_gateway_commission.to_f64().unwrap_or_default(),
             pricing_global_markup: r.pricing_global_markup.to_f64().unwrap_or_default(),
             pricing_platform_commission: r.pricing_platform_commission.to_f64().unwrap_or_default(),
             referral_percentage: r.referral_percentage.to_f64().unwrap_or_default(),
@@ -90,11 +77,7 @@ pub struct UpdatePricingSettingsRequest {
     #[validate(range(min = 0.0, max = 100.0))]
     pub pricing_platform_commission: Option<f64>,
     #[validate(range(min = 0.0, max = 100.0))]
-    pub pricing_gateway_commission_mock_provider: Option<f64>,
-    #[validate(range(min = 0.0, max = 100.0))]
-    pub pricing_gateway_commission_platform_card: Option<f64>,
-    #[validate(range(min = 0.0, max = 100.0))]
-    pub pricing_gateway_commission_platform_sbp: Option<f64>,
+    pub pricing_gateway_commission: Option<f64>,
     #[validate(range(min = 0.0, max = 100.0))]
     pub pricing_gateway_bonus_mock_provider: Option<f64>,
     #[validate(range(min = 0.0, max = 100.0))]
@@ -132,15 +115,7 @@ impl From<UpdatePricingSettingsRequest> for UpdateSettings {
                 r.pricing_gateway_bonus_platform_card,
             ),
             pricing_gateway_bonus_platform_sbp: f64_opt_to_bd(r.pricing_gateway_bonus_platform_sbp),
-            pricing_gateway_commission_mock_provider: f64_opt_to_bd(
-                r.pricing_gateway_commission_mock_provider,
-            ),
-            pricing_gateway_commission_platform_card: f64_opt_to_bd(
-                r.pricing_gateway_commission_platform_card,
-            ),
-            pricing_gateway_commission_platform_sbp: f64_opt_to_bd(
-                r.pricing_gateway_commission_platform_sbp,
-            ),
+            pricing_gateway_commission: f64_opt_to_bd(r.pricing_gateway_commission),
             pricing_global_markup: f64_opt_to_bd(r.pricing_global_markup),
             pricing_platform_commission: f64_opt_to_bd(r.pricing_platform_commission),
             referral_percentage: f64_opt_to_bd(r.referral_percentage),
