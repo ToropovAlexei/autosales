@@ -68,6 +68,12 @@ where
             None => None,
         };
 
+        if raw_query.pagination.page_size > 100 {
+            return Err(ApiError::BadRequest(
+                "Page size cannot exceed 100".to_string(),
+            ));
+        }
+
         Ok(ListQuery {
             filters,
             pagination: raw_query.pagination,
