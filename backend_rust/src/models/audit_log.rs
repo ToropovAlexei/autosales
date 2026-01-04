@@ -37,6 +37,15 @@ pub enum AuditAction {
     CategoryCreate,
     CategoryUpdate,
     CategoryDelete,
+    CustomerCreate,
+    CustomerUpdate,
+    CustomerDelete,
+    BotCreate,
+    BotUpdate,
+    BotDelete,
+    ImageCreate,
+    ImageUpdate,
+    ImageDelete,
 }
 
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]

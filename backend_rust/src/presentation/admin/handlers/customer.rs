@@ -10,15 +10,19 @@ use axum::{
 use crate::{
     errors::api::ApiResult,
     middlewares::{
+        context::RequestContext,
         require_permission::{CustomersRead, CustomersUpdate, RequirePermission},
         validator::ValidatedJson,
     },
-    models::customer::{CustomerListQuery, UpdateCustomer},
+    models::customer::CustomerListQuery,
     presentation::admin::dtos::{
         customer::{CustomerResponse, UpdateCustomerRequest},
         list_response::ListResponse,
     },
-    services::{auth::AuthUser, customer::CustomerServiceTrait},
+    services::{
+        auth::AuthUser,
+        customer::{CustomerServiceTrait, UpdateCustomerCommand},
+    },
     state::AppState,
 };
 
@@ -73,23 +77,26 @@ async fn list_customers(
 async fn update_customer(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
-    _user: AuthUser,
+    user: AuthUser,
     _perm: RequirePermission<CustomersUpdate>,
+    ctx: RequestContext,
     ValidatedJson(payload): ValidatedJson<UpdateCustomerRequest>,
 ) -> ApiResult<Json<CustomerResponse>> {
-    let category = state
+    let customer = state
         .customer_service
         .update(
-            id,
-            UpdateCustomer {
+            UpdateCustomerCommand {
+                id,
+                updated_by: user.id,
                 is_blocked: payload.is_blocked,
                 bot_is_blocked_by_user: None,
                 has_passed_captcha: None,
                 last_seen_at: None,
                 last_seen_with_bot: None,
             },
+            ctx,
         )
         .await?;
 
-    Ok(Json(category.into()))
+    Ok(Json(CustomerResponse::from(customer)))
 }

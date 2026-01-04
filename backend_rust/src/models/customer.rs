@@ -5,7 +5,7 @@ use sqlx::prelude::FromRow;
 
 use crate::define_list_query;
 
-#[derive(FromRow, Debug)]
+#[derive(FromRow, Debug, Clone, Serialize)]
 pub struct CustomerRow {
     pub id: i64,
     pub telegram_id: i64,

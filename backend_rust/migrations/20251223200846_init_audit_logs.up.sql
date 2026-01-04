@@ -4,6 +4,9 @@ CREATE TYPE audit_action AS ENUM (
 
     'product_create', 'product_update', 'product_delete', 'product_hide',
     'stock_movement_create',
+    'customer_create', 'customer_update', 'customer_delete',
+    'bot_create', 'bot_update', 'bot_delete',
+    'image_create', 'image_update', 'image_delete',
 
     'balance_deposit', 'balance_withdrawal', 'referral_payout',
     'invoice_create', 'invoice_pay', 'invoice_expire',

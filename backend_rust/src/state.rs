@@ -70,7 +70,8 @@ pub struct AppState {
     >,
     pub image_service: Arc<ImageService<ImageRepository>>,
     pub stock_movement_service: Arc<StockMovementService<StockMovementRepository>>,
-    pub customer_service: Arc<CustomerService<CustomerRepository>>,
+    pub customer_service:
+        Arc<CustomerService<CustomerRepository, AuditLogService<AuditLogRepository>>>,
     pub settings_service: Arc<SettingsService<SettingsRepository>>,
     pub audit_logs_service: Arc<AuditLogService<AuditLogRepository>>,
 }
@@ -148,7 +149,10 @@ impl AppState {
         ));
         let stock_movement_service = Arc::new(StockMovementService::new(stock_movement_repo));
         let customer_repo = Arc::new(CustomerRepository::new(db_pool.clone()));
-        let customer_service = Arc::new(CustomerService::new(customer_repo));
+        let customer_service = Arc::new(CustomerService::new(
+            customer_repo,
+            audit_logs_service.clone(),
+        ));
         let settings_repo = Arc::new(SettingsRepository::new(db_pool.clone()));
         let settings_service = Arc::new(SettingsService::new(settings_repo));
 
