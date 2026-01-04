@@ -39,7 +39,7 @@ pub struct NewBot {
     pub r#type: BotType,
     pub is_active: bool,
     pub is_primary: bool,
-    pub referral_percentage: Option<BigDecimal>,
+    pub referral_percentage: BigDecimal,
     pub created_by: Option<i64>,
 }
 

@@ -1,3 +1,4 @@
+use bigdecimal::{BigDecimal, Zero};
 use rand::Rng;
 use reqwest::Response;
 use serde::{Deserialize, de::DeserializeOwned};
@@ -99,7 +100,12 @@ pub fn generate_random_password() -> String {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct GetMeResponse {
+struct GetMeResponse {
+    result: GetMeResult,
+}
+
+#[derive(Debug, Deserialize)]
+struct GetMeResult {
     username: String,
 }
 
@@ -119,17 +125,16 @@ pub async fn create_bot_if_not_exists(
     if let Ok(bot) = bot_repo.get_by_token(bot.token.clone()).await {
         return bot.id;
     }
-
     let bot_name = parse_response::<GetMeResponse>(
         client
             .get(format!("https://api.telegram.org/bot{}/getMe", bot.token))
             .send()
             .await
-            .unwrap(),
+            .expect("Error requesting getMe"),
     )
     .await
-    .map(|r| r.username)
-    .unwrap();
+    .map(|r| r.result.username)
+    .expect("Error getting bot name");
 
     bot_repo
         .create(NewBot {
@@ -138,12 +143,12 @@ pub async fn create_bot_if_not_exists(
             is_active: bot.is_active,
             is_primary: bot.is_primary,
             owner_id: None,
-            referral_percentage: None,
+            referral_percentage: BigDecimal::zero(),
             token: bot.token,
             r#type: bot.r#type,
         })
         .await
-        .unwrap()
+        .expect("Error creating bot")
         .id
 }
 
