@@ -72,7 +72,8 @@ pub struct AppState {
     pub stock_movement_service: Arc<StockMovementService<StockMovementRepository>>,
     pub customer_service:
         Arc<CustomerService<CustomerRepository, AuditLogService<AuditLogRepository>>>,
-    pub settings_service: Arc<SettingsService<SettingsRepository>>,
+    pub settings_service:
+        Arc<SettingsService<SettingsRepository, AuditLogService<AuditLogRepository>>>,
     pub audit_logs_service: Arc<AuditLogService<AuditLogRepository>>,
 }
 
@@ -154,7 +155,10 @@ impl AppState {
             audit_logs_service.clone(),
         ));
         let settings_repo = Arc::new(SettingsRepository::new(db_pool.clone()));
-        let settings_service = Arc::new(SettingsService::new(settings_repo));
+        let settings_service = Arc::new(SettingsService::new(
+            settings_repo,
+            audit_logs_service.clone(),
+        ));
 
         Self {
             db,

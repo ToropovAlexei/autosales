@@ -5,17 +5,20 @@ use axum::{Json, Router, extract::State, routing::get};
 use crate::{
     errors::api::ApiResult,
     middlewares::{
+        context::RequestContext,
         require_permission::{
             PricingEdit, PricingRead, RequirePermission, SettingsEdit, SettingsRead,
         },
         validator::ValidatedJson,
     },
-    models::settings::UpdateSettings,
     presentation::admin::dtos::settings::{
         BotSettingsResponse, PricingSettingsResponse, UpdateBotSettingsRequest,
         UpdatePricingSettingsRequest,
     },
-    services::{auth::AuthUser, settings::SettingsServiceTrait},
+    services::{
+        auth::AuthUser,
+        settings::{SettingsServiceTrait, UpdateSettingsCommand},
+    },
     state::AppState,
 };
 
@@ -64,14 +67,14 @@ async fn get_pricing_settings(
 )]
 async fn update_pricing_settings(
     State(state): State<Arc<AppState>>,
-    _user: AuthUser,
+    user: AuthUser,
     _perm: RequirePermission<PricingEdit>,
+    ctx: RequestContext,
     ValidatedJson(payload): ValidatedJson<UpdatePricingSettingsRequest>,
 ) -> ApiResult<Json<PricingSettingsResponse>> {
-    let category = state
-        .settings_service
-        .update(UpdateSettings::from(payload))
-        .await?;
+    let mut command = UpdateSettingsCommand::from(payload);
+    command.updated_by = user.id;
+    let category = state.settings_service.update(command, ctx).await?;
 
     Ok(Json(category.into()))
 }
@@ -112,14 +115,14 @@ async fn get_bot_settings(
 )]
 async fn update_bot_settings(
     State(state): State<Arc<AppState>>,
-    _user: AuthUser,
+    user: AuthUser,
     _perm: RequirePermission<SettingsEdit>,
+    ctx: RequestContext,
     ValidatedJson(payload): ValidatedJson<UpdateBotSettingsRequest>,
 ) -> ApiResult<Json<BotSettingsResponse>> {
-    let category = state
-        .settings_service
-        .update(UpdateSettings::from(payload))
-        .await?;
+    let mut command = UpdateSettingsCommand::from(payload);
+    command.updated_by = user.id;
+    let category = state.settings_service.update(command, ctx).await?;
 
     Ok(Json(category.into()))
 }

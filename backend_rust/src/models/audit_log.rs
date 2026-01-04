@@ -46,6 +46,7 @@ pub enum AuditAction {
     ImageCreate,
     ImageUpdate,
     ImageDelete,
+    SettingsUpdate,
 }
 
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]
