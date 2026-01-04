@@ -1,13 +1,21 @@
 use rand::Rng;
+use reqwest::Response;
+use serde::{Deserialize, de::DeserializeOwned};
 use std::sync::Arc;
 
 use crate::{
     infrastructure::repositories::{
         admin_user::{AdminUserRepository, AdminUserRepositoryTrait},
+        bot::{BotRepository, BotRepositoryTrait},
         role::{RoleRepository, RoleRepositoryTrait},
         user_role::{UserRoleRepository, UserRoleRepositoryTrait},
     },
-    models::{admin_user::NewAdminUser, role::NewRole, user_role::NewUserRole},
+    models::{
+        admin_user::NewAdminUser,
+        bot::{BotType, NewBot},
+        role::NewRole,
+        user_role::NewUserRole,
+    },
     services::topt_encryptor::TotpEncryptor,
 };
 
@@ -88,4 +96,67 @@ pub fn generate_random_password() -> String {
         })
         .collect();
     password
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GetMeResponse {
+    username: String,
+}
+
+#[derive(Debug)]
+pub struct InitBot {
+    pub token: String,
+    pub is_active: bool,
+    pub is_primary: bool,
+    pub r#type: BotType,
+}
+
+pub async fn create_bot_if_not_exists(
+    bot: InitBot,
+    bot_repo: &Arc<BotRepository>,
+    client: &Arc<reqwest::Client>,
+) -> i64 {
+    if let Ok(bot) = bot_repo.get_by_token(bot.token.clone()).await {
+        return bot.id;
+    }
+
+    let bot_name = parse_response::<GetMeResponse>(
+        client
+            .get(format!("https://api.telegram.org/bot{}/getMe", bot.token))
+            .send()
+            .await
+            .unwrap(),
+    )
+    .await
+    .map(|r| r.username)
+    .unwrap();
+
+    bot_repo
+        .create(NewBot {
+            username: bot_name,
+            created_by: None, // System
+            is_active: bot.is_active,
+            is_primary: bot.is_primary,
+            owner_id: None,
+            referral_percentage: None,
+            token: bot.token,
+            r#type: bot.r#type,
+        })
+        .await
+        .unwrap()
+        .id
+}
+
+async fn parse_response<T>(response: Response) -> Option<T>
+where
+    T: DeserializeOwned,
+{
+    let status = response.status();
+    if let Ok(body) = response.text().await
+        && status.is_success()
+        && let Ok(parsed) = serde_json::from_str::<T>(&body)
+    {
+        return Some(parsed);
+    }
+    None
 }

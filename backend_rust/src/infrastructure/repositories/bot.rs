@@ -17,6 +17,7 @@ pub trait BotRepositoryTrait {
     async fn get_list(&self, query: BotListQuery) -> RepositoryResult<PaginatedResult<BotRow>>;
     async fn create(&self, bot: NewBot) -> RepositoryResult<BotRow>;
     async fn get_by_id(&self, id: i64) -> RepositoryResult<BotRow>;
+    async fn get_by_token(&self, token: String) -> RepositoryResult<BotRow>;
     async fn update(&self, id: i64, bot: UpdateBot) -> RepositoryResult<BotRow>;
 }
 
@@ -129,5 +130,22 @@ impl BotRepositoryTrait for BotRepository {
             .fetch_one(&*self.pool)
             .await
             .map_err(RepositoryError::from)
+    }
+
+    async fn get_by_token(&self, token: String) -> RepositoryResult<BotRow> {
+        let result = sqlx::query_as!(
+            BotRow,
+            r#"
+        SELECT 
+            id, owner_id, token, username, type as "type: _", is_active,
+            is_primary, referral_percentage, 
+            created_at, updated_at, created_by
+        FROM bots WHERE token = $1"#,
+            token
+        )
+        .fetch_one(&*self.pool)
+        .await?;
+
+        Ok(result)
     }
 }

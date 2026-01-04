@@ -2,20 +2,21 @@ use std::sync::Arc;
 
 use backend_rust::{
     bin::{
-        assign_role_to_admin_user, create_admin_user_if_not_exists,
-        create_admin_user_role_if_not_exists,
+        InitBot, assign_role_to_admin_user, create_admin_user_if_not_exists,
+        create_admin_user_role_if_not_exists, create_bot_if_not_exists,
     },
     config::Config,
     db::Database,
     infrastructure::repositories::{
         admin_user::AdminUserRepository,
+        bot::BotRepository,
         permission::{PermissionRepository, PermissionRepositoryTrait},
         role::RoleRepository,
         role_permission::{RolePermissionRepository, RolePermissionRepositoryTrait},
         user_role::UserRoleRepository,
     },
     init_tracing,
-    models::role_permission::NewRolePermission,
+    models::{bot::BotType, role_permission::NewRolePermission},
     run_migrations,
     services::topt_encryptor::TotpEncryptor,
     state::AppState,
@@ -46,6 +47,8 @@ async fn main() -> anyhow::Result<()> {
     let permission_repo = Arc::new(PermissionRepository::new(db_pool.clone()));
     let role_permission_repo = Arc::new(RolePermissionRepository::new(db_pool.clone()));
     let user_role_repo = Arc::new(UserRoleRepository::new(db_pool.clone()));
+    let bot_repo = Arc::new(BotRepository::new(db_pool.clone()));
+    let client = Arc::new(reqwest::Client::new());
     let admin_id = create_admin_user_if_not_exists(
         &admin_user_repo,
         &totp_encryptor,
@@ -66,6 +69,26 @@ async fn main() -> anyhow::Result<()> {
     println!("Assigned permissions: {}", assigned_permissions);
     assign_role_to_admin_user(admin_id, admin_role_id, &user_role_repo).await;
     println!("Admin user role assigned");
+    if let Ok(main_bot_token) = std::env::var("MAIN_BOT_TOKEN") {
+        let main_bot = InitBot {
+            token: main_bot_token,
+            is_active: true,
+            is_primary: true,
+            r#type: BotType::Main,
+        };
+        let id = create_bot_if_not_exists(main_bot, &bot_repo, &client).await;
+        println!("Main bot Id: {}", id);
+    }
+    if let Ok(fallback_bot_token) = std::env::var("FALLBACK_BOT_TOKEN") {
+        let main_bot = InitBot {
+            token: fallback_bot_token,
+            is_active: true,
+            is_primary: false,
+            r#type: BotType::Main,
+        };
+        let id = create_bot_if_not_exists(main_bot, &bot_repo, &client).await;
+        println!("Fallback bot Id: {}", id);
+    }
 
     Ok(())
 }
