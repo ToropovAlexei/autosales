@@ -19,3 +19,4 @@ pub mod temporary_token;
 pub mod transaction;
 pub mod user_permission;
 pub mod user_role;
+pub mod user_subscription;
