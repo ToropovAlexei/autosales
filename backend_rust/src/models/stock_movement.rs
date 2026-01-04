@@ -18,7 +18,7 @@ pub enum StockMovementType {
     Adjustment,
 }
 
-#[derive(FromRow, Debug)]
+#[derive(FromRow, Debug, Clone, Serialize)]
 pub struct StockMovementRow {
     pub id: i64,
     pub order_id: Option<i64>,

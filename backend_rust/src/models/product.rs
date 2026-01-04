@@ -17,7 +17,7 @@ pub enum ProductType {
     Subscription,
 }
 
-#[derive(FromRow, Debug)]
+#[derive(FromRow, Debug, Clone, Serialize)]
 pub struct ProductRow {
     pub id: i64,
     pub name: String,

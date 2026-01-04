@@ -61,7 +61,13 @@ pub struct AppState {
     pub permission_service: Arc<PermissionService<PermissionRepository, UserPermissionRepository>>,
     pub role_permission_service: Arc<RolePermissionService<RolePermissionRepository>>,
     pub transaction_service: Arc<TransactionService<TransactionRepository>>,
-    pub product_service: Arc<ProductService<ProductRepository, StockMovementRepository>>,
+    pub product_service: Arc<
+        ProductService<
+            ProductRepository,
+            StockMovementRepository,
+            AuditLogService<AuditLogRepository>,
+        >,
+    >,
     pub image_service: Arc<ImageService<ImageRepository>>,
     pub stock_movement_service: Arc<StockMovementService<StockMovementRepository>>,
     pub customer_service: Arc<CustomerService<CustomerRepository>>,
@@ -133,6 +139,7 @@ impl AppState {
         let product_service = Arc::new(ProductService::new(
             product_repo,
             stock_movement_repo.clone(),
+            audit_logs_service.clone(),
         ));
         let image_repo = Arc::new(ImageRepository::new(db_pool.clone()));
         let image_service = Arc::new(ImageService::new(
