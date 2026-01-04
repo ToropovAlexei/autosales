@@ -82,7 +82,7 @@ async fn create_category(
     path = "/api/admin/categories",
     tag = "Categories",
     responses(
-        (status = 200, description = "List of categories", body = Vec<CategoryResponse>),
+        (status = 200, description = "List of categories", body = ListResponse<CategoryResponse>),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
         (status = 403, description = "Forbidden", body = String),

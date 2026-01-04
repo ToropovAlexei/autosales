@@ -22,7 +22,7 @@ pub fn router() -> Router<Arc<AppState>> {
     path = "/api/admin/stock_movements",
     tag = "Stock Movements",
     responses(
-        (status = 200, description = "List of stock movements", body = Vec<StockMovementResponse>),
+        (status = 200, description = "List of stock movements", body = ListResponse<StockMovementResponse>),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
         (status = 403, description = "Forbidden", body = String),
