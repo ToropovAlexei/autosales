@@ -9,7 +9,7 @@ use crate::{
     infrastructure::repositories::{
         active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
         admin_user_with_roles::AdminUserWithRolesRepository, audit_log::AuditLogRepository,
-        category::CategoryRepository, customer::CustomerRepository,
+        bot::BotRepository, category::CategoryRepository, customer::CustomerRepository,
         effective_permission::EffectivePermissionRepository, image::ImageRepository,
         permission::PermissionRepository, products::ProductRepository, role::RoleRepository,
         role_permission::RolePermissionRepository, settings::SettingsRepository,
@@ -21,6 +21,7 @@ use crate::{
         admin_user::AdminUserService,
         audit_log::AuditLogService,
         auth::{AuthService, AuthServiceConfig},
+        bot::BotService,
         category::CategoryService,
         customer::CustomerService,
         image::ImageService,
@@ -75,11 +76,14 @@ pub struct AppState {
     pub settings_service:
         Arc<SettingsService<SettingsRepository, AuditLogService<AuditLogRepository>>>,
     pub audit_logs_service: Arc<AuditLogService<AuditLogRepository>>,
+    pub bot_service: Arc<BotService<BotRepository, AuditLogService<AuditLogRepository>>>,
+    pub client: Arc<reqwest::Client>,
 }
 
 impl AppState {
     pub fn new(db: db::Database, config: Config) -> Self {
         let db_pool = Arc::new(db.get_pool().clone());
+        let client = Arc::new(reqwest::Client::new());
         let audit_log_repo = Arc::new(AuditLogRepository::new(db_pool.clone()));
         let audit_logs_service = Arc::new(AuditLogService::new(audit_log_repo));
         let active_token_repo = Arc::new(ActiveTokenRepository::new(db_pool.clone()));
@@ -159,6 +163,11 @@ impl AppState {
             settings_repo,
             audit_logs_service.clone(),
         ));
+        let bot_service = Arc::new(BotService::new(
+            Arc::new(BotRepository::new(db_pool.clone())),
+            audit_logs_service.clone(),
+            client.clone(),
+        ));
 
         Self {
             db,
@@ -176,6 +185,8 @@ impl AppState {
             customer_service,
             settings_service,
             audit_logs_service,
+            client,
+            bot_service,
         }
     }
 }

@@ -113,11 +113,7 @@ impl BotRepositoryTrait for BotRepository {
 
         if let Some(referral_percentage) = bot.referral_percentage {
             query_builder.push(", referral_percentage = ");
-            if let Some(referral_percentage) = referral_percentage {
-                query_builder.push_bind(referral_percentage);
-            } else {
-                query_builder.push("NULL");
-            }
+            query_builder.push_bind(referral_percentage);
         }
 
         query_builder.push(" WHERE id = ");

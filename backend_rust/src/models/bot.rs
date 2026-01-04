@@ -48,7 +48,7 @@ pub struct UpdateBot {
     pub username: Option<String>,
     pub is_active: Option<bool>,
     pub is_primary: Option<bool>,
-    pub referral_percentage: Option<Option<BigDecimal>>,
+    pub referral_percentage: Option<BigDecimal>,
 }
 
 define_list_query! {
