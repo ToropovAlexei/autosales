@@ -27,7 +27,7 @@ pub fn router() -> Router<Arc<AppState>> {
 )]
 async fn list_categories(
     State(state): State<Arc<AppState>>,
-    _user: AuthBot,
+    _bot: AuthBot,
 ) -> ApiResult<Json<ListResponse<CategoryResponse>>> {
     let categories = state.category_service.get_list().await?;
 
