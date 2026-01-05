@@ -157,7 +157,7 @@ impl BotRepositoryTrait for BotRepository {
     ) -> RepositoryResult<()> {
         let mut tx = self.pool.begin().await?;
         sqlx::query!(
-            "UPDATE bots SET is_primary = false WHERE owner_id = $1",
+            "UPDATE bots SET is_primary = false WHERE owner_id IS NOT DISTINCT FROM $1",
             owner_id
         )
         .execute(tx.as_mut())
