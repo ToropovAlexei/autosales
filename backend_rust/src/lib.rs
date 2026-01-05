@@ -12,8 +12,11 @@ pub mod state;
 use std::sync::Arc;
 
 use axum::{Router, http, routing::get};
-use tower_http::cors::CorsLayer;
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
+use tower_http::{
+    cors::CorsLayer,
+    trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer},
+};
+use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
 
 use crate::state::AppState;
 
@@ -49,12 +52,23 @@ pub fn create_app(app_state: Arc<AppState>) -> Router {
         .nest("/api/admin", presentation::admin::router::router())
         .merge(presentation::images::router::router())
         .layer(cors)
+        .layer(
+            TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new())
+                .on_request(DefaultOnRequest::new().level(tracing::Level::INFO))
+                .on_response(DefaultOnResponse::new().level(tracing::Level::INFO)),
+        )
         .with_state(app_state)
 }
 
 pub fn init_tracing() {
+    let filter = EnvFilter::new("info")
+        .add_directive("sqlx::query=info".parse().unwrap())
+        .add_directive("tower_http::trace=debug".parse().unwrap());
+
     tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer().with_writer(std::io::stdout))
+        .with(filter)
         .init();
 }
 
