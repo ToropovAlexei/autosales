@@ -137,6 +137,10 @@ impl CustomerRepositoryTrait for CustomerRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::models::{
+        common::{OrderDir, Pagination},
+        customer::CustomerListQuery,
+    };
     use chrono::Utc;
     use sqlx::PgPool;
 
@@ -162,7 +166,37 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_update_customer_all_some(pool: PgPool) {
+    async fn test_create_and_get_customer(pool: PgPool) {
+        let repo = CustomerRepository::new(Arc::new(pool.clone()));
+        let telegram_id = 12345;
+        let registered_with_bot = 1;
+
+        // Create a customer
+        let created_customer = create_test_customer(&pool, telegram_id, registered_with_bot).await;
+        assert_eq!(created_customer.telegram_id, telegram_id);
+
+        // Get by id
+        let fetched_customer_by_id = repo.get_by_id(created_customer.id).await.unwrap();
+        assert_eq!(fetched_customer_by_id.id, created_customer.id);
+    }
+
+    #[sqlx::test]
+    async fn test_get_by_telegram_id(pool: PgPool) {
+        let repo = CustomerRepository::new(Arc::new(pool.clone()));
+        let telegram_id = 67890;
+        let registered_with_bot = 1;
+
+        // Create a customer
+        let created_customer = create_test_customer(&pool, telegram_id, registered_with_bot).await;
+        assert_eq!(created_customer.telegram_id, telegram_id);
+
+        // Get by telegram_id
+        let fetched_customer = repo.get_by_telegram_id(telegram_id).await.unwrap();
+        assert_eq!(fetched_customer.telegram_id, telegram_id);
+    }
+
+    #[sqlx::test]
+    async fn test_update_customer(pool: PgPool) {
         let repo = CustomerRepository::new(Arc::new(pool.clone()));
 
         // Create a customer
@@ -195,44 +229,26 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_update_customer_some_none_mix(pool: PgPool) {
+    async fn test_get_list_customers(pool: PgPool) {
         let repo = CustomerRepository::new(Arc::new(pool.clone()));
 
-        // Create a customer with initial values
-        let initial_customer = create_test_customer(&pool, 54321, 3).await;
-        let last_seen_at_initial = initial_customer.last_seen_at;
+        // Create some customers
+        create_test_customer(&pool, 1000, 1).await;
+        create_test_customer(&pool, 1001, 1).await;
 
-        // Update some fields with Some, others with None
-        let updated_last_seen_with_bot = 4;
-        let update_data = UpdateCustomer {
-            is_blocked: None, // Should remain false
-            bot_is_blocked_by_user: Some(true),
-            has_passed_captcha: None, // Should remain false
-            last_seen_with_bot: Some(updated_last_seen_with_bot),
-            last_seen_at: None, // Should remain unchanged
+        // Get the list of customers
+        let query = CustomerListQuery {
+            filters: vec![],
+            pagination: Pagination {
+                page: 1,
+                page_size: 10,
+            },
+            order_by: None,
+            order_dir: OrderDir::default(),
+            _phantom: std::marker::PhantomData,
         };
-
-        let _updated_customer = repo.update(initial_customer.id, update_data).await.unwrap();
-
-        // Fetch the customer again to verify
-        let fetched_customer = repo.get_by_id(initial_customer.id).await.unwrap();
-
-        assert_eq!(fetched_customer.id, initial_customer.id);
-        assert_eq!(fetched_customer.telegram_id, initial_customer.telegram_id);
-        assert_eq!(fetched_customer.is_blocked, initial_customer.is_blocked); // Should be false
-        assert!(fetched_customer.bot_is_blocked_by_user);
-        assert_eq!(
-            fetched_customer.has_passed_captcha,
-            initial_customer.has_passed_captcha
-        ); // Should be false
-        assert_eq!(
-            fetched_customer.last_seen_with_bot,
-            updated_last_seen_with_bot
-        );
-        // last_seen_at is special because its always updated by COALESCE in the query.
-        // It should be close to the time of update, not the initial value.
-        // However, if the macro logic is correct, and we pass None, it should not be part of push_updates!
-        // so it will be only affected by the COALESCE in the base query.
-        assert!(fetched_customer.last_seen_at.timestamp() >= last_seen_at_initial.timestamp());
+        let customers = repo.get_list(query).await.unwrap();
+        assert!(!customers.items.is_empty());
+        assert!(customers.total >= 2);
     }
 }

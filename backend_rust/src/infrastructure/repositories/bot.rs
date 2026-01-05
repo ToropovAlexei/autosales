@@ -145,3 +145,126 @@ impl BotRepositoryTrait for BotRepository {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::{
+        bot::BotType,
+        common::{OrderDir, Pagination},
+    };
+    use bigdecimal::{BigDecimal, FromPrimitive};
+    use sqlx::PgPool;
+    use std::str::FromStr;
+
+    async fn create_test_bot(pool: &PgPool, token: &str, username: &str) -> BotRow {
+        let new_bot = NewBot {
+            owner_id: Some(1),
+            token: token.to_string(),
+            username: username.to_string(),
+            r#type: BotType::Main,
+            is_active: true,
+            is_primary: false,
+            referral_percentage: BigDecimal::from_str("0.1").unwrap(),
+            created_by: Some(1),
+        };
+        sqlx::query_as!(
+            BotRow,
+            r#"
+            INSERT INTO bots (owner_id, token, username, type, is_active, is_primary, referral_percentage, created_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING
+                id, owner_id, token, username, type as "type: _", is_active,
+                is_primary, referral_percentage, 
+                created_at, updated_at, created_by
+            "#,
+            new_bot.owner_id,
+            new_bot.token,
+            new_bot.username,
+            new_bot.r#type as BotType,
+            new_bot.is_active,
+            new_bot.is_primary,
+            new_bot.referral_percentage,
+            new_bot.created_by
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    #[sqlx::test]
+    async fn test_create_and_get_bot(pool: PgPool) {
+        let repo = BotRepository::new(Arc::new(pool.clone()));
+        let token = "test_token_1";
+        let username = "test_bot_1";
+
+        // Create a bot
+        let created_bot = create_test_bot(&pool, token, username).await;
+        assert_eq!(created_bot.token, token);
+        assert_eq!(created_bot.username, username);
+
+        // Get by id
+        let fetched_bot_by_id = repo.get_by_id(created_bot.id).await.unwrap();
+        assert_eq!(fetched_bot_by_id.id, created_bot.id);
+
+        // Get by token
+        let fetched_bot_by_token = repo.get_by_token(token.to_string()).await.unwrap();
+        assert_eq!(fetched_bot_by_token.token, token);
+    }
+
+    #[sqlx::test]
+    async fn test_update_bot(pool: PgPool) {
+        let repo = BotRepository::new(Arc::new(pool.clone()));
+        let token = "test_token_2";
+        let username = "test_bot_2";
+
+        // Create a bot
+        let bot = create_test_bot(&pool, token, username).await;
+
+        // Update the bot
+        let new_username = "updated_bot_username";
+        let update_data = UpdateBot {
+            username: Some(new_username.to_string()),
+            is_active: Some(false),
+            is_primary: Some(true),
+            referral_percentage: Some(BigDecimal::from_str("0.15").unwrap()),
+        };
+        let updated_bot = repo.update(bot.id, update_data).await.unwrap();
+        assert_eq!(updated_bot.username, new_username);
+        assert_eq!(updated_bot.is_active, false);
+        assert_eq!(updated_bot.is_primary, true);
+        assert_eq!(
+            updated_bot.referral_percentage,
+            BigDecimal::from_str("0.15").unwrap()
+        );
+
+        // Verify the update
+        let fetched_bot = repo.get_by_id(bot.id).await.unwrap();
+        assert_eq!(fetched_bot.username, new_username);
+        assert_eq!(fetched_bot.is_active, false);
+    }
+
+    #[sqlx::test]
+    async fn test_get_list_bots(pool: PgPool) {
+        let repo = BotRepository::new(Arc::new(pool.clone()));
+
+        // Create some bots
+        create_test_bot(&pool, "list_token_1", "list_bot_1").await;
+        create_test_bot(&pool, "list_token_2", "list_bot_2").await;
+
+        // Get the list of bots
+        let query = BotListQuery {
+            filters: vec![],
+            pagination: Pagination {
+                page: 1,
+                page_size: 10,
+            },
+            order_by: None,
+            order_dir: OrderDir::default(),
+            _phantom: std::marker::PhantomData,
+        };
+        let bots = repo.get_list(query).await.unwrap();
+        assert!(!bots.items.is_empty());
+        assert!(bots.total >= 2);
+    }
+}
