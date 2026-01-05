@@ -141,6 +141,14 @@ impl BotServiceTrait for BotService<BotRepository, AuditLogService<AuditLogRepos
             )
             .await?;
 
+        if let Some(is_primary) = command.is_primary
+            && is_primary
+        {
+            self.bot_repo
+                .set_primary_bot_for_owner(command.id, prev.owner_id)
+                .await?;
+        }
+
         self.audit_log_service
             .create(NewAuditLog {
                 action: AuditAction::BotUpdate,

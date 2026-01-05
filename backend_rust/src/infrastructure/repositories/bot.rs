@@ -19,6 +19,11 @@ pub trait BotRepositoryTrait {
     async fn get_by_id(&self, id: i64) -> RepositoryResult<BotRow>;
     async fn get_by_token(&self, token: String) -> RepositoryResult<BotRow>;
     async fn update(&self, id: i64, bot: UpdateBot) -> RepositoryResult<BotRow>;
+    async fn set_primary_bot_for_owner(
+        &self,
+        id: i64,
+        owner_id: Option<i64>,
+    ) -> RepositoryResult<()>;
 }
 
 #[derive(Clone)]
@@ -143,6 +148,25 @@ impl BotRepositoryTrait for BotRepository {
         .await?;
 
         Ok(result)
+    }
+
+    async fn set_primary_bot_for_owner(
+        &self,
+        id: i64,
+        owner_id: Option<i64>,
+    ) -> RepositoryResult<()> {
+        let mut tx = self.pool.begin().await?;
+        sqlx::query!(
+            "UPDATE bots SET is_primary = false WHERE owner_id = $1",
+            owner_id
+        )
+        .execute(tx.as_mut())
+        .await?;
+        sqlx::query!("UPDATE bots SET is_primary = true WHERE id = $1", id)
+            .execute(tx.as_mut())
+            .await?;
+        tx.commit().await?;
+        Ok(())
     }
 }
 
