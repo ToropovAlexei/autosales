@@ -171,7 +171,7 @@ impl BotServiceTrait for BotService<BotRepository, AuditLogService<AuditLogRepos
 }
 
 pub async fn get_bot_name(token: &str, client: &Arc<reqwest::Client>) -> ApiResult<String> {
-    Ok(parse_response::<GetMeResponse>(
+    parse_response::<GetMeResponse>(
         client
             .get(format!("https://api.telegram.org/bot{token}/getMe"))
             .send()
@@ -180,7 +180,7 @@ pub async fn get_bot_name(token: &str, client: &Arc<reqwest::Client>) -> ApiResu
     )
     .await
     .map(|r| r.result.username)
-    .ok_or_else(|| ApiError::InternalServerError("Error getting bot name".to_string()))?)
+    .ok_or_else(|| ApiError::InternalServerError("Error getting bot name".to_string()))
 }
 
 async fn parse_response<T>(response: Response) -> Option<T>
