@@ -106,3 +106,42 @@ impl ActiveTokenRepositoryTrait for ActiveTokenRepository {
         Ok(res.rows_affected())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::active_token::NewToken;
+    use chrono::Duration;
+    use sqlx::PgPool;
+
+    #[sqlx::test]
+    async fn test_insert_get_revoke_token(pool: PgPool) {
+        let repo = ActiveTokenRepository::new(Arc::new(pool));
+        let new_token = NewToken {
+            user_id: 1,
+            token_type: TokenType::Access,
+            ttl: Duration::minutes(15),
+        };
+
+        // Insert a token
+        let inserted_token = repo.insert_token(new_token).await.unwrap();
+        assert_eq!(inserted_token.user_id, 1);
+        assert_eq!(inserted_token.token_type, TokenType::Access);
+
+        // Get the token
+        let fetched_token = repo
+            .get_active_token(inserted_token.jti, TokenType::Access)
+            .await
+            .unwrap();
+        assert_eq!(fetched_token.jti, inserted_token.jti);
+
+        // Revoke the token
+        repo.revoke_token(inserted_token.jti).await.unwrap();
+
+        // Try to get the token again
+        let result = repo
+            .get_active_token(inserted_token.jti, TokenType::Access)
+            .await;
+        assert!(result.is_err());
+    }
+}

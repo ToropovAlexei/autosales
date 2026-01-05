@@ -85,3 +85,55 @@ impl AuditLogRepositoryTrait for AuditLogRepository {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::{
+        audit_log::{AuditAction, AuditLogListQuery, AuditStatus},
+        common::{OrderDir, Pagination},
+    };
+    use sqlx::PgPool;
+    use std::net::IpAddr;
+    use std::str::FromStr;
+    use uuid::Uuid;
+
+    #[sqlx::test]
+    async fn test_create_and_get_audit_log(pool: PgPool) {
+        let repo = AuditLogRepository::new(Arc::new(pool));
+        let new_log = NewAuditLog {
+            admin_user_id: Some(1),
+            customer_id: None,
+            action: AuditAction::UserLogin,
+            status: AuditStatus::Success,
+            target_table: "admin_users".to_string(),
+            target_id: "1".to_string(),
+            old_values: None,
+            new_values: None,
+            ip_address: Some(IpAddr::from_str("127.0.0.1").unwrap()),
+            user_agent: Some("test-agent".to_string()),
+            request_id: Some(Uuid::new_v4()),
+            error_message: None,
+        };
+
+        // Create a log
+        let created_log = repo.create(new_log).await.unwrap();
+        assert_eq!(created_log.admin_user_id, Some(1));
+        assert_eq!(created_log.action, AuditAction::UserLogin);
+
+        // Get the list of logs
+        let query = AuditLogListQuery {
+            filters: vec![],
+            pagination: Pagination {
+                page: 1,
+                page_size: 10,
+            },
+            order_by: None,
+            order_dir: OrderDir::default(),
+            _phantom: std::marker::PhantomData,
+        };
+        let logs = repo.get_list(query).await.unwrap();
+        assert!(!logs.items.is_empty());
+        assert_eq!(logs.items[0].id, created_log.id);
+    }
+}
