@@ -50,6 +50,7 @@ pub fn create_app(app_state: Arc<AppState>) -> Router {
     Router::new()
         .route("/healthz", get(healthz))
         .nest("/api/admin", presentation::admin::router::router())
+        .nest("/api/bot", presentation::bot::router::router())
         .merge(presentation::images::router::router())
         .layer(cors)
         .layer(
