@@ -73,15 +73,19 @@ pub struct UpdateAdminUserRequest {
         max = 255,
         message = "Login must be at least 3 characters long and at most 255 characters long"
     ))]
+    #[ts(optional)]
     pub login: Option<String>,
     #[validate(length(
         min = 8,
         max = 20,
         message = "Password must be at least 8 characters long and at most 20 characters long"
     ))]
+    #[ts(optional)]
     pub password: Option<String>,
+    #[ts(optional)]
     pub telegram_id: Option<i64>,
     #[validate(length(min = 1, message = "At least one role must be selected"))]
+    #[ts(optional)]
     pub roles: Option<Vec<i64>>,
 }
 

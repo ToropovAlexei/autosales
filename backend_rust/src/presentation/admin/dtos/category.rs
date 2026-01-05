@@ -46,7 +46,9 @@ pub struct NewCategoryRequest {
         message = "Category name must be at least 2 characters and at most 255 characters long"
     ))]
     pub name: String,
+    #[ts(optional)]
     pub parent_id: Option<i64>,
+    #[ts(optional)]
     pub image_id: Option<Uuid>,
 }
 
@@ -58,8 +60,12 @@ pub struct UpdateCategoryRequest {
         max = 255,
         message = "Category name must be at least 2 characters and at most 255 characters long"
     ))]
+    #[ts(optional)]
     pub name: Option<String>,
+    #[ts(optional)]
     pub parent_id: Option<Option<i64>>,
+    #[ts(optional)]
     pub image_id: Option<Option<Uuid>>,
+    #[ts(optional)]
     pub position: Option<i16>,
 }

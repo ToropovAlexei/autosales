@@ -71,12 +71,18 @@ pub struct NewProductRequest {
     ))]
     pub base_price: f64,
     pub category_id: i64,
+    #[ts(optional)]
     pub image_id: Option<Uuid>,
     pub r#type: ProductType,
+    #[ts(optional)]
     pub subscription_period_days: Option<i16>,
+    #[ts(optional)]
     pub details: Option<serde_json::Value>,
+    #[ts(optional)]
     pub fulfillment_text: Option<String>,
+    #[ts(optional)]
     pub fulfillment_image_id: Option<Uuid>,
+    #[ts(optional)]
     pub initial_stock: Option<i64>,
 }
 
@@ -88,20 +94,31 @@ pub struct UpdateProductRequest {
         max = 255,
         message = "Name must be at least 3 characters and at most 255 characters"
     ))]
+    #[ts(optional)]
     pub name: Option<String>,
     #[validate(range(
         min = 0.01,
         max = 999999.99,
         message = "Price must be between 0.01 and 999999.99"
     ))]
+    #[ts(optional)]
     pub base_price: Option<f64>,
+    #[ts(optional)]
     pub category_id: Option<i64>,
+    #[ts(optional)]
     pub image_id: Option<Option<Uuid>>,
+    #[ts(optional)]
     pub r#type: Option<ProductType>,
+    #[ts(optional)]
     pub subscription_period_days: Option<i16>,
+    #[ts(optional)]
     pub details: Option<Option<serde_json::Value>>,
+    #[ts(optional)]
     pub fulfillment_text: Option<Option<String>>,
+    #[ts(optional)]
     pub fulfillment_image_id: Option<Option<Uuid>>,
+    #[ts(optional)]
     pub external_id: Option<Option<String>>,
+    #[ts(optional)]
     pub stock: Option<i64>,
 }

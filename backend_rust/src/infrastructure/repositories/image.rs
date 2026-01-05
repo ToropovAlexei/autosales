@@ -53,9 +53,13 @@ impl ImageRepositoryTrait for ImageRepository {
     }
 
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<ImageRow> {
-        let result = sqlx::query_as!(ImageRow, "SELECT * FROM images WHERE id = $1", id)
-            .fetch_one(&*self.pool)
-            .await?;
+        let result = sqlx::query_as!(
+            ImageRow,
+            "SELECT * FROM images WHERE id = $1 AND deleted_at IS NULL",
+            id
+        )
+        .fetch_one(&*self.pool)
+        .await?;
         Ok(result)
     }
 
@@ -87,5 +91,98 @@ impl ImageRepositoryTrait for ImageRepository {
             .execute(&*self.pool)
             .await?;
         Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::common::{OrderDir, Pagination};
+    use sqlx::PgPool;
+
+    async fn create_test_image(pool: &PgPool, original_filename: &str) -> ImageRow {
+        let new_image = NewImage {
+            original_filename: Some(original_filename.to_string()),
+            hash: original_filename.to_string(),
+            mime_type: "image/png".to_string(),
+            file_size: 100,
+            width: 10_i16,
+            height: 10_i16,
+            context: "product".to_string(),
+            created_by: 1,
+        };
+        sqlx::query_as!(
+            ImageRow,
+            r#"
+            INSERT INTO images (original_filename, hash, mime_type, file_size, width, height, context, created_by)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            RETURNING *
+            "#,
+            new_image.original_filename,
+            new_image.hash,
+            new_image.mime_type,
+            new_image.file_size,
+            new_image.width,
+            new_image.height,
+            new_image.context,
+            new_image.created_by
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    #[sqlx::test]
+    async fn test_create_and_get_image(pool: PgPool) {
+        let repo = ImageRepository::new(Arc::new(pool.clone()));
+        let filename = "test_image.png";
+
+        // Create an image
+        let created_image = create_test_image(&pool, filename).await;
+        assert_eq!(created_image.original_filename, Some(filename.to_string()));
+
+        // Get by id
+        let fetched_image = repo.get_by_id(created_image.id).await.unwrap();
+        assert_eq!(fetched_image.id, created_image.id);
+    }
+
+    #[sqlx::test]
+    async fn test_delete_image(pool: PgPool) {
+        let repo = ImageRepository::new(Arc::new(pool.clone()));
+        let filename = "image_to_delete.png";
+
+        // Create an image
+        let image = create_test_image(&pool, filename).await;
+
+        // Delete the image
+        repo.delete(image.id).await.unwrap();
+
+        // Try to get the image again
+        let result = repo.get_by_id(image.id).await;
+        assert!(result.is_err());
+    }
+
+    #[sqlx::test]
+    async fn test_get_list_images(pool: PgPool) {
+        let repo = ImageRepository::new(Arc::new(pool.clone()));
+
+        // Create some images
+        create_test_image(&pool, "image1.png").await;
+        create_test_image(&pool, "image2.png").await;
+
+        // Get the list of images
+        let query = ImageListQuery {
+            filters: vec![],
+            pagination: Pagination {
+                page: 1,
+                page_size: 10,
+            },
+            order_by: None,
+            order_dir: OrderDir::default(),
+            _phantom: std::marker::PhantomData,
+        };
+        let images = repo.get_list(&query).await.unwrap();
+        assert!(!images.items.is_empty());
+        assert!(images.total >= 2);
     }
 }

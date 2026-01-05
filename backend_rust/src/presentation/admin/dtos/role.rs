@@ -15,6 +15,7 @@ pub struct NewRoleRequest {
         message = "Role name must be at least 3 characters long and at most 255 characters long"
     ))]
     pub name: String,
+    #[ts(optional)]
     pub description: Option<String>,
 }
 
@@ -26,7 +27,9 @@ pub struct UpdateRoleRequest {
         max = 255,
         message = "Role name must be at least 3 characters long and at most 255 characters long"
     ))]
+    #[ts(optional)]
     pub name: Option<String>,
+    #[ts(optional)]
     pub description: Option<Option<String>>,
 }
 

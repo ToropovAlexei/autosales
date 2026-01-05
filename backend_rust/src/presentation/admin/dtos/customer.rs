@@ -44,5 +44,6 @@ impl From<CustomerRow> for CustomerResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "customer.ts", rename = "UpdateCustomer")]
 pub struct UpdateCustomerRequest {
+    #[ts(optional)]
     pub is_blocked: Option<bool>,
 }

@@ -51,8 +51,11 @@ pub struct NewBotRequest {
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "bot.ts", rename = "UpdateBot")]
 pub struct UpdateBotRequest {
+    #[ts(optional)]
     pub is_active: Option<bool>,
+    #[ts(optional)]
     pub is_primary: Option<bool>,
+    #[ts(optional)]
     #[validate(range(min = 0.0, max = 100.0))]
     pub referral_percentage: Option<f64>,
 }

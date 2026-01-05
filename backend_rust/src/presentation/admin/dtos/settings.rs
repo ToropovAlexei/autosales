@@ -73,19 +73,27 @@ impl From<Settings> for BotSettingsResponse {
 #[ts(export, export_to = "settings.ts", rename = "UpdatePricingSettings")]
 pub struct UpdatePricingSettingsRequest {
     #[validate(range(min = 0.0, max = 10000.0))]
+    #[ts(optional)]
     pub pricing_global_markup: Option<f64>,
     #[validate(range(min = 0.0, max = 100.0))]
+    #[ts(optional)]
     pub pricing_platform_commission: Option<f64>,
     #[validate(range(min = 0.0, max = 100.0))]
+    #[ts(optional)]
     pub pricing_gateway_markup: Option<f64>,
     #[validate(range(min = 0.0, max = 100.0))]
+    #[ts(optional)]
     pub pricing_gateway_bonus_mock_provider: Option<f64>,
     #[validate(range(min = 0.0, max = 100.0))]
+    #[ts(optional)]
     pub pricing_gateway_bonus_platform_card: Option<f64>,
     #[validate(range(min = 0.0, max = 100.0))]
+    #[ts(optional)]
     pub pricing_gateway_bonus_platform_sbp: Option<f64>,
+    #[ts(optional)]
     pub referral_program_enabled: Option<bool>,
     #[validate(range(min = 0.0, max = 100.0))]
+    #[ts(optional)]
     pub referral_percentage: Option<f64>,
 }
 
@@ -93,13 +101,19 @@ pub struct UpdatePricingSettingsRequest {
 #[ts(export, export_to = "settings.ts", rename = "UpdateBotSettings")]
 pub struct UpdateBotSettingsRequest {
     #[validate(length(max = 999, message = "length must be less than 999"))]
+    #[ts(optional)]
     pub bot_messages_support: Option<String>,
+    #[ts(optional)]
     pub bot_messages_support_image_id: Option<Option<Uuid>>,
     #[validate(length(max = 999, message = "length must be less than 999"))]
+    #[ts(optional)]
     pub bot_messages_new_user_welcome: Option<String>,
+    #[ts(optional)]
     pub bot_messages_new_user_welcome_image_id: Option<Option<Uuid>>,
     #[validate(length(max = 999, message = "length must be less than 999"))]
+    #[ts(optional)]
     pub bot_messages_returning_user_welcome: Option<String>,
+    #[ts(optional)]
     pub bot_messages_returning_user_welcome_image_id: Option<Option<Uuid>>,
 }
 

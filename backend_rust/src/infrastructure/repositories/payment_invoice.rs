@@ -130,3 +130,95 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             .map_err(RepositoryError::from)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::common::{OrderDir, Pagination};
+    use bigdecimal::BigDecimal;
+    use chrono::{Duration, Utc};
+    use serde_json::Value;
+    use sqlx::PgPool;
+    use uuid::Uuid;
+
+    async fn create_test_customer(pool: &PgPool, telegram_id: i64) -> i64 {
+        sqlx::query_scalar!(
+            "INSERT INTO customers (telegram_id, registered_with_bot, last_seen_with_bot) VALUES ($1, 1, 1) RETURNING id",
+            telegram_id
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_test_bot(pool: &PgPool, token: &str, username: &str) -> i64 {
+        sqlx::query_scalar!(
+            r#"INSERT INTO bots (owner_id, token, username, type, is_active, is_primary, referral_percentage, created_by) VALUES (1, $1, $2, 'main', true, false, 0.1, 1) RETURNING id"#,
+            token,
+            username
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_test_order(pool: &PgPool, customer_id: i64, bot_id: i64) -> i64 {
+        sqlx::query_scalar!(
+            "INSERT INTO orders (customer_id, bot_id, status, amount, currency) VALUES ($1, $2, 'created', 10.0, 'USD') RETURNING id",
+            customer_id,
+            bot_id
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    #[sqlx::test]
+    async fn test_create_and_get_payment_invoice(pool: PgPool) {
+        let repo = PaymentInvoiceRepository::new(Arc::new(pool.clone()));
+        let customer_id = create_test_customer(&pool, 123).await;
+        let bot_id = create_test_bot(&pool, "invoice_bot_1", "invoice_bot_1").await;
+        let _order_id = create_test_order(&pool, customer_id, bot_id).await;
+        let expires_at = Utc::now() + Duration::days(1);
+
+        let new_invoice = NewPaymentInvoice {
+            customer_id,
+            order_id: Uuid::new_v4(),
+            original_amount: BigDecimal::from(100),
+            amount: BigDecimal::from(100),
+            status: InvoiceStatus::Pending,
+            expires_at,
+            gateway: "test_gateway".to_string(),
+            gateway_invoice_id: "test_invoice_id".to_string(),
+            payment_details: Value::Null,
+            bot_message_id: None,
+        };
+
+        // Create an invoice
+        let created_invoice = repo.create(new_invoice).await.unwrap();
+        assert_eq!(created_invoice.customer_id, customer_id);
+
+        // Update the invoice
+        let update_data = UpdatePaymentInvoice {
+            status: Some(InvoiceStatus::Completed),
+            notification_sent_at: Some(Some(Utc::now())),
+        };
+        let updated_invoice = repo.update(created_invoice.id, update_data).await.unwrap();
+        assert_eq!(updated_invoice.status, InvoiceStatus::Completed);
+        assert!(updated_invoice.notification_sent_at.is_some());
+
+        // Get the list of invoices
+        let query = PaymentInvoiceListQuery {
+            filters: vec![],
+            pagination: Pagination {
+                page: 1,
+                page_size: 10,
+            },
+            order_by: None,
+            order_dir: OrderDir::default(),
+            _phantom: std::marker::PhantomData,
+        };
+        let invoices = repo.get_list(query).await.unwrap();
+        assert!(!invoices.items.is_empty());
+    }
+}

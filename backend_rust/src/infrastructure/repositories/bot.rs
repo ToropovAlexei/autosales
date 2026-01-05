@@ -231,8 +231,8 @@ mod tests {
         };
         let updated_bot = repo.update(bot.id, update_data).await.unwrap();
         assert_eq!(updated_bot.username, new_username);
-        assert_eq!(updated_bot.is_active, false);
-        assert_eq!(updated_bot.is_primary, true);
+        assert!(!updated_bot.is_active);
+        assert!(updated_bot.is_primary);
         assert_eq!(
             updated_bot.referral_percentage,
             BigDecimal::from_str("0.15").unwrap()
@@ -241,7 +241,7 @@ mod tests {
         // Verify the update
         let fetched_bot = repo.get_by_id(bot.id).await.unwrap();
         assert_eq!(fetched_bot.username, new_username);
-        assert_eq!(fetched_bot.is_active, false);
+        assert!(!fetched_bot.is_active);
     }
 
     #[sqlx::test]

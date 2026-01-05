@@ -88,3 +88,105 @@ impl OrderRepositoryTrait for OrderRepository {
         Ok(result)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::common::{OrderDir, Pagination};
+    use bigdecimal::BigDecimal;
+    use sqlx::PgPool;
+
+    async fn create_test_customer(pool: &PgPool, telegram_id: i64) -> i64 {
+        sqlx::query_scalar!(
+            "INSERT INTO customers (telegram_id, registered_with_bot, last_seen_with_bot) VALUES ($1, 1, 1) RETURNING id",
+            telegram_id
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_test_bot(pool: &PgPool, token: &str, username: &str) -> i64 {
+        sqlx::query_scalar!(
+            r#"INSERT INTO bots (owner_id, token, username, type, is_active, is_primary, referral_percentage, created_by) VALUES (1, $1, $2, 'main', true, false, 0.1, 1) RETURNING id"#,
+            token,
+            username
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    #[sqlx::test]
+    async fn test_create_and_get_order(pool: PgPool) {
+        let repo = OrderRepository::new(Arc::new(pool.clone()));
+        let customer_id = create_test_customer(&pool, 54321).await;
+        let bot_id = create_test_bot(&pool, "order_bot", "order_bot").await;
+
+        let new_order = NewOrder {
+            customer_id,
+            amount: BigDecimal::from(100),
+            currency: "USD".to_string(),
+            status: OrderStatus::Created,
+            bot_id,
+            paid_at: None,
+            fulfilled_at: None,
+        };
+
+        // Create an order
+        let created_order = repo.create(new_order).await.unwrap();
+        assert_eq!(created_order.customer_id, customer_id);
+
+        // Get by id
+        let fetched_order = repo.get_by_id(created_order.id).await.unwrap();
+        assert_eq!(fetched_order.id, created_order.id);
+    }
+
+    #[sqlx::test]
+    async fn test_get_list_orders(pool: PgPool) {
+        let repo = OrderRepository::new(Arc::new(pool.clone()));
+        let customer_id1 = create_test_customer(&pool, 11111).await;
+        let customer_id2 = create_test_customer(&pool, 22222).await;
+        let bot_id = create_test_bot(&pool, "order_bot_2", "order_bot_2").await;
+
+        // Create some orders
+        repo.create(NewOrder {
+            customer_id: customer_id1,
+            amount: BigDecimal::from(100),
+            currency: "USD".to_string(),
+            status: OrderStatus::Created,
+            bot_id,
+            paid_at: None,
+            fulfilled_at: None,
+        })
+        .await
+        .unwrap();
+
+        repo.create(NewOrder {
+            customer_id: customer_id2,
+            amount: BigDecimal::from(200),
+            currency: "USD".to_string(),
+            status: OrderStatus::Created,
+            bot_id,
+            paid_at: None,
+            fulfilled_at: None,
+        })
+        .await
+        .unwrap();
+
+        // Get the list of orders
+        let query = OrderListQuery {
+            filters: vec![],
+            pagination: Pagination {
+                page: 1,
+                page_size: 10,
+            },
+            order_by: None,
+            order_dir: OrderDir::default(),
+            _phantom: std::marker::PhantomData,
+        };
+        let orders = repo.get_list(query).await.unwrap();
+        assert!(!orders.items.is_empty());
+        assert!(orders.total >= 2);
+    }
+}
