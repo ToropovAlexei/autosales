@@ -106,7 +106,7 @@ impl SettingsServiceTrait
 
         self.audit_log_service
             .create(NewAuditLog {
-                action: AuditAction::SettingsUpdate,
+                action: AuditAction::SystemSettingsUpdate,
                 status: AuditStatus::Success,
                 admin_user_id: Some(updated_by),
                 customer_id: None,
