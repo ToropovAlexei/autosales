@@ -68,6 +68,12 @@ where
             None => None,
         };
 
+        if raw_query.pagination.page < 1 {
+            return Err(ApiError::BadRequest(
+                "Page number must be at least 1".to_string(),
+            ));
+        }
+
         if raw_query.pagination.page_size > 100 {
             return Err(ApiError::BadRequest(
                 "Page size cannot exceed 100".to_string(),
