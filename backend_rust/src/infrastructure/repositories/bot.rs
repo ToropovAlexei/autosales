@@ -153,7 +153,7 @@ mod tests {
         bot::BotType,
         common::{OrderDir, Pagination},
     };
-    use bigdecimal::{BigDecimal, FromPrimitive};
+    use bigdecimal::BigDecimal;
     use sqlx::PgPool;
     use std::str::FromStr;
 
