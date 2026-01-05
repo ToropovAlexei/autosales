@@ -43,10 +43,14 @@ pub struct ValidationErrorResponse {
 impl From<RepositoryError> for ApiError {
     fn from(err: RepositoryError) -> Self {
         match err {
-            RepositoryError::NotFound(msg) => ApiError::NotFound(msg),
-            RepositoryError::ForeignKeyViolation(msg) => ApiError::BadRequest(msg),
-            RepositoryError::UniqueViolation(msg) => ApiError::BadRequest(msg),
-            RepositoryError::Validation(msg) => ApiError::BadRequest(msg),
+            RepositoryError::NotFound(_) => ApiError::NotFound("Not found".to_string()),
+            RepositoryError::ForeignKeyViolation(_) => {
+                ApiError::BadRequest("Foreign key violation".to_string())
+            }
+            RepositoryError::UniqueViolation(_) => {
+                ApiError::BadRequest("Unique violation".to_string())
+            }
+            RepositoryError::Validation(_) => ApiError::BadRequest("Validation error".to_string()),
             RepositoryError::OptimisticLockViolation => {
                 ApiError::InternalServerError("Optimistic lock violation".to_string())
             }
