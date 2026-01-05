@@ -1,6 +1,10 @@
 use std::sync::Arc;
 
-use axum::{Json, Router, extract::State, routing::get};
+use axum::{
+    Json, Router,
+    extract::{Path, State},
+    routing::get,
+};
 
 use crate::{
     errors::api::ApiResult,
@@ -12,7 +16,9 @@ use crate::{
 };
 
 pub fn router() -> Router<Arc<AppState>> {
-    Router::new().route("/", get(list_products))
+    Router::new()
+        .route("/", get(list_products))
+        .route("/{id}", get(get_product))
 }
 
 #[utoipa::path(
@@ -40,4 +46,24 @@ async fn list_products(
             .map(ProductResponse::from)
             .collect(),
     }))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/bot/products/{id}",
+    tag = "Products",
+    responses(
+        (status = 200, description = "Product details", body = ProductResponse),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
+async fn get_product(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<i64>,
+    _bot: AuthBot,
+) -> ApiResult<Json<ProductResponse>> {
+    let product = state.product_service.get_by_id(id).await?;
+
+    Ok(Json(ProductResponse::from(product)))
 }
