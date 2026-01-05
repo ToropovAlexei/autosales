@@ -221,14 +221,13 @@ mod tests {
         create_test_category(&pool, "Child 2", Some(parent_category.id)).await;
 
         // Get children by parent_id
-        let children = repo
-            .get_by_parent_id(parent_category.id)
-            .await
-            .unwrap();
+        let children = repo.get_by_parent_id(parent_category.id).await.unwrap();
         assert_eq!(children.len(), 2);
-        assert!(children
-            .iter()
-            .all(|c| c.parent_id == Some(parent_category.id)));
+        assert!(
+            children
+                .iter()
+                .all(|c| c.parent_id == Some(parent_category.id))
+        );
     }
 
     #[sqlx::test]
@@ -245,4 +244,3 @@ mod tests {
         assert!(categories.len() >= 2);
     }
 }
-
