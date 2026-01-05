@@ -26,7 +26,8 @@ pub struct UpdateCustomerCommand {
     pub has_passed_captcha: Option<bool>,
     pub last_seen_with_bot: Option<i64>,
     pub last_seen_at: Option<DateTime<Utc>>,
-    pub updated_by: i64,
+    pub updated_by: Option<i64>,
+    pub ctx: Option<RequestContext>,
 }
 
 #[async_trait]
@@ -35,11 +36,7 @@ pub trait CustomerServiceTrait: Send + Sync {
     async fn create(&self, customer: NewCustomer) -> ApiResult<CustomerRow>;
     async fn get_by_id(&self, id: i64) -> ApiResult<CustomerRow>;
     async fn get_by_telegram_id(&self, id: i64) -> ApiResult<CustomerRow>;
-    async fn update(
-        &self,
-        command: UpdateCustomerCommand,
-        ctx: RequestContext,
-    ) -> ApiResult<CustomerRow>;
+    async fn update(&self, command: UpdateCustomerCommand) -> ApiResult<CustomerRow>;
 }
 
 pub struct CustomerService<R, A> {
@@ -87,11 +84,7 @@ impl CustomerServiceTrait
         Ok(res)
     }
 
-    async fn update(
-        &self,
-        command: UpdateCustomerCommand,
-        ctx: RequestContext,
-    ) -> ApiResult<CustomerRow> {
+    async fn update(&self, command: UpdateCustomerCommand) -> ApiResult<CustomerRow> {
         let prev = self.customer_repo.get_by_id(command.id).await?;
         let updated = self
             .customer_repo
@@ -111,16 +104,16 @@ impl CustomerServiceTrait
             .create(NewAuditLog {
                 action: AuditAction::CustomerUpdate,
                 status: AuditStatus::Success,
-                admin_user_id: Some(command.updated_by),
+                admin_user_id: command.updated_by,
                 customer_id: None,
                 error_message: None,
-                ip_address: ctx.ip_address,
                 new_values: serde_json::to_value(updated.clone()).ok(),
                 old_values: serde_json::to_value(prev.clone()).ok(),
-                request_id: Some(ctx.request_id),
                 target_id: command.id.to_string(),
                 target_table: "customers".to_string(),
-                user_agent: ctx.user_agent.clone(),
+                ip_address: command.ctx.clone().and_then(|ctx| ctx.ip_address),
+                request_id: command.ctx.clone().map(|ctx| ctx.request_id),
+                user_agent: command.ctx.and_then(|ctx| ctx.user_agent),
             })
             .await?;
 

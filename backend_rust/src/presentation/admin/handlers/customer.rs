@@ -84,18 +84,16 @@ async fn update_customer(
 ) -> ApiResult<Json<CustomerResponse>> {
     let customer = state
         .customer_service
-        .update(
-            UpdateCustomerCommand {
-                id,
-                updated_by: user.id,
-                is_blocked: payload.is_blocked,
-                bot_is_blocked_by_user: None,
-                has_passed_captcha: None,
-                last_seen_at: None,
-                last_seen_with_bot: None,
-            },
-            ctx,
-        )
+        .update(UpdateCustomerCommand {
+            id,
+            updated_by: Some(user.id),
+            is_blocked: payload.is_blocked,
+            bot_is_blocked_by_user: None,
+            has_passed_captcha: None,
+            last_seen_at: None,
+            last_seen_with_bot: None,
+            ctx: Some(ctx),
+        })
         .await?;
 
     Ok(Json(CustomerResponse::from(customer)))
