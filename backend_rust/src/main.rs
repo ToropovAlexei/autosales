@@ -123,7 +123,9 @@ async fn main() -> anyhow::Result<()> {
         config.database_name,
     ))
     .await;
-    run_migrations(&pool.pool).await?;
+    if cfg!(debug_assertions) {
+        run_migrations(&pool.pool).await?;
+    }
     let app_state = Arc::new(AppState::new(pool, config.clone()));
     let app = create_app(app_state.clone())
         .merge(SwaggerUi::new("/swagger-ui").url("/openapi.json", ApiDoc::openapi()));
