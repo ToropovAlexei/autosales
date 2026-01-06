@@ -5,6 +5,7 @@ pub mod bot;
 pub mod category;
 pub mod customer;
 pub mod image;
+pub mod order;
 pub mod permission;
 pub mod product;
 pub mod role;

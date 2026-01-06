@@ -6,6 +6,7 @@ pub mod category;
 pub mod customer;
 pub mod image;
 pub mod me;
+pub mod order;
 pub mod permission;
 pub mod product;
 pub mod role;
