@@ -13,14 +13,20 @@ use backend_rust::{
         permission::{PermissionRepository, PermissionRepositoryTrait},
         role::RoleRepository,
         role_permission::{RolePermissionRepository, RolePermissionRepositoryTrait},
+        transaction::{TransactionRepository, TransactionRepositoryTrait},
         user_role::UserRoleRepository,
     },
     init_tracing,
-    models::{bot::BotType, role_permission::NewRolePermission},
+    models::{
+        bot::BotType,
+        role_permission::NewRolePermission,
+        transaction::{NewTransaction, TransactionType},
+    },
     run_migrations,
     services::topt_encryptor::TotpEncryptor,
     state::AppState,
 };
+use bigdecimal::{BigDecimal, ToPrimitive, Zero};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -42,6 +48,7 @@ async fn main() -> anyhow::Result<()> {
         TotpEncryptor::new(&config.totp_encode_secret.clone())
             .expect("Failed to init totp_encryptor"),
     );
+    let transaction_repo = Arc::new(TransactionRepository::new(db_pool.clone()));
     let admin_user_repo = Arc::new(AdminUserRepository::new(db_pool.clone()));
     let role_repo = Arc::new(RoleRepository::new(db_pool.clone()));
     let permission_repo = Arc::new(PermissionRepository::new(db_pool.clone()));
@@ -89,6 +96,8 @@ async fn main() -> anyhow::Result<()> {
         let id = create_bot_if_not_exists(main_bot, &bot_repo, &client).await;
         println!("Fallback bot Id: {}", id);
     }
+    let store_balance = create_initial_store_balance(&transaction_repo).await;
+    println!("Store balance: {}", store_balance);
 
     Ok(())
 }
@@ -122,4 +131,39 @@ async fn assign_all_permissions_to_admin_role(
             .unwrap();
     }
     total
+}
+
+async fn create_initial_store_balance(transaction_repo: &Arc<TransactionRepository>) -> i64 {
+    if let Ok(last_transaction) = transaction_repo.get_last().await {
+        return last_transaction
+            .store_balance_after
+            .to_i64()
+            .unwrap_or_default();
+    };
+
+    if let Ok(initial_store_balance) = std::env::var("INITIAL_STORE_BALANCE")
+        && let Ok(initial_store_balance) = initial_store_balance.parse::<i64>()
+        && initial_store_balance > 0
+    {
+        let initial_store_balance = transaction_repo
+            .create(NewTransaction {
+                amount: BigDecimal::zero(),
+                customer_id: None,
+                description: Some("Initial store balance".to_string()),
+                gateway_commission: BigDecimal::zero(),
+                details: None,
+                order_id: None,
+                payment_gateway: None,
+                platform_commission: BigDecimal::zero(),
+                store_balance_delta: BigDecimal::from(initial_store_balance),
+                r#type: TransactionType::Deposit,
+            })
+            .await
+            .expect("Failed to create initial store balance transaction")
+            .store_balance_after
+            .to_i64()
+            .unwrap();
+        return initial_store_balance;
+    }
+    0
 }

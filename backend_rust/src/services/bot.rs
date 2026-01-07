@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, sync::Arc};
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use bigdecimal::{BigDecimal, ToPrimitive, Zero};
@@ -17,8 +17,7 @@ use crate::{
     models::{
         audit_log::{AuditAction, AuditStatus, NewAuditLog},
         bot::{BotListQuery, BotRow, BotType, NewBot, UpdateBot},
-        common::{OrderDir, PaginatedResult, Pagination},
-        transaction::{TransactionListQuery, TransactionOrderFields},
+        common::PaginatedResult,
     },
     services::audit_log::{AuditLogService, AuditLogServiceTrait},
 };
@@ -205,20 +204,10 @@ impl BotServiceTrait
     async fn can_operate(&self) -> ApiResult<bool> {
         Ok(self
             .transaction_repo
-            .get_list(TransactionListQuery {
-                filters: vec![],
-                pagination: Pagination {
-                    page: 1,
-                    page_size: 1,
-                },
-                order_by: Some(TransactionOrderFields::Id),
-                order_dir: OrderDir::Desc,
-                _phantom: PhantomData,
-            })
-            .await?
-            .items
-            .last()
-            .is_some_and(|t| t.store_balance_after.to_i64().unwrap_or_default() > 1000))
+            .get_last()
+            .await
+            .map(|t| t.store_balance_after.to_i64().unwrap_or_default() > 1000)
+            .unwrap_or_default())
     }
 }
 

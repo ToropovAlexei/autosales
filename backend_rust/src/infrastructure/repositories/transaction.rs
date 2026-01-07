@@ -19,6 +19,7 @@ pub trait TransactionRepositoryTrait {
         query: TransactionListQuery,
     ) -> RepositoryResult<PaginatedResult<TransactionRow>>;
     async fn create(&self, category: NewTransaction) -> RepositoryResult<TransactionRow>;
+    async fn get_last(&self) -> RepositoryResult<TransactionRow>;
 }
 
 #[derive(Clone)]
@@ -88,6 +89,24 @@ impl TransactionRepositoryTrait for TransactionRepository {
         .fetch_one(&*self.pool)
         .await?;
 
+        Ok(result)
+    }
+
+    async fn get_last(&self) -> RepositoryResult<TransactionRow> {
+        let result = sqlx::query_as!(
+            TransactionRow,
+            r#"
+            SELECT
+                id, customer_id, order_id, type as "type: _", amount, store_balance_delta,
+                platform_commission, gateway_commission, description, payment_gateway,
+                details, created_at, store_balance_after, user_balance_after
+            FROM transactions
+            ORDER BY id DESC
+            LIMIT 1
+            "#,
+        )
+        .fetch_one(&*self.pool)
+        .await?;
         Ok(result)
     }
 }
