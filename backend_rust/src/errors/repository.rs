@@ -20,6 +20,9 @@ pub enum RepositoryError {
 
 impl RepositoryError {
     pub fn from_sqlx_error(context: &str, err: sqlx::Error) -> Self {
+        if let sqlx::Error::RowNotFound = &err {
+            return RepositoryError::NotFound(format!("{}: not found", context));
+        }
         if let sqlx::Error::Database(db_err) = &err
             && let Some(code) = db_err.code()
         {
