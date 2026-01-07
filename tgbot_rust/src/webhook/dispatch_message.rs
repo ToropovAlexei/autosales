@@ -19,7 +19,7 @@ pub async fn dispatch_message(
         .to_str()
         .map_err(|_| AppError::AuthenticationError("Invalid header value".to_string()))?;
 
-    if service_key != state.config.service_token {
+    if service_key != state.config.service_api_key {
         return Err(AppError::AuthenticationError("Invalid API key".to_string()));
     }
 

@@ -33,7 +33,7 @@ impl AppState {
     pub fn new(config: Arc<Config>) -> Self {
         let redis_pool = create_redis_pool(&config);
         let api =
-            Arc::new(BackendApi::new(&config.backend_api_url, &config.service_token).unwrap());
+            Arc::new(BackendApi::new(&config.backend_api_url, &config.service_api_key).unwrap());
         Self {
             config,
             redis_pool,

@@ -3,7 +3,7 @@ use serde::Deserialize;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Config {
-    pub service_token: String,
+    pub service_api_key: String,
     pub telegram_api_id: String,
     pub telegram_api_hash: String,
     pub redis_host: String,
