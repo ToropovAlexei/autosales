@@ -315,9 +315,10 @@ impl BackendApi {
             })
     }
 
-    pub async fn get_bots(&self, bot_type: &str) -> ApiClientResult<Vec<crate::models::Bot>> {
+    pub async fn get_bots(&self) -> ApiClientResult<Vec<crate::models::Bot>> {
         self.api_client
-            .get::<BackendResponse<Vec<crate::models::Bot>>>(&format!("bots?type={bot_type}"))
+            // TODO Filters
+            .get::<BackendResponse<Vec<crate::models::Bot>>>(&format!("bot/bots"))
             .await
             .and_then(|res| {
                 res.data.ok_or_else(|| {

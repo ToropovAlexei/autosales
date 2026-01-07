@@ -79,6 +79,7 @@ impl ApiClient {
     where
         T: DeserializeOwned,
     {
+        let url = response.url().to_string();
         let status = response.status();
         let body = response.text().await?;
 
@@ -86,13 +87,15 @@ impl ApiClient {
             match serde_json::from_str::<T>(&body) {
                 Ok(parsed) => Ok(parsed),
                 Err(err) => {
-                    tracing::error!("Failed to parse response body: {body}");
+                    tracing::error!(
+                        "Failed to parse response from {url} failed with status code: {status}, body: {body}"
+                    );
                     Err(ApiClientError::Json(err))
                 }
             }
         } else {
             Err(ApiClientError::Unsuccessful(format!(
-                "HTTP error: {status} {body}"
+                "Request to {url} failed with status code: {status}, body: {body}",
             )))
         }
     }

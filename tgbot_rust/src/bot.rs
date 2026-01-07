@@ -189,7 +189,11 @@ pub enum Command {
 
 type MyDialogue = Dialogue<BotState, RedisStorage<Json>>;
 
-pub async fn run_bot(bot_token: String, app_state: AppState) -> AppResult<()> {
+pub async fn run_bot(
+    bot_token: String,
+    app_state: AppState,
+    client: Arc<BackendApi>,
+) -> AppResult<()> {
     let bot = Bot::new(bot_token);
     let me = bot.get_me().await?;
     let username = me.user.username.unwrap_or_default();
@@ -345,7 +349,7 @@ pub async fn run_bot(bot_token: String, app_state: AppState) -> AppResult<()> {
         app_state.clone(),
         storage,
         username.clone(),
-        app_state.api.clone()
+        client.clone()
     ])
     .default_handler(|upd| async move {
         tracing::warn!("Unhandled update: {upd:?}");
