@@ -284,6 +284,7 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "ts-rs",
+ "urlencoding",
  "utoipa",
  "utoipa-swagger-ui",
  "uuid",

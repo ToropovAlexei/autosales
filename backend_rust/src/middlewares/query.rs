@@ -2,6 +2,7 @@ use std::convert::TryFrom;
 
 use axum::extract::{FromRequest, Request};
 use serde::Deserialize;
+use urlencoding::decode;
 
 use crate::{
     errors::api::ApiError,
@@ -41,9 +42,11 @@ where
     type Rejection = ApiError;
 
     async fn from_request(req: Request, _state: &S) -> Result<Self, Self::Rejection> {
-        let query = req.uri().query().unwrap_or_default();
+        let raw_query_str = req.uri().query().unwrap_or("");
+        let decoded = decode(raw_query_str)
+            .map_err(|e| ApiError::BadRequest(format!("Invalid URL encoding: {}", e)))?;
         let raw_query: RawListQuery =
-            serde_qs::from_str(query).map_err(|e| ApiError::BadRequest(e.to_string()))?;
+            serde_qs::from_str(&decoded).map_err(|e| ApiError::BadRequest(e.to_string()))?;
 
         let mut filters = Vec::new();
         for raw_filter in raw_query.filters {
