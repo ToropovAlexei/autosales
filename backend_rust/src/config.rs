@@ -17,6 +17,7 @@ pub struct Config {
     pub refresh_token_ttl_minutes: i64,
     pub image_upload_path: String,
     pub service_api_key: String,
+    pub captcha_api_url: String,
 }
 
 impl Config {

@@ -22,6 +22,7 @@ use crate::{
         audit_log::AuditLogService,
         auth::{AuthService, AuthServiceConfig},
         bot::BotService,
+        captcha::CaptchaService,
         category::CategoryService,
         customer::CustomerService,
         image::ImageService,
@@ -85,6 +86,7 @@ pub struct AppState {
         >,
     >,
     pub order_service: Arc<OrderService<OrderRepository>>,
+    pub captcha_service: Arc<CaptchaService>,
     pub client: Arc<reqwest::Client>,
 }
 
@@ -180,6 +182,10 @@ impl AppState {
         let order_service = Arc::new(OrderService::new(Arc::new(OrderRepository::new(
             db_pool.clone(),
         ))));
+        let captcha_service = Arc::new(CaptchaService::new(
+            client.clone(),
+            config.captcha_api_url.clone(),
+        ));
 
         Self {
             db,
@@ -200,6 +206,7 @@ impl AppState {
             client,
             bot_service,
             order_service,
+            captcha_service,
         }
     }
 }
