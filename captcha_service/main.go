@@ -13,7 +13,7 @@ import (
 type CaptchaResponse struct {
 	Answer    string   `json:"answer"`
 	Variants  []string `json:"variants"`
-	ImageData string   `json:"img"`
+	ImageData string   `json:"image_data"`
 }
 
 func GetCaptchaHandler(w http.ResponseWriter, r *http.Request) {
