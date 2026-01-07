@@ -1,33 +1,15 @@
-use std::sync::Arc;
-
-use async_trait::async_trait;
-use sqlx::PgPool;
+use sqlx::{Executor, Postgres};
 
 use crate::{
     errors::repository::RepositoryResult, models::admin_user_with_roles::AdminUserWithRolesRow,
 };
 
-#[async_trait]
-pub trait AdminUserWithRolesRepositoryTrait {
-    async fn get_list(&self) -> RepositoryResult<Vec<AdminUserWithRolesRow>>;
-}
-
-#[derive(Clone)]
-pub struct AdminUserWithRolesRepository {
-    pool: Arc<PgPool>,
-}
-
-impl AdminUserWithRolesRepository {
-    pub fn new(pool: Arc<PgPool>) -> Self {
-        Self { pool }
-    }
-}
-
-#[async_trait]
-impl AdminUserWithRolesRepositoryTrait for AdminUserWithRolesRepository {
-    async fn get_list(&self) -> RepositoryResult<Vec<AdminUserWithRolesRow>> {
-        let result = sqlx::query_as(
-            r#"SELECT
+pub async fn get_admin_user_with_roles_list<'e, E>(executor: E) -> RepositoryResult<Vec<AdminUserWithRolesRow>>
+where
+    E: Executor<'e, Database = Postgres> + Send + Sync,
+{
+    let result = sqlx::query_as(
+        r#"SELECT
                     au.id,
                     au.login,
                     au.hashed_password,
@@ -62,11 +44,10 @@ impl AdminUserWithRolesRepositoryTrait for AdminUserWithRolesRepository {
                     au.updated_at,
                     au.deleted_at,
                     au.created_by"#,
-        )
-        .fetch_all(&*self.pool)
-        .await?;
-        Ok(result)
-    }
+    )
+    .fetch_all(executor)
+    .await?;
+    Ok(result)
 }
 
 #[cfg(test)]
@@ -74,8 +55,8 @@ mod tests {
     use super::*;
     use sqlx::PgPool;
 
-    async fn setup_test_data(pool: &PgPool) -> (i64, i64) {
-        let mut tx = pool.begin().await.unwrap();
+    async fn setup_test_data(executor: &PgPool) -> (i64, i64) {
+        let mut tx = executor.begin().await.unwrap();
 
         let role_id = sqlx::query!(
             r#"INSERT INTO roles (name, created_by) VALUES ($1, $2) RETURNING id"#,
@@ -134,11 +115,10 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_get_list_returns_users_with_roles(pool: PgPool) -> Result<(), sqlx::Error> {
-        let (user_id, user_no_roles_id) = setup_test_data(&pool).await;
+    async fn test_get_list_returns_users_with_roles(executor: PgPool) -> Result<(), sqlx::Error> {
+        let (user_id, user_no_roles_id) = setup_test_data(&executor).await;
 
-        let repo = AdminUserWithRolesRepository::new(Arc::new(pool.clone()));
-        let rows = repo.get_list().await.unwrap();
+        let rows = get_admin_user_with_roles_list(&executor).await.unwrap();
 
         assert_eq!(rows.len(), 2);
 
@@ -160,9 +140,9 @@ mod tests {
 
     #[sqlx::test]
     async fn test_get_list_excludes_deleted_and_system_users(
-        pool: PgPool,
+        executor: PgPool,
     ) -> Result<(), sqlx::Error> {
-        let mut tx = pool.begin().await?;
+        let mut tx = executor.begin().await?;
 
         sqlx::query!(
             r#"INSERT INTO admin_users 
@@ -192,8 +172,7 @@ mod tests {
 
         tx.commit().await?;
 
-        let repo = AdminUserWithRolesRepository::new(Arc::new(pool.clone()));
-        let rows = repo.get_list().await.unwrap();
+        let rows = get_admin_user_with_roles_list(&executor).await.unwrap();
 
         let logins: Vec<_> = rows.iter().map(|u| u.login.clone()).collect();
         assert!(!logins.contains(&"deleted_user".to_string()));

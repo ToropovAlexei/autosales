@@ -2,12 +2,13 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use sqlx::PgPool;
 
 use crate::{
     errors::api::ApiResult,
     infrastructure::repositories::{
         admin_user::{AdminUserRepository, AdminUserRepositoryTrait},
-        admin_user_with_roles::{AdminUserWithRolesRepository, AdminUserWithRolesRepositoryTrait},
+        admin_user_with_roles::get_admin_user_with_roles_list,
         audit_log::AuditLogRepository,
         user_role::{UserRoleRepository, UserRoleRepositoryTrait},
     },
@@ -82,31 +83,30 @@ pub trait AdminUserServiceTrait: Send + Sync {
     async fn delete(&self, command: DeleteAdminUserCommand, ctx: RequestContext) -> ApiResult<()>;
 }
 
-pub struct AdminUserService<R, T, S, A> {
+pub struct AdminUserService<R, S, A> {
+    pool: Arc<PgPool>,
     repo: Arc<R>,
-    admin_user_with_roles_repo: Arc<T>,
     user_role_repo: Arc<S>,
     totp_encryptor: Arc<TotpEncryptor>,
     audit_log_service: Arc<A>,
 }
 
-impl<R, T, S, A> AdminUserService<R, T, S, A>
+impl<R, S, A> AdminUserService<R, S, A>
 where
     R: AdminUserRepositoryTrait + Send + Sync,
-    T: AdminUserWithRolesRepositoryTrait + Send + Sync,
     S: UserRoleRepositoryTrait + Send + Sync,
     A: AuditLogServiceTrait + Send + Sync,
 {
     pub fn new(
+        pool: Arc<PgPool>,
         repo: Arc<R>,
-        admin_user_with_roles_repo: Arc<T>,
         user_role_repo: Arc<S>,
         totp_encryptor: Arc<TotpEncryptor>,
         audit_log_service: Arc<A>,
     ) -> Self {
         Self {
+            pool,
             repo,
-            admin_user_with_roles_repo,
             totp_encryptor,
             user_role_repo,
             audit_log_service,
@@ -118,7 +118,6 @@ where
 impl AdminUserServiceTrait
     for AdminUserService<
         AdminUserRepository,
-        AdminUserWithRolesRepository,
         UserRoleRepository,
         AuditLogService<AuditLogRepository>,
     >
@@ -129,7 +128,7 @@ impl AdminUserServiceTrait
     }
 
     async fn get_all_users_with_roles(&self) -> ApiResult<Vec<AdminUserWithRolesRow>> {
-        let res = self.admin_user_with_roles_repo.get_list().await?;
+        let res = get_admin_user_with_roles_list(&*self.pool).await?;
         Ok(res)
     }
 

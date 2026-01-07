@@ -8,14 +8,14 @@ use crate::{
     db,
     infrastructure::repositories::{
         active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
-        admin_user_with_roles::AdminUserWithRolesRepository, audit_log::AuditLogRepository,
-        bot::BotRepository, category::CategoryRepository, customer::CustomerRepository,
-        effective_permission::EffectivePermissionRepository, image::ImageRepository,
-        order::OrderRepository, permission::PermissionRepository, products::ProductRepository,
-        role::RoleRepository, role_permission::RolePermissionRepository,
-        settings::SettingsRepository, stock_movement::StockMovementRepository,
-        temporary_token::TemporaryTokenRepository, transaction::TransactionRepository,
-        user_permission::UserPermissionRepository, user_role::UserRoleRepository,
+        audit_log::AuditLogRepository, bot::BotRepository, category::CategoryRepository,
+        customer::CustomerRepository, effective_permission::EffectivePermissionRepository,
+        image::ImageRepository, order::OrderRepository, permission::PermissionRepository,
+        products::ProductRepository, role::RoleRepository,
+        role_permission::RolePermissionRepository, settings::SettingsRepository,
+        stock_movement::StockMovementRepository, temporary_token::TemporaryTokenRepository,
+        transaction::TransactionRepository, user_permission::UserPermissionRepository,
+        user_role::UserRoleRepository,
     },
     services::{
         admin_user::AdminUserService,
@@ -54,7 +54,6 @@ pub struct AppState {
     pub admin_user_service: Arc<
         AdminUserService<
             AdminUserRepository,
-            AdminUserWithRolesRepository,
             UserRoleRepository,
             AuditLogService<AuditLogRepository>,
         >,
@@ -91,8 +90,6 @@ impl AppState {
         let active_token_repo = Arc::new(ActiveTokenRepository::new(db_pool.clone()));
         let temp_token_repo = Arc::new(TemporaryTokenRepository::new(db_pool.clone()));
         let admin_user_repo = Arc::new(AdminUserRepository::new(db_pool.clone()));
-        let admin_user_with_roles_repo =
-            Arc::new(AdminUserWithRolesRepository::new(db_pool.clone()));
         let effective_permission_repo =
             Arc::new(EffectivePermissionRepository::new(db_pool.clone()));
         let totp_encryptor = Arc::new(
@@ -124,8 +121,8 @@ impl AppState {
         ));
         let user_role_repo = Arc::new(UserRoleRepository::new(db_pool.clone()));
         let admin_user_service = Arc::new(AdminUserService::new(
+            db_pool.clone(),
             admin_user_repo,
-            admin_user_with_roles_repo,
             user_role_repo,
             totp_encryptor,
             audit_logs_service.clone(),
