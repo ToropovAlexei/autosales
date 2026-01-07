@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use axum::http::{HeaderMap, HeaderValue};
 use bytes::Bytes;
 use reqwest::header;
 use serde_json::json;
@@ -22,12 +23,15 @@ pub struct BackendApi {
 }
 
 impl BackendApi {
-    pub fn new(base_url: &str, api_key: &str) -> ApiClientResult<Self> {
-        let mut headers = header::HeaderMap::new();
-        headers.insert("X-API-KEY", header::HeaderValue::from_str(api_key)?);
+    pub fn new(base_url: &str, api_key: &str, bot_id: Option<i64>) -> ApiClientResult<Self> {
+        let mut headers = HeaderMap::new();
+        headers.insert("X-API-KEY", HeaderValue::from_str(api_key)?);
+        if let Some(bot_id) = bot_id {
+            headers.insert("X-BOT-ID", HeaderValue::from_str(&bot_id.to_string())?);
+        };
         headers.insert(
             header::CONTENT_TYPE,
-            header::HeaderValue::from_static("application/json"),
+            HeaderValue::from_static("application/json"),
         );
         let api_client = ApiClient::new(base_url, headers)?;
         Ok(Self { api_client })
