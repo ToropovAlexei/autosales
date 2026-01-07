@@ -15,3 +15,9 @@ export const range = (start: number, end?: number, step = 1) => {
 
   return result;
 };
+
+export const keyBy = <T>(arr: T[], key: keyof T) =>
+  arr.reduce((acc, item) => {
+    acc[item[key] as string] = item;
+    return acc;
+  }, {} as Record<string, T>);
