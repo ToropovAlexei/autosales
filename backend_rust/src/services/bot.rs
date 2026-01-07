@@ -1,7 +1,7 @@
-use std::sync::Arc;
+use std::{marker::PhantomData, sync::Arc};
 
 use async_trait::async_trait;
-use bigdecimal::{BigDecimal, Zero};
+use bigdecimal::{BigDecimal, ToPrimitive, Zero};
 use reqwest::Response;
 use serde::{Deserialize, de::DeserializeOwned};
 
@@ -11,12 +11,14 @@ use crate::{
         audit_log::AuditLogRepository,
         bot::{BotRepository, BotRepositoryTrait},
         settings::{SettingsRepository, SettingsRepositoryTrait},
+        transaction::{TransactionRepository, TransactionRepositoryTrait},
     },
     middlewares::context::RequestContext,
     models::{
         audit_log::{AuditAction, AuditStatus, NewAuditLog},
         bot::{BotListQuery, BotRow, BotType, NewBot, UpdateBot},
-        common::PaginatedResult,
+        common::{OrderDir, PaginatedResult, Pagination},
+        transaction::{TransactionListQuery, TransactionOrderFields},
     },
     services::audit_log::{AuditLogService, AuditLogServiceTrait},
 };
@@ -59,30 +61,35 @@ pub trait BotServiceTrait: Send + Sync {
     async fn create(&self, command: CreateBotCommand) -> ApiResult<BotRow>;
     async fn get_by_id(&self, id: i64) -> ApiResult<BotRow>;
     async fn update(&self, command: UpdateBotCommand) -> ApiResult<BotRow>;
+    async fn can_operate(&self) -> ApiResult<bool>;
 }
 
-pub struct BotService<R, S, A> {
+pub struct BotService<R, S, A, T> {
     bot_repo: Arc<R>,
     settings_repo: Arc<S>,
+    transaction_repo: Arc<T>,
     audit_log_service: Arc<A>,
     client: Arc<reqwest::Client>,
 }
 
-impl<R, S, A> BotService<R, S, A>
+impl<R, S, A, T> BotService<R, S, A, T>
 where
     R: BotRepositoryTrait + Send + Sync,
     S: SettingsRepositoryTrait + Send + Sync,
     A: AuditLogServiceTrait + Send + Sync,
+    T: TransactionRepositoryTrait + Send + Sync,
 {
     pub fn new(
         bot_repo: Arc<R>,
         settings_repo: Arc<S>,
+        transaction_repo: Arc<T>,
         audit_log_service: Arc<A>,
         client: Arc<reqwest::Client>,
     ) -> Self {
         Self {
             bot_repo,
             settings_repo,
+            transaction_repo,
             audit_log_service,
             client,
         }
@@ -91,7 +98,12 @@ where
 
 #[async_trait]
 impl BotServiceTrait
-    for BotService<BotRepository, SettingsRepository, AuditLogService<AuditLogRepository>>
+    for BotService<
+        BotRepository,
+        SettingsRepository,
+        AuditLogService<AuditLogRepository>,
+        TransactionRepository,
+    >
 {
     async fn get_list(&self, query: BotListQuery) -> ApiResult<PaginatedResult<BotRow>> {
         self.bot_repo.get_list(query).await.map_err(ApiError::from)
@@ -188,6 +200,27 @@ impl BotServiceTrait
             .await?;
 
         Ok(updated)
+    }
+
+    async fn can_operate(&self) -> ApiResult<bool> {
+        Ok(self
+            .transaction_repo
+            .get_list(TransactionListQuery {
+                filters: vec![],
+                pagination: Pagination {
+                    page: 1,
+                    page_size: 1,
+                },
+                order_by: Some(TransactionOrderFields::Id),
+                order_dir: OrderDir::Desc,
+                _phantom: PhantomData,
+            })
+            .await?
+            .items
+            .last()
+            .map_or(false, |t| {
+                t.store_balance_after.to_i64().unwrap_or_default() > 1000
+            }))
     }
 }
 

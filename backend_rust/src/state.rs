@@ -76,8 +76,14 @@ pub struct AppState {
     pub settings_service:
         Arc<SettingsService<SettingsRepository, AuditLogService<AuditLogRepository>>>,
     pub audit_logs_service: Arc<AuditLogService<AuditLogRepository>>,
-    pub bot_service:
-        Arc<BotService<BotRepository, SettingsRepository, AuditLogService<AuditLogRepository>>>,
+    pub bot_service: Arc<
+        BotService<
+            BotRepository,
+            SettingsRepository,
+            AuditLogService<AuditLogRepository>,
+            TransactionRepository,
+        >,
+    >,
     pub order_service: Arc<OrderService<OrderRepository>>,
     pub client: Arc<reqwest::Client>,
 }
@@ -139,7 +145,7 @@ impl AppState {
         let role_permission_repo = Arc::new(RolePermissionRepository::new(db_pool.clone()));
         let role_permission_service = Arc::new(RolePermissionService::new(role_permission_repo));
         let transaction_repo = Arc::new(TransactionRepository::new(db_pool.clone()));
-        let transaction_service = Arc::new(TransactionService::new(transaction_repo));
+        let transaction_service = Arc::new(TransactionService::new(transaction_repo.clone()));
         let product_repo = Arc::new(ProductRepository::new(db_pool.clone()));
         let stock_movement_repo = Arc::new(StockMovementRepository::new(db_pool.clone()));
         let product_service = Arc::new(ProductService::new(
@@ -167,6 +173,7 @@ impl AppState {
         let bot_service = Arc::new(BotService::new(
             Arc::new(BotRepository::new(db_pool.clone())),
             settings_repo.clone(),
+            transaction_repo.clone(),
             audit_logs_service.clone(),
             client.clone(),
         ));
