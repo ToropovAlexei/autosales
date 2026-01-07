@@ -4,7 +4,9 @@ use crate::{
     errors::repository::RepositoryResult, models::admin_user_with_roles::AdminUserWithRolesRow,
 };
 
-pub async fn get_admin_user_with_roles_list<'e, E>(executor: E) -> RepositoryResult<Vec<AdminUserWithRolesRow>>
+pub async fn get_admin_user_with_roles_list<'e, E>(
+    executor: E,
+) -> RepositoryResult<Vec<AdminUserWithRolesRow>>
 where
     E: Executor<'e, Database = Postgres> + Send + Sync,
 {

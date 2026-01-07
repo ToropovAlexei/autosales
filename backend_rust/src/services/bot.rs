@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use bigdecimal::BigDecimal;
+use bigdecimal::{BigDecimal, Zero};
 use reqwest::Response;
 use serde::{Deserialize, de::DeserializeOwned};
 
@@ -10,6 +10,7 @@ use crate::{
     infrastructure::repositories::{
         audit_log::AuditLogRepository,
         bot::{BotRepository, BotRepositoryTrait},
+        settings::{SettingsRepository, SettingsRepositoryTrait},
     },
     middlewares::context::RequestContext,
     models::{
@@ -37,8 +38,8 @@ pub struct CreateBotCommand {
     pub r#type: BotType,
     pub is_active: bool,
     pub is_primary: bool,
-    pub referral_percentage: BigDecimal,
     pub created_by: Option<i64>,
+    pub ctx: Option<RequestContext>,
 }
 
 #[derive(Debug)]
@@ -49,30 +50,39 @@ pub struct UpdateBotCommand {
     pub is_active: Option<bool>,
     pub is_primary: Option<bool>,
     pub referral_percentage: Option<BigDecimal>,
+    pub ctx: Option<RequestContext>,
 }
 
 #[async_trait]
 pub trait BotServiceTrait: Send + Sync {
     async fn get_list(&self, query: BotListQuery) -> ApiResult<PaginatedResult<BotRow>>;
-    async fn create(&self, command: CreateBotCommand, ctx: RequestContext) -> ApiResult<BotRow>;
+    async fn create(&self, command: CreateBotCommand) -> ApiResult<BotRow>;
     async fn get_by_id(&self, id: i64) -> ApiResult<BotRow>;
-    async fn update(&self, command: UpdateBotCommand, ctx: RequestContext) -> ApiResult<BotRow>;
+    async fn update(&self, command: UpdateBotCommand) -> ApiResult<BotRow>;
 }
 
-pub struct BotService<R, A> {
+pub struct BotService<R, S, A> {
     bot_repo: Arc<R>,
+    settings_repo: Arc<S>,
     audit_log_service: Arc<A>,
     client: Arc<reqwest::Client>,
 }
 
-impl<R, A> BotService<R, A>
+impl<R, S, A> BotService<R, S, A>
 where
     R: BotRepositoryTrait + Send + Sync,
+    S: SettingsRepositoryTrait + Send + Sync,
     A: AuditLogServiceTrait + Send + Sync,
 {
-    pub fn new(bot_repo: Arc<R>, audit_log_service: Arc<A>, client: Arc<reqwest::Client>) -> Self {
+    pub fn new(
+        bot_repo: Arc<R>,
+        settings_repo: Arc<S>,
+        audit_log_service: Arc<A>,
+        client: Arc<reqwest::Client>,
+    ) -> Self {
         Self {
             bot_repo,
+            settings_repo,
             audit_log_service,
             client,
         }
@@ -80,12 +90,23 @@ where
 }
 
 #[async_trait]
-impl BotServiceTrait for BotService<BotRepository, AuditLogService<AuditLogRepository>> {
+impl BotServiceTrait
+    for BotService<BotRepository, SettingsRepository, AuditLogService<AuditLogRepository>>
+{
     async fn get_list(&self, query: BotListQuery) -> ApiResult<PaginatedResult<BotRow>> {
         self.bot_repo.get_list(query).await.map_err(ApiError::from)
     }
 
-    async fn create(&self, command: CreateBotCommand, ctx: RequestContext) -> ApiResult<BotRow> {
+    async fn create(&self, command: CreateBotCommand) -> ApiResult<BotRow> {
+        let referral_percentage = match command.r#type {
+            BotType::Referral => self
+                .settings_repo
+                .load_settings()
+                .await
+                .map(|s| s.referral_percentage)?,
+            BotType::Main => BigDecimal::zero(),
+        };
+
         let created = self
             .bot_repo
             .create(NewBot {
@@ -97,7 +118,7 @@ impl BotServiceTrait for BotService<BotRepository, AuditLogService<AuditLogRepos
                 r#type: command.r#type,
                 is_active: command.is_active,
                 is_primary: command.is_primary,
-                referral_percentage: command.referral_percentage,
+                referral_percentage,
             })
             .await?;
 
@@ -108,13 +129,13 @@ impl BotServiceTrait for BotService<BotRepository, AuditLogService<AuditLogRepos
                 admin_user_id: command.created_by,
                 customer_id: None,
                 error_message: None,
-                ip_address: ctx.ip_address,
                 new_values: serde_json::to_value(created.clone()).ok(),
                 old_values: None,
-                request_id: Some(ctx.request_id),
                 target_id: created.id.to_string(),
                 target_table: "bots".to_string(),
-                user_agent: ctx.user_agent.clone(),
+                ip_address: command.ctx.clone().and_then(|ctx| ctx.ip_address),
+                request_id: command.ctx.clone().map(|ctx| ctx.request_id),
+                user_agent: command.ctx.and_then(|ctx| ctx.user_agent),
             })
             .await?;
 
@@ -126,7 +147,7 @@ impl BotServiceTrait for BotService<BotRepository, AuditLogService<AuditLogRepos
         Ok(res)
     }
 
-    async fn update(&self, command: UpdateBotCommand, ctx: RequestContext) -> ApiResult<BotRow> {
+    async fn update(&self, command: UpdateBotCommand) -> ApiResult<BotRow> {
         let prev = self.bot_repo.get_by_id(command.id).await?;
         let updated = self
             .bot_repo
@@ -156,13 +177,13 @@ impl BotServiceTrait for BotService<BotRepository, AuditLogService<AuditLogRepos
                 admin_user_id: command.updated_by,
                 customer_id: None,
                 error_message: None,
-                ip_address: ctx.ip_address,
                 new_values: serde_json::to_value(updated.clone()).ok(),
                 old_values: serde_json::to_value(prev.clone()).ok(),
-                request_id: Some(ctx.request_id),
                 target_id: prev.id.to_string(),
                 target_table: "bots".to_string(),
-                user_agent: ctx.user_agent.clone(),
+                ip_address: command.ctx.clone().and_then(|ctx| ctx.ip_address),
+                request_id: command.ctx.clone().map(|ctx| ctx.request_id),
+                user_agent: command.ctx.and_then(|ctx| ctx.user_agent),
             })
             .await?;
 

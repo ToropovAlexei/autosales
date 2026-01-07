@@ -5,24 +5,16 @@ use axum::{
     extract::{Path, State},
     routing::{patch, post},
 };
-use bigdecimal::{BigDecimal, FromPrimitive};
 
 use crate::{
-    errors::api::{ApiError, ApiResult},
-    middlewares::{
-        context::RequestContext,
-        require_permission::{BotsCreate, BotsRead, BotsUpdate, RequirePermission},
-        validator::ValidatedJson,
-    },
+    errors::api::ApiResult,
+    middlewares::{bot_auth::AuthBot, validator::ValidatedJson, verified_service::VerifiedService},
     models::bot::{BotListQuery, BotType},
-    presentation::admin::dtos::{
-        bot::{BotResponse, NewBotRequest, UpdateBotRequest},
-        list_response::ListResponse,
+    presentation::{
+        admin::dtos::list_response::ListResponse,
+        bot::dtos::bot::{BotResponse, NewBotRequest, UpdateBotRequest},
     },
-    services::{
-        auth::AuthUser,
-        bot::{BotServiceTrait, CreateBotCommand, UpdateBotCommand},
-    },
+    services::bot::{BotServiceTrait, CreateBotCommand, UpdateBotCommand},
     state::AppState,
 };
 
@@ -34,34 +26,31 @@ pub fn router() -> Router<Arc<AppState>> {
 
 #[utoipa::path(
     post,
-    path = "/api/admin/bots",
+    path = "/api/bot/bots",
     tag = "Bots",
     request_body = NewBotRequest,
     responses(
         (status = 200, description = "Bot created", body = BotResponse),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
         (status = 500, description = "Internal server error", body = String),
     )
 )]
 async fn create_bot(
     State(state): State<Arc<AppState>>,
-    user: AuthUser,
-    _perm: RequirePermission<BotsCreate>,
-    ctx: RequestContext,
+    _bot: AuthBot,
     ValidatedJson(payload): ValidatedJson<NewBotRequest>,
 ) -> ApiResult<Json<BotResponse>> {
     let bot = state
         .bot_service
         .create(CreateBotCommand {
-            created_by: Some(user.id),
+            token: payload.token,
             is_active: true,
             is_primary: false,
+            r#type: BotType::Referral,
+            created_by: None,
             owner_id: None,
-            token: payload.token,
-            r#type: BotType::Main,
-            ctx: Some(ctx),
+            ctx: None,
         })
         .await?;
 
@@ -70,20 +59,18 @@ async fn create_bot(
 
 #[utoipa::path(
     get,
-    path = "/api/admin/bots",
+    path = "/api/bot/bots",
     tag = "Bots",
     responses(
         (status = 200, description = "Bot list", body = ListResponse<BotResponse>),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
         (status = 500, description = "Internal server error", body = String),
     )
 )]
 async fn list_bots(
     State(state): State<Arc<AppState>>,
-    _user: AuthUser,
-    _perm: RequirePermission<BotsRead>,
+    _service: VerifiedService,
     query: BotListQuery,
 ) -> ApiResult<Json<ListResponse<BotResponse>>> {
     let bots = state.bot_service.get_list(query).await?;
@@ -96,23 +83,20 @@ async fn list_bots(
 
 #[utoipa::path(
     patch,
-    path = "/api/admin/bots/{id}",
+    path = "/api/bot/bots/{id}",
     tag = "Bots",
     request_body = UpdateBotRequest,
     responses(
         (status = 200, description = "Bot updated", body = BotResponse),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
         (status = 500, description = "Internal server error", body = String),
     )
 )]
 async fn update_bot(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
-    user: AuthUser,
-    _perm: RequirePermission<BotsUpdate>,
-    ctx: RequestContext,
+    _bot: AuthBot,
     ValidatedJson(payload): ValidatedJson<UpdateBotRequest>,
 ) -> ApiResult<Json<BotResponse>> {
     let bot = state
@@ -121,16 +105,10 @@ async fn update_bot(
             id,
             is_active: payload.is_active,
             is_primary: payload.is_primary,
-            referral_percentage: payload
-                .referral_percentage
-                .map(|p| {
-                    BigDecimal::from_f64(p)
-                        .ok_or_else(|| ApiError::BadRequest("Invalid referral percentage".into()))
-                })
-                .transpose()?,
-            updated_by: Some(user.id),
+            updated_by: None,
+            referral_percentage: None,
             username: None,
-            ctx: Some(ctx),
+            ctx: None,
         })
         .await?;
 

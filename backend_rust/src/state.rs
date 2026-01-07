@@ -76,7 +76,8 @@ pub struct AppState {
     pub settings_service:
         Arc<SettingsService<SettingsRepository, AuditLogService<AuditLogRepository>>>,
     pub audit_logs_service: Arc<AuditLogService<AuditLogRepository>>,
-    pub bot_service: Arc<BotService<BotRepository, AuditLogService<AuditLogRepository>>>,
+    pub bot_service:
+        Arc<BotService<BotRepository, SettingsRepository, AuditLogService<AuditLogRepository>>>,
     pub order_service: Arc<OrderService<OrderRepository>>,
     pub client: Arc<reqwest::Client>,
 }
@@ -160,11 +161,12 @@ impl AppState {
         ));
         let settings_repo = Arc::new(SettingsRepository::new(db_pool.clone()));
         let settings_service = Arc::new(SettingsService::new(
-            settings_repo,
+            settings_repo.clone(),
             audit_logs_service.clone(),
         ));
         let bot_service = Arc::new(BotService::new(
             Arc::new(BotRepository::new(db_pool.clone())),
+            settings_repo.clone(),
             audit_logs_service.clone(),
             client.clone(),
         ));

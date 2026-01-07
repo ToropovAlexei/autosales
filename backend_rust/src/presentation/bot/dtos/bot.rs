@@ -1,0 +1,42 @@
+use serde::{Deserialize, Serialize};
+use utoipa::{ToResponse, ToSchema};
+use validator::Validate;
+
+use crate::models::bot::BotRow;
+use bigdecimal::ToPrimitive;
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, ToResponse)]
+pub struct BotResponse {
+    pub id: i64,
+    pub token: String,
+    pub username: String,
+    pub is_active: bool,
+    pub is_primary: bool,
+    pub referral_percentage: f64,
+}
+
+impl From<BotRow> for BotResponse {
+    fn from(r: BotRow) -> Self {
+        BotResponse {
+            id: r.id,
+            token: r.token,
+            username: r.username,
+            is_active: r.is_active,
+            is_primary: r.is_primary,
+            referral_percentage: r.referral_percentage.to_f64().unwrap_or_default(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema, ToResponse)]
+pub struct NewBotRequest {
+    #[validate(length(min = 46, max = 46, message = "Length must be 46 characters"))]
+    pub token: String,
+    pub owner_id: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema, ToResponse)]
+pub struct UpdateBotRequest {
+    pub is_active: Option<bool>,
+    pub is_primary: Option<bool>,
+}
