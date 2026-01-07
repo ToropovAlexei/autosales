@@ -1,37 +1,11 @@
-CREATE TYPE audit_action AS ENUM (
-    'user_login', 'user_logout', 'user_create', 'user_update', 'user_delete',
-    'role_grant', 'role_revoke', 'permission_grant', 'permission_revoke',
-
-    'product_create', 'product_update', 'product_delete', 'product_hide',
-    'stock_movement_create',
-    'customer_create', 'customer_update', 'customer_delete',
-    'bot_create', 'bot_update', 'bot_delete',
-    'image_create', 'image_update', 'image_delete',
-    'order_create', 'order_update', 'order_delete',
-    'order_item_create', 'order_item_update', 'order_item_delete',
-    'payment_invoice_create', 'payment_invoice_update', 'payment_invoice_delete',
-
-    'balance_deposit', 'balance_withdrawal', 'referral_payout',
-    'invoice_create', 'invoice_pay', 'invoice_expire',
-
-    'system_settings_update', 'bot_start', 'api_call',
-    'category_create', 'category_update', 'category_delete'
-);
-
-CREATE TYPE audit_status AS ENUM (
-    'success',
-    'failed',
-    'denied'
-);
-
 CREATE TABLE audit_logs (
     id BIGSERIAL PRIMARY KEY,
 
     admin_user_id BIGINT,
     customer_id BIGINT,
 
-    "action" audit_action NOT NULL,
-    status audit_status NOT NULL DEFAULT 'success',
+    "action" TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'success' CHECK (status IN ('success', 'failed', 'denied')),
 
     target_table TEXT NOT NULL,
     target_id TEXT NOT NULL,

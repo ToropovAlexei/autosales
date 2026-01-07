@@ -9,7 +9,7 @@ use uuid::Uuid;
 use crate::define_list_query;
 
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS, ToSchema)]
-#[sqlx(type_name = "product_type", rename_all = "snake_case")]
+#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[ts(export, export_to = "product.ts")]
 pub enum ProductType {

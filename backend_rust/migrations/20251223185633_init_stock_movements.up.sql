@@ -1,16 +1,8 @@
-CREATE TYPE stock_movement_type AS ENUM (
-    'initial',
-    'restock',
-    'sale',
-    'return',
-    'adjustment'
-);
-
 CREATE TABLE stock_movements (
     id BIGSERIAL PRIMARY KEY,
     order_id BIGINT,
     product_id BIGINT NOT NULL,
-    type stock_movement_type NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('initial', 'restock', 'sale', 'return', 'adjustment')),
     quantity BIGINT NOT NULL,
     balance_after BIGINT NOT NULL,
 

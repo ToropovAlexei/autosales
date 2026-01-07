@@ -94,7 +94,7 @@ impl PermissionRepositoryTrait for PermissionRepository {
                 r#"
                     INSERT INTO user_permissions (user_id, permission_id, effect, created_by)
                     SELECT $1, p.id, p.effect, $2
-                    FROM unnest($3::BIGINT[], $4::permission_effect[]) AS p(id, effect)
+                    FROM unnest($3::BIGINT[], $4::TEXT[]) AS p(id, effect)
                     ON CONFLICT (user_id, permission_id) 
                     DO UPDATE SET 
                         effect = EXCLUDED.effect
@@ -102,7 +102,7 @@ impl PermissionRepositoryTrait for PermissionRepository {
                 admin_user_permissions.user_id,
                 admin_user_permissions.created_by,
                 &added_ids[..],
-                &added_effects[..] as &[PermissionEffect],
+                &added_effects[..] as &[_],
             )
             .execute(&mut *tx)
             .await?;

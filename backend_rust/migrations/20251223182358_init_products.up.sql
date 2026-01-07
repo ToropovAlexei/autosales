@@ -1,5 +1,3 @@
-CREATE TYPE product_type AS ENUM ('item', 'subscription');
-
 CREATE TABLE products (
     id BIGSERIAL PRIMARY KEY,
     name TEXT NOT NULL CHECK (LENGTH(TRIM(name)) > 0),
@@ -7,7 +5,7 @@ CREATE TABLE products (
     category_id BIGINT,
     image_id UUID,
 
-    type product_type NOT NULL DEFAULT 'item',
+    type TEXT NOT NULL DEFAULT 'item' CHECK (type IN ('item', 'subscription')),
     subscription_period_days SMALLINT NOT NULL DEFAULT 0
         CHECK (subscription_period_days >= 0),
 

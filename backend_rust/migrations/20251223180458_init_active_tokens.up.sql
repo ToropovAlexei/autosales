@@ -1,11 +1,9 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
-CREATE TYPE token_type AS ENUM ('access', 'refresh');
-
 CREATE TABLE active_tokens (
     jti UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id BIGINT NOT NULL,
-    token_type token_type NOT NULL,
+    token_type TEXT NOT NULL CHECK (token_type IN ('access', 'refresh')),
     expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     revoked_at TIMESTAMPTZ,

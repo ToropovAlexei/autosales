@@ -1,9 +1,7 @@
-CREATE TYPE permission_effect AS ENUM ('allow', 'deny');
-
 CREATE TABLE user_permissions (
     user_id BIGINT NOT NULL,
     permission_id BIGINT NOT NULL,
-    effect permission_effect NOT NULL DEFAULT 'allow',
+    effect TEXT NOT NULL DEFAULT 'allow' CHECK (effect IN ('allow', 'deny')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_by BIGINT NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

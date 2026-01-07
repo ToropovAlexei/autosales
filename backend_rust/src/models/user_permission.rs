@@ -5,7 +5,7 @@ use ts_rs::TS;
 use utoipa::ToSchema;
 
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]
-#[sqlx(type_name = "permission_effect", rename_all = "snake_case")]
+#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[ts(export, export_to = "auth.ts")]
 pub enum PermissionEffect {

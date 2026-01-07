@@ -1,12 +1,10 @@
-CREATE TYPE bot_type AS ENUM ('main', 'referral');
-
 CREATE TABLE bots (
     id BIGSERIAL PRIMARY KEY,
     owner_id BIGINT,
     token TEXT NOT NULL UNIQUE,
     username TEXT NOT NULL UNIQUE
         CHECK (username ~ '^[A-Za-z][A-Za-z0-9_]{4,31}$'),
-    type bot_type NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('main', 'referral')),
     is_active BOOLEAN NOT NULL DEFAULT true,
     is_primary BOOLEAN NOT NULL DEFAULT false,
     referral_percentage NUMERIC(5,2) NOT NULL DEFAULT 0.00

@@ -1,10 +1,11 @@
 use chrono::{DateTime, Duration, Utc};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
-#[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize)]
-#[sqlx(type_name = "token_type", rename_all = "snake_case")]
+#[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
 pub enum TokenType {
     Refresh,
     Access,

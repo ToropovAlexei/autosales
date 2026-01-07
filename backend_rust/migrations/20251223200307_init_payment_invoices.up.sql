@@ -1,11 +1,3 @@
-CREATE TYPE invoice_status AS ENUM (
-    'pending',
-    'completed',
-    'failed',
-    'expired',
-    'refunded'
-);
-
 CREATE TABLE payment_invoices (
     id BIGSERIAL PRIMARY KEY,
     customer_id BIGINT NOT NULL,
@@ -13,7 +5,7 @@ CREATE TABLE payment_invoices (
     original_amount NUMERIC(12,2) NOT NULL CHECK (original_amount > 0),
     amount NUMERIC(12,2) NOT NULL CHECK (amount >= original_amount),
 
-    status invoice_status NOT NULL DEFAULT 'pending',
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'expired', 'refunded')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMPTZ NOT NULL,

@@ -1,9 +1,7 @@
-CREATE TYPE temporary_token_purpose AS ENUM ('2fa', 'password_reset');
-
 CREATE TABLE temporary_tokens (
     token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id BIGINT NOT NULL,
-    purpose temporary_token_purpose NOT NULL,
+    purpose TEXT NOT NULL CHECK (purpose IN ('2fa', 'password_reset')),
     expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     used_at TIMESTAMPTZ,

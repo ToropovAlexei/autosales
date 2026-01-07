@@ -1,13 +1,13 @@
 use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, PartialEq, Eq, sqlx::Type)]
-#[sqlx(type_name = "temporary_token_purpose")]
+#[derive(sqlx::Type, Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
+#[serde(rename_all = "snake_case")]
 pub enum TemporaryTokenPurpose {
-    #[sqlx(rename = "2fa")]
     TwoFa,
-    #[sqlx(rename = "password_reset")]
     PasswordReset,
 }
 

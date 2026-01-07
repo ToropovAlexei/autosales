@@ -1,18 +1,9 @@
-CREATE TYPE transaction_type AS ENUM (
-    'deposit',
-    'purchase',
-    'withdrawal',
-    'referral_payout',
-    'service_charge',
-    'refund'
-);
-
 CREATE TABLE transactions (
     id BIGSERIAL PRIMARY KEY,
     customer_id BIGINT,
     order_id BIGINT,
 
-    type transaction_type NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('deposit', 'purchase', 'withdrawal', 'referral_payout', 'service_charge', 'refund')),
     amount NUMERIC(12,2) NOT NULL,
 
     store_balance_delta NUMERIC(12,2) NOT NULL,

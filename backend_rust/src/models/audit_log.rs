@@ -10,7 +10,7 @@ use uuid::Uuid;
 use crate::define_list_query;
 
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]
-#[sqlx(type_name = "audit_action", rename_all = "snake_case")]
+#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[ts(export, export_to = "audit_log.ts")]
 pub enum AuditAction {
@@ -50,7 +50,7 @@ pub enum AuditAction {
 }
 
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]
-#[sqlx(type_name = "audit_status", rename_all = "snake_case")]
+#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
 #[serde(rename_all = "snake_case")]
 #[ts(export, export_to = "audit_log.ts")]
 pub enum AuditStatus {

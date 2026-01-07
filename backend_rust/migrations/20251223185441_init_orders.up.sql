@@ -1,17 +1,9 @@
-CREATE TYPE order_status AS ENUM (
-    'created',
-    'paid',
-    'fulfilled',
-    'cancelled',
-    'refunded'
-);
-
 CREATE TABLE orders (
     id BIGSERIAL PRIMARY KEY,
     customer_id BIGINT NOT NULL,
     amount NUMERIC(12,2) NOT NULL CHECK (amount >= 0),
     currency CHAR(3) NOT NULL DEFAULT 'RUB',
-    status order_status NOT NULL DEFAULT 'created',
+    status TEXT NOT NULL DEFAULT 'created' CHECK (status IN ('created', 'paid', 'fulfilled', 'cancelled', 'refunded')),
     bot_id BIGINT NOT NULL,
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
