@@ -1,3 +1,4 @@
+use serde::Deserializer;
 use serde::{Deserialize, Serialize};
 use serde_with::DisplayFromStr;
 use serde_with::serde_as;
@@ -62,8 +63,7 @@ pub enum FilterValue {
     Array(Vec<ScalarValue>),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(untagged)]
+#[derive(Debug, Clone, Serialize)]
 pub enum ScalarValue {
     Int(i64),
     Float(f64),
@@ -160,4 +160,31 @@ macro_rules! define_list_query {
 
         pub type $query_name = $crate::models::common::ListQuery<$filter_enum, $order_enum>;
     };
+}
+
+impl<'de> Deserialize<'de> for ScalarValue {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+
+        if s == "true" || s == "false" {
+            return Ok(ScalarValue::Bool(s == "true"));
+        }
+
+        if let Ok(uuid) = Uuid::parse_str(&s) {
+            return Ok(ScalarValue::Uuid(uuid));
+        }
+
+        if let Ok(i) = s.parse::<i64>() {
+            return Ok(ScalarValue::Int(i));
+        }
+
+        if let Ok(f) = s.parse::<f64>() {
+            return Ok(ScalarValue::Float(f));
+        }
+
+        Ok(ScalarValue::Text(s))
+    }
 }
