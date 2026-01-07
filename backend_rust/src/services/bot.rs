@@ -218,9 +218,7 @@ impl BotServiceTrait
             .await?
             .items
             .last()
-            .map_or(false, |t| {
-                t.store_balance_after.to_i64().unwrap_or_default() > 1000
-            }))
+            .is_some_and(|t| t.store_balance_after.to_i64().unwrap_or_default() > 1000))
     }
 }
 
