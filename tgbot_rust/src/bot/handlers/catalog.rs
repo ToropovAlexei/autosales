@@ -135,19 +135,17 @@ pub async fn catalog_handler(
                 .await?;
             bot.delete_message(chat_id, message_id).await?;
         }
+    } else if !has_photo {
+        bot.edit_message_text(chat_id, message_id, caption)
+            .reply_markup(reply_markup)
+            .parse_mode(ParseMode::Html)
+            .await?;
     } else {
-        if !has_photo {
-            bot.edit_message_text(chat_id, message_id, caption)
-                .reply_markup(reply_markup)
-                .parse_mode(ParseMode::Html)
-                .await?;
-        } else {
-            bot.send_message(chat_id, caption)
-                .reply_markup(reply_markup)
-                .parse_mode(ParseMode::Html)
-                .await?;
-            bot.delete_message(chat_id, message_id).await?;
-        }
+        bot.send_message(chat_id, caption)
+            .reply_markup(reply_markup)
+            .parse_mode(ParseMode::Html)
+            .await?;
+        bot.delete_message(chat_id, message_id).await?;
     }
     Ok(())
 }
