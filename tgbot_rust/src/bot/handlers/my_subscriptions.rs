@@ -29,7 +29,7 @@ pub async fn my_subscriptions_handler(
 
     match api_client.get_user_subscriptions(chat_id.0).await {
         Ok(subscriptions) => {
-            if subscriptions.is_empty() {
+            if subscriptions.items.is_empty() {
                 bot.edit_message_text(chat_id, message_id, "У вас пока нет активных подписок.")
                     .reply_markup(back_to_main_menu_inline_keyboard())
                     .send()
@@ -39,7 +39,7 @@ pub async fn my_subscriptions_handler(
 
             let mut response_text = format!("{}\n\n", bold("🧾 Ваши подписки:"));
 
-            for sub in subscriptions {
+            for sub in subscriptions.items {
                 let product_name = sub.product.name;
                 let expires_formatted = sub.expires_at.format("%d.%m.%Y %H:%M").to_string();
                 let status = if sub.expires_at > chrono::Utc::now() {

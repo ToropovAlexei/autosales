@@ -65,7 +65,10 @@ pub async fn deposit_gateway_handler(
     };
 
     bot.edit_message_text(chat_id, message_id, "💰 Выберите способ пополнения:")
-        .reply_markup(payment_gateways_menu(payment_gateways, public_settings))
+        .reply_markup(payment_gateways_menu(
+            payment_gateways.items,
+            public_settings,
+        ))
         .parse_mode(ParseMode::Html)
         .send()
         .await?;

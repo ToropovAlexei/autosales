@@ -1,30 +1,29 @@
-use std::collections::HashMap;
-
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
-use crate::{bot::CallbackData, models::PaymentGateway};
+use crate::{
+    bot::CallbackData,
+    models::{PaymentGateway, settings::Settings},
+};
 
 pub fn payment_gateways_menu(
     gateways: Vec<PaymentGateway>,
-    public_settings: HashMap<String, String>,
+    public_settings: Settings,
 ) -> InlineKeyboardMarkup {
-    let instructions_url = public_settings
-        .get("instructions_url")
-        .cloned()
-        .unwrap_or_default();
     let mut buttons = Vec::new();
-    if let Ok(url) = reqwest::Url::parse(&instructions_url) {
+    // TODO Instructions must be in settings
+    if let Ok(url) = reqwest::Url::parse("https://telegra.ph/your-payment-instructions-here") {
         buttons.push([InlineKeyboardButton::url("ℹ️ Как пополнить баланс?", url)]);
     }
 
     let mut gateways_with_bonuses: Vec<(String, String, f64)> = Vec::new();
 
     for gateway in gateways {
-        let gateway_clone = gateway.name.clone();
-        let bonus_value = public_settings
-            .get(&format!("GATEWAY_DISCOUNT_{}", gateway_clone))
-            .and_then(|s| s.parse::<f64>().ok())
-            .unwrap_or(0.0);
+        let bonus_value = match gateway.name.as_str() {
+            "mock_provider" => public_settings.pricing_gateway_bonus_mock_provider,
+            "platform_card" => public_settings.pricing_gateway_bonus_platform_card,
+            "platform_sbp" => public_settings.pricing_gateway_bonus_platform_sbp,
+            _ => 0.0,
+        };
         gateways_with_bonuses.push((gateway.name, gateway.display_name, bonus_value));
     }
 

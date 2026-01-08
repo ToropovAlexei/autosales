@@ -69,10 +69,10 @@ pub async fn catalog_handler(
         }
     };
 
-    let category = find_category_by_id(&categories, category_id);
+    let category = find_category_by_id(&categories.items, category_id);
 
     let categories_to_show: &[Category] = match category_id {
-        0 => &categories,
+        0 => &categories.items,
         _ => category
             .and_then(|c| c.sub_categories.as_deref())
             .unwrap_or(&[]),

@@ -29,7 +29,7 @@ pub async fn my_orders_handler(
 
     match api_client.get_user_orders(chat_id.0).await {
         Ok(orders) => {
-            if orders.is_empty() {
+            if orders.items.is_empty() {
                 bot.edit_message_text(chat_id, message_id, "У вас пока нет заказов.")
                     .reply_markup(back_to_main_menu_inline_keyboard())
                     .send()
@@ -39,7 +39,7 @@ pub async fn my_orders_handler(
 
             let mut response_text = format!("{}\n\n", bold("🧾 Ваши заказы:"));
 
-            for order in orders {
+            for order in orders.items {
                 let product_name = order.product_name;
                 let created_formatted = order.created_at.format("%d.%m.%Y %H:%M").to_string();
 

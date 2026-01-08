@@ -61,7 +61,7 @@ impl BackendApi {
         self.get_settings()
             .await
             .ok()
-            .and_then(|settings| Some(settings.referral_program_enabled))
+            .map(|settings| settings.referral_program_enabled)
             .unwrap_or(false)
     }
 
@@ -69,21 +69,21 @@ impl BackendApi {
         self.get_settings()
             .await
             .ok()
-            .and_then(|settings| Some(settings.bot_messages_support))
+            .map(|settings| settings.bot_messages_support)
     }
 
     pub async fn get_new_user_welcome_msg(&self) -> Option<String> {
         self.get_settings()
             .await
             .ok()
-            .and_then(|settings| Some(settings.bot_messages_new_user_welcome))
+            .map(|settings| settings.bot_messages_new_user_welcome)
     }
 
     pub async fn get_returning_user_welcome_msg(&self) -> Option<String> {
         self.get_settings()
             .await
             .ok()
-            .and_then(|settings| Some(settings.bot_messages_returning_user_welcome))
+            .map(|settings| settings.bot_messages_returning_user_welcome)
     }
 
     // TODO Unused
