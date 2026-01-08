@@ -29,7 +29,6 @@ pub async fn catalog_handler(
     bot: Bot,
     _dialogue: MyDialogue,
     q: CallbackQuery,
-    _username: String,
     api_client: Arc<BackendApi>,
     category_id: i64,
 ) -> AppResult<()> {

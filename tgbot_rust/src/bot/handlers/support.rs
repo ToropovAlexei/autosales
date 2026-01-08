@@ -19,7 +19,6 @@ pub async fn support_handler(
     bot: Bot,
     _dialogue: MyDialogue,
     q: CallbackQuery,
-    _username: String,
     api_client: Arc<BackendApi>,
 ) -> AppResult<()> {
     let chat_id = match q.chat_id() {

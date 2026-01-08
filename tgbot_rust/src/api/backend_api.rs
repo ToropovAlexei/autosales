@@ -43,6 +43,15 @@ impl BackendApi {
             .await
     }
 
+    pub async fn ensure_user(&self, telegram_id: i64) -> ApiClientResult<Customer> {
+        let user = self.get_user(telegram_id).await;
+        if user.is_err() {
+            self.register_user(telegram_id).await
+        } else {
+            user
+        }
+    }
+
     pub async fn confirm_user_captcha(&self, telegram_id: i64) -> ApiClientResult<Customer> {
         self.api_client
             .patch_with_body::<Customer, _>(

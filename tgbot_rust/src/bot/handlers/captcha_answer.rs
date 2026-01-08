@@ -14,7 +14,6 @@ pub async fn captcha_answer_handler(
     bot: Bot,
     dialogue: MyDialogue,
     q: CallbackQuery,
-    _username: String,
     api_client: Arc<BackendApi>,
 ) -> AppResult<()> {
     let state_data = dialogue.get().await?.unwrap_or_default();

@@ -227,7 +227,6 @@ pub async fn run_bot(
         async move |dialogue: MyDialogue,
                     q: CallbackQuery,
                     bot: Bot,
-                    username: String,
                     api_client: Arc<BackendApi>,
                     bot_state: BotState|
                     -> AppResult<()> {
@@ -238,15 +237,14 @@ pub async fn run_bot(
 
             match data {
                 CallbackData::AnswerCaptcha { .. } => {
-                    captcha_answer_handler(bot, dialogue, q, username, api_client).await?;
+                    captcha_answer_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::SelectGateway { gateway } => {
                     dialogue
                         .update(BotState::DepositSelectAmount { gateway })
                         .await
                         .map_err(AppError::from)?;
-                    deposit_amount_handler(bot, dialogue, q, username, api_client, bot_state)
-                        .await?;
+                    deposit_amount_handler(bot, dialogue, q, api_client, bot_state).await?;
                 }
                 CallbackData::SelectAmount { amount } => {
                     let gateway = match &bot_state {
@@ -269,14 +267,14 @@ pub async fn run_bot(
                         .update(BotState::MainMenu)
                         .await
                         .map_err(AppError::from)?;
-                    main_menu_handler(bot, dialogue, q, username, api_client).await?;
+                    main_menu_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToDepositSelectGateway => {
                     dialogue
                         .update(BotState::DepositSelectGateway)
                         .await
                         .map_err(AppError::from)?;
-                    deposit_gateway_handler(bot, dialogue, q, username.clone(), api_client).await?;
+                    deposit_gateway_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToBalance => {
                     dialogue
@@ -310,14 +308,14 @@ pub async fn run_bot(
                         .update(BotState::Support)
                         .await
                         .map_err(AppError::from)?;
-                    support_handler(bot, dialogue, q, username, api_client).await?;
+                    support_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToCategory { category_id } => {
                     dialogue
                         .update(BotState::Category { category_id })
                         .await
                         .map_err(AppError::from)?;
-                    catalog_handler(bot, dialogue, q, username, api_client, category_id).await?;
+                    catalog_handler(bot, dialogue, q, api_client, category_id).await?;
                 }
                 CallbackData::ToProduct { id } => {
                     dialogue
@@ -345,12 +343,7 @@ pub async fn run_bot(
             .branch(handler)
             .branch(callback_query_handler),
     )
-    .dependencies(dptree::deps![
-        app_state.clone(),
-        storage,
-        username.clone(),
-        client.clone()
-    ])
+    .dependencies(dptree::deps![app_state.clone(), storage, client.clone()])
     .default_handler(|upd| async move {
         tracing::warn!("Unhandled update: {upd:?}");
     })

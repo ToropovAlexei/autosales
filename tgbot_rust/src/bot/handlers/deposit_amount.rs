@@ -19,7 +19,6 @@ pub async fn deposit_amount_handler(
     bot: Bot,
     _dialogue: MyDialogue,
     q: CallbackQuery,
-    _username: String,
     _api_client: Arc<BackendApi>,
     _bot_state: BotState,
 ) -> AppResult<()> {
