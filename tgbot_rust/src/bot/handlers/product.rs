@@ -10,7 +10,7 @@ use teloxide::{
     types::{CallbackQuery, InputFile, MaybeInaccessibleMessage, ParseMode},
 };
 
-use crate::models::Product;
+use crate::models::product::Product;
 use crate::{
     api::backend_api::BackendApi,
     bot::keyboards::{

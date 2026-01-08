@@ -2,14 +2,14 @@ use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
 use crate::{
     bot::CallbackData,
-    models::{Category, Product},
+    models::{category::Category, product::Product},
 };
 
 pub fn catalog_menu_inline_keyboard(
     categories: &[Category],
     products: &[Product],
-    category_id: i64,
-    parent_category_id: i64,
+    category_id: Option<i64>,
+    parent_category_id: Option<i64>,
 ) -> InlineKeyboardMarkup {
     let mut buttons: Vec<Vec<InlineKeyboardButton>> = categories
         .iter()
@@ -17,7 +17,7 @@ pub fn catalog_menu_inline_keyboard(
             vec![InlineKeyboardButton::callback(
                 category.name.clone(),
                 CallbackData::ToCategory {
-                    category_id: category.id,
+                    category_id: Some(category.id),
                 },
             )]
         })
@@ -31,8 +31,8 @@ pub fn catalog_menu_inline_keyboard(
     });
 
     let callback_data = match category_id {
-        0 => CallbackData::ToMainMenu,
-        _ => CallbackData::ToCategory {
+        None => CallbackData::ToMainMenu,
+        Some(_) => CallbackData::ToCategory {
             category_id: parent_category_id,
         },
     };

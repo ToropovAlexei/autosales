@@ -37,7 +37,7 @@ pub async fn deposit_confirm_handler(
         }
     };
 
-    let (gateway, amount, invoice_data) = match bot_state {
+    let (gateway, amount, _invoice_data) = match bot_state {
         BotState::DepositConfirm {
             gateway,
             amount,
@@ -83,7 +83,7 @@ pub async fn deposit_confirm_handler(
         })
         .await?;
 
-    let text = if let Some(pay_url) = &invoice_data.pay_url {
+    let text = if let Some(_pay_url) = &invoice_data.pay_url {
         format!(
             "✅ Ваш счет на {} ₽ создан.\n\nНажмите на кнопку ниже, чтобы перейти к оплате.",
             amount

@@ -19,7 +19,7 @@ use crate::{
         },
     },
     errors::AppResult,
-    models::Category,
+    models::category::Category,
 };
 use teloxide::dispatching::dialogue::GetChatId;
 use teloxide::payloads::SendPhotoSetters;
@@ -30,7 +30,7 @@ pub async fn catalog_handler(
     _dialogue: MyDialogue,
     q: CallbackQuery,
     api_client: Arc<BackendApi>,
-    category_id: i64,
+    category_id: Option<i64>,
 ) -> AppResult<()> {
     let chat_id = match q.chat_id() {
         Some(chat_id) => chat_id,
@@ -68,14 +68,20 @@ pub async fn catalog_handler(
         }
     };
 
-    let category = find_category_by_id(&categories.items, category_id);
-
-    let categories_to_show: &[Category] = match category_id {
-        0 => &categories.items,
-        _ => category
-            .and_then(|c| c.sub_categories.as_deref())
-            .unwrap_or(&[]),
+    let category = match category_id {
+        Some(category_id) => categories.items.iter().find(|c| c.id == category_id),
+        None => None,
     };
+
+    let categories_to_show = categories
+        .items
+        .iter()
+        .filter(|c| match category {
+            Some(category) => c.parent_id == Some(category.id),
+            None => c.parent_id.is_none(),
+        })
+        .cloned()
+        .collect::<Vec<Category>>();
 
     let image_bytes = match category {
         Some(category) => match &category.image_id {
@@ -92,8 +98,8 @@ pub async fn catalog_handler(
     };
 
     let products = match category_id {
-        0 => vec![],
-        _ => match api_client.get_products(category_id).await {
+        None => vec![],
+        Some(category_id) => match api_client.get_products(category_id).await {
             Ok(products) => products.items,
             Err(err) => {
                 tracing::error!("Error getting products: {}", err);
@@ -113,10 +119,10 @@ pub async fn catalog_handler(
 
     let caption = "🛍️ Выберите товар или категорию:";
     let reply_markup = catalog_menu_inline_keyboard(
-        categories_to_show,
+        categories_to_show.as_slice(),
         &products,
         category_id,
-        category.and_then(|x| x.parent_id).unwrap_or_default(),
+        category.and_then(|c| c.parent_id),
     );
 
     if let Some(image_bytes) = image_bytes {
@@ -147,19 +153,4 @@ pub async fn catalog_handler(
         bot.delete_message(chat_id, message_id).await?;
     }
     Ok(())
-}
-
-fn find_category_by_id(categories: &[Category], category_id: i64) -> Option<&Category> {
-    categories.iter().find_map(|category| {
-        if category.id == category_id {
-            return Some(category);
-        }
-        if let Some(sub) = &category.sub_categories
-            && let Some(found) = find_category_by_id(sub, category_id)
-        {
-            return Some(found);
-        }
-
-        None
-    })
 }

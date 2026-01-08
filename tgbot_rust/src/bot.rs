@@ -83,7 +83,7 @@ pub enum BotState {
     },
     WaitingForReferralBotToken,
     Category {
-        category_id: i64,
+        category_id: Option<i64>,
     },
     DepositSelectGateway,
     DepositSelectAmount {
@@ -139,7 +139,7 @@ pub enum CallbackData {
     AnswerCaptcha { answer: String },
     SelectGateway { gateway: String },
     SelectAmount { amount: i64 },
-    ToCategory { category_id: i64 },
+    ToCategory { category_id: Option<i64> },
     ToMainMenu,
     ToDepositSelectGateway,
     ToBalance,

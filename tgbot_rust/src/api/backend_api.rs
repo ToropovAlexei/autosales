@@ -3,12 +3,14 @@ use bytes::Bytes;
 use reqwest::header;
 use serde_json::json;
 use teloxide::types::MessageId;
+use uuid::Uuid;
 
 use crate::{
     api::{api_client::ApiClient, api_errors::ApiClientResult},
     models::{
-        Bot, BuyResponse, Category, InvoiceResponse, ListResponse, PaymentGateway, Product,
-        UserOrder, UserSubscription, common::CaptchaResponse, settings::Settings, user::Customer,
+        BuyResponse, InvoiceResponse, ListResponse, PaymentGateway, UserOrder, bot::Bot,
+        category::Category, common::CaptchaResponse, customer::Customer, product::Product,
+        settings::Settings, user_subscription::UserSubscription,
     },
 };
 
@@ -170,7 +172,7 @@ impl BackendApi {
             .await
     }
 
-    pub async fn get_image_bytes(&self, id: &str) -> ApiClientResult<Bytes> {
+    pub async fn get_image_bytes(&self, id: &Uuid) -> ApiClientResult<Bytes> {
         self.api_client.get_bytes(&format!("images/{id}")).await
     }
 

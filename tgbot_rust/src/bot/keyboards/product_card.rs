@@ -1,6 +1,6 @@
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
-use crate::{bot::CallbackData, models::Product};
+use crate::{bot::CallbackData, models::product::Product};
 
 pub fn product_card_inline_keyboard(product: &Product) -> InlineKeyboardMarkup {
     let buy_button =

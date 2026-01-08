@@ -1,0 +1,22 @@
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub enum ProductType {
+    Item,
+    Subscription,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Product {
+    pub id: i64,
+    pub name: String,
+    pub price: f64,
+    pub category_id: Option<i64>,
+    pub image_id: Option<Uuid>,
+    pub r#type: ProductType,
+    pub subscription_period_days: i16,
+    pub details: Option<serde_json::Value>,
+    pub fulfillment_text: Option<String>,
+    pub fulfillment_image_id: Option<Uuid>,
+}

@@ -6,7 +6,7 @@ pub fn main_menu_inline_keyboard(show_referral_program: bool) -> InlineKeyboardM
     let mut keyboard: Vec<Vec<InlineKeyboardButton>> = vec![
         vec![InlineKeyboardButton::callback(
             "🛍️ Каталог",
-            CallbackData::ToCategory { category_id: 0 },
+            CallbackData::ToCategory { category_id: None },
         )],
         vec![InlineKeyboardButton::callback(
             "💳 Баланс",
