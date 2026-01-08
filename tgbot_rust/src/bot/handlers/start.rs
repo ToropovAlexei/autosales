@@ -14,11 +14,10 @@ pub async fn start_handler(
     bot: Bot,
     dialogue: MyDialogue,
     msg: Message,
-    username: String,
     api_client: Arc<BackendApi>,
 ) -> AppResult<()> {
     let user_id = msg.chat.id;
-    let user = match api_client.register_user(user_id.0, &username).await {
+    let user = match api_client.register_user(user_id.0).await {
         Ok(res) => res,
         Err(err) => {
             tracing::error!("Error getting user: {user_id}, {err}");

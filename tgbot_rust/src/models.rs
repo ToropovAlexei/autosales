@@ -20,6 +20,12 @@ pub struct BackendResponse<T> {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct ListResponse<T> {
+    pub items: Vec<T>,
+    pub total: i64,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct BalanceResponse {
     pub balance: f64,
 }
@@ -90,12 +96,12 @@ pub struct BuyResponse {
     pub fulfilled_content: Option<String>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Bot {
     pub id: i64,
     pub token: String,
     pub username: String,
-    pub is_primary: bool,
     pub is_active: bool,
-    pub owner_id: Option<i64>,
+    pub is_primary: bool,
+    pub referral_percentage: f64,
 }

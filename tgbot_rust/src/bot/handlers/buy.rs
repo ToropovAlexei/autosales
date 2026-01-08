@@ -11,7 +11,6 @@ use teloxide::{
 };
 
 use crate::api::api_errors::ApiClientError;
-use crate::bot::BotUsername;
 use crate::{
     api::backend_api::BackendApi,
     bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard, errors::AppResult,
@@ -22,7 +21,6 @@ pub async fn buy_handler(
     q: CallbackQuery,
     api_client: Arc<BackendApi>,
     product_id: i64,
-    bot_username: BotUsername,
 ) -> AppResult<()> {
     let chat_id = match q.chat_id() {
         Some(chat_id) => chat_id,
@@ -34,9 +32,7 @@ pub async fn buy_handler(
         None => return Ok(()),
     };
 
-    let buy_result = api_client
-        .buy_product(chat_id.0, product_id, bot_username)
-        .await;
+    let buy_result = api_client.buy_product(chat_id.0, product_id).await;
 
     match buy_result {
         Ok(response) => {

@@ -283,7 +283,7 @@ pub async fn run_bot(
                         .update(BotState::Balance)
                         .await
                         .map_err(AppError::from)?;
-                    balance_handler(bot, dialogue, q, username, api_client).await?;
+                    balance_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToMyOrders => {
                     dialogue
@@ -327,7 +327,7 @@ pub async fn run_bot(
                     product_handler(bot, q, api_client, id).await?;
                 }
                 CallbackData::Buy { id } => {
-                    buy_handler(bot, q, api_client, id, BotUsername(username)).await?;
+                    buy_handler(bot, q, api_client, id).await?;
                 }
             }
 
@@ -370,14 +370,13 @@ async fn command_handler(
     msg: Message,
     cmd: Command,
     dialogue: MyDialogue,
-    username: String,
     api_client: Arc<BackendApi>,
     app_state: AppState,
 ) -> AppResult<()> {
     match cmd {
         Command::Start => {
             dialogue.update(BotState::Initial).await?;
-            start_handler(bot, dialogue, msg, username.clone(), api_client).await
+            start_handler(bot, dialogue, msg, api_client).await
         }
         Command::MyBots => {
             dialogue

@@ -95,7 +95,7 @@ pub async fn catalog_handler(
     let products = match category_id {
         0 => vec![],
         _ => match api_client.get_products(category_id).await {
-            Ok(products) => products,
+            Ok(products) => products.items,
             Err(err) => {
                 tracing::error!("Error getting products: {}", err);
                 bot.edit_message_text(

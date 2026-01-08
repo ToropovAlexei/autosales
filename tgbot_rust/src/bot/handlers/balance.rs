@@ -19,7 +19,6 @@ pub async fn balance_handler(
     bot: Bot,
     _dialogue: MyDialogue,
     q: CallbackQuery,
-    username: String,
     api_client: Arc<BackendApi>,
 ) -> AppResult<()> {
     let chat_id = match q.chat_id() {
@@ -31,12 +30,15 @@ pub async fn balance_handler(
         Some(MaybeInaccessibleMessage::Inaccessible(_)) => return Ok(()),
         None => return Ok(()),
     };
-    match api_client.get_user_balance(chat_id.0, &username).await {
-        Ok(balance) => {
+    match api_client.get_user(chat_id.0).await {
+        Ok(customer) => {
             bot.edit_message_text(
                 chat_id,
                 message_id,
-                format!("💳 Ваш текущий баланс: {} ₽", bold(&balance.to_string())),
+                format!(
+                    "💳 Ваш текущий баланс: {} ₽",
+                    bold(&customer.balance.to_string())
+                ),
             )
             .reply_markup(balance_menu_inline_keyboard())
             .parse_mode(ParseMode::Html)
