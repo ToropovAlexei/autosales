@@ -231,7 +231,7 @@ impl BackendApi {
     ) -> ApiClientResult<BuyResponse> {
         self.api_client
             .post_with_body::<BuyResponse, _>(
-                &format!("buy/product"),
+                "buy/product",
                 &json!({
                     "telegram_id": telegram_id,
                     "product_id": product_id,
@@ -243,48 +243,23 @@ impl BackendApi {
     pub async fn get_bots(&self) -> ApiClientResult<ListResponse<Bot>> {
         self.api_client
             // TODO Filters
-            .get::<ListResponse<Bot>>(&format!("bot/bots"))
+            .get::<ListResponse<Bot>>("bot/bots")
             .await
     }
 
-    pub async fn create_referral_bot(
-        &self,
-        telegram_id: i64,
-        bot_token: &str,
-    ) -> ApiClientResult<crate::models::Bot> {
+    pub async fn create_referral_bot(&self, telegram_id: i64, token: &str) -> ApiClientResult<Bot> {
         self.api_client
-            .post_with_body::<BackendResponse<crate::models::Bot>, _>(
-                "referrals",
-                &json!({"owner_id": telegram_id, "bot_token": bot_token}),
+            .post_with_body::<Bot, _>(
+                "bot/bots",
+                &json!({"owner_id": telegram_id, "token": token}),
             )
             .await
-            .and_then(|res| {
-                res.data.ok_or_else(|| {
-                    ApiClientError::Unsuccessful(
-                        res.error.unwrap_or_else(|| "Unknown error".to_string()),
-                    )
-                })
-            })
     }
 
-    pub async fn create_main_bot(
-        &self,
-        token: &str,
-        username: &str,
-    ) -> ApiClientResult<crate::models::Bot> {
+    pub async fn create_main_bot(&self, token: &str) -> ApiClientResult<Bot> {
         self.api_client
-            .post_with_body::<BackendResponse<crate::models::Bot>, _>(
-                "bots/main",
-                &json!({"token": token, "username": username}),
-            )
+            .post_with_body::<Bot, _>("bot/bots", &json!({"token": token}))
             .await
-            .and_then(|res| {
-                res.data.ok_or_else(|| {
-                    ApiClientError::Unsuccessful(
-                        res.error.unwrap_or_else(|| "Unknown error".to_string()),
-                    )
-                })
-            })
     }
 
     pub async fn get_captcha(&self) -> ApiClientResult<CaptchaResponse> {

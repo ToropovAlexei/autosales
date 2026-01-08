@@ -3,6 +3,7 @@ use anyhow::anyhow;
 use grammers_client::{Client, SignInError};
 use grammers_mtsender::SenderPool;
 use grammers_session::storages::SqliteSession;
+use regex::Regex;
 use std::io::{BufRead, Write};
 use std::sync::Arc;
 use std::time::SystemTime;
@@ -117,6 +118,24 @@ impl BotFather {
             .await?
             .ok_or_else(|| anyhow!("No reply from BotFather"))?;
 
+        if !reply.text().contains("Done!") {
+            tracing::error!(
+                "BotFather responded unexpectedly after username: {}",
+                reply.text()
+            );
+            return Ok(false);
+        }
+
+        let bot_token = match extract_bot_token(&reply.text()) {
+            Some(token) => token,
+            None => {
+                tracing::error!("Failed to extract bot token from reply: {}", reply.text());
+                return Ok(false);
+            }
+        };
+
+        self.backend_api.create_main_bot(&bot_token).await?;
+
         Ok(true)
     }
 }
@@ -133,4 +152,9 @@ fn prompt(message: &str) -> AppResult<String> {
     let mut line = String::new();
     stdin.read_line(&mut line)?;
     Ok(line)
+}
+
+fn extract_bot_token(text: &str) -> Option<String> {
+    let re = Regex::new(r"(\d+:[a-zA-Z0-9_-]{35})").expect("Failed to create regex");
+    re.find(text).map(|m| m.as_str().to_string())
 }

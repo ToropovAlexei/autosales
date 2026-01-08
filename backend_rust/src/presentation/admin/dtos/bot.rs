@@ -44,7 +44,7 @@ impl From<BotRow> for BotResponse {
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "bot.ts", rename = "NewBot")]
 pub struct NewBotRequest {
-    #[validate(length(min = 46, max = 46, message = "Length must be 46 characters"))]
+    #[validate(length(min = 44, max = 48, message = "Length must be between 44 and 48"))]
     pub token: String,
 }
 
