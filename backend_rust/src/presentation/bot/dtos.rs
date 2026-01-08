@@ -5,3 +5,4 @@ pub mod category;
 pub mod customer;
 pub mod product;
 pub mod settings;
+pub mod user_subscription;
