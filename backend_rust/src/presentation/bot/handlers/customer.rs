@@ -88,12 +88,16 @@ async fn update_customer(
     _bot: AuthBot,
     ValidatedJson(payload): ValidatedJson<UpdateCustomerRequest>,
 ) -> ApiResult<Json<CustomerResponse>> {
+    let prev = state
+        .customer_service
+        .get_by_telegram_id(telegram_id)
+        .await?;
     let customer = state
         .customer_service
         .update(UpdateCustomerCommand {
             bot_is_blocked_by_user: payload.bot_is_blocked_by_user,
             has_passed_captcha: payload.has_passed_captcha,
-            id: telegram_id,
+            id: prev.id,
             is_blocked: None,
             last_seen_at: None,
             updated_by: None,
