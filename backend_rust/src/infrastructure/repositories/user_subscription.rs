@@ -8,7 +8,10 @@ use crate::{
     infrastructure::lib::query::{apply_filters, apply_list_query},
     models::{
         common::PaginatedResult,
-        user_subscription::{NewUserSubscription, UserSubscriptionListQuery, UserSubscriptionRow},
+        user_subscription::{
+            NewUserSubscription, UserSubscriptionEnrichedRow, UserSubscriptionListQuery,
+            UserSubscriptionRow,
+        },
     },
 };
 
@@ -22,7 +25,7 @@ pub trait UserSubscriptionRepositoryTrait {
         &self,
         user_subscription: NewUserSubscription,
     ) -> RepositoryResult<UserSubscriptionRow>;
-    async fn get_for_user(&self, id: i64) -> RepositoryResult<Vec<UserSubscriptionRow>>;
+    async fn get_for_user(&self, id: i64) -> RepositoryResult<Vec<UserSubscriptionEnrichedRow>>;
 }
 
 #[derive(Clone)]
@@ -87,10 +90,17 @@ impl UserSubscriptionRepositoryTrait for UserSubscriptionRepository {
         Ok(result)
     }
 
-    async fn get_for_user(&self, id: i64) -> RepositoryResult<Vec<UserSubscriptionRow>> {
+    async fn get_for_user(&self, id: i64) -> RepositoryResult<Vec<UserSubscriptionEnrichedRow>> {
         let result = sqlx::query_as!(
-            UserSubscriptionRow,
-            "SELECT * FROM user_subscriptions WHERE customer_id = $1",
+            UserSubscriptionEnrichedRow,
+            r#"
+            SELECT 
+                us.*, 
+                p.name AS product_name
+            FROM user_subscriptions us
+            JOIN products p ON us.product_id = p.id
+            WHERE customer_id = $1
+            "#,
             id
         )
         .fetch_all(&*self.pool)
