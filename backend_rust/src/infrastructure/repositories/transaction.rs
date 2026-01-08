@@ -117,11 +117,10 @@ mod tests {
 
     use super::*;
     use bigdecimal::BigDecimal;
-    use sqlx::query;
 
     #[sqlx::test]
     async fn test_balance_calculation_triggers(pool: PgPool) {
-        let customer = query!(
+        let customer_id: i64 = sqlx::query!(
             r#"INSERT INTO customers (telegram_id, registered_with_bot, last_seen_with_bot) VALUES ($1, $2, $3) RETURNING id"#,
             12345,
             1,
@@ -129,12 +128,14 @@ mod tests {
         )
         .fetch_one(&pool)
         .await
-        .unwrap();
+        .unwrap()
+        .id;
 
-        let repo = TransactionRepository::new(Arc::new(pool));
+        let repo = TransactionRepository::new(Arc::new(pool.clone()));
 
+        // Deposit transaction
         let deposit_tx = NewTransaction {
-            customer_id: Some(customer.id),
+            customer_id: Some(customer_id),
             order_id: None,
             r#type: TransactionType::Deposit,
             amount: BigDecimal::from(1000),
@@ -151,8 +152,20 @@ mod tests {
         assert_eq!(result1.user_balance_after, Some(BigDecimal::from(1000)));
         assert_eq!(result1.store_balance_after, BigDecimal::from(1000));
 
+        // Verify customer balance after deposit
+        let customer = sqlx::query_as!(
+            crate::models::customer::CustomerRow, // Full path for CustomerRow
+            "SELECT * FROM customers WHERE id = $1",
+            customer_id
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(customer.balance, BigDecimal::from(1000));
+
+        // Purchase transaction
         let purchase_tx = NewTransaction {
-            customer_id: Some(customer.id),
+            customer_id: Some(customer_id),
             order_id: None,
             r#type: TransactionType::Purchase,
             amount: BigDecimal::from(-150),
@@ -167,6 +180,17 @@ mod tests {
         let result2 = repo.create(purchase_tx).await.unwrap();
 
         assert_eq!(result2.user_balance_after, Some(BigDecimal::from(850))); // 1000 - 150
-        assert_eq!(result2.store_balance_after, BigDecimal::from(1150));
+        assert_eq!(result2.store_balance_after, BigDecimal::from(1150)); // 1000 + 150
+
+        // Verify customer balance after purchase
+        let customer = sqlx::query_as!(
+            crate::models::customer::CustomerRow, // Full path for CustomerRow
+            "SELECT * FROM customers WHERE id = $1",
+            customer_id
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(customer.balance, BigDecimal::from(850));
     }
 }

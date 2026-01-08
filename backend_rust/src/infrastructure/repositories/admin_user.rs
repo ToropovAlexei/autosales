@@ -157,17 +157,26 @@ mod tests {
             telegram_id: None,
             created_by: 1,
         };
-        sqlx::query_as!(
-            AdminUserRow,
+        let user_id: i64 = sqlx::query!(
             r#"
             INSERT INTO admin_users (login, hashed_password, two_fa_secret, created_by)
             VALUES ($1, $2, $3, $4)
-            RETURNING *
+            RETURNING id
             "#,
             new_user.login,
             new_user.hashed_password,
             new_user.two_fa_secret,
             new_user.created_by
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+        .id;
+
+        sqlx::query_as!(
+            AdminUserRow,
+            "SELECT * FROM admin_users WHERE id = $1",
+            user_id
         )
         .fetch_one(pool)
         .await
@@ -245,5 +254,27 @@ mod tests {
         // Get the list of users
         let users = repo.get_list().await.unwrap();
         assert!(users.len() >= 2);
+    }
+
+    #[sqlx::test]
+    async fn test_updated_at_trigger(pool: PgPool) {
+        let repo = AdminUserRepository::new(Arc::new(pool.clone()));
+        let login = "testuser_trigger_update";
+
+        // Create a user
+        let user = create_test_user(&pool, login).await;
+        let initial_updated_at = user.updated_at;
+
+        // Update the user
+        let update_data = UpdateAdminUser {
+            login: Some("new_login_for_trigger".to_string()),
+            hashed_password: None,
+            two_fa_secret: None,
+            telegram_id: None,
+        };
+        let updated_user = repo.update(user.id, update_data).await.unwrap();
+
+        // Assert that updated_at has changed
+        assert!(updated_user.updated_at > initial_updated_at);
     }
 }
