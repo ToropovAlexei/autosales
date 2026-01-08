@@ -40,7 +40,7 @@ pub async fn my_subscriptions_handler(
             let mut response_text = format!("{}\n\n", bold("🧾 Ваши подписки:"));
 
             for sub in subscriptions.items {
-                let product_name = sub.product.name;
+                let product_name = sub.product_name;
                 let expires_formatted = sub.expires_at.format("%d.%m.%Y %H:%M").to_string();
                 let status = if sub.expires_at > chrono::Utc::now() {
                     "✅ Активна до"
@@ -48,7 +48,8 @@ pub async fn my_subscriptions_handler(
                     "❌ Неактивна"
                 };
 
-                response_text.push_str(&format!("🔹 {}\n", bold(&product_name)));
+                response_text
+                    .push_str(&format!("🔹 {}\n", bold(&product_name.unwrap_or_default())));
                 response_text.push_str(&format!("   {} {}\n", status, italic(&expires_formatted)));
 
                 if let Some(details) = sub.details

@@ -6,6 +6,7 @@ pub struct UserSubscription {
     pub id: i64,
     pub customer_id: i64,
     pub product_id: Option<i64>,
+    pub product_name: Option<String>,
     pub order_id: i64,
     pub started_at: DateTime<Utc>,
     pub expires_at: DateTime<Utc>,

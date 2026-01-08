@@ -122,9 +122,6 @@ impl From<BotState> for String {
 }
 
 #[derive(Clone)]
-pub struct ImagesUrl(String);
-
-#[derive(Clone)]
 pub struct BotUsername(String);
 
 impl std::fmt::Display for BotUsername {
