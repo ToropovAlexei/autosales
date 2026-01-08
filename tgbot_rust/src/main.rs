@@ -5,14 +5,15 @@ use tgbot_rust::bot_manager::BotManager;
 use tgbot_rust::config::Config;
 use tgbot_rust::health_checker::HealthChecker;
 use tgbot_rust::webhook::create_webhook_service;
-use tgbot_rust::{AppState, init_logging};
+use tgbot_rust::{AppState, create_redis_pool, init_logging};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     init_logging();
     tracing::info!("Starting application");
     let config = Arc::new(Config::from_env());
-    let app_state = AppState::new(config.clone());
+    let redis_pool = create_redis_pool(&config).await;
+    let app_state = AppState::new(config.clone(), redis_pool);
     let webhook_service = create_webhook_service(app_state.clone());
     let listener_address = format!("{}:{}", config.webhook_host, config.webhook_port);
 

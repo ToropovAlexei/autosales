@@ -11,7 +11,7 @@ pub mod webhook;
 use std::{io, sync::Arc};
 
 use config::Config;
-use deadpool_redis::{Pool, Runtime};
+use deadpool_redis::{Pool, Runtime, redis::AsyncCommands};
 
 use tracing_appender::rolling;
 use tracing_subscriber::{
@@ -30,8 +30,7 @@ pub struct AppState {
 }
 
 impl AppState {
-    pub fn new(config: Arc<Config>) -> Self {
-        let redis_pool = create_redis_pool(&config);
+    pub fn new(config: Arc<Config>, redis_pool: Pool) -> Self {
         let api = Arc::new(
             BackendApi::new(&config.backend_api_url, &config.service_api_key, None).unwrap(),
         );
@@ -70,12 +69,21 @@ pub fn init_logging() {
         .init();
 }
 
-pub fn create_redis_pool(config: &Config) -> Pool {
+pub async fn create_redis_pool(config: &Config) -> Pool {
     let redis_url = format!("redis://{}:{}", config.redis_host, config.redis_port);
 
     let pool_cfg = deadpool_redis::Config::from_url(redis_url);
 
-    pool_cfg
+    let pool = pool_cfg
         .create_pool(Some(Runtime::Tokio1))
-        .expect("Failed to create Redis pool")
+        .expect("Failed to create Redis pool config");
+
+    let mut conn = pool.get().await.expect("Failed to get redis connection");
+    let pong: String = conn.ping().await.expect("Failed to ping redis");
+
+    if pong != "PONG" {
+        panic!("Redis is not running");
+    }
+
+    pool
 }
