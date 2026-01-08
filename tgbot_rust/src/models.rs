@@ -1,4 +1,5 @@
 pub mod common;
+pub mod settings;
 pub mod user;
 
 use serde::{Deserialize, Serialize};
@@ -10,13 +11,6 @@ pub struct DispatchMessagePayload {
     pub message: String,
     pub message_to_edit: Option<i32>,
     pub message_to_delete: Option<i32>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BackendResponse<T> {
-    pub success: bool,
-    pub data: Option<T>,
-    pub error: Option<String>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

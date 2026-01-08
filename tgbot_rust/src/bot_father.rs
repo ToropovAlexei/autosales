@@ -126,7 +126,7 @@ impl BotFather {
             return Ok(false);
         }
 
-        let bot_token = match extract_bot_token(&reply.text()) {
+        let bot_token = match extract_bot_token(reply.text()) {
             Some(token) => token,
             None => {
                 tracing::error!("Failed to extract bot token from reply: {}", reply.text());

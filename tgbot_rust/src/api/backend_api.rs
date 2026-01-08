@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use axum::http::{HeaderMap, HeaderValue};
 use bytes::Bytes;
 use reqwest::header;
@@ -7,13 +5,10 @@ use serde_json::json;
 use teloxide::types::MessageId;
 
 use crate::{
-    api::{
-        api_client::ApiClient,
-        api_errors::{ApiClientError, ApiClientResult},
-    },
+    api::{api_client::ApiClient, api_errors::ApiClientResult},
     models::{
-        BackendResponse, Bot, BuyResponse, Category, InvoiceResponse, ListResponse, PaymentGateway,
-        Product, UserOrder, UserSubscription, common::CaptchaResponse, user::Customer,
+        Bot, BuyResponse, Category, InvoiceResponse, ListResponse, PaymentGateway, Product,
+        UserOrder, UserSubscription, common::CaptchaResponse, settings::Settings, user::Customer,
     },
 };
 
@@ -38,10 +33,7 @@ impl BackendApi {
 
     pub async fn register_user(&self, telegram_id: i64) -> ApiClientResult<Customer> {
         self.api_client
-            .post_with_body::<Customer, _>(
-                "bot/customers/register",
-                &json!({"telegram_id": telegram_id}),
-            )
+            .post_with_body::<Customer, _>("bot/customers", &json!({"telegram_id": telegram_id}))
             .await
     }
 
@@ -60,36 +52,16 @@ impl BackendApi {
             .await
     }
 
-    pub async fn get_settings(&self) -> ApiClientResult<HashMap<String, String>> {
-        let res = self
-            .api_client
-            .get::<BackendResponse<serde_json::Value>>("bot/settings")
-            .await?;
-
-        let data = res.data.ok_or_else(|| {
-            ApiClientError::Unsuccessful(res.error.unwrap_or_else(|| "Unknown error".to_string()))
-        })?;
-
-        let obj = data.as_object().ok_or_else(|| {
-            ApiClientError::Unsuccessful(
-                "Invalid settings format: expected JSON object".to_string(),
-            )
-        })?;
-
-        let settings = obj
-            .iter()
-            .filter_map(|(k, v)| v.as_str().map(|s| (k.clone(), s.to_string())))
-            .collect::<HashMap<_, _>>();
-
-        Ok(settings)
+    pub async fn get_settings(&self) -> ApiClientResult<Settings> {
+        let res = self.api_client.get::<Settings>("bot/settings").await?;
+        Ok(res)
     }
 
     pub async fn is_referral_program_enabled(&self) -> bool {
         self.get_settings()
             .await
             .ok()
-            .and_then(|settings| settings.get("referral_program_enabled").cloned())
-            .map(|v| v == "true")
+            .and_then(|settings| Some(settings.referral_program_enabled))
             .unwrap_or(false)
     }
 
@@ -97,33 +69,32 @@ impl BackendApi {
         self.get_settings()
             .await
             .ok()
-            .and_then(|settings| settings.get("support_message").cloned())
-            .map(|val| val.to_string())
+            .and_then(|settings| Some(settings.bot_messages_support))
     }
 
     pub async fn get_new_user_welcome_msg(&self) -> Option<String> {
         self.get_settings()
             .await
             .ok()
-            .and_then(|settings| settings.get("new_user_welcome_message").cloned())
-            .map(|val| val.to_string())
+            .and_then(|settings| Some(settings.bot_messages_new_user_welcome))
     }
 
     pub async fn get_returning_user_welcome_msg(&self) -> Option<String> {
         self.get_settings()
             .await
             .ok()
-            .and_then(|settings| settings.get("returning_user_welcome_message").cloned())
-            .map(|val| val.to_string())
+            .and_then(|settings| Some(settings.bot_messages_returning_user_welcome))
     }
 
-    pub async fn get_payment_gateways(&self) -> Vec<PaymentGateway> {
+    // TODO Unused
+    pub async fn get_payment_gateways(&self) -> ListResponse<PaymentGateway> {
         self.api_client
-            .get::<BackendResponse<Vec<PaymentGateway>>>("gateways")
+            .get::<ListResponse<PaymentGateway>>("gateways")
             .await
-            .map(|res| res.data)
-            .unwrap_or_default()
-            .unwrap_or_default()
+            .unwrap_or(ListResponse {
+                items: Vec::new(),
+                total: 0,
+            })
     }
 
     pub async fn create_deposit_invoice(
@@ -132,16 +103,11 @@ impl BackendApi {
         amount: f64,
         telegram_id: i64,
     ) -> ApiClientResult<InvoiceResponse> {
-        self.api_client.post_with_body::<BackendResponse<InvoiceResponse>, _>(
+        self.api_client.post_with_body::<InvoiceResponse, _>(
             "deposit/invoice",
             &json!({"telegram_id": telegram_id, "gateway_name": gateway_name, "amount": amount}),
         )
         .await
-        .and_then(|res| {
-            res.data.ok_or_else(|| {
-                ApiClientError::Unsuccessful(res.error.unwrap_or_else(|| "Unknown error".to_string()))
-            })
-        })
     }
 
     pub async fn set_invoice_message_id(
@@ -150,62 +116,37 @@ impl BackendApi {
         message_id: MessageId,
     ) -> ApiClientResult<serde_json::Value> {
         self.api_client
-            .patch_with_body::<BackendResponse<serde_json::Value>, _>(
+            .patch_with_body::<serde_json::Value, _>(
                 &format!("invoices/{order_id}/message-id"),
                 &json!({"message_id": message_id.0}),
             )
             .await
-            .and_then(|res| {
-                res.data.ok_or_else(|| {
-                    ApiClientError::Unsuccessful(
-                        res.error.unwrap_or_else(|| "Unknown error".to_string()),
-                    )
-                })
-            })
     }
 
-    pub async fn get_user_orders(&self, telegram_id: i64) -> ApiClientResult<Vec<UserOrder>> {
+    pub async fn get_user_orders(
+        &self,
+        telegram_id: i64,
+    ) -> ApiClientResult<ListResponse<UserOrder>> {
         self.api_client
-            .get::<BackendResponse<Vec<UserOrder>>>(&format!("bot/customers/{telegram_id}/orders"))
+            .get::<ListResponse<UserOrder>>(&format!("bot/customers/{telegram_id}/orders"))
             .await
-            .and_then(|res| {
-                res.data.ok_or_else(|| {
-                    ApiClientError::Unsuccessful(
-                        res.error.unwrap_or_else(|| "Unknown error".to_string()),
-                    )
-                })
-            })
     }
 
     pub async fn get_user_subscriptions(
         &self,
         telegram_id: i64,
-    ) -> ApiClientResult<Vec<UserSubscription>> {
+    ) -> ApiClientResult<ListResponse<UserSubscription>> {
         self.api_client
-            .get::<BackendResponse<Vec<UserSubscription>>>(&format!(
-                "customers/{telegram_id}/subscriptions"
+            .get::<ListResponse<UserSubscription>>(&format!(
+                "bot/customers/{telegram_id}/subscriptions"
             ))
             .await
-            .and_then(|res| {
-                res.data.ok_or_else(|| {
-                    ApiClientError::Unsuccessful(
-                        res.error.unwrap_or_else(|| "Unknown error".to_string()),
-                    )
-                })
-            })
     }
 
-    pub async fn get_categories(&self) -> ApiClientResult<Vec<Category>> {
+    pub async fn get_categories(&self) -> ApiClientResult<ListResponse<Category>> {
         self.api_client
-            .get::<BackendResponse<Vec<Category>>>("categories")
+            .get::<ListResponse<Category>>("bot/categories")
             .await
-            .and_then(|res| {
-                res.data.ok_or_else(|| {
-                    ApiClientError::Unsuccessful(
-                        res.error.unwrap_or_else(|| "Unknown error".to_string()),
-                    )
-                })
-            })
     }
 
     pub async fn get_products(&self, category_id: i64) -> ApiClientResult<ListResponse<Product>> {
@@ -263,15 +204,6 @@ impl BackendApi {
     }
 
     pub async fn get_captcha(&self) -> ApiClientResult<CaptchaResponse> {
-        self.api_client
-            .get::<BackendResponse<CaptchaResponse>>("captcha")
-            .await
-            .and_then(|res| {
-                res.data.ok_or_else(|| {
-                    ApiClientError::Unsuccessful(
-                        res.error.unwrap_or_else(|| "Unknown error".to_string()),
-                    )
-                })
-            })
+        self.api_client.get::<CaptchaResponse>("bot/captcha").await
     }
 }
