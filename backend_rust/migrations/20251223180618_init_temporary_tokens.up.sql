@@ -1,7 +1,7 @@
 CREATE TABLE temporary_tokens (
     token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id BIGINT NOT NULL,
-    purpose TEXT NOT NULL CHECK (purpose IN ('2fa', 'password_reset')),
+    purpose TEXT NOT NULL CHECK (purpose IN ('two_fa', 'password_reset')),
     expires_at TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     used_at TIMESTAMPTZ,
