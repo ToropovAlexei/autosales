@@ -1,4 +1,8 @@
-use std::sync::Arc;
+use std::{
+    marker::PhantomData,
+    net::{IpAddr, Ipv4Addr},
+    sync::Arc,
+};
 
 use backend_rust::{
     bin::{
@@ -9,16 +13,31 @@ use backend_rust::{
     db::Database,
     infrastructure::repositories::{
         admin_user::AdminUserRepository,
+        audit_log::AuditLogRepository,
         category::{CategoryRepository, CategoryRepositoryTrait},
+        products::ProductRepository,
         role::RoleRepository,
+        stock_movement::StockMovementRepository,
         user_role::UserRoleRepository,
     },
     init_tracing,
-    models::category::NewCategory,
+    middlewares::context::RequestContext,
+    models::{
+        category::NewCategory,
+        common::{OrderDir, Pagination},
+        product::{ProductListQuery, ProductType},
+    },
     run_migrations,
-    services::topt_encryptor::TotpEncryptor,
+    services::{
+        audit_log::AuditLogService,
+        category::{CategoryService, CategoryServiceTrait},
+        product::{CreateProductCommand, ProductService, ProductServiceTrait},
+        topt_encryptor::TotpEncryptor,
+    },
     state::AppState,
 };
+use bigdecimal::{BigDecimal, FromPrimitive};
+use uuid::Uuid;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -44,6 +63,19 @@ async fn main() -> anyhow::Result<()> {
     let role_repo = Arc::new(RoleRepository::new(db_pool.clone()));
     let user_role_repo = Arc::new(UserRoleRepository::new(db_pool.clone()));
     let category_repo = Arc::new(CategoryRepository::new(db_pool.clone()));
+    let product_repo = Arc::new(ProductRepository::new(db_pool.clone()));
+    let stock_movement_repo = Arc::new(StockMovementRepository::new(db_pool.clone()));
+    let audit_log_repo = Arc::new(AuditLogRepository::new(db_pool.clone()));
+    let audit_log_service = Arc::new(AuditLogService::new(audit_log_repo.clone()));
+    let product_service = Arc::new(ProductService::new(
+        product_repo,
+        stock_movement_repo,
+        audit_log_service.clone(),
+    ));
+    let category_service = Arc::new(CategoryService::new(
+        category_repo.clone(),
+        audit_log_service,
+    ));
     let admin_id = create_admin_user_if_not_exists(
         &admin_user_repo,
         &totp_encryptor,
@@ -59,6 +91,7 @@ async fn main() -> anyhow::Result<()> {
     println!("Admin user role assigned");
     seed_categories(&category_repo).await;
     println!("Test categories created");
+    seed_products(&product_service, &category_service).await;
 
     Ok(())
 }
@@ -159,4 +192,218 @@ async fn seed_categories(category_repo: &Arc<CategoryRepository>) {
         .unwrap();
 
     println!("✅ Categories seeded successfully!");
+}
+
+pub async fn seed_products(
+    product_service: &Arc<
+        ProductService<
+            ProductRepository,
+            StockMovementRepository,
+            AuditLogService<AuditLogRepository>,
+        >,
+    >,
+    category_service: &Arc<
+        CategoryService<CategoryRepository, AuditLogService<AuditLogRepository>>,
+    >,
+) {
+    println!("🌱 Seeding test products...");
+
+    let existing = product_service
+        .get_list(ProductListQuery {
+            pagination: Pagination {
+                page: 1,
+                page_size: 1000,
+            },
+            filters: vec![],
+            order_by: None,
+            order_dir: OrderDir::Desc,
+            _phantom: PhantomData,
+        })
+        .await
+        .unwrap();
+    let existing_names: std::collections::HashSet<_> =
+        existing.items.iter().map(|p| p.name.as_str()).collect();
+
+    let categories = category_service.get_list().await.unwrap();
+    let category_by_name: std::collections::HashMap<_, _> =
+        categories.into_iter().map(|c| (c.name, c.id)).collect();
+
+    let get_category_id = |name: &str| -> i64 {
+        *category_by_name.get(name).unwrap_or_else(|| {
+            panic!(
+                "Category '{}' not found! Did you seed categories first?",
+                name
+            )
+        })
+    };
+
+    let ctx = RequestContext {
+        ip_address: Some(IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))),
+        user_agent: Some("seed_script".to_string()),
+        request_id: Uuid::new_v4(),
+    };
+
+    let create_if_not_exists = |name: String,
+                                price: f64,
+                                category_name: String,
+                                initial_stock: Option<i64>,
+                                product_type: ProductType| {
+        let product_service = Arc::clone(&product_service);
+        let ctx = ctx.clone();
+        let name = name.to_string();
+        let category_name = category_name.to_string();
+        let existing_names = existing_names.clone();
+        async move {
+            if !existing_names.contains(&name.as_str()) {
+                println!("  ➕ {}", name);
+                let cmd = CreateProductCommand {
+                    name: name.to_string(),
+                    price: BigDecimal::from_f64(price).unwrap(),
+                    category_id: get_category_id(category_name.as_str()),
+                    image_id: None,
+                    r#type: product_type,
+                    subscription_period_days: None,
+                    details: None,
+                    fulfillment_text: None,
+                    fulfillment_image_id: None,
+                    provider_name: "internal".to_string(),
+                    external_id: None,
+                    created_by: 1, // System user
+                    initial_stock,
+                };
+                product_service.create(cmd, ctx.clone()).await.unwrap();
+            } else {
+                println!("  ✅ {} (уже есть)", name);
+            }
+        }
+    };
+
+    // --- Электроника ---
+
+    create_if_not_exists(
+        "iPhone 15 Pro".to_string(),
+        1299.99,
+        "iOS".to_string(),
+        Some(10),
+        ProductType::Item,
+    )
+    .await;
+
+    create_if_not_exists(
+        "Samsung Galaxy S24".to_string(),
+        999.99,
+        "Android".to_string(),
+        Some(15),
+        ProductType::Item,
+    )
+    .await;
+
+    create_if_not_exists(
+        "AirPods Pro".to_string(),
+        249.99,
+        "Наушники".to_string(),
+        Some(30),
+        ProductType::Item,
+    )
+    .await;
+
+    create_if_not_exists(
+        "MacBook Air M2".to_string(),
+        1199.99,
+        "Ноутбуки".to_string(),
+        Some(5),
+        ProductType::Item,
+    )
+    .await;
+
+    // --- Книги ---
+
+    create_if_not_exists(
+        "Мастер и Маргарита".to_string(),
+        15.99,
+        "Художественная литература".to_string(),
+        Some(100),
+        ProductType::Item,
+    )
+    .await;
+
+    create_if_not_exists(
+        "Алгоритмы. Построение и анализ".to_string(),
+        65.00,
+        "Научная литература".to_string(),
+        Some(40),
+        ProductType::Item,
+    )
+    .await;
+
+    create_if_not_exists(
+        "Гарри Поттер и философский камень".to_string(),
+        18.50,
+        "Детские книги".to_string(),
+        Some(80),
+        ProductType::Item,
+    )
+    .await;
+
+    // --- Одежда ---
+
+    create_if_not_exists(
+        "Футболка хлопковая (M, белая)".to_string(),
+        19.99,
+        "Футболки".to_string(),
+        Some(50),
+        ProductType::Item,
+    )
+    .await;
+
+    create_if_not_exists(
+        "Джинсы классические (32, синие)".to_string(),
+        79.99,
+        "Джинсы".to_string(),
+        Some(25),
+        ProductType::Item,
+    )
+    .await;
+
+    // --- Дом и сад ---
+
+    create_if_not_exists(
+        "Светодиодный светильник потолочный".to_string(),
+        45.00,
+        "Освещение".to_string(),
+        Some(20),
+        ProductType::Item,
+    )
+    .await;
+
+    create_if_not_exists(
+        "Лопата садовая стальная".to_string(),
+        29.99,
+        "Садовый инвентарь".to_string(),
+        Some(15),
+        ProductType::Item,
+    )
+    .await;
+
+    // --- Спорт ---
+
+    create_if_not_exists(
+        "Гантели 5 кг (пара)".to_string(),
+        39.99,
+        "Фитнес".to_string(),
+        Some(12),
+        ProductType::Item,
+    )
+    .await;
+
+    create_if_not_exists(
+        "Палатка туристическая 2-местная".to_string(),
+        199.99,
+        "Туризм".to_string(),
+        Some(8),
+        ProductType::Item,
+    )
+    .await;
+
+    println!("✅ Products seeded successfully!");
 }

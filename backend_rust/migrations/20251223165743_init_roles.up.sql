@@ -1,6 +1,6 @@
 CREATE TABLE roles (
     id BIGSERIAL PRIMARY KEY,
-    name TEXT NOT NULL UNIQUE CHECK (name ~ '^[a-z0-9_-]+$'),
+    name TEXT NOT NULL UNIQUE,
     description TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_by BIGINT NOT NULL,
