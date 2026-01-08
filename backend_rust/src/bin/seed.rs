@@ -248,7 +248,7 @@ pub async fn seed_products(
                                 category_name: String,
                                 initial_stock: Option<i64>,
                                 product_type: ProductType| {
-        let product_service = Arc::clone(&product_service);
+        let product_service = Arc::clone(product_service);
         let ctx = ctx.clone();
         let name = name.to_string();
         let category_name = category_name.to_string();

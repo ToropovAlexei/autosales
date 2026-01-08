@@ -97,3 +97,130 @@ impl UserRoleRepositoryTrait for UserRoleRepository {
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::models::admin_user::{AdminUserRow, NewAdminUser};
+    use crate::models::role::{NewRole, RoleRow};
+    use sqlx::PgPool;
+
+    async fn create_test_user(pool: &PgPool, login: &str) -> AdminUserRow {
+        let new_user = NewAdminUser {
+            login: login.to_string(),
+            hashed_password: "password".to_string(),
+            two_fa_secret: "".to_string(),
+            telegram_id: None,
+            created_by: 1,
+        };
+        sqlx::query_as!(
+            AdminUserRow,
+            r#"
+            INSERT INTO admin_users (login, hashed_password, two_fa_secret, created_by, is_system)
+            VALUES ($1, $2, $3, $4, false)
+            RETURNING *
+            "#,
+            new_user.login,
+            new_user.hashed_password,
+            new_user.two_fa_secret,
+            new_user.created_by
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_test_role(pool: &PgPool, name: &str, created_by: i64) -> RoleRow {
+        let new_role = NewRole {
+            name: name.to_string(),
+            description: None,
+            created_by,
+        };
+        sqlx::query_as!(
+            RoleRow,
+            r#"
+            INSERT INTO roles (name, description, created_by)
+            VALUES ($1, $2, $3)
+            RETURNING *
+            "#,
+            new_role.name,
+            new_role.description,
+            new_role.created_by
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    #[sqlx::test]
+    async fn test_create_and_get_user_roles(pool: PgPool) {
+        let repo = UserRoleRepository::new(Arc::new(pool.clone()));
+        let user = create_test_user(&pool, "test_user_for_ur").await;
+        let role = create_test_role(&pool, "test_role_for_ur", user.id).await;
+
+        let new_ur = NewUserRole {
+            user_id: user.id,
+            role_id: role.id,
+            created_by: user.id,
+        };
+
+        repo.create_user_role(new_ur).await.unwrap();
+
+        let urs = repo.get_user_roles(user.id).await.unwrap();
+        assert_eq!(urs.len(), 1);
+        assert_eq!(urs[0].role_id, role.id);
+    }
+
+    #[sqlx::test]
+    async fn test_delete_user_role(pool: PgPool) {
+        let repo = UserRoleRepository::new(Arc::new(pool.clone()));
+        let user = create_test_user(&pool, "test_user_for_ur_del").await;
+        let role = create_test_role(&pool, "test_role_for_ur_del", user.id).await;
+
+        let new_ur = NewUserRole {
+            user_id: user.id,
+            role_id: role.id,
+            created_by: user.id,
+        };
+        repo.create_user_role(new_ur).await.unwrap();
+
+        repo.delete_user_role(user.id, role.id).await.unwrap();
+
+        let urs = repo.get_user_roles(user.id).await.unwrap();
+        assert!(urs.is_empty());
+    }
+
+    #[sqlx::test]
+    async fn test_assign_roles_to_admin_user(pool: PgPool) {
+        let repo = UserRoleRepository::new(Arc::new(pool.clone()));
+        let user = create_test_user(&pool, "test_user_for_assign").await;
+        let role1 = create_test_role(&pool, "role1_for_assign", user.id).await;
+        let role2 = create_test_role(&pool, "role2_for_assign", user.id).await;
+        let role3 = create_test_role(&pool, "role3_for_assign", user.id).await;
+
+        // Assign role1 initially
+        repo.create_user_role(NewUserRole {
+            user_id: user.id,
+            role_id: role1.id,
+            created_by: user.id,
+        })
+        .await
+        .unwrap();
+
+        // Assign role2 and role3, which should replace role1
+        let assign_payload = AssignUserRoles {
+            user_id: user.id,
+            roles: vec![role2.id, role3.id],
+            created_by: user.id,
+        };
+        repo.assign_roles_to_admin_user(assign_payload)
+            .await
+            .unwrap();
+
+        let urs = repo.get_user_roles(user.id).await.unwrap();
+        assert_eq!(urs.len(), 2);
+        assert!(!urs.iter().any(|ur| ur.role_id == role1.id));
+        assert!(urs.iter().any(|ur| ur.role_id == role2.id));
+        assert!(urs.iter().any(|ur| ur.role_id == role3.id));
+    }
+}
