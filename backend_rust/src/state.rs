@@ -3,24 +3,23 @@ use std::sync::Arc;
 use chrono::Duration;
 use totp_rs::Algorithm;
 
+#[cfg(feature = "mock-payments-provider")]
+use crate::infrastructure::external::payment::mock::MockPaymentsProvider;
 #[cfg(feature = "contms-provider")]
 use crate::infrastructure::external::products::contms::ContmsProductsProvider;
 use crate::{
     config::{self, Config},
     db,
-    infrastructure::{
-        external::payment::mock::MockPaymentsProvider,
-        repositories::{
-            active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
-            audit_log::AuditLogRepository, bot::BotRepository, category::CategoryRepository,
-            customer::CustomerRepository, effective_permission::EffectivePermissionRepository,
-            image::ImageRepository, order::OrderRepository, permission::PermissionRepository,
-            products::ProductRepository, role::RoleRepository,
-            role_permission::RolePermissionRepository, settings::SettingsRepository,
-            stock_movement::StockMovementRepository, temporary_token::TemporaryTokenRepository,
-            transaction::TransactionRepository, user_permission::UserPermissionRepository,
-            user_role::UserRoleRepository,
-        },
+    infrastructure::repositories::{
+        active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
+        audit_log::AuditLogRepository, bot::BotRepository, category::CategoryRepository,
+        customer::CustomerRepository, effective_permission::EffectivePermissionRepository,
+        image::ImageRepository, order::OrderRepository, permission::PermissionRepository,
+        products::ProductRepository, role::RoleRepository,
+        role_permission::RolePermissionRepository, settings::SettingsRepository,
+        stock_movement::StockMovementRepository, temporary_token::TemporaryTokenRepository,
+        transaction::TransactionRepository, user_permission::UserPermissionRepository,
+        user_role::UserRoleRepository,
     },
     services::{
         admin_user::AdminUserService,

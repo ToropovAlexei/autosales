@@ -4,11 +4,13 @@ use uuid::Uuid;
 
 use axum::{Router, extract::State, routing::post};
 
+#[cfg(feature = "mock-payments-provider")]
+use crate::infrastructure::external::payment::mock::{
+    MockPaymentsProviderTrait, dto::MockProviderInvoiceWebhookPayload,
+};
+
 use crate::{
     errors::api::{ApiError, ApiResult},
-    infrastructure::external::payment::mock::{
-        MockPaymentsProviderTrait, dto::MockProviderInvoiceWebhookPayload,
-    },
     state::AppState,
 };
 

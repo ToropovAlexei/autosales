@@ -1,7 +1,10 @@
 use rust_decimal_macros::dec;
 use std::sync::Arc;
+#[cfg(feature = "contms-provider")]
 use tokio::time::{Duration, interval};
 
+#[cfg(feature = "contms-provider")]
+use crate::infrastructure::external::products::contms::ContmsProductsProviderTrait;
 use crate::infrastructure::external::products::contms::dto::ContmsProxyResponse;
 use crate::models::product::ProductType;
 use crate::services::category::CategoryServiceTrait;
@@ -9,9 +12,7 @@ use crate::services::category::CreateCategoryCommand;
 use crate::services::product::CreateProductCommand;
 use crate::services::product::DeleteProductCommand;
 use crate::services::product::ProductServiceTrait;
-use crate::{
-    infrastructure::external::products::contms::ContmsProductsProviderTrait, state::AppState,
-};
+use crate::state::AppState;
 
 #[cfg(feature = "contms-provider")]
 pub async fn contms_products_sync_task(app_state: Arc<AppState>) {

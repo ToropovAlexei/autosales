@@ -3,6 +3,8 @@ use tokio::signal;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+#[cfg(feature = "contms-provider")]
+use backend_rust::workers::contms_products_sync::contms_products_sync_task;
 use backend_rust::{
     config::Config,
     create_app,
@@ -30,7 +32,6 @@ use backend_rust::{
     },
     run_migrations,
     state::AppState,
-    workers::contms_products_sync::contms_products_sync_task,
 };
 
 #[derive(OpenApi)]
@@ -129,7 +130,9 @@ async fn main() -> anyhow::Result<()> {
     }
     let app_state = Arc::new(AppState::new(pool, config.clone()));
 
+    #[cfg(feature = "contms-provider")]
     tokio::spawn(contms_products_sync_task(app_state.clone()));
+
     let app = create_app(app_state.clone())
         .merge(SwaggerUi::new("/swagger-ui").url("/openapi.json", ApiDoc::openapi()));
 
