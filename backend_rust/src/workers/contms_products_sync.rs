@@ -80,6 +80,7 @@ pub async fn contms_products_sync_task(app_state: Arc<AppState>) {
 
         if !to_add_to_repo.is_empty() {
             tracing::info!("Adding {} ContMs products to repo", to_add_to_repo.len());
+            // TODO Proxy should have subcategories
             let proxy_category_id = match get_proxy_category_id(&app_state).await {
                 Some(id) => id,
                 None => continue,
