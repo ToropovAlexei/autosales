@@ -63,6 +63,7 @@ pub struct CreateProductCommand {
     pub external_id: Option<String>,
     pub created_by: i64,
     pub initial_stock: Option<i64>,
+    pub ctx: Option<RequestContext>,
 }
 
 #[derive(Debug)]
@@ -86,23 +87,26 @@ pub struct UpdateProductCommand {
 pub struct DeleteProductCommand {
     pub id: i64,
     pub deleted_by: i64,
+    pub ctx: Option<RequestContext>,
 }
 
 #[async_trait]
 pub trait ProductServiceTrait: Send + Sync {
     async fn get_list(&self, query: ProductListQuery) -> ApiResult<PaginatedResult<Product>>;
-    async fn create(
-        &self,
-        command: CreateProductCommand,
-        ctx: RequestContext,
-    ) -> ApiResult<Product>;
+    async fn create(&self, command: CreateProductCommand) -> ApiResult<Product>;
     async fn get_by_id(&self, id: i64) -> ApiResult<Product>;
     async fn update(
         &self,
         command: UpdateProductCommand,
         ctx: RequestContext,
     ) -> ApiResult<Product>;
-    async fn delete(&self, command: DeleteProductCommand, ctx: RequestContext) -> ApiResult<()>;
+    async fn delete(&self, command: DeleteProductCommand) -> ApiResult<()>;
+    async fn get_for_external_provider(
+        &self,
+        provider_name: &str,
+        external_id: &str,
+    ) -> ApiResult<Product>;
+    async fn get_all_external_provider(&self, provider_name: &str) -> ApiResult<Vec<Product>>;
 }
 
 pub struct ProductService<R, S, A, T> {
@@ -158,11 +162,7 @@ impl ProductServiceTrait
             })
     }
 
-    async fn create(
-        &self,
-        command: CreateProductCommand,
-        ctx: RequestContext,
-    ) -> ApiResult<Product> {
+    async fn create(&self, command: CreateProductCommand) -> ApiResult<Product> {
         let settings = self.settings_repo.load_settings().await?;
         let created = self
             .product_repo
@@ -189,13 +189,13 @@ impl ProductServiceTrait
                 admin_user_id: Some(command.created_by),
                 customer_id: None,
                 error_message: None,
-                ip_address: ctx.ip_address,
                 new_values: serde_json::to_value(created.clone()).ok(),
                 old_values: None,
-                request_id: Some(ctx.request_id),
                 target_id: created.id.to_string(),
                 target_table: "products".to_string(),
-                user_agent: ctx.user_agent.clone(),
+                ip_address: command.ctx.clone().and_then(|ctx| ctx.ip_address),
+                request_id: command.ctx.clone().map(|ctx| ctx.request_id),
+                user_agent: command.ctx.clone().and_then(|ctx| ctx.user_agent),
             })
             .await?;
 
@@ -220,13 +220,13 @@ impl ProductServiceTrait
                     admin_user_id: Some(command.created_by),
                     customer_id: None,
                     error_message: None,
-                    ip_address: ctx.ip_address,
                     new_values: serde_json::to_value(stock_movement.clone()).ok(),
                     old_values: None,
-                    request_id: Some(ctx.request_id),
                     target_id: created.id.to_string(),
                     target_table: "stock_movements".to_string(),
-                    user_agent: ctx.user_agent.clone(),
+                    ip_address: command.ctx.clone().and_then(|ctx| ctx.ip_address),
+                    request_id: command.ctx.clone().map(|ctx| ctx.request_id),
+                    user_agent: command.ctx.and_then(|ctx| ctx.user_agent),
                 })
                 .await?;
         }
@@ -329,7 +329,7 @@ impl ProductServiceTrait
         Ok(from_product_row(updated, &settings))
     }
 
-    async fn delete(&self, command: DeleteProductCommand, ctx: RequestContext) -> ApiResult<()> {
+    async fn delete(&self, command: DeleteProductCommand) -> ApiResult<()> {
         let prev = self.product_repo.get_by_id(command.id).await?;
         self.product_repo.delete(command.id).await?;
 
@@ -340,17 +340,42 @@ impl ProductServiceTrait
                 admin_user_id: Some(command.deleted_by),
                 customer_id: None,
                 error_message: None,
-                ip_address: ctx.ip_address,
                 new_values: None,
                 old_values: serde_json::to_value(prev.clone()).ok(),
-                request_id: Some(ctx.request_id),
                 target_id: command.id.to_string(),
                 target_table: "products".to_string(),
-                user_agent: ctx.user_agent.clone(),
+                ip_address: command.ctx.clone().and_then(|ctx| ctx.ip_address),
+                request_id: command.ctx.clone().map(|ctx| ctx.request_id),
+                user_agent: command.ctx.and_then(|ctx| ctx.user_agent),
             })
             .await?;
 
         Ok(())
+    }
+
+    async fn get_for_external_provider(
+        &self,
+        provider_name: &str,
+        external_id: &str,
+    ) -> ApiResult<Product> {
+        let settings = self.settings_repo.load_settings().await?;
+        let res = self
+            .product_repo
+            .get_for_external_provider(provider_name, external_id)
+            .await?;
+        Ok(from_product_row(res, &settings))
+    }
+
+    async fn get_all_external_provider(&self, provider_name: &str) -> ApiResult<Vec<Product>> {
+        let settings = self.settings_repo.load_settings().await?;
+        let res = self
+            .product_repo
+            .get_all_external_provider(provider_name)
+            .await?;
+        Ok(res
+            .iter()
+            .map(|row| from_product_row(row.clone(), &settings.clone()))
+            .collect())
     }
 }
 

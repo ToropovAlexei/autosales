@@ -30,6 +30,7 @@ use backend_rust::{
     },
     run_migrations,
     state::AppState,
+    workers::contms_products_sync::contms_products_sync_task,
 };
 
 #[derive(OpenApi)]
@@ -127,6 +128,8 @@ async fn main() -> anyhow::Result<()> {
         run_migrations(&pool.pool).await?;
     }
     let app_state = Arc::new(AppState::new(pool, config.clone()));
+
+    tokio::spawn(contms_products_sync_task(app_state.clone()));
     let app = create_app(app_state.clone())
         .merge(SwaggerUi::new("/swagger-ui").url("/openapi.json", ApiDoc::openapi()));
 

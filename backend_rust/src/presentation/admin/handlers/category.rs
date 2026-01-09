@@ -63,15 +63,13 @@ async fn create_category(
 ) -> ApiResult<Json<CategoryResponse>> {
     let category = state
         .category_service
-        .create(
-            CreateCategoryCommand {
-                created_by: user.id,
-                image_id: payload.image_id,
-                name: payload.name,
-                parent_id: payload.parent_id,
-            },
-            ctx,
-        )
+        .create(CreateCategoryCommand {
+            created_by: user.id,
+            image_id: payload.image_id,
+            name: payload.name,
+            parent_id: payload.parent_id,
+            ctx: Some(ctx),
+        })
         .await?;
 
     Ok(Json(category.into()))

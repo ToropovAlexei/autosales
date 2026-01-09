@@ -64,25 +64,23 @@ async fn create_product(
 ) -> ApiResult<Json<ProductResponse>> {
     let product = state
         .product_service
-        .create(
-            CreateProductCommand {
-                category_id: payload.category_id,
-                created_by: user.id,
-                details: payload.details,
-                external_id: None,
-                fulfillment_image_id: payload.fulfillment_image_id,
-                fulfillment_text: payload.fulfillment_text,
-                image_id: payload.image_id,
-                name: payload.name,
-                base_price: Decimal::from_f64(payload.base_price)
-                    .ok_or_else(|| ApiError::BadRequest("invalid price".into()))?,
-                provider_name: "internal".to_string(),
-                subscription_period_days: payload.subscription_period_days,
-                r#type: payload.r#type,
-                initial_stock: payload.initial_stock,
-            },
-            ctx,
-        )
+        .create(CreateProductCommand {
+            category_id: payload.category_id,
+            created_by: user.id,
+            details: payload.details,
+            external_id: None,
+            fulfillment_image_id: payload.fulfillment_image_id,
+            fulfillment_text: payload.fulfillment_text,
+            image_id: payload.image_id,
+            name: payload.name,
+            base_price: Decimal::from_f64(payload.base_price)
+                .ok_or_else(|| ApiError::BadRequest("invalid price".into()))?,
+            provider_name: "internal".to_string(),
+            subscription_period_days: payload.subscription_period_days,
+            r#type: payload.r#type,
+            initial_stock: payload.initial_stock,
+            ctx: Some(ctx),
+        })
         .await?;
 
     Ok(Json(ProductResponse::from(product)))
@@ -211,13 +209,11 @@ async fn delete_product(
 ) -> ApiResult<StatusCode> {
     state
         .product_service
-        .delete(
-            DeleteProductCommand {
-                id,
-                deleted_by: user.id,
-            },
-            ctx,
-        )
+        .delete(DeleteProductCommand {
+            id,
+            deleted_by: user.id,
+            ctx: Some(ctx),
+        })
         .await?;
 
     Ok(StatusCode::NO_CONTENT)

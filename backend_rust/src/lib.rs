@@ -8,6 +8,7 @@ pub mod models;
 pub mod presentation;
 pub mod services;
 pub mod state;
+pub mod workers;
 
 use std::sync::Arc;
 

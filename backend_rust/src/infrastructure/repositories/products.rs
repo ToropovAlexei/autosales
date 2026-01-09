@@ -22,6 +22,15 @@ pub trait ProductRepositoryTrait {
     async fn get_by_id(&self, id: i64) -> RepositoryResult<ProductRow>;
     async fn update(&self, id: i64, product: UpdateProduct) -> RepositoryResult<ProductRow>;
     async fn delete(&self, id: i64) -> RepositoryResult<()>;
+    async fn get_for_external_provider(
+        &self,
+        provider_name: &str,
+        external_id: &str,
+    ) -> RepositoryResult<ProductRow>;
+    async fn get_all_external_provider(
+        &self,
+        provider_name: &str,
+    ) -> RepositoryResult<Vec<ProductRow>>;
 }
 
 #[derive(Clone)]
@@ -184,6 +193,46 @@ impl ProductRepositoryTrait for ProductRepository {
         .execute(&*self.pool)
         .await?;
         Ok(())
+    }
+
+    async fn get_for_external_provider(
+        &self,
+        provider_name: &str,
+        external_id: &str,
+    ) -> RepositoryResult<ProductRow> {
+        let result = sqlx::query_as!(
+            ProductRow,
+            r#"SELECT
+                id, name, base_price, category_id, image_id, type as "type: _",
+                subscription_period_days, details, fulfillment_text, fulfillment_image_id,
+                provider_name, external_id, created_by, created_at, updated_at, deleted_at,
+                stock
+            FROM products WHERE provider_name = $1 AND external_id = $2 AND deleted_at IS NULL"#,
+            provider_name,
+            external_id
+        )
+        .fetch_one(&*self.pool)
+        .await?;
+        Ok(result)
+    }
+
+    async fn get_all_external_provider(
+        &self,
+        provider_name: &str,
+    ) -> RepositoryResult<Vec<ProductRow>> {
+        let result = sqlx::query_as!(
+            ProductRow,
+            r#"SELECT
+                id, name, base_price, category_id, image_id, type as "type: _",
+                subscription_period_days, details, fulfillment_text, fulfillment_image_id,
+                provider_name, external_id, created_by, created_at, updated_at, deleted_at,
+                stock
+            FROM products WHERE provider_name = $1 AND deleted_at IS NULL"#,
+            provider_name
+        )
+        .fetch_all(&*self.pool)
+        .await?;
+        Ok(result)
     }
 }
 

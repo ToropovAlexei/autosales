@@ -23,6 +23,7 @@ pub struct CreateCategoryCommand {
     pub parent_id: Option<i64>,
     pub image_id: Option<Uuid>,
     pub created_by: i64,
+    pub ctx: Option<RequestContext>,
 }
 
 #[derive(Debug)]
@@ -44,11 +45,7 @@ pub struct DeleteCategoryCommand {
 #[async_trait]
 pub trait CategoryServiceTrait: Send + Sync {
     async fn get_list(&self) -> ApiResult<Vec<CategoryRow>>;
-    async fn create(
-        &self,
-        command: CreateCategoryCommand,
-        ctx: RequestContext,
-    ) -> ApiResult<CategoryRow>;
+    async fn create(&self, command: CreateCategoryCommand) -> ApiResult<CategoryRow>;
     async fn get_by_id(&self, id: i64) -> ApiResult<CategoryRow>;
     async fn update(
         &self,
@@ -84,11 +81,7 @@ impl CategoryServiceTrait
         self.repo.get_list().await.map_err(ApiError::from)
     }
 
-    async fn create(
-        &self,
-        command: CreateCategoryCommand,
-        ctx: RequestContext,
-    ) -> ApiResult<CategoryRow> {
+    async fn create(&self, command: CreateCategoryCommand) -> ApiResult<CategoryRow> {
         if let Some(parent_id) = command.parent_id {
             let parent = self.repo.get_by_id(parent_id).await;
 
@@ -116,13 +109,13 @@ impl CategoryServiceTrait
                 admin_user_id: Some(command.created_by),
                 customer_id: None,
                 error_message: None,
-                ip_address: ctx.ip_address,
                 new_values: serde_json::to_value(created.clone()).ok(),
                 old_values: None,
-                request_id: Some(ctx.request_id),
                 target_id: created.id.to_string(),
                 target_table: "categories".to_string(),
-                user_agent: ctx.user_agent.clone(),
+                ip_address: command.ctx.clone().and_then(|ctx| ctx.ip_address),
+                request_id: command.ctx.clone().map(|ctx| ctx.request_id),
+                user_agent: command.ctx.and_then(|ctx| ctx.user_agent),
             })
             .await?;
 

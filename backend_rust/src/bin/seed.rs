@@ -274,8 +274,9 @@ pub async fn seed_products(
                     external_id: None,
                     created_by: 1, // System user
                     initial_stock,
+                    ctx: Some(ctx),
                 };
-                product_service.create(cmd, ctx.clone()).await.unwrap();
+                product_service.create(cmd).await.unwrap();
             } else {
                 println!("  ✅ {} (уже есть)", name);
             }
