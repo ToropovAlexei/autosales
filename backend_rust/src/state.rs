@@ -40,6 +40,17 @@ use crate::{
     },
 };
 
+type CategoryServiceShortType =
+    CategoryService<CategoryRepository, AuditLogService<AuditLogRepository>>;
+
+type ProductServiceShortType = ProductService<
+    ProductRepository,
+    StockMovementRepository,
+    AuditLogService<AuditLogRepository>,
+    SettingsRepository,
+    CategoryServiceShortType,
+>;
+
 #[derive(Clone)]
 pub struct AppState {
     pub db: db::Database,
@@ -65,14 +76,7 @@ pub struct AppState {
     pub permission_service: Arc<PermissionService<PermissionRepository, UserPermissionRepository>>,
     pub role_permission_service: Arc<RolePermissionService<RolePermissionRepository>>,
     pub transaction_service: Arc<TransactionService<TransactionRepository>>,
-    pub product_service: Arc<
-        ProductService<
-            ProductRepository,
-            StockMovementRepository,
-            AuditLogService<AuditLogRepository>,
-            SettingsRepository,
-        >,
-    >,
+    pub product_service: Arc<ProductServiceShortType>,
     pub image_service: Arc<ImageService<ImageRepository>>,
     pub stock_movement_service: Arc<StockMovementService<StockMovementRepository>>,
     pub customer_service:
@@ -165,6 +169,7 @@ impl AppState {
             stock_movement_repo.clone(),
             settings_repo.clone(),
             audit_logs_service.clone(),
+            category_service.clone(),
         ));
         let image_repo = Arc::new(ImageRepository::new(db_pool.clone()));
         let image_service = Arc::new(ImageService::new(

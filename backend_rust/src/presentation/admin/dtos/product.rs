@@ -123,3 +123,20 @@ pub struct UpdateProductRequest {
     #[ts(optional)]
     pub stock: Option<i64>,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
+#[ts(export, export_to = "product.ts", rename = "UploadProductsResponse")]
+pub struct ProductsUploadResponse {
+    pub created: i64,
+    pub failed: i64,
+    pub skipped: i64,
+    pub errors: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UploadedProductCSV {
+    pub name: String,
+    pub category: String,
+    pub price: f64,
+    pub initial_stock: i64,
+}

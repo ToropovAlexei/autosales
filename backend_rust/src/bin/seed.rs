@@ -40,6 +40,17 @@ use backend_rust::{
 use rust_decimal::{Decimal, prelude::FromPrimitive};
 use uuid::Uuid;
 
+type CategoryServiceShortType =
+    CategoryService<CategoryRepository, AuditLogService<AuditLogRepository>>;
+
+type ProductServiceShortType = ProductService<
+    ProductRepository,
+    StockMovementRepository,
+    AuditLogService<AuditLogRepository>,
+    SettingsRepository,
+    CategoryServiceShortType,
+>;
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     init_tracing();
@@ -69,16 +80,18 @@ async fn main() -> anyhow::Result<()> {
     let audit_log_repo = Arc::new(AuditLogRepository::new(db_pool.clone()));
     let audit_log_service = Arc::new(AuditLogService::new(audit_log_repo.clone()));
     let settings_repo = Arc::new(SettingsRepository::new(db_pool.clone()));
+    let category_service = Arc::new(CategoryService::new(
+        category_repo.clone(),
+        audit_log_service.clone(),
+    ));
     let product_service = Arc::new(ProductService::new(
         product_repo,
         stock_movement_repo,
         settings_repo,
         audit_log_service.clone(),
+        category_service.clone(),
     ));
-    let category_service = Arc::new(CategoryService::new(
-        category_repo.clone(),
-        audit_log_service,
-    ));
+
     let admin_id = create_admin_user_if_not_exists(
         &admin_user_repo,
         &totp_encryptor,
@@ -198,14 +211,7 @@ async fn seed_categories(category_repo: &Arc<CategoryRepository>) {
 }
 
 pub async fn seed_products(
-    product_service: &Arc<
-        ProductService<
-            ProductRepository,
-            StockMovementRepository,
-            AuditLogService<AuditLogRepository>,
-            SettingsRepository,
-        >,
-    >,
+    product_service: &Arc<ProductServiceShortType>,
     category_service: &Arc<
         CategoryService<CategoryRepository, AuditLogService<AuditLogRepository>>,
     >,

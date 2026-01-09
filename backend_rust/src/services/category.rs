@@ -63,7 +63,7 @@ pub trait CategoryServiceTrait: Send + Sync {
     async fn create_category_sequence(
         &self,
         command: CreateCategorySequenceCommand,
-    ) -> ApiResult<()>;
+    ) -> ApiResult<Option<CategoryRow>>;
 }
 
 pub struct CategoryService<R, A> {
@@ -233,7 +233,7 @@ impl CategoryServiceTrait
     async fn create_category_sequence(
         &self,
         command: CreateCategorySequenceCommand,
-    ) -> ApiResult<()> {
+    ) -> ApiResult<Option<CategoryRow>> {
         let categories_sequence = command.name.split('/').filter(|s| !s.is_empty());
         let mut categories_by_name_and_parent = self.get_list().await.map(|rows| {
             rows.into_iter()
@@ -242,10 +242,12 @@ impl CategoryServiceTrait
         })?;
 
         let mut parent_id = None;
+        let mut last_category = None;
         for category in categories_sequence {
             if let Some(row) = categories_by_name_and_parent.get(&(category.to_string(), parent_id))
             {
                 parent_id = Some(row.id);
+                last_category = Some(row.clone());
                 continue;
             }
 
@@ -261,7 +263,8 @@ impl CategoryServiceTrait
             categories_by_name_and_parent
                 .insert((category.to_string(), parent_id), created.clone());
             parent_id = Some(created.id);
+            last_category = Some(created);
         }
-        Ok(())
+        Ok(last_category)
     }
 }

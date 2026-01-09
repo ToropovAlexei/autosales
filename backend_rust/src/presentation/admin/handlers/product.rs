@@ -1,4 +1,6 @@
 use axum::http::StatusCode;
+use axum_extra::extract::Multipart;
+use bytes::Bytes;
 use rust_decimal::{Decimal, prelude::FromPrimitive};
 use std::sync::Arc;
 
@@ -20,12 +22,16 @@ use crate::{
     models::product::ProductListQuery,
     presentation::admin::dtos::{
         list_response::ListResponse,
-        product::{NewProductRequest, ProductResponse, UpdateProductRequest},
+        product::{
+            NewProductRequest, ProductResponse, ProductsUploadResponse, UpdateProductRequest,
+            UploadedProductCSV,
+        },
     },
     services::{
         auth::AuthUser,
         product::{
             CreateProductCommand, DeleteProductCommand, ProductServiceTrait, UpdateProductCommand,
+            UploadProductsCommand,
         },
     },
     state::AppState,
@@ -40,6 +46,7 @@ pub fn router() -> Router<Arc<AppState>> {
                 .patch(update_product)
                 .delete(delete_product),
         )
+        .route("/upload", post(upload_products))
 }
 
 #[utoipa::path(
@@ -84,6 +91,52 @@ async fn create_product(
         .await?;
 
     Ok(Json(ProductResponse::from(product)))
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/admin/products/upload",
+    tag = "Products",
+    responses(
+        (status = 201, description = "Products uploaded", body = ProductsUploadResponse),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
+async fn upload_products(
+    State(state): State<Arc<AppState>>,
+    user: AuthUser,
+    _perm: RequirePermission<ProductsCreate>,
+    ctx: RequestContext,
+    mut multipart: Multipart,
+) -> ApiResult<Json<ProductsUploadResponse>> {
+    let (products_to_create, parsing_errors) = parse_upload_products_form(&mut multipart)
+        .await
+        .map_err(|e| ApiError::BadRequest(e.to_string()))?;
+    let total_rows = (products_to_create.len() + parsing_errors.len()) as i64;
+
+    let (created_products, creation_errors) = state
+        .product_service
+        .upload_products(UploadProductsCommand {
+            products: products_to_create,
+            created_by: user.id,
+            ctx: Some(ctx),
+        })
+        .await?;
+
+    let failed = (parsing_errors.len() + creation_errors.len()) as i64;
+    let created = created_products.len() as i64;
+    let skipped = total_rows - created - failed;
+    let errors = parsing_errors.into_iter().chain(creation_errors).collect();
+
+    Ok(Json(ProductsUploadResponse {
+        created,
+        failed,
+        errors,
+        skipped,
+    }))
 }
 
 #[utoipa::path(
@@ -217,4 +270,34 @@ async fn delete_product(
         .await?;
 
     Ok(StatusCode::NO_CONTENT)
+}
+
+async fn parse_upload_products_form(
+    multipart: &mut Multipart,
+) -> Result<(Vec<UploadedProductCSV>, Vec<String>), Box<dyn std::error::Error>> {
+    let mut file: Option<Bytes> = None;
+
+    while let Some(field) = multipart.next_field().await? {
+        let name = field.name().ok_or("Field name missing")?.to_string();
+        if name.as_str() == "file" {
+            let data = field.bytes().await?;
+            file = Some(data);
+        }
+    }
+
+    let file = file.ok_or("Missing 'file' field")?;
+
+    let mut errors = Vec::new();
+
+    let records = csv::Reader::from_reader(file.as_ref())
+        .deserialize::<UploadedProductCSV>()
+        .map(|r| {
+            r.map_err(|e| {
+                errors.push(e.to_string());
+            })
+        })
+        .filter_map(Result::ok)
+        .collect::<Vec<_>>();
+
+    Ok((records, errors))
 }

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use rust_decimal::Decimal;
+use rust_decimal::{Decimal, prelude::FromPrimitive};
 use rust_decimal_macros::dec;
 use serde::Serialize;
 use uuid::Uuid;
@@ -11,6 +11,7 @@ use crate::{
     errors::api::{ApiError, ApiResult},
     infrastructure::repositories::{
         audit_log::AuditLogRepository,
+        category::CategoryRepository,
         products::{ProductRepository, ProductRepositoryTrait},
         settings::{SettingsRepository, SettingsRepositoryTrait},
         stock_movement::{StockMovementRepository, StockMovementRepositoryTrait},
@@ -23,7 +24,11 @@ use crate::{
         settings::Settings,
         stock_movement::{NewStockMovement, StockMovementType},
     },
-    services::audit_log::{AuditLogService, AuditLogServiceTrait},
+    presentation::admin::dtos::product::UploadedProductCSV,
+    services::{
+        audit_log::{AuditLogService, AuditLogServiceTrait},
+        category::{CategoryService, CategoryServiceTrait, CreateCategorySequenceCommand},
+    },
 };
 
 #[derive(Debug, Clone, Serialize)]
@@ -90,6 +95,13 @@ pub struct DeleteProductCommand {
     pub ctx: Option<RequestContext>,
 }
 
+#[derive(Debug)]
+pub struct UploadProductsCommand {
+    pub products: Vec<UploadedProductCSV>,
+    pub created_by: i64,
+    pub ctx: Option<RequestContext>,
+}
+
 #[async_trait]
 pub trait ProductServiceTrait: Send + Sync {
     async fn get_list(&self, query: ProductListQuery) -> ApiResult<PaginatedResult<Product>>;
@@ -107,32 +119,40 @@ pub trait ProductServiceTrait: Send + Sync {
         external_id: &str,
     ) -> ApiResult<Product>;
     async fn get_all_external_provider(&self, provider_name: &str) -> ApiResult<Vec<Product>>;
+    async fn upload_products(
+        &self,
+        command: UploadProductsCommand,
+    ) -> ApiResult<(Vec<Product>, Vec<String>)>;
 }
 
-pub struct ProductService<R, S, A, T> {
+pub struct ProductService<R, S, A, T, C> {
     product_repo: Arc<R>,
     stock_movement_repo: Arc<S>,
     settings_repo: Arc<T>,
+    category_service: Arc<C>,
     audit_log_service: Arc<A>,
 }
 
-impl<R, S, A, T> ProductService<R, S, A, T>
+impl<R, S, A, T, C> ProductService<R, S, A, T, C>
 where
     R: ProductRepositoryTrait + Send + Sync,
     S: StockMovementRepositoryTrait + Send + Sync,
     A: AuditLogServiceTrait + Send + Sync,
+    C: CategoryServiceTrait + Send + Sync,
 {
     pub fn new(
         product_repo: Arc<R>,
         stock_movement_repo: Arc<S>,
         settings_repo: Arc<T>,
         audit_log_service: Arc<A>,
+        category_service: Arc<C>,
     ) -> Self {
         Self {
             product_repo,
             stock_movement_repo,
             settings_repo,
             audit_log_service,
+            category_service,
         }
     }
 }
@@ -144,6 +164,7 @@ impl ProductServiceTrait
         StockMovementRepository,
         AuditLogService<AuditLogRepository>,
         SettingsRepository,
+        CategoryService<CategoryRepository, AuditLogService<AuditLogRepository>>,
     >
 {
     async fn get_list(&self, query: ProductListQuery) -> ApiResult<PaginatedResult<Product>> {
@@ -376,6 +397,68 @@ impl ProductServiceTrait
             .iter()
             .map(|row| from_product_row(row.clone(), &settings.clone()))
             .collect())
+    }
+
+    async fn upload_products(
+        &self,
+        command: UploadProductsCommand,
+    ) -> ApiResult<(Vec<Product>, Vec<String>)> {
+        let mut created = Vec::new();
+        let mut errors = Vec::new();
+        for row in command.products {
+            let Some(price) = Decimal::from_f64(row.price) else {
+                errors.push(format!(
+                    "Product '{}' has invalid price '{}'",
+                    row.name, row.price
+                ));
+                continue;
+            };
+            let Ok(category) = self
+                .category_service
+                .create_category_sequence(CreateCategorySequenceCommand {
+                    created_by: command.created_by,
+                    ctx: command.ctx.clone(),
+                    name: row.category.clone(),
+                })
+                .await
+            else {
+                errors.push(format!(
+                    "Product '{}' has invalid category '{}'",
+                    row.name, row.category
+                ));
+                continue;
+            };
+            let Some(category) = category else {
+                errors.push(format!(
+                    "Product '{}' has invalid category '{}'",
+                    row.name, row.category
+                ));
+                continue;
+            };
+            match self
+                .create(CreateProductCommand {
+                    category_id: category.id,
+                    initial_stock: Some(row.initial_stock),
+                    created_by: command.created_by,
+                    details: None,
+                    external_id: None,
+                    fulfillment_image_id: None,
+                    fulfillment_text: None,
+                    image_id: None,
+                    name: row.name.clone(),
+                    base_price: price,
+                    provider_name: "internal".to_string(),
+                    subscription_period_days: None,
+                    r#type: ProductType::Item,
+                    ctx: command.ctx.clone(),
+                })
+                .await
+            {
+                Ok(product) => created.push(product),
+                Err(_) => errors.push(format!("Product '{}' could not be created", row.name)),
+            }
+        }
+        Ok((Vec::new(), Vec::new()))
     }
 }
 
