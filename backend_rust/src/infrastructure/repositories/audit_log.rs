@@ -45,8 +45,14 @@ impl AuditLogRepositoryTrait for AuditLogRepository {
         let count_query = count_qb.build_query_scalar();
         let total: i64 = count_query.fetch_one(&*self.pool).await?;
 
-        let mut query_builder: QueryBuilder<Postgres> =
-            QueryBuilder::new("SELECT * FROM audit_logs");
+        let mut query_builder = QueryBuilder::new(
+            r#"
+        SELECT
+            audit_logs.*,
+            admin_users.login AS admin_user_login
+        FROM audit_logs
+        LEFT JOIN admin_users ON audit_logs.admin_user_id = admin_users.id"#,
+        );
         apply_list_query(&mut query_builder, &query);
         let query = query_builder.build_query_as::<AuditLogRow>();
         let items = query.fetch_all(&*self.pool).await?;
@@ -54,17 +60,14 @@ impl AuditLogRepositoryTrait for AuditLogRepository {
     }
 
     async fn create(&self, audit_log: NewAuditLog) -> RepositoryResult<AuditLogRow> {
-        let result = sqlx::query_as!(
-            AuditLogRow,
+        let inserted = sqlx::query_scalar!(
             r#"
             INSERT INTO audit_logs (
                 admin_user_id, customer_id, action, status, target_table, target_id, 
                 old_values, new_values, ip_address, user_agent, request_id, error_message
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            RETURNING
-                id, admin_user_id, customer_id, action as "action: _", status as "status: _", target_table, target_id, 
-                old_values, new_values, ip_address, user_agent, request_id, error_message, created_at
+            RETURNING id
             "#,
             audit_log.admin_user_id,
             audit_log.customer_id,
@@ -82,7 +85,35 @@ impl AuditLogRepositoryTrait for AuditLogRepository {
         .fetch_one(&*self.pool)
         .await?;
 
-        Ok(result)
+        let row = sqlx::query_as!(
+            AuditLogRow,
+            r#"
+            SELECT
+                al.id,
+                al.admin_user_id,
+                al.customer_id,
+                al.action as "action: _",
+                al.status as "status: _",
+                al.target_table,
+                al.target_id,
+                al.old_values,
+                al.new_values,
+                al.ip_address,
+                al.user_agent,
+                al.request_id,
+                al.error_message,
+                al.created_at,
+                au.login AS admin_user_login
+            FROM audit_logs al
+            LEFT JOIN admin_users au ON al.admin_user_id = au.id
+            WHERE al.id = $1
+            "#,
+            inserted
+        )
+        .fetch_one(&*self.pool)
+        .await?;
+
+        Ok(row)
     }
 }
 

@@ -10,6 +10,7 @@ use crate::models::audit_log::{AuditAction, AuditLogRow, AuditStatus};
 pub struct AuditLogResponse {
     pub id: i64,
     pub admin_user_id: Option<i64>,
+    pub admin_user_login: Option<String>,
     pub customer_id: Option<i64>,
     pub action: AuditAction,
     pub status: AuditStatus,
@@ -29,6 +30,7 @@ impl From<AuditLogRow> for AuditLogResponse {
         AuditLogResponse {
             id: r.id,
             admin_user_id: r.admin_user_id,
+            admin_user_login: r.admin_user_login,
             customer_id: r.customer_id,
             action: r.action,
             status: r.status,

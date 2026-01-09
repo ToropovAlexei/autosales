@@ -63,6 +63,7 @@ pub enum AuditStatus {
 pub struct AuditLogRow {
     pub id: i64,
     pub admin_user_id: Option<i64>,
+    pub admin_user_login: Option<String>,
     pub customer_id: Option<i64>,
     pub action: AuditAction,
     pub status: AuditStatus,
