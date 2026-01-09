@@ -5,7 +5,7 @@ use axum::{
     extract::{Path, State},
     routing::{patch, post},
 };
-use bigdecimal::{BigDecimal, FromPrimitive};
+use rust_decimal::{Decimal, prelude::FromPrimitive};
 
 use crate::{
     errors::api::{ApiError, ApiResult},
@@ -124,7 +124,7 @@ async fn update_bot(
             referral_percentage: payload
                 .referral_percentage
                 .map(|p| {
-                    BigDecimal::from_f64(p)
+                    Decimal::from_f64(p)
                         .ok_or_else(|| ApiError::BadRequest("Invalid referral percentage".into()))
                 })
                 .transpose()?,

@@ -1,6 +1,6 @@
-use bigdecimal::{BigDecimal, Zero};
 use rand::Rng;
 use reqwest::Response;
+use rust_decimal_macros::dec;
 use serde::{Deserialize, de::DeserializeOwned};
 use std::sync::Arc;
 
@@ -143,7 +143,7 @@ pub async fn create_bot_if_not_exists(
             is_active: bot.is_active,
             is_primary: bot.is_primary,
             owner_id: None,
-            referral_percentage: BigDecimal::zero(),
+            referral_percentage: dec!(0),
             token: bot.token,
             r#type: bot.r#type,
         })

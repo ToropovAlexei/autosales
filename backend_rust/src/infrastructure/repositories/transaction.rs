@@ -113,10 +113,11 @@ impl TransactionRepositoryTrait for TransactionRepository {
 
 #[cfg(test)]
 mod tests {
+    use rust_decimal::Decimal;
+
     use crate::models::transaction::TransactionType;
 
     use super::*;
-    use bigdecimal::BigDecimal;
 
     #[sqlx::test]
     async fn test_balance_calculation_triggers(pool: PgPool) {
@@ -138,10 +139,10 @@ mod tests {
             customer_id: Some(customer_id),
             order_id: None,
             r#type: TransactionType::Deposit,
-            amount: BigDecimal::from(1000),
-            store_balance_delta: BigDecimal::from(1000),
-            platform_commission: BigDecimal::from(0),
-            gateway_commission: BigDecimal::from(0),
+            amount: Decimal::from(1000),
+            store_balance_delta: Decimal::from(1000),
+            platform_commission: Decimal::from(0),
+            gateway_commission: Decimal::from(0),
             description: Some("Test deposit".to_string()),
             payment_gateway: Some("test_gw".to_string()),
             details: None,
@@ -149,8 +150,8 @@ mod tests {
 
         let result1 = repo.create(deposit_tx).await.unwrap();
 
-        assert_eq!(result1.user_balance_after, Some(BigDecimal::from(1000)));
-        assert_eq!(result1.store_balance_after, BigDecimal::from(1000));
+        assert_eq!(result1.user_balance_after, Some(Decimal::from(1000)));
+        assert_eq!(result1.store_balance_after, Decimal::from(1000));
 
         // Verify customer balance after deposit
         let customer = sqlx::query_as!(
@@ -161,17 +162,17 @@ mod tests {
         .fetch_one(&pool)
         .await
         .unwrap();
-        assert_eq!(customer.balance, BigDecimal::from(1000));
+        assert_eq!(customer.balance, Decimal::from(1000));
 
         // Purchase transaction
         let purchase_tx = NewTransaction {
             customer_id: Some(customer_id),
             order_id: None,
             r#type: TransactionType::Purchase,
-            amount: BigDecimal::from(-150),
-            store_balance_delta: BigDecimal::from(150),
-            platform_commission: BigDecimal::from(0),
-            gateway_commission: BigDecimal::from(0),
+            amount: Decimal::from(-150),
+            store_balance_delta: Decimal::from(150),
+            platform_commission: Decimal::from(0),
+            gateway_commission: Decimal::from(0),
             description: Some("Test purchase".to_string()),
             payment_gateway: None,
             details: None,
@@ -179,8 +180,8 @@ mod tests {
 
         let result2 = repo.create(purchase_tx).await.unwrap();
 
-        assert_eq!(result2.user_balance_after, Some(BigDecimal::from(850))); // 1000 - 150
-        assert_eq!(result2.store_balance_after, BigDecimal::from(1150)); // 1000 + 150
+        assert_eq!(result2.user_balance_after, Some(Decimal::from(850))); // 1000 - 150
+        assert_eq!(result2.store_balance_after, Decimal::from(1150)); // 1000 + 150
 
         // Verify customer balance after purchase
         let customer = sqlx::query_as!(
@@ -191,6 +192,6 @@ mod tests {
         .fetch_one(&pool)
         .await
         .unwrap();
-        assert_eq!(customer.balance, BigDecimal::from(850));
+        assert_eq!(customer.balance, Decimal::from(850));
     }
 }

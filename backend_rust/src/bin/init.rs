@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use backend_rust::{
     bin::{
         InitBot, assign_role_to_admin_user, create_admin_user_if_not_exists,
@@ -26,7 +24,9 @@ use backend_rust::{
     services::topt_encryptor::TotpEncryptor,
     state::AppState,
 };
-use bigdecimal::{BigDecimal, ToPrimitive, Zero};
+use rust_decimal::{Decimal, prelude::ToPrimitive};
+use rust_decimal_macros::dec;
+use std::sync::Arc;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -147,15 +147,15 @@ async fn create_initial_store_balance(transaction_repo: &Arc<TransactionReposito
     {
         let initial_store_balance = transaction_repo
             .create(NewTransaction {
-                amount: BigDecimal::zero(),
+                amount: dec!(0),
                 customer_id: None,
                 description: Some("Initial store balance".to_string()),
-                gateway_commission: BigDecimal::zero(),
+                gateway_commission: dec!(0),
                 details: None,
                 order_id: None,
                 payment_gateway: None,
-                platform_commission: BigDecimal::zero(),
-                store_balance_delta: BigDecimal::from(initial_store_balance),
+                platform_commission: dec!(0),
+                store_balance_delta: Decimal::from(initial_store_balance),
                 r#type: TransactionType::Deposit,
             })
             .await

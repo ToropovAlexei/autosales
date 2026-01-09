@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use bigdecimal::BigDecimal;
+use rust_decimal::Decimal;
 use uuid::Uuid;
 
 use crate::{
@@ -27,14 +27,14 @@ pub struct UpdateSettingsCommand {
     pub bot_messages_new_user_welcome_image_id: Option<Option<Uuid>>,
     pub bot_messages_returning_user_welcome: Option<String>,
     pub bot_messages_returning_user_welcome_image_id: Option<Option<Uuid>>,
-    pub pricing_global_markup: Option<BigDecimal>,
-    pub pricing_platform_commission: Option<BigDecimal>,
-    pub pricing_gateway_markup: Option<BigDecimal>,
-    pub pricing_gateway_bonus_mock_provider: Option<BigDecimal>,
-    pub pricing_gateway_bonus_platform_card: Option<BigDecimal>,
-    pub pricing_gateway_bonus_platform_sbp: Option<BigDecimal>,
+    pub pricing_global_markup: Option<Decimal>,
+    pub pricing_platform_commission: Option<Decimal>,
+    pub pricing_gateway_markup: Option<Decimal>,
+    pub pricing_gateway_bonus_mock_provider: Option<Decimal>,
+    pub pricing_gateway_bonus_platform_card: Option<Decimal>,
+    pub pricing_gateway_bonus_platform_sbp: Option<Decimal>,
     pub referral_program_enabled: Option<bool>,
-    pub referral_percentage: Option<BigDecimal>,
+    pub referral_percentage: Option<Decimal>,
 }
 
 impl From<UpdateSettingsCommand> for UpdateSettings {

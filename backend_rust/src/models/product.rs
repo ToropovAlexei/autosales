@@ -1,5 +1,5 @@
-use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use ts_rs::TS;
@@ -21,7 +21,7 @@ pub enum ProductType {
 pub struct ProductRow {
     pub id: i64,
     pub name: String,
-    pub price: BigDecimal,
+    pub base_price: Decimal,
     pub category_id: Option<i64>,
     pub image_id: Option<Uuid>,
     pub r#type: ProductType,
@@ -40,7 +40,7 @@ pub struct ProductRow {
 #[derive(Debug)]
 pub struct NewProduct {
     pub name: String,
-    pub price: BigDecimal,
+    pub base_price: Decimal,
     pub category_id: i64,
     pub image_id: Option<Uuid>,
     pub r#type: ProductType,
@@ -56,7 +56,7 @@ pub struct NewProduct {
 #[derive(Debug)]
 pub struct UpdateProduct {
     pub name: Option<String>,
-    pub price: Option<BigDecimal>,
+    pub base_price: Option<Decimal>,
     pub category_id: Option<i64>,
     pub image_id: Option<Option<Uuid>>,
     pub r#type: Option<ProductType>,
@@ -76,7 +76,7 @@ define_list_query! {
             CategoryId => "category_id",
             ProviderName => "provider_name",
             ExternalId => "external_id",
-            Price => "price",
+            BasePrice => "base_price",
         ]
     },
     order_fields: {
@@ -85,7 +85,7 @@ define_list_query! {
             Id => "id",
             Name => "name",
             CategoryId => "category_id",
-            Price => "price",
+            BasePrice => "base_price",
             ProviderName => "provider_name",
             CreatedAt => "created_at",
         ]

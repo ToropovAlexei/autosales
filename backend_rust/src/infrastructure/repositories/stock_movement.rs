@@ -111,6 +111,8 @@ impl StockMovementRepositoryTrait for StockMovementRepository {
 
 #[cfg(test)]
 mod tests {
+    use rust_decimal::Decimal;
+
     use crate::models::admin_user::{AdminUserRow, NewAdminUser};
     use crate::models::bot::BotRow;
     use crate::models::customer::CustomerRow;
@@ -118,7 +120,6 @@ mod tests {
     use crate::models::product::ProductRow;
 
     use super::*;
-    use bigdecimal::BigDecimal;
 
     async fn create_test_user(pool: &PgPool, login: &str) -> AdminUserRow {
         let new_user = NewAdminUser {
@@ -158,18 +159,18 @@ mod tests {
         let product_id: i64 = sqlx::query!(
             r#"
             INSERT INTO products (
-                name, price, created_by, type, subscription_period_days,
+                name, base_price, created_by, type, subscription_period_days,
                 provider_name
             )
             VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING id
             "#,
             name,
-            BigDecimal::from(100), // price
-            created_by,            // created_by
-            "item",                // type - explicitly use string literal
-            0,                     // subscription_period_days
-            "test_provider"        // provider_name
+            Decimal::from(100), // price
+            created_by,         // created_by
+            "item",             // type - explicitly use string literal
+            0,                  // subscription_period_days
+            "test_provider"     // provider_name
         )
         .fetch_one(pool)
         .await
@@ -179,7 +180,7 @@ mod tests {
         sqlx::query_as!(
             ProductRow,
             r#"SELECT 
-                id, name, price, category_id, image_id, type as "type: _",
+                id, name, base_price, category_id, image_id, type as "type: _",
                 subscription_period_days, details, deleted_at, fulfillment_text, 
                 fulfillment_image_id, provider_name, external_id, created_at, 
                 updated_at, created_by
@@ -199,10 +200,10 @@ mod tests {
             RETURNING id
             "#,
             customer_id,
-            BigDecimal::from(100), // amount
-            "USD",                 // currency
-            "created",             // status - explicitly use string literal
-            bot_id                 // bot_id
+            Decimal::from(100), // amount
+            "USD",              // currency
+            "created",          // status - explicitly use string literal
+            bot_id              // bot_id
         )
         .fetch_one(pool)
         .await
@@ -252,7 +253,7 @@ mod tests {
             "main", // type - explicitly use string literal
             true,            // is_active
             true,            // is_primary
-            BigDecimal::from(0), // referral_percentage
+            Decimal::from(0), // referral_percentage
         )
         .fetch_one(pool)
         .await

@@ -70,7 +70,7 @@ impl OrderItemRepositoryTrait for OrderItemRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bigdecimal::BigDecimal;
+    use rust_decimal::Decimal;
     use sqlx::PgPool;
 
     async fn create_test_user(pool: &PgPool, login: &str) -> i64 {
@@ -106,7 +106,7 @@ mod tests {
 
     async fn create_test_product(pool: &PgPool, name: &str) -> i64 {
         sqlx::query_scalar!(
-            r#"INSERT INTO products (name, price, type, created_by, provider_name) VALUES ($1, 10.0, 'item', 1, 'test') RETURNING id"#,
+            r#"INSERT INTO products (name, base_price, type, created_by, provider_name) VALUES ($1, 10.0, 'item', 1, 'test') RETURNING id"#,
             name
         )
         .fetch_one(pool)
@@ -138,7 +138,7 @@ mod tests {
             order_id,
             product_id,
             name_at_purchase: "Test Product".to_string(),
-            price_at_purchase: BigDecimal::from(10),
+            price_at_purchase: Decimal::from(10),
             quantity: 1,
             fulfillment_type: "text".to_string(),
             fulfillment_content: None,

@@ -177,7 +177,7 @@ mod tests {
         bot::BotType,
         common::{OrderDir, Pagination},
     };
-    use bigdecimal::BigDecimal;
+    use rust_decimal::Decimal;
     use sqlx::PgPool;
     use std::str::FromStr;
 
@@ -189,7 +189,7 @@ mod tests {
             r#type: BotType::Main,
             is_active: true,
             is_primary: false,
-            referral_percentage: BigDecimal::from_str("0.1").unwrap(),
+            referral_percentage: Decimal::from_str("0.1").unwrap(),
             created_by: Some(1),
         };
         sqlx::query_as!(
@@ -251,7 +251,7 @@ mod tests {
             username: Some(new_username.to_string()),
             is_active: Some(false),
             is_primary: Some(true),
-            referral_percentage: Some(BigDecimal::from_str("0.15").unwrap()),
+            referral_percentage: Some(Decimal::from_str("0.15").unwrap()),
         };
         let updated_bot = repo.update(bot.id, update_data).await.unwrap();
         assert_eq!(updated_bot.username, new_username);
@@ -259,7 +259,7 @@ mod tests {
         assert!(updated_bot.is_primary);
         assert_eq!(
             updated_bot.referral_percentage,
-            BigDecimal::from_str("0.15").unwrap()
+            Decimal::from_str("0.15").unwrap()
         );
 
         // Verify the update

@@ -1,8 +1,10 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use bigdecimal::{BigDecimal, ToPrimitive, Zero};
 use reqwest::Response;
+use rust_decimal::Decimal;
+use rust_decimal::prelude::ToPrimitive;
+use rust_decimal_macros::dec;
 use serde::{Deserialize, de::DeserializeOwned};
 
 use crate::{
@@ -50,7 +52,7 @@ pub struct UpdateBotCommand {
     pub username: Option<String>,
     pub is_active: Option<bool>,
     pub is_primary: Option<bool>,
-    pub referral_percentage: Option<BigDecimal>,
+    pub referral_percentage: Option<Decimal>,
     pub ctx: Option<RequestContext>,
 }
 
@@ -115,7 +117,7 @@ impl BotServiceTrait
                 .load_settings()
                 .await
                 .map(|s| s.referral_percentage)?,
-            BotType::Main => BigDecimal::zero(),
+            BotType::Main => dec!(0),
         };
 
         let created = self

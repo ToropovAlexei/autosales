@@ -1,5 +1,5 @@
-use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
@@ -9,7 +9,7 @@ use crate::define_list_query;
 pub struct CustomerRow {
     pub id: i64,
     pub telegram_id: i64,
-    pub balance: BigDecimal,
+    pub balance: Decimal,
     pub is_blocked: bool,
     pub bot_is_blocked_by_user: bool,
     pub has_passed_captcha: bool,

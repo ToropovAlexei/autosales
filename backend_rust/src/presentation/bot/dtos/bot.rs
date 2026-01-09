@@ -3,7 +3,7 @@ use utoipa::{ToResponse, ToSchema};
 use validator::Validate;
 
 use crate::models::bot::BotRow;
-use bigdecimal::ToPrimitive;
+use rust_decimal::prelude::ToPrimitive;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, ToResponse)]
 pub struct BotResponse {

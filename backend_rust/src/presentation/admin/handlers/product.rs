@@ -1,5 +1,5 @@
 use axum::http::StatusCode;
-use bigdecimal::{BigDecimal, FromPrimitive};
+use rust_decimal::{Decimal, prelude::FromPrimitive};
 use std::sync::Arc;
 
 use axum::{
@@ -74,7 +74,7 @@ async fn create_product(
                 fulfillment_text: payload.fulfillment_text,
                 image_id: payload.image_id,
                 name: payload.name,
-                price: bigdecimal::BigDecimal::from_f64(payload.base_price)
+                base_price: Decimal::from_f64(payload.base_price)
                     .ok_or_else(|| ApiError::BadRequest("invalid price".into()))?,
                 provider_name: "internal".to_string(),
                 subscription_period_days: payload.subscription_period_days,
@@ -172,10 +172,10 @@ async fn update_product(
                 fulfillment_text: payload.fulfillment_text,
                 image_id: payload.image_id,
                 name: payload.name,
-                price: payload
+                base_price: payload
                     .base_price
-                    .map(|price| {
-                        BigDecimal::from_f64(price)
+                    .map(|base_price| {
+                        Decimal::from_f64(base_price)
                             .ok_or_else(|| ApiError::BadRequest("invalid price".into()))
                     })
                     .transpose()?,

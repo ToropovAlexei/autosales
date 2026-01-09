@@ -1,8 +1,10 @@
-use std::{collections::HashMap, str::FromStr, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
-use bigdecimal::{BigDecimal, Zero};
+use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
 use sqlx::PgPool;
+use std::str::FromStr;
 use uuid::Uuid;
 
 use crate::{
@@ -63,41 +65,29 @@ impl SettingsRepositoryTrait for SettingsRepository {
                 "bot_messages_returning_user_welcome_image_id",
             ),
 
-            pricing_global_markup: get_bigdecimal(
-                &map,
-                "pricing_global_markup",
-                BigDecimal::zero(),
-            ),
-            pricing_platform_commission: get_bigdecimal(
-                &map,
-                "pricing_platform_commission",
-                BigDecimal::zero(),
-            ),
+            pricing_global_markup: get_decimal(&map, "pricing_global_markup", dec!(0)),
+            pricing_platform_commission: get_decimal(&map, "pricing_platform_commission", dec!(0)),
 
-            pricing_gateway_markup: get_bigdecimal(
-                &map,
-                "pricing_gateway_markup",
-                BigDecimal::zero(),
-            ),
+            pricing_gateway_markup: get_decimal(&map, "pricing_gateway_markup", dec!(0)),
 
-            pricing_gateway_bonus_mock_provider: get_bigdecimal(
+            pricing_gateway_bonus_mock_provider: get_decimal(
                 &map,
                 "pricing_gateway_bonus_mock_provider",
-                BigDecimal::zero(),
+                dec!(0),
             ),
-            pricing_gateway_bonus_platform_card: get_bigdecimal(
+            pricing_gateway_bonus_platform_card: get_decimal(
                 &map,
                 "pricing_gateway_bonus_platform_card",
-                BigDecimal::zero(),
+                dec!(0),
             ),
-            pricing_gateway_bonus_platform_sbp: get_bigdecimal(
+            pricing_gateway_bonus_platform_sbp: get_decimal(
                 &map,
                 "pricing_gateway_bonus_platform_sbp",
-                BigDecimal::zero(),
+                dec!(0),
             ),
 
             referral_program_enabled: get_bool(&map, "referral_program_enabled", false),
-            referral_percentage: get_bigdecimal(&map, "referral_percentage", BigDecimal::zero()),
+            referral_percentage: get_decimal(&map, "referral_percentage", dec!(0)),
         })
     }
 
@@ -215,14 +205,10 @@ fn get_uuid(map: &HashMap<String, Option<String>>, key: &str) -> Option<Uuid> {
         .and_then(|s| Uuid::parse_str(s).ok())
 }
 
-fn get_bigdecimal(
-    map: &HashMap<String, Option<String>>,
-    key: &str,
-    default: BigDecimal,
-) -> BigDecimal {
+fn get_decimal(map: &HashMap<String, Option<String>>, key: &str, default: Decimal) -> Decimal {
     map.get(key)
         .and_then(|v| v.as_ref())
-        .and_then(|s| BigDecimal::from_str(s).ok())
+        .and_then(|s| Decimal::from_str(s).ok())
         .unwrap_or(default)
 }
 
@@ -240,7 +226,6 @@ fn get_bool(map: &HashMap<String, Option<String>>, key: &str, default: bool) -> 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bigdecimal::BigDecimal;
     use sqlx::PgPool;
     use uuid::Uuid;
 
@@ -252,7 +237,7 @@ mod tests {
 
         // Check a few default values
         assert_eq!(settings.bot_messages_support, "Служба поддержки");
-        assert_eq!(settings.pricing_global_markup, BigDecimal::zero());
+        assert_eq!(settings.pricing_global_markup, dec!(0));
         assert!(!settings.referral_program_enabled);
         assert!(settings.bot_messages_support_image_id.is_none());
     }
@@ -282,12 +267,12 @@ mod tests {
         assert_eq!(settings.bot_messages_support, "New Support Message");
         assert_eq!(
             settings.pricing_global_markup,
-            BigDecimal::from_str("15.5").unwrap()
+            Decimal::from_str("15.5").unwrap()
         );
         assert!(settings.referral_program_enabled);
         assert_eq!(settings.bot_messages_support_image_id, Some(image_id));
         // Check that a non-set value has its default
-        assert_eq!(settings.pricing_platform_commission, BigDecimal::zero());
+        assert_eq!(settings.pricing_platform_commission, dec!(0));
     }
 
     #[sqlx::test]
@@ -311,7 +296,7 @@ mod tests {
         let update = UpdateSettings {
             bot_messages_new_user_welcome: Some("Welcome, new user!".to_string()),
             bot_messages_new_user_welcome_image_id: Some(Some(new_image_id)),
-            pricing_platform_commission: Some(BigDecimal::from_str("2.5").unwrap()),
+            pricing_platform_commission: Some(Decimal::from_str("2.5").unwrap()),
             referral_program_enabled: Some(true),
             // Keep some fields as None to ensure they are not updated
             ..Default::default()
@@ -331,7 +316,7 @@ mod tests {
         );
         assert_eq!(
             updated_settings.pricing_platform_commission,
-            BigDecimal::from_str("2.5").unwrap()
+            Decimal::from_str("2.5").unwrap()
         );
         assert!(updated_settings.referral_program_enabled);
         // Check that a non-updated field remains at its default
@@ -352,7 +337,7 @@ mod tests {
         );
         assert_eq!(
             reloaded_settings.pricing_platform_commission,
-            BigDecimal::from_str("2.5").unwrap()
+            Decimal::from_str("2.5").unwrap()
         );
     }
 

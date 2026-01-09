@@ -1,4 +1,4 @@
-use bigdecimal::ToPrimitive;
+use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use utoipa::{ToResponse, ToSchema};
 use validator::Validate;

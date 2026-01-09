@@ -1,12 +1,12 @@
-use bigdecimal::ToPrimitive;
 use chrono::{DateTime, Utc};
+use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::models::product::{ProductRow, ProductType};
+use crate::{models::product::ProductType, services::product::Product};
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "product.ts", rename = "Product")]
@@ -30,13 +30,12 @@ pub struct ProductResponse {
     pub created_by: i64,
 }
 
-impl From<ProductRow> for ProductResponse {
-    fn from(r: ProductRow) -> Self {
+impl From<Product> for ProductResponse {
+    fn from(r: Product) -> Self {
         ProductResponse {
             id: r.id,
             name: r.name,
-            base_price: r.price.to_f64().unwrap_or_default(),
-            // TODO calc price
+            base_price: r.base_price.to_f64().unwrap_or_default(),
             price: r.price.to_f64().unwrap_or_default(),
             category_id: r.category_id,
             image_id: r.image_id,

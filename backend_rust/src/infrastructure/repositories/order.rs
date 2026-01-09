@@ -93,7 +93,7 @@ impl OrderRepositoryTrait for OrderRepository {
 mod tests {
     use super::*;
     use crate::models::common::{OrderDir, Pagination};
-    use bigdecimal::BigDecimal;
+    use rust_decimal::Decimal;
     use sqlx::PgPool;
 
     async fn create_test_customer(pool: &PgPool, telegram_id: i64) -> i64 {
@@ -125,7 +125,7 @@ mod tests {
 
         let new_order = NewOrder {
             customer_id,
-            amount: BigDecimal::from(100),
+            amount: Decimal::from(100),
             currency: "USD".to_string(),
             status: OrderStatus::Created,
             bot_id,
@@ -152,7 +152,7 @@ mod tests {
         // Create some orders
         repo.create(NewOrder {
             customer_id: customer_id1,
-            amount: BigDecimal::from(100),
+            amount: Decimal::from(100),
             currency: "USD".to_string(),
             status: OrderStatus::Created,
             bot_id,
@@ -164,7 +164,7 @@ mod tests {
 
         repo.create(NewOrder {
             customer_id: customer_id2,
-            amount: BigDecimal::from(200),
+            amount: Decimal::from(200),
             currency: "USD".to_string(),
             status: OrderStatus::Created,
             bot_id,

@@ -17,6 +17,7 @@ use backend_rust::{
         category::{CategoryRepository, CategoryRepositoryTrait},
         products::ProductRepository,
         role::RoleRepository,
+        settings::SettingsRepository,
         stock_movement::StockMovementRepository,
         user_role::UserRoleRepository,
     },
@@ -36,7 +37,7 @@ use backend_rust::{
     },
     state::AppState,
 };
-use bigdecimal::{BigDecimal, FromPrimitive};
+use rust_decimal::{Decimal, prelude::FromPrimitive};
 use uuid::Uuid;
 
 #[tokio::main]
@@ -67,9 +68,11 @@ async fn main() -> anyhow::Result<()> {
     let stock_movement_repo = Arc::new(StockMovementRepository::new(db_pool.clone()));
     let audit_log_repo = Arc::new(AuditLogRepository::new(db_pool.clone()));
     let audit_log_service = Arc::new(AuditLogService::new(audit_log_repo.clone()));
+    let settings_repo = Arc::new(SettingsRepository::new(db_pool.clone()));
     let product_service = Arc::new(ProductService::new(
         product_repo,
         stock_movement_repo,
+        settings_repo,
         audit_log_service.clone(),
     ));
     let category_service = Arc::new(CategoryService::new(
@@ -200,6 +203,7 @@ pub async fn seed_products(
             ProductRepository,
             StockMovementRepository,
             AuditLogService<AuditLogRepository>,
+            SettingsRepository,
         >,
     >,
     category_service: &Arc<
@@ -244,7 +248,7 @@ pub async fn seed_products(
     };
 
     let create_if_not_exists = |name: String,
-                                price: f64,
+                                base_price: f64,
                                 category_name: String,
                                 initial_stock: Option<i64>,
                                 product_type: ProductType| {
@@ -258,7 +262,7 @@ pub async fn seed_products(
                 println!("  ➕ {}", name);
                 let cmd = CreateProductCommand {
                     name: name.to_string(),
-                    price: BigDecimal::from_f64(price).unwrap(),
+                    base_price: Decimal::from_f64(base_price).unwrap(),
                     category_id: get_category_id(category_name.as_str()),
                     image_id: None,
                     r#type: product_type,

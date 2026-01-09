@@ -1,9 +1,9 @@
-use bigdecimal::ToPrimitive;
+use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use utoipa::{ToResponse, ToSchema};
 use uuid::Uuid;
 
-use crate::models::product::{ProductRow, ProductType};
+use crate::{models::product::ProductType, services::product::Product};
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, ToResponse)]
 pub struct ProductResponse {
@@ -19,12 +19,11 @@ pub struct ProductResponse {
     pub fulfillment_image_id: Option<Uuid>,
 }
 
-impl From<ProductRow> for ProductResponse {
-    fn from(r: ProductRow) -> Self {
+impl From<Product> for ProductResponse {
+    fn from(r: Product) -> Self {
         ProductResponse {
             id: r.id,
             name: r.name,
-            // TODO calc price
             price: r.price.to_f64().unwrap_or_default(),
             category_id: r.category_id,
             image_id: r.image_id,

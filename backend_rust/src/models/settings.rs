@@ -1,4 +1,4 @@
-use bigdecimal::BigDecimal;
+use rust_decimal::Decimal;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -9,14 +9,14 @@ pub struct Settings {
     pub bot_messages_new_user_welcome_image_id: Option<Uuid>,
     pub bot_messages_returning_user_welcome: String,
     pub bot_messages_returning_user_welcome_image_id: Option<Uuid>,
-    pub pricing_global_markup: BigDecimal,
-    pub pricing_platform_commission: BigDecimal,
-    pub pricing_gateway_markup: BigDecimal,
-    pub pricing_gateway_bonus_mock_provider: BigDecimal,
-    pub pricing_gateway_bonus_platform_card: BigDecimal,
-    pub pricing_gateway_bonus_platform_sbp: BigDecimal,
+    pub pricing_global_markup: Decimal,
+    pub pricing_platform_commission: Decimal,
+    pub pricing_gateway_markup: Decimal,
+    pub pricing_gateway_bonus_mock_provider: Decimal,
+    pub pricing_gateway_bonus_platform_card: Decimal,
+    pub pricing_gateway_bonus_platform_sbp: Decimal,
     pub referral_program_enabled: bool,
-    pub referral_percentage: BigDecimal,
+    pub referral_percentage: Decimal,
 }
 
 #[derive(Debug, Default)]
@@ -27,12 +27,12 @@ pub struct UpdateSettings {
     pub bot_messages_new_user_welcome_image_id: Option<Option<Uuid>>,
     pub bot_messages_returning_user_welcome: Option<String>,
     pub bot_messages_returning_user_welcome_image_id: Option<Option<Uuid>>,
-    pub pricing_global_markup: Option<BigDecimal>,
-    pub pricing_platform_commission: Option<BigDecimal>,
-    pub pricing_gateway_markup: Option<BigDecimal>,
-    pub pricing_gateway_bonus_mock_provider: Option<BigDecimal>,
-    pub pricing_gateway_bonus_platform_card: Option<BigDecimal>,
-    pub pricing_gateway_bonus_platform_sbp: Option<BigDecimal>,
+    pub pricing_global_markup: Option<Decimal>,
+    pub pricing_platform_commission: Option<Decimal>,
+    pub pricing_gateway_markup: Option<Decimal>,
+    pub pricing_gateway_bonus_mock_provider: Option<Decimal>,
+    pub pricing_gateway_bonus_platform_card: Option<Decimal>,
+    pub pricing_gateway_bonus_platform_sbp: Option<Decimal>,
     pub referral_program_enabled: Option<bool>,
-    pub referral_percentage: Option<BigDecimal>,
+    pub referral_percentage: Option<Decimal>,
 }

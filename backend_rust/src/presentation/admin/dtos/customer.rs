@@ -1,5 +1,5 @@
-use bigdecimal::ToPrimitive;
 use chrono::{DateTime, Utc};
+use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};

@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use sqlx::{prelude::FromRow, types::BigDecimal};
+use sqlx::prelude::FromRow;
 use ts_rs::TS;
 use utoipa::ToSchema;
 
@@ -25,12 +26,12 @@ pub struct TransactionRow {
     pub customer_id: Option<i64>,
     pub order_id: Option<i64>,
     pub r#type: TransactionType,
-    pub amount: BigDecimal,
-    pub store_balance_delta: BigDecimal,
-    pub user_balance_after: Option<BigDecimal>,
-    pub store_balance_after: BigDecimal,
-    pub platform_commission: BigDecimal,
-    pub gateway_commission: BigDecimal,
+    pub amount: Decimal,
+    pub store_balance_delta: Decimal,
+    pub user_balance_after: Option<Decimal>,
+    pub store_balance_after: Decimal,
+    pub platform_commission: Decimal,
+    pub gateway_commission: Decimal,
     pub created_at: DateTime<Utc>,
     pub description: Option<String>,
     pub payment_gateway: Option<String>,
@@ -42,10 +43,10 @@ pub struct NewTransaction {
     pub customer_id: Option<i64>,
     pub order_id: Option<i64>,
     pub r#type: TransactionType,
-    pub amount: BigDecimal,
-    pub store_balance_delta: BigDecimal,
-    pub platform_commission: BigDecimal,
-    pub gateway_commission: BigDecimal,
+    pub amount: Decimal,
+    pub store_balance_delta: Decimal,
+    pub platform_commission: Decimal,
+    pub gateway_commission: Decimal,
     pub description: Option<String>,
     pub payment_gateway: Option<String>,
     pub details: Option<serde_json::Value>,

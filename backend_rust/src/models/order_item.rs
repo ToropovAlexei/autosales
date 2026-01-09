@@ -1,4 +1,4 @@
-use bigdecimal::BigDecimal;
+use rust_decimal::Decimal;
 use serde::Serialize;
 use sqlx::prelude::FromRow;
 
@@ -8,7 +8,7 @@ pub struct OrderItemRow {
     pub order_id: i64,
     pub product_id: i64,
     pub name_at_purchase: String,
-    pub price_at_purchase: BigDecimal,
+    pub price_at_purchase: Decimal,
     pub quantity: i16,
     pub fulfillment_type: String,
     pub fulfillment_content: Option<String>,
@@ -22,7 +22,7 @@ pub struct NewOrderItem {
     pub order_id: i64,
     pub product_id: i64,
     pub name_at_purchase: String,
-    pub price_at_purchase: BigDecimal,
+    pub price_at_purchase: Decimal,
     pub quantity: i16,
     pub fulfillment_type: String,
     pub fulfillment_content: Option<String>,

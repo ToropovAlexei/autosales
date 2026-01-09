@@ -120,8 +120,8 @@ mod tests {
         order::OrderRow,
         product::ProductRow,
     };
-    use bigdecimal::BigDecimal;
     use chrono::Utc;
+    use rust_decimal::Decimal;
     use sqlx::PgPool;
 
     async fn create_test_customer(pool: &PgPool, telegram_id: i64, bot_id: i64) -> CustomerRow {
@@ -154,7 +154,7 @@ mod tests {
             "main", // type - explicitly use string literal
             true,            // is_active
             true,            // is_primary
-            BigDecimal::from(0), // referral_percentage
+            Decimal::from(0), // referral_percentage
         )
         .fetch_one(pool)
         .await
@@ -179,18 +179,18 @@ mod tests {
         let product_id: i64 = sqlx::query!(
             r#"
             INSERT INTO products (
-                name, price, created_by, type, subscription_period_days,
+                name, base_price, created_by, type, subscription_period_days,
                 provider_name
             )
             VALUES ($1, $2, $3, $4, $5, $6)
             RETURNING id
             "#,
             name,
-            BigDecimal::from(100), // price
-            1,                     // created_by
-            "subscription",        // type - explicitly use string literal
-            30,                    // subscription_period_days
-            "test_provider"        // provider_name
+            Decimal::from(100), // price
+            1,                  // created_by
+            "subscription",     // type - explicitly use string literal
+            30,                 // subscription_period_days
+            "test_provider"     // provider_name
         )
         .fetch_one(pool)
         .await
@@ -201,7 +201,7 @@ mod tests {
         sqlx::query_as!(
             ProductRow,
             r#"SELECT 
-                id, name, price, category_id, image_id, type as "type: _",
+                id, name, base_price, category_id, image_id, type as "type: _",
                 subscription_period_days, details, deleted_at, fulfillment_text, 
                 fulfillment_image_id, provider_name, external_id, created_at, 
                 updated_at, created_by
@@ -221,10 +221,10 @@ mod tests {
             RETURNING id
             "#,
             customer_id,
-            BigDecimal::from(100), // amount
-            "USD",                 // currency
-            "created",             // status - explicitly use string literal
-            1                      // bot_id
+            Decimal::from(100), // amount
+            "USD",              // currency
+            "created",          // status - explicitly use string literal
+            1                   // bot_id
         )
         .fetch_one(pool)
         .await
@@ -261,7 +261,7 @@ mod tests {
             started_at: now,
             expires_at: now + chrono::Duration::days(30),
             next_charge_at: None,
-            price_at_subscription: BigDecimal::from(10),
+            price_at_subscription: Decimal::from(10),
             period_days: 30,
             details: None,
         };
@@ -289,7 +289,7 @@ mod tests {
             started_at: now,
             expires_at: now + chrono::Duration::days(30),
             next_charge_at: None,
-            price_at_subscription: BigDecimal::from(10),
+            price_at_subscription: Decimal::from(10),
             period_days: 30,
             details: None,
         };

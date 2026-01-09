@@ -1,5 +1,5 @@
-use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use ts_rs::TS;
@@ -23,7 +23,7 @@ pub enum OrderStatus {
 pub struct OrderRow {
     pub id: i64,
     pub customer_id: i64,
-    pub amount: BigDecimal,
+    pub amount: Decimal,
     pub currency: String,
     pub status: OrderStatus,
     pub bot_id: i64,
@@ -37,7 +37,7 @@ pub struct OrderRow {
 #[derive(Debug)]
 pub struct NewOrder {
     pub customer_id: i64,
-    pub amount: BigDecimal,
+    pub amount: Decimal,
     pub currency: String,
     pub status: OrderStatus,
     pub bot_id: i64,

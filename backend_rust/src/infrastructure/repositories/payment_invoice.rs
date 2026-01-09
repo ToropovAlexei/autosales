@@ -135,8 +135,8 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
 mod tests {
     use super::*;
     use crate::models::common::{OrderDir, Pagination};
-    use bigdecimal::BigDecimal;
     use chrono::{Duration, Utc};
+    use rust_decimal::Decimal;
     use serde_json::Value;
     use sqlx::PgPool;
     use uuid::Uuid;
@@ -184,8 +184,8 @@ mod tests {
         let new_invoice = NewPaymentInvoice {
             customer_id,
             order_id: Uuid::new_v4(),
-            original_amount: BigDecimal::from(100),
-            amount: BigDecimal::from(100),
+            original_amount: Decimal::from(100),
+            amount: Decimal::from(100),
             status: InvoiceStatus::Pending,
             expires_at,
             gateway: "test_gateway".to_string(),

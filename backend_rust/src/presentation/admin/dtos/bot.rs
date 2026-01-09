@@ -1,11 +1,11 @@
 use chrono::{DateTime, Utc};
+use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
 use validator::Validate;
 
 use crate::models::bot::{BotRow, BotType};
-use bigdecimal::ToPrimitive;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "bot.ts", rename = "Bot")]

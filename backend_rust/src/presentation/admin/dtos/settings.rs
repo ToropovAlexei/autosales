@@ -1,4 +1,4 @@
-use bigdecimal::{BigDecimal, FromPrimitive, ToPrimitive};
+use rust_decimal::prelude::{Decimal, FromPrimitive, ToPrimitive};
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
@@ -120,7 +120,7 @@ pub struct UpdateBotSettingsRequest {
 impl From<UpdatePricingSettingsRequest> for UpdateSettingsCommand {
     fn from(r: UpdatePricingSettingsRequest) -> Self {
         let f64_opt_to_bd =
-            |opt: Option<f64>| opt.map(|f| BigDecimal::from_f64(f).unwrap_or_default());
+            |opt: Option<f64>| opt.map(|f| Decimal::from_f64(f).unwrap_or_default());
         UpdateSettingsCommand {
             pricing_gateway_bonus_mock_provider: f64_opt_to_bd(
                 r.pricing_gateway_bonus_mock_provider,

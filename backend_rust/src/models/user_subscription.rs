@@ -1,5 +1,5 @@
-use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
@@ -16,7 +16,7 @@ pub struct UserSubscriptionRow {
     pub cancelled_at: Option<DateTime<Utc>>,
     pub next_charge_at: Option<DateTime<Utc>>,
     pub renewal_order_id: Option<i64>,
-    pub price_at_subscription: BigDecimal,
+    pub price_at_subscription: Decimal,
     pub period_days: i16,
     pub details: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
@@ -35,7 +35,7 @@ pub struct UserSubscriptionEnrichedRow {
     pub cancelled_at: Option<DateTime<Utc>>,
     pub next_charge_at: Option<DateTime<Utc>>,
     pub renewal_order_id: Option<i64>,
-    pub price_at_subscription: BigDecimal,
+    pub price_at_subscription: Decimal,
     pub period_days: i16,
     pub details: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
@@ -50,7 +50,7 @@ pub struct NewUserSubscription {
     pub started_at: DateTime<Utc>,
     pub expires_at: DateTime<Utc>,
     pub next_charge_at: Option<DateTime<Utc>>,
-    pub price_at_subscription: BigDecimal,
+    pub price_at_subscription: Decimal,
     pub period_days: i16,
     pub details: Option<serde_json::Value>,
 }

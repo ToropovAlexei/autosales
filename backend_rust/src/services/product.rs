@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use bigdecimal::BigDecimal;
+use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
+use rust_decimal_macros::dec;
+use serde::Serialize;
 use uuid::Uuid;
 
 use crate::{
@@ -9,6 +12,7 @@ use crate::{
     infrastructure::repositories::{
         audit_log::AuditLogRepository,
         products::{ProductRepository, ProductRepositoryTrait},
+        settings::{SettingsRepository, SettingsRepositoryTrait},
         stock_movement::{StockMovementRepository, StockMovementRepositoryTrait},
     },
     middlewares::context::RequestContext,
@@ -16,15 +20,37 @@ use crate::{
         audit_log::{AuditAction, AuditStatus, NewAuditLog},
         common::PaginatedResult,
         product::{NewProduct, ProductListQuery, ProductRow, ProductType, UpdateProduct},
+        settings::Settings,
         stock_movement::{NewStockMovement, StockMovementType},
     },
     services::audit_log::{AuditLogService, AuditLogServiceTrait},
 };
 
+#[derive(Debug, Clone, Serialize)]
+pub struct Product {
+    pub id: i64,
+    pub name: String,
+    pub price: Decimal,
+    pub base_price: Decimal,
+    pub category_id: Option<i64>,
+    pub image_id: Option<Uuid>,
+    pub r#type: ProductType,
+    pub subscription_period_days: i16,
+    pub details: Option<serde_json::Value>,
+    pub deleted_at: Option<DateTime<Utc>>,
+    pub fulfillment_text: Option<String>,
+    pub fulfillment_image_id: Option<Uuid>,
+    pub provider_name: String,
+    pub external_id: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub created_by: i64,
+}
+
 #[derive(Debug)]
 pub struct CreateProductCommand {
     pub name: String,
-    pub price: BigDecimal,
+    pub base_price: Decimal,
     pub category_id: i64,
     pub image_id: Option<Uuid>,
     pub r#type: ProductType,
@@ -42,7 +68,7 @@ pub struct CreateProductCommand {
 pub struct UpdateProductCommand {
     pub id: i64,
     pub name: Option<String>,
-    pub price: Option<BigDecimal>,
+    pub base_price: Option<Decimal>,
     pub category_id: Option<i64>,
     pub image_id: Option<Option<Uuid>>,
     pub r#type: Option<ProductType>,
@@ -63,28 +89,29 @@ pub struct DeleteProductCommand {
 
 #[async_trait]
 pub trait ProductServiceTrait: Send + Sync {
-    async fn get_list(&self, query: ProductListQuery) -> ApiResult<PaginatedResult<ProductRow>>;
+    async fn get_list(&self, query: ProductListQuery) -> ApiResult<PaginatedResult<Product>>;
     async fn create(
         &self,
         command: CreateProductCommand,
         ctx: RequestContext,
-    ) -> ApiResult<ProductRow>;
-    async fn get_by_id(&self, id: i64) -> ApiResult<ProductRow>;
+    ) -> ApiResult<Product>;
+    async fn get_by_id(&self, id: i64) -> ApiResult<Product>;
     async fn update(
         &self,
         command: UpdateProductCommand,
         ctx: RequestContext,
-    ) -> ApiResult<ProductRow>;
+    ) -> ApiResult<Product>;
     async fn delete(&self, command: DeleteProductCommand, ctx: RequestContext) -> ApiResult<()>;
 }
 
-pub struct ProductService<R, S, A> {
+pub struct ProductService<R, S, A, T> {
     product_repo: Arc<R>,
     stock_movement_repo: Arc<S>,
+    settings_repo: Arc<T>,
     audit_log_service: Arc<A>,
 }
 
-impl<R, S, A> ProductService<R, S, A>
+impl<R, S, A, T> ProductService<R, S, A, T>
 where
     R: ProductRepositoryTrait + Send + Sync,
     S: StockMovementRepositoryTrait + Send + Sync,
@@ -93,11 +120,13 @@ where
     pub fn new(
         product_repo: Arc<R>,
         stock_movement_repo: Arc<S>,
+        settings_repo: Arc<T>,
         audit_log_service: Arc<A>,
     ) -> Self {
         Self {
             product_repo,
             stock_movement_repo,
+            settings_repo,
             audit_log_service,
         }
     }
@@ -109,20 +138,31 @@ impl ProductServiceTrait
         ProductRepository,
         StockMovementRepository,
         AuditLogService<AuditLogRepository>,
+        SettingsRepository,
     >
 {
-    async fn get_list(&self, query: ProductListQuery) -> ApiResult<PaginatedResult<ProductRow>> {
+    async fn get_list(&self, query: ProductListQuery) -> ApiResult<PaginatedResult<Product>> {
+        let settings = self.settings_repo.load_settings().await?;
         self.product_repo
             .get_list(query)
             .await
             .map_err(ApiError::from)
+            .map(|res| PaginatedResult {
+                items: res
+                    .items
+                    .iter()
+                    .map(|row| from_product_row(row.clone(), &settings.clone()))
+                    .collect(),
+                total: res.total,
+            })
     }
 
     async fn create(
         &self,
         command: CreateProductCommand,
         ctx: RequestContext,
-    ) -> ApiResult<ProductRow> {
+    ) -> ApiResult<Product> {
+        let settings = self.settings_repo.load_settings().await?;
         let created = self
             .product_repo
             .create(NewProduct {
@@ -134,7 +174,7 @@ impl ProductServiceTrait
                 fulfillment_text: command.fulfillment_text,
                 image_id: command.image_id,
                 name: command.name,
-                price: command.price,
+                base_price: command.base_price,
                 provider_name: command.provider_name,
                 subscription_period_days: command.subscription_period_days.unwrap_or_default(),
                 r#type: command.r#type,
@@ -190,19 +230,21 @@ impl ProductServiceTrait
                 .await?;
         }
 
-        Ok(created)
+        Ok(from_product_row(created, &settings))
     }
 
-    async fn get_by_id(&self, id: i64) -> ApiResult<ProductRow> {
+    async fn get_by_id(&self, id: i64) -> ApiResult<Product> {
+        let settings = self.settings_repo.load_settings().await?;
         let res = self.product_repo.get_by_id(id).await?;
-        Ok(res)
+        Ok(from_product_row(res, &settings))
     }
 
     async fn update(
         &self,
         command: UpdateProductCommand,
         ctx: RequestContext,
-    ) -> ApiResult<ProductRow> {
+    ) -> ApiResult<Product> {
+        let settings = self.settings_repo.load_settings().await?;
         let prev = self.product_repo.get_by_id(command.id).await?;
         let updated = self
             .product_repo
@@ -216,7 +258,7 @@ impl ProductServiceTrait
                     fulfillment_text: command.fulfillment_text,
                     image_id: command.image_id,
                     name: command.name,
-                    price: command.price,
+                    base_price: command.base_price,
                     subscription_period_days: command.subscription_period_days,
                     r#type: command.r#type,
                 },
@@ -250,7 +292,7 @@ impl ProductServiceTrait
                 .unwrap_or_default();
 
             if current == stock {
-                return Ok(updated);
+                return Ok(from_product_row(updated, &settings));
             }
             let stock_movement = self
                 .stock_movement_repo
@@ -283,7 +325,7 @@ impl ProductServiceTrait
                 .await?;
         }
 
-        Ok(updated)
+        Ok(from_product_row(updated, &settings))
     }
 
     async fn delete(&self, command: DeleteProductCommand, ctx: RequestContext) -> ApiResult<()> {
@@ -309,4 +351,32 @@ impl ProductServiceTrait
 
         Ok(())
     }
+}
+
+fn from_product_row(res: ProductRow, settings: &Settings) -> Product {
+    Product {
+        price: calc_product_price(&res.base_price, settings),
+        id: res.id,
+        name: res.name,
+        image_id: res.image_id,
+        r#type: res.r#type,
+        subscription_period_days: res.subscription_period_days,
+        details: res.details,
+        fulfillment_text: res.fulfillment_text,
+        fulfillment_image_id: res.fulfillment_image_id,
+        base_price: res.base_price,
+        provider_name: res.provider_name,
+        external_id: res.external_id,
+        created_at: res.created_at,
+        created_by: res.created_by,
+        updated_at: res.updated_at,
+        deleted_at: res.deleted_at,
+        category_id: res.category_id,
+    }
+}
+
+fn calc_product_price(base_price: &Decimal, settings: &Settings) -> Decimal {
+    let global_markup = settings.pricing_global_markup;
+    let gateway_markup = settings.pricing_gateway_markup;
+    (base_price * (dec!(1) + global_markup / dec!(100))) / (dec!(1) - gateway_markup / dec!(100))
 }

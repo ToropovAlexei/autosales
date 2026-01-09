@@ -1,5 +1,5 @@
-use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use ts_rs::TS;
@@ -25,7 +25,7 @@ pub struct BotRow {
     pub r#type: BotType,
     pub is_active: bool,
     pub is_primary: bool,
-    pub referral_percentage: BigDecimal,
+    pub referral_percentage: Decimal,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub created_by: Option<i64>,
@@ -39,7 +39,7 @@ pub struct NewBot {
     pub r#type: BotType,
     pub is_active: bool,
     pub is_primary: bool,
-    pub referral_percentage: BigDecimal,
+    pub referral_percentage: Decimal,
     pub created_by: Option<i64>,
 }
 
@@ -48,7 +48,7 @@ pub struct UpdateBot {
     pub username: Option<String>,
     pub is_active: Option<bool>,
     pub is_primary: Option<bool>,
-    pub referral_percentage: Option<BigDecimal>,
+    pub referral_percentage: Option<Decimal>,
 }
 
 define_list_query! {

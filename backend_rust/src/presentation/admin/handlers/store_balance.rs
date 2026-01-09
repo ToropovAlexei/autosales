@@ -1,7 +1,7 @@
+use rust_decimal::prelude::ToPrimitive;
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
-use bigdecimal::ToPrimitive;
 
 use crate::{
     errors::api::ApiResult,

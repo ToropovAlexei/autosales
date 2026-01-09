@@ -50,7 +50,7 @@ impl ProductRepositoryTrait for ProductRepository {
 
         let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
             r#"SELECT
-                id, name, price, category_id, image_id, type,
+                id, name, base_price, category_id, image_id, type,
                 subscription_period_days, details, fulfillment_text, fulfillment_image_id,
                 provider_name, external_id, created_by, created_at, updated_at, deleted_at
             FROM products"#,
@@ -66,16 +66,16 @@ impl ProductRepositoryTrait for ProductRepository {
             ProductRow,
             r#"
             INSERT INTO products (
-                name, price, category_id, image_id, type, subscription_period_days,
+                name, base_price, category_id, image_id, type, subscription_period_days,
                 details, fulfillment_text, fulfillment_image_id,
                 provider_name, external_id, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
-            RETURNING id, name, price, category_id, image_id, type as "type: _",
+            RETURNING id, name, base_price, category_id, image_id, type as "type: _",
                 subscription_period_days, details, fulfillment_text, fulfillment_image_id,
                 provider_name, external_id, created_by, created_at, updated_at, deleted_at
             "#,
             product.name,
-            product.price,
+            product.base_price,
             product.category_id,
             product.image_id,
             product.r#type as ProductType,
@@ -97,7 +97,7 @@ impl ProductRepositoryTrait for ProductRepository {
         let result = sqlx::query_as!(
             ProductRow,
             r#"SELECT
-                id, name, price, category_id, image_id, type as "type: _",
+                id, name, base_price, category_id, image_id, type as "type: _",
                 subscription_period_days, details, fulfillment_text, fulfillment_image_id,
                 provider_name, external_id, created_by, created_at, updated_at, deleted_at
             FROM products WHERE id = $1 AND deleted_at IS NULL"#,
@@ -151,9 +151,9 @@ impl ProductRepositoryTrait for ProductRepository {
             query_builder.push_bind(fulfillment_image_id);
         }
 
-        if let Some(price) = product.price {
-            query_builder.push(", price = ");
-            query_builder.push_bind(price);
+        if let Some(base_price) = product.base_price {
+            query_builder.push(", base_price = ");
+            query_builder.push_bind(base_price);
         }
 
         if let Some(subscription_period_days) = product.subscription_period_days {
@@ -188,8 +188,8 @@ impl ProductRepositoryTrait for ProductRepository {
 mod tests {
     use super::*;
     use crate::models::product::ProductType;
-    use bigdecimal::BigDecimal;
     use rand::Rng;
+    use rust_decimal::Decimal;
     use sqlx::PgPool;
     use uuid::Uuid;
 
@@ -197,20 +197,20 @@ mod tests {
     async fn create_test_product(
         pool: &PgPool,
         name: &str,
-        price: f64,
+        base_price: f64,
         category_id: i64,
     ) -> ProductRow {
         sqlx::query_as!(
             ProductRow,
             r#"
-            INSERT INTO products (name, price, category_id, type, subscription_period_days, provider_name, created_by)
+            INSERT INTO products (name, base_price, category_id, type, subscription_period_days, provider_name, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING id, name, price, category_id, image_id, type as "type: _",
+            RETURNING id, name, base_price, category_id, image_id, type as "type: _",
                 subscription_period_days, details, fulfillment_text, fulfillment_image_id,
                 provider_name, external_id, created_by, created_at, updated_at, deleted_at
             "#,
             name,
-            BigDecimal::try_from(price).unwrap(),
+            Decimal::try_from(base_price).unwrap(),
             category_id,
             ProductType::Item as ProductType, // Default type
             0, // Default subscription_period_days
@@ -281,7 +281,7 @@ mod tests {
 
         let update_data = UpdateProduct {
             name: Some("Gaming Laptop".to_string()),
-            price: Some(BigDecimal::try_from(1500.00).unwrap()),
+            base_price: Some(Decimal::try_from(1500.00).unwrap()),
             category_id: Some(category_id),
             image_id: Some(Some(new_image_id)),
             r#type: Some(ProductType::Subscription),
@@ -300,8 +300,8 @@ mod tests {
         assert_eq!(fetched_product.id, initial_product.id);
         assert_eq!(fetched_product.name, "Gaming Laptop");
         assert_eq!(
-            fetched_product.price,
-            BigDecimal::try_from(1500.00).unwrap()
+            fetched_product.base_price,
+            Decimal::try_from(1500.00).unwrap()
         );
         assert_eq!(fetched_product.r#type, ProductType::Subscription);
         assert_eq!(fetched_product.subscription_period_days, 30);
@@ -329,14 +329,14 @@ mod tests {
         let initial_product = sqlx::query_as!(
             ProductRow,
             r#"
-            INSERT INTO products (name, price, category_id, image_id, type, subscription_period_days, details, fulfillment_image_id, external_id, provider_name, created_by)
+            INSERT INTO products (name, base_price, category_id, image_id, type, subscription_period_days, details, fulfillment_image_id, external_id, provider_name, created_by)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-            RETURNING id, name, price, category_id, image_id, type as "type: _",
+            RETURNING id, name, base_price, category_id, image_id, type as "type: _",
                 subscription_period_days, details, fulfillment_text, fulfillment_image_id,
                 provider_name, external_id, created_by, created_at, updated_at, deleted_at
             "#,
             "Old Book",
-            BigDecimal::try_from(25.00).unwrap(),
+            Decimal::try_from(25.00).unwrap(),
             category_id,
             Some(initial_image_id),
             ProductType::Item as ProductType,
@@ -354,7 +354,7 @@ mod tests {
         // Update some fields with Some(value), some with Some(None) (to nullify), some with None (to keep original)
         let update_data = UpdateProduct {
             name: Some("Newer Book".to_string()), // Update
-            price: None,                          // Keep original
+            base_price: None,                     // Keep original
             category_id: None,                    // Keep original
             image_id: Some(None),                 // Set to NULL
             r#type: None,                         // Keep original
@@ -372,7 +372,7 @@ mod tests {
 
         assert_eq!(fetched_product.id, initial_product.id);
         assert_eq!(fetched_product.name, "Newer Book");
-        assert_eq!(fetched_product.price, initial_product.price); // Unchanged
+        assert_eq!(fetched_product.base_price, initial_product.base_price); // Unchanged
         assert_eq!(fetched_product.category_id, initial_product.category_id); // Unchanged
         assert!(fetched_product.image_id.is_none()); // Set to NULL
         assert_eq!(fetched_product.r#type, initial_product.r#type); // Unchanged
@@ -397,7 +397,7 @@ mod tests {
         // Update with all None values
         let update_data = UpdateProduct {
             name: None,
-            price: None,
+            base_price: None,
             category_id: None,
             image_id: None,
             r#type: None,
@@ -415,7 +415,7 @@ mod tests {
 
         assert_eq!(fetched_product.id, initial_product.id);
         assert_eq!(fetched_product.name, initial_product.name);
-        assert_eq!(fetched_product.price, initial_product.price);
+        assert_eq!(fetched_product.base_price, initial_product.base_price);
         assert_eq!(fetched_product.category_id, initial_product.category_id);
         assert_eq!(fetched_product.image_id, initial_product.image_id);
         assert_eq!(fetched_product.r#type, initial_product.r#type);

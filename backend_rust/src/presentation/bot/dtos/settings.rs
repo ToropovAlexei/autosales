@@ -1,9 +1,9 @@
+use rust_decimal::prelude::ToPrimitive;
 use serde::Serialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::models::settings::Settings;
-use bigdecimal::ToPrimitive;
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct SettingsResponse {

@@ -1,7 +1,7 @@
 CREATE TABLE products (
     id BIGSERIAL PRIMARY KEY,
     name TEXT NOT NULL CHECK (LENGTH(TRIM(name)) > 0),
-    price NUMERIC(12,2) NOT NULL CHECK (price >= 0),
+    base_price NUMERIC(12,2) NOT NULL CHECK (base_price >= 0),
     category_id BIGINT,
     image_id UUID,
 
@@ -46,7 +46,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_products_provider_external
 
 CREATE INDEX IF NOT EXISTS idx_products_category_id ON products (category_id);
 CREATE INDEX IF NOT EXISTS idx_products_name ON products (name);
-CREATE INDEX IF NOT EXISTS idx_products_price ON products (price);
+CREATE INDEX IF NOT EXISTS idx_products_base_price ON products (base_price);
 CREATE INDEX IF NOT EXISTS idx_products_created_at ON products (created_at DESC);
 
 CREATE TRIGGER set_updated_at_products

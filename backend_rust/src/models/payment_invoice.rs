@@ -1,5 +1,5 @@
-use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 use ts_rs::TS;
@@ -23,8 +23,8 @@ pub enum InvoiceStatus {
 pub struct PaymentInvoiceRow {
     pub id: i64,
     pub customer_id: i64,
-    pub original_amount: BigDecimal,
-    pub amount: BigDecimal,
+    pub original_amount: Decimal,
+    pub amount: Decimal,
     pub status: InvoiceStatus,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -41,8 +41,8 @@ pub struct PaymentInvoiceRow {
 #[derive(Debug)]
 pub struct NewPaymentInvoice {
     pub customer_id: i64,
-    pub original_amount: BigDecimal,
-    pub amount: BigDecimal,
+    pub original_amount: Decimal,
+    pub amount: Decimal,
     pub status: InvoiceStatus,
     pub expires_at: DateTime<Utc>,
     pub gateway: String,
