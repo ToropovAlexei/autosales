@@ -9,6 +9,7 @@ pub mod customer;
 pub mod image;
 pub mod order;
 pub mod order_item;
+pub mod payment;
 pub mod payment_invoice;
 pub mod permission;
 pub mod product;
