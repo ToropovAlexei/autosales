@@ -25,7 +25,7 @@ pub fn catalog_menu_inline_keyboard(
 
     products.iter().for_each(|product| {
         buttons.push(vec![InlineKeyboardButton::callback(
-            format!("🔹 {} - {} ₽", product.name, product.price),
+            format!("🔹 {} - {} ₽", product.name, product.price.ceil()),
             CallbackData::ToProduct { id: product.id },
         )])
     });
