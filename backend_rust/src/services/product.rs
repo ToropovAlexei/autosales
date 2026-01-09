@@ -380,3 +380,72 @@ fn calc_product_price(base_price: &Decimal, settings: &Settings) -> Decimal {
     let gateway_markup = settings.pricing_gateway_markup;
     (base_price * (dec!(1) + global_markup / dec!(100))) / (dec!(1) - gateway_markup / dec!(100))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn get_settings(global_markup: Decimal, gateway_markup: Decimal) -> Settings {
+        Settings {
+            pricing_global_markup: global_markup,
+            pricing_gateway_markup: gateway_markup,
+            bot_messages_new_user_welcome: "".to_string(),
+            bot_messages_new_user_welcome_image_id: None,
+            bot_messages_returning_user_welcome: "".to_string(),
+            bot_messages_returning_user_welcome_image_id: None,
+            bot_messages_support: "".to_string(),
+            bot_messages_support_image_id: None,
+            pricing_gateway_bonus_mock_provider: dec!(0),
+            pricing_gateway_bonus_platform_card: dec!(0),
+            pricing_gateway_bonus_platform_sbp: dec!(0),
+            pricing_platform_commission: dec!(0),
+            referral_percentage: dec!(0),
+            referral_program_enabled: false,
+        }
+    }
+
+    #[test]
+    fn test_calc_product_price_no_markup() {
+        let settings = get_settings(dec!(0), dec!(0));
+        let result = calc_product_price(&dec!(100), &settings);
+        assert_eq!(result, dec!(100));
+    }
+
+    #[test]
+    fn test_calc_product_price_only_global_markup() {
+        let settings = get_settings(dec!(10), dec!(0));
+        let result = calc_product_price(&dec!(100), &settings);
+        assert_eq!(result, dec!(110));
+    }
+
+    #[test]
+    fn test_calc_product_price_only_gateway_markup() {
+        let settings = get_settings(dec!(0), dec!(10));
+        let result = calc_product_price(&dec!(100), &settings);
+        // We need final amount after gateway fee to be 100
+        // So: x * (1 - 0.1) = 100 → x = 100 / 0.9 ≈ 111.111...
+        assert_eq!(result, dec!(111.11111111111111111111111111));
+    }
+
+    #[test]
+    fn test_calc_product_price_both_markups() {
+        let settings = get_settings(dec!(20), dec!(10));
+        let base = dec!(100);
+        // Step 1: 100 * 1.2 = 120
+        // Step 2: 120 / 0.9 ≈ 133.333...
+        let expected = dec!(133.33333333333333333333333333);
+        let result = calc_product_price(&base, &settings);
+        assert_eq!(result, expected);
+    }
+
+    #[test]
+    fn test_calc_product_price_with_fractional_base() {
+        let settings = get_settings(dec!(5), dec!(2.5));
+        let base = dec!(99.99);
+        let result = calc_product_price(&base, &settings);
+        // 99.99 * 1.05 = 104.9895
+        // 104.9895 / (1 - 0.025) = 104.9895 / 0.975 ≈ 107.68153846153846...
+        let expected = dec!(107.68153846153846153846153846);
+        assert_eq!(result, expected);
+    }
+}
