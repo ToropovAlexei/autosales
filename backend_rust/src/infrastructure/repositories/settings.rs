@@ -193,10 +193,7 @@ fn get_string(map: &HashMap<String, Option<String>>, key: &str, default: &str) -
     map.get(key)
         .and_then(|v| v.as_ref())
         .map(|s| s.to_string())
-        .unwrap_or_else(|| {
-            tracing::warn!(key, "missing or null settings key, using default");
-            default.to_string()
-        })
+        .unwrap_or_else(|| default.to_string())
 }
 
 fn get_uuid(map: &HashMap<String, Option<String>>, key: &str) -> Option<Uuid> {
