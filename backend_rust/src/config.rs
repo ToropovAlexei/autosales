@@ -18,6 +18,8 @@ pub struct Config {
     pub image_upload_path: String,
     pub service_api_key: String,
     pub captcha_api_url: String,
+    #[cfg(feature = "contms-provider")]
+    pub contms_api_url: String,
 }
 
 impl Config {

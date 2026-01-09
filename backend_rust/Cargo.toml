@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2024"
 default-run = "backend_rust"
 
+[features]
+default = ["contms-provider"]
+contms-provider = []
+
 [dependencies]
 aes-gcm = "0.10"
 anyhow = "1.0"
