@@ -8,16 +8,19 @@ use crate::infrastructure::external::products::contms::ContmsProductsProvider;
 use crate::{
     config::{self, Config},
     db,
-    infrastructure::repositories::{
-        active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
-        audit_log::AuditLogRepository, bot::BotRepository, category::CategoryRepository,
-        customer::CustomerRepository, effective_permission::EffectivePermissionRepository,
-        image::ImageRepository, order::OrderRepository, permission::PermissionRepository,
-        products::ProductRepository, role::RoleRepository,
-        role_permission::RolePermissionRepository, settings::SettingsRepository,
-        stock_movement::StockMovementRepository, temporary_token::TemporaryTokenRepository,
-        transaction::TransactionRepository, user_permission::UserPermissionRepository,
-        user_role::UserRoleRepository,
+    infrastructure::{
+        external::payment::mock::MockPaymentsProvider,
+        repositories::{
+            active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
+            audit_log::AuditLogRepository, bot::BotRepository, category::CategoryRepository,
+            customer::CustomerRepository, effective_permission::EffectivePermissionRepository,
+            image::ImageRepository, order::OrderRepository, permission::PermissionRepository,
+            products::ProductRepository, role::RoleRepository,
+            role_permission::RolePermissionRepository, settings::SettingsRepository,
+            stock_movement::StockMovementRepository, temporary_token::TemporaryTokenRepository,
+            transaction::TransactionRepository, user_permission::UserPermissionRepository,
+            user_role::UserRoleRepository,
+        },
     },
     services::{
         admin_user::AdminUserService,
@@ -97,6 +100,8 @@ pub struct AppState {
     pub client: Arc<reqwest::Client>,
     #[cfg(feature = "contms-provider")]
     pub contms_products_provider: Arc<ContmsProductsProvider>,
+    #[cfg(feature = "mock-payments-provider")]
+    pub mock_payments_provider: Arc<MockPaymentsProvider>,
 }
 
 impl AppState {
@@ -204,6 +209,11 @@ impl AppState {
             client.clone(),
             config.contms_api_url.clone(),
         ));
+        #[cfg(feature = "mock-payments-provider")]
+        let mock_payments_provider = Arc::new(MockPaymentsProvider::new(
+            client.clone(),
+            config.mock_payments_provider_url.clone(),
+        ));
 
         Self {
             db,
@@ -227,6 +237,8 @@ impl AppState {
             captcha_service,
             #[cfg(feature = "contms-provider")]
             contms_products_provider,
+            #[cfg(feature = "mock-payments-provider")]
+            mock_payments_provider,
         }
     }
 }

@@ -9,5 +9,6 @@ use utoipa::ToSchema;
 pub enum PaymentSystem {
     PlatformCard,
     PlatformSBP,
+    #[cfg(feature = "mock-payments-provider")]
     Mock,
 }

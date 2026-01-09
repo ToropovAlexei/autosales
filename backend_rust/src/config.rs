@@ -20,6 +20,8 @@ pub struct Config {
     pub captcha_api_url: String,
     #[cfg(feature = "contms-provider")]
     pub contms_api_url: String,
+    #[cfg(feature = "mock-payments-provider")]
+    pub mock_payments_provider_url: String,
 }
 
 impl Config {

@@ -52,6 +52,7 @@ pub fn create_app(app_state: Arc<AppState>) -> Router {
         .route("/healthz", get(healthz))
         .nest("/api/admin", presentation::admin::router::router())
         .nest("/api/bot", presentation::bot::router::router())
+        .nest("/api/webhook", presentation::webhook::router::router())
         .merge(presentation::images::router::router())
         .layer(cors)
         .layer(
