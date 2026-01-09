@@ -220,7 +220,7 @@ mod tests {
                 id, name, base_price, category_id, image_id, type as "type: _",
                 subscription_period_days, details, deleted_at, fulfillment_text, 
                 fulfillment_image_id, provider_name, external_id, created_at, 
-                updated_at, created_by
+                updated_at, created_by, stock
             FROM products WHERE id = $1"#,
             product_id
         )
@@ -455,6 +455,16 @@ mod tests {
         let product = create_test_product(&pool, "test_product_chk_order", admin_user.id).await;
 
         let repo = StockMovementRepository::new(Arc::new(pool.clone()));
+        let initial = NewStockMovement {
+            order_id: None,
+            product_id: product.id,
+            r#type: StockMovementType::Initial,
+            quantity: 10,
+            created_by: admin_user.id,
+            description: None,
+            reference_id: None,
+        };
+        repo.create(initial).await.unwrap();
 
         // Test sale movement without order_id (should fail)
         let invalid_sale = NewStockMovement {

@@ -69,7 +69,7 @@ CREATE TRIGGER trigger_calculate_balances
     FOR EACH ROW
     EXECUTE FUNCTION calculate_balances();
 
-CREATE OR REPLACE FUNCTION update_bot_user_balance()
+CREATE OR REPLACE FUNCTION update_customer_balance()
 RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.customer_id IS NOT NULL THEN
@@ -84,7 +84,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER trigger_update_bot_user_balance
+CREATE TRIGGER trigger_update_customer_balance
     AFTER INSERT ON transactions
     FOR EACH ROW
-    EXECUTE FUNCTION update_bot_user_balance();
+    EXECUTE FUNCTION update_customer_balance();

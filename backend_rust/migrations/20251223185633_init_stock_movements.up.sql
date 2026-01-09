@@ -56,3 +56,21 @@ CREATE TRIGGER trigger_update_balance_after
     BEFORE INSERT ON stock_movements
     FOR EACH ROW
     EXECUTE FUNCTION update_balance_after();
+
+CREATE OR REPLACE FUNCTION update_product_stock()
+RETURNS TRIGGER AS $$
+BEGIN
+    UPDATE products
+    SET 
+        stock = NEW.balance_after,
+        updated_at = NOW()
+    WHERE id = NEW.product_id;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trigger_update_product_stock
+    AFTER INSERT ON stock_movements
+    FOR EACH ROW
+    EXECUTE FUNCTION update_product_stock();

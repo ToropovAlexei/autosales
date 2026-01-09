@@ -5,6 +5,8 @@ CREATE TABLE products (
     category_id BIGINT,
     image_id UUID,
 
+    stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0),
+
     type TEXT NOT NULL DEFAULT 'item' CHECK (type IN ('item', 'subscription')),
     subscription_period_days SMALLINT NOT NULL DEFAULT 0
         CHECK (subscription_period_days >= 0),

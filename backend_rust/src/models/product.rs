@@ -23,6 +23,7 @@ pub struct ProductRow {
     pub name: String,
     pub base_price: Decimal,
     pub category_id: Option<i64>,
+    pub stock: i32,
     pub image_id: Option<Uuid>,
     pub r#type: ProductType,
     pub subscription_period_days: i16,

@@ -52,7 +52,8 @@ impl ProductRepositoryTrait for ProductRepository {
             r#"SELECT
                 id, name, base_price, category_id, image_id, type,
                 subscription_period_days, details, fulfillment_text, fulfillment_image_id,
-                provider_name, external_id, created_by, created_at, updated_at, deleted_at
+                provider_name, external_id, created_by, created_at, updated_at, deleted_at,
+                stock
             FROM products"#,
         );
         apply_list_query(&mut query_builder, &query);
@@ -72,7 +73,8 @@ impl ProductRepositoryTrait for ProductRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING id, name, base_price, category_id, image_id, type as "type: _",
                 subscription_period_days, details, fulfillment_text, fulfillment_image_id,
-                provider_name, external_id, created_by, created_at, updated_at, deleted_at
+                provider_name, external_id, created_by, created_at, updated_at, deleted_at,
+                stock
             "#,
             product.name,
             product.base_price,
@@ -99,7 +101,8 @@ impl ProductRepositoryTrait for ProductRepository {
             r#"SELECT
                 id, name, base_price, category_id, image_id, type as "type: _",
                 subscription_period_days, details, fulfillment_text, fulfillment_image_id,
-                provider_name, external_id, created_by, created_at, updated_at, deleted_at
+                provider_name, external_id, created_by, created_at, updated_at, deleted_at,
+                stock
             FROM products WHERE id = $1 AND deleted_at IS NULL"#,
             id
         )
@@ -207,7 +210,8 @@ mod tests {
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING id, name, base_price, category_id, image_id, type as "type: _",
                 subscription_period_days, details, fulfillment_text, fulfillment_image_id,
-                provider_name, external_id, created_by, created_at, updated_at, deleted_at
+                provider_name, external_id, created_by, created_at, updated_at, deleted_at,
+                stock
             "#,
             name,
             Decimal::try_from(base_price).unwrap(),
@@ -333,7 +337,8 @@ mod tests {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING id, name, base_price, category_id, image_id, type as "type: _",
                 subscription_period_days, details, fulfillment_text, fulfillment_image_id,
-                provider_name, external_id, created_by, created_at, updated_at, deleted_at
+                provider_name, external_id, created_by, created_at, updated_at, deleted_at,
+                stock
             "#,
             "Old Book",
             Decimal::try_from(25.00).unwrap(),

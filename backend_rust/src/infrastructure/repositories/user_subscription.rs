@@ -204,7 +204,7 @@ mod tests {
                 id, name, base_price, category_id, image_id, type as "type: _",
                 subscription_period_days, details, deleted_at, fulfillment_text, 
                 fulfillment_image_id, provider_name, external_id, created_at, 
-                updated_at, created_by
+                updated_at, created_by, stock
             FROM products WHERE id = $1"#,
             product_id
         )
