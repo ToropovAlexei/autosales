@@ -561,4 +561,44 @@ mod tests {
         assert_eq!(fetched_last_p2.id, last_p2.id);
         assert_eq!(fetched_last_p2.balance_after, 20);
     }
+
+    #[sqlx::test]
+    async fn test_update_product_stock_trigger(pool: PgPool) {
+        let admin_user = create_test_user(&pool, "stock_trigger_admin").await;
+        // The create_test_product helper uses "item" as type which has stock
+        let product = create_test_product(&pool, "stock_trigger_product", admin_user.id).await;
+
+        // The product is created with a default stock of 0 from the database default
+        assert_eq!(product.stock, 0);
+
+        let repo = StockMovementRepository::new(Arc::new(pool.clone()));
+
+        let initial_movement = NewStockMovement {
+            order_id: None,
+            product_id: product.id,
+            r#type: StockMovementType::Initial,
+            quantity: 50,
+            created_by: admin_user.id,
+            description: Some("Initial stock for trigger test".to_string()),
+            reference_id: None,
+        };
+
+        // Create the stock movement, which should fire the trigger
+        let movement_result = repo.create(initial_movement).await.unwrap();
+        // `balance_after` is calculated by a trigger on stock_movements table
+        let expected_stock: i64 = movement_result.balance_after;
+
+        // Verify the product's stock was updated by the `update_product_stock` trigger
+        let updated_product_stock: i32 =
+            sqlx::query_scalar!("SELECT stock FROM products WHERE id = $1", product.id)
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+
+        assert_eq!(
+            updated_product_stock as i64, expected_stock,
+            "The product stock should be updated by the trigger to match balance_after"
+        );
+        assert_eq!(updated_product_stock, 50, "The product stock should be 50");
+    }
 }
