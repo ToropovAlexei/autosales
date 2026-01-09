@@ -1,16 +1,14 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use sqlx::{PgPool, Postgres, QueryBuilder};
+use sqlx::{PgPool, QueryBuilder};
 
 use crate::{
     errors::repository::RepositoryResult,
     infrastructure::lib::query::{apply_filters, apply_list_query},
     models::{
         common::PaginatedResult,
-        stock_movement::{
-            NewStockMovement, StockMovementListQuery, StockMovementRow, StockMovementType,
-        },
+        stock_movement::{NewStockMovement, StockMovementListQuery, StockMovementRow},
     },
 };
 
@@ -41,20 +39,29 @@ impl StockMovementRepositoryTrait for StockMovementRepository {
         &self,
         query: StockMovementListQuery,
     ) -> RepositoryResult<PaginatedResult<StockMovementRow>> {
-        let mut count_qb: QueryBuilder<Postgres> =
-            QueryBuilder::new("SELECT COUNT(*) FROM stock_movements");
+        let mut count_qb = QueryBuilder::new("SELECT COUNT(*) FROM stock_movements");
         apply_filters(&mut count_qb, &query);
 
         let count_query = count_qb.build_query_scalar();
         let total: i64 = count_query.fetch_one(&*self.pool).await?;
 
-        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+        let mut query_builder = QueryBuilder::new(
             r#"
         SELECT
-            id, order_id, product_id, type,
-            quantity, created_by, description, reference_id,
-            balance_after, created_at
-        FROM stock_movements"#,
+            sm.id,
+            sm.order_id,
+            sm.product_id,
+            sm.type,
+            sm.quantity,
+            sm.created_by,
+            sm.description,
+            sm.reference_id,
+            sm.balance_after,
+            sm.created_at,
+            p.name AS product_name
+        FROM stock_movements sm
+        LEFT JOIN products p ON sm.product_id = p.id
+        "#,
         );
         apply_list_query(&mut query_builder, &query);
         let query = query_builder.build_query_as::<StockMovementRow>();
@@ -63,19 +70,15 @@ impl StockMovementRepositoryTrait for StockMovementRepository {
     }
 
     async fn create(&self, stock_movement: NewStockMovement) -> RepositoryResult<StockMovementRow> {
-        let result = sqlx::query_as!(
-            StockMovementRow,
+        let inserted = sqlx::query_scalar!(
             r#"
             INSERT INTO stock_movements (order_id, product_id, type, quantity, created_by, description, reference_id)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
-            RETURNING
-                id, order_id, product_id, type as "type: _",
-                quantity, created_by, description, reference_id,
-                balance_after, created_at
+            RETURNING id
             "#,
             stock_movement.order_id,
             stock_movement.product_id,
-            stock_movement.r#type as StockMovementType,
+            stock_movement.r#type as _,
             stock_movement.quantity,
             stock_movement.created_by,
             stock_movement.description,
@@ -84,7 +87,31 @@ impl StockMovementRepositoryTrait for StockMovementRepository {
         .fetch_one(&*self.pool)
         .await?;
 
-        Ok(result)
+        let row = sqlx::query_as!(
+            StockMovementRow,
+            r#"
+            SELECT
+                sm.id,
+                sm.order_id,
+                sm.product_id,
+                sm.type as "type: _",
+                sm.quantity,
+                sm.created_by,
+                sm.description,
+                sm.reference_id,
+                sm.balance_after,
+                sm.created_at,
+                p.name AS product_name
+            FROM stock_movements sm
+            LEFT JOIN products p ON sm.product_id = p.id
+            WHERE sm.id = $1
+            "#,
+            inserted
+        )
+        .fetch_one(&*self.pool)
+        .await?;
+
+        Ok(row)
     }
 
     async fn get_last_by_product_id(&self, product_id: i64) -> RepositoryResult<StockMovementRow> {
@@ -92,12 +119,21 @@ impl StockMovementRepositoryTrait for StockMovementRepository {
             StockMovementRow,
             r#"
             SELECT
-                id, order_id, product_id, type as "type: _",
-                quantity, created_by, description, reference_id,
-                balance_after, created_at
-            FROM stock_movements
-            WHERE product_id = $1
-            ORDER BY created_at DESC
+                sm.id,
+                sm.order_id,
+                sm.product_id,
+                sm.type as "type: _",
+                sm.quantity,
+                sm.created_by,
+                sm.description,
+                sm.reference_id,
+                sm.balance_after,
+                sm.created_at,
+                p.name AS product_name
+            FROM stock_movements sm
+            LEFT JOIN products p ON sm.product_id = p.id
+            WHERE sm.product_id = $1
+            ORDER BY sm.created_at DESC
             LIMIT 1
             "#,
             product_id
@@ -118,6 +154,7 @@ mod tests {
     use crate::models::customer::CustomerRow;
     use crate::models::order::OrderRow;
     use crate::models::product::ProductRow;
+    use crate::models::stock_movement::StockMovementType;
 
     use super::*;
 

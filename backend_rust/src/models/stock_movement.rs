@@ -23,6 +23,7 @@ pub struct StockMovementRow {
     pub id: i64,
     pub order_id: Option<i64>,
     pub product_id: i64,
+    pub product_name: String,
     pub r#type: StockMovementType,
     pub quantity: i64,
     pub balance_after: i64,
