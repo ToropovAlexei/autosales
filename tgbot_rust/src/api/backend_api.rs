@@ -162,7 +162,14 @@ impl BackendApi {
 
     pub async fn get_products(&self, category_id: i64) -> ApiClientResult<ListResponse<Product>> {
         self.api_client
-            .get::<ListResponse<Product>>(&format!("bot/products?category_id={category_id}"))
+            .get_with_qs::<ListResponse<Product>>(
+                "bot/products",
+                &[
+                    ("filters[0][op]", "eq"),
+                    ("filters[0][field]", "category_id"),
+                    ("filters[0][value]", &category_id.to_string()),
+                ],
+            )
             .await
     }
 

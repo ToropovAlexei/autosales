@@ -30,6 +30,15 @@ impl ApiClient {
         Self::parse_response(response).await
     }
 
+    pub async fn get_with_qs<T>(&self, endpoint: &str, qs: &[(&str, &str)]) -> ApiClientResult<T>
+    where
+        T: DeserializeOwned + Send + 'static,
+    {
+        let url = self.base_url.join(endpoint)?;
+        let response = self.client.get(url).query(&qs).send().await?;
+        Self::parse_response(response).await
+    }
+
     pub async fn get_bytes(&self, endpoint: &str) -> ApiClientResult<Bytes> {
         let url = self.base_url.join(endpoint)?;
         let response = self.client.get(url).send().await?;
