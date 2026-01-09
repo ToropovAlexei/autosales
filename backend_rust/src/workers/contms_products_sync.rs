@@ -28,6 +28,7 @@ pub async fn contms_products_sync_task(app_state: Arc<AppState>) {
                 continue;
             }
         };
+        tracing::info!("Got {} ContMs products", products_from_contms.len());
 
         let products_from_repo = match app_state
             .product_service
@@ -59,6 +60,10 @@ pub async fn contms_products_sync_task(app_state: Arc<AppState>) {
             .collect::<Vec<i64>>();
 
         if !to_remove_from_repo.is_empty() {
+            tracing::info!(
+                "Removing {} ContMs products from repo",
+                to_remove_from_repo.len()
+            );
             delete_products_from_repo(&app_state, &to_remove_from_repo).await;
         }
 
@@ -74,6 +79,7 @@ pub async fn contms_products_sync_task(app_state: Arc<AppState>) {
             .collect::<Vec<ContmsProxyResponse>>();
 
         if !to_add_to_repo.is_empty() {
+            tracing::info!("Adding {} ContMs products to repo", to_add_to_repo.len());
             let proxy_category_id = match get_proxy_category_id(&app_state).await {
                 Some(id) => id,
                 None => continue,
