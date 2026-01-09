@@ -20,6 +20,7 @@ pub trait TransactionServiceTrait: Send + Sync {
         query: TransactionListQuery,
     ) -> ApiResult<PaginatedResult<TransactionRow>>;
     async fn create(&self, transaction: NewTransaction) -> ApiResult<TransactionRow>;
+    async fn get_last(&self) -> ApiResult<TransactionRow>;
 }
 
 pub struct TransactionService<R> {
@@ -47,5 +48,9 @@ impl TransactionServiceTrait for TransactionService<TransactionRepository> {
     async fn create(&self, transaction: NewTransaction) -> ApiResult<TransactionRow> {
         let created = self.repo.create(transaction).await?;
         Ok(created)
+    }
+
+    async fn get_last(&self) -> ApiResult<TransactionRow> {
+        self.repo.get_last().await.map_err(ApiError::from)
     }
 }
