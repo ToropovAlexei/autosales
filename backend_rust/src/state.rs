@@ -3,6 +3,8 @@ use std::sync::Arc;
 use chrono::Duration;
 use totp_rs::Algorithm;
 
+#[cfg(feature = "contms-provider")]
+use crate::infrastructure::external::products::contms::ContmsProductsProvider;
 use crate::{
     config::{self, Config},
     db,
@@ -89,6 +91,8 @@ pub struct AppState {
     pub order_service: Arc<OrderService<OrderRepository>>,
     pub captcha_service: Arc<CaptchaService>,
     pub client: Arc<reqwest::Client>,
+    #[cfg(feature = "contms-provider")]
+    pub contms_products_provider: Arc<ContmsProductsProvider>,
 }
 
 impl AppState {
@@ -190,6 +194,12 @@ impl AppState {
             config.captcha_api_url.clone(),
         ));
 
+        #[cfg(feature = "contms-provider")]
+        let contms_products_provider = Arc::new(ContmsProductsProvider::new(
+            client.clone(),
+            config.contms_api_url.clone(),
+        ));
+
         Self {
             db,
             config,
@@ -210,6 +220,8 @@ impl AppState {
             bot_service,
             order_service,
             captcha_service,
+            #[cfg(feature = "contms-provider")]
+            contms_products_provider,
         }
     }
 }
