@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
 use uuid::Uuid;
@@ -22,6 +22,13 @@ pub struct CreateCategoryCommand {
     pub name: String,
     pub parent_id: Option<i64>,
     pub image_id: Option<Uuid>,
+    pub created_by: i64,
+    pub ctx: Option<RequestContext>,
+}
+
+#[derive(Debug)]
+pub struct CreateCategorySequenceCommand {
+    pub name: String,
     pub created_by: i64,
     pub ctx: Option<RequestContext>,
 }
@@ -53,6 +60,10 @@ pub trait CategoryServiceTrait: Send + Sync {
         ctx: RequestContext,
     ) -> ApiResult<CategoryRow>;
     async fn delete(&self, command: DeleteCategoryCommand, ctx: RequestContext) -> ApiResult<()>;
+    async fn create_category_sequence(
+        &self,
+        command: CreateCategorySequenceCommand,
+    ) -> ApiResult<()>;
 }
 
 pub struct CategoryService<R, A> {
@@ -216,6 +227,41 @@ impl CategoryServiceTrait
             })
             .await?;
 
+        Ok(())
+    }
+
+    async fn create_category_sequence(
+        &self,
+        command: CreateCategorySequenceCommand,
+    ) -> ApiResult<()> {
+        let categories_sequence = command.name.split('/').filter(|s| !s.is_empty());
+        let mut categories_by_name_and_parent = self.get_list().await.map(|rows| {
+            rows.into_iter()
+                .map(|row| ((row.name.clone(), row.parent_id), row))
+                .collect::<HashMap<_, _>>()
+        })?;
+
+        let mut parent_id = None;
+        for category in categories_sequence {
+            if let Some(row) = categories_by_name_and_parent.get(&(category.to_string(), parent_id))
+            {
+                parent_id = Some(row.id);
+                continue;
+            }
+
+            let created = self
+                .create(CreateCategoryCommand {
+                    name: category.to_string(),
+                    parent_id,
+                    image_id: None,
+                    created_by: command.created_by,
+                    ctx: command.ctx.clone(),
+                })
+                .await?;
+            categories_by_name_and_parent
+                .insert((category.to_string(), parent_id), created.clone());
+            parent_id = Some(created.id);
+        }
         Ok(())
     }
 }
