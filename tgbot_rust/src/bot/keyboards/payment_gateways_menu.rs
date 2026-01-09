@@ -2,7 +2,10 @@ use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
 use crate::{
     bot::CallbackData,
-    models::{PaymentGateway, settings::Settings},
+    models::{
+        payment::{PaymentGateway, PaymentSystem},
+        settings::Settings,
+    },
 };
 
 pub fn payment_gateways_menu(
@@ -15,14 +18,13 @@ pub fn payment_gateways_menu(
         buttons.push([InlineKeyboardButton::url("ℹ️ Как пополнить баланс?", url)]);
     }
 
-    let mut gateways_with_bonuses: Vec<(String, String, f64)> = Vec::new();
+    let mut gateways_with_bonuses: Vec<(PaymentSystem, String, f64)> = Vec::new();
 
     for gateway in gateways {
-        let bonus_value = match gateway.name.as_str() {
-            "mock_provider" => public_settings.pricing_gateway_bonus_mock_provider,
-            "platform_card" => public_settings.pricing_gateway_bonus_platform_card,
-            "platform_sbp" => public_settings.pricing_gateway_bonus_platform_sbp,
-            _ => 0.0,
+        let bonus_value = match gateway.name {
+            PaymentSystem::Mock => public_settings.pricing_gateway_bonus_mock_provider,
+            PaymentSystem::PlatformCard => public_settings.pricing_gateway_bonus_platform_card,
+            PaymentSystem::PlatformSBP => public_settings.pricing_gateway_bonus_platform_sbp,
         };
         gateways_with_bonuses.push((gateway.name, gateway.display_name, bonus_value));
     }

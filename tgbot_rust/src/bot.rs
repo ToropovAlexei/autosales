@@ -31,7 +31,7 @@ use crate::{
         keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard,
     },
     errors::{AppError, AppResult},
-    models::DispatchMessagePayload,
+    models::{DispatchMessagePayload, payment::PaymentSystem},
 };
 
 mod handlers {
@@ -87,11 +87,11 @@ pub enum BotState {
     },
     DepositSelectGateway,
     DepositSelectAmount {
-        gateway: String,
+        gateway: PaymentSystem,
     },
     DepositConfirm {
         amount: i64,
-        gateway: String,
+        gateway: PaymentSystem,
         invoice: Option<InvoiceData>,
     },
     Balance,
@@ -134,7 +134,7 @@ impl std::fmt::Display for BotUsername {
 #[serde(tag = "t", content = "d")]
 pub enum CallbackData {
     AnswerCaptcha { answer: String },
-    SelectGateway { gateway: String },
+    SelectGateway { gateway: PaymentSystem },
     SelectAmount { amount: i64 },
     ToCategory { category_id: Option<i64> },
     ToMainMenu,

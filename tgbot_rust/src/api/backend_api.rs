@@ -8,9 +8,15 @@ use uuid::Uuid;
 use crate::{
     api::{api_client::ApiClient, api_errors::ApiClientResult},
     models::{
-        BuyResponse, InvoiceResponse, ListResponse, PaymentGateway, UserOrder, bot::Bot,
-        category::Category, common::CaptchaResponse, customer::Customer, product::Product,
-        settings::Settings, user_subscription::UserSubscription,
+        BuyResponse, InvoiceResponse, ListResponse, UserOrder,
+        bot::Bot,
+        category::Category,
+        common::CaptchaResponse,
+        customer::Customer,
+        payment::{PaymentGateway, PaymentSystem},
+        product::Product,
+        settings::Settings,
+        user_subscription::UserSubscription,
     },
 };
 
@@ -100,7 +106,7 @@ impl BackendApi {
     // TODO Unused
     pub async fn get_payment_gateways(&self) -> ListResponse<PaymentGateway> {
         self.api_client
-            .get::<ListResponse<PaymentGateway>>("gateways")
+            .get::<ListResponse<PaymentGateway>>("bot/gateways")
             .await
             .unwrap_or(ListResponse {
                 items: Vec::new(),
@@ -110,7 +116,7 @@ impl BackendApi {
 
     pub async fn create_deposit_invoice(
         &self,
-        gateway_name: &str,
+        gateway_name: &PaymentSystem,
         amount: f64,
         telegram_id: i64,
     ) -> ApiClientResult<InvoiceResponse> {

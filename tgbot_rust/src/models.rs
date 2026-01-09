@@ -2,6 +2,7 @@ pub mod bot;
 pub mod category;
 pub mod common;
 pub mod customer;
+pub mod payment;
 pub mod product;
 pub mod settings;
 pub mod user_subscription;
@@ -21,12 +22,6 @@ pub struct DispatchMessagePayload {
 pub struct ListResponse<T> {
     pub items: Vec<T>,
     pub total: i64,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PaymentGateway {
-    pub name: String,
-    pub display_name: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
