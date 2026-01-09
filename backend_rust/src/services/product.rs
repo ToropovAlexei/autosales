@@ -435,6 +435,9 @@ impl ProductServiceTrait
                 ));
                 continue;
             };
+            if self.product_repo.find_by_name(&row.name).await.is_ok() {
+                continue;
+            }
             match self
                 .create(CreateProductCommand {
                     category_id: category.id,

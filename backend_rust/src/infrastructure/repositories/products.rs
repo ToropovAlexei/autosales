@@ -31,6 +31,7 @@ pub trait ProductRepositoryTrait {
         &self,
         provider_name: &str,
     ) -> RepositoryResult<Vec<ProductRow>>;
+    async fn find_by_name(&self, name: &str) -> RepositoryResult<ProductRow>;
 }
 
 #[derive(Clone)]
@@ -231,6 +232,22 @@ impl ProductRepositoryTrait for ProductRepository {
             provider_name
         )
         .fetch_all(&*self.pool)
+        .await?;
+        Ok(result)
+    }
+
+    async fn find_by_name(&self, name: &str) -> RepositoryResult<ProductRow> {
+        let result = sqlx::query_as!(
+            ProductRow,
+            r#"SELECT
+                id, name, base_price, category_id, image_id, type as "type: _",
+                subscription_period_days, details, fulfillment_text, fulfillment_image_id,
+                provider_name, external_id, created_by, created_at, updated_at, deleted_at,
+                stock
+            FROM products WHERE name = $1 AND deleted_at IS NULL"#,
+            name
+        )
+        .fetch_one(&*self.pool)
         .await?;
         Ok(result)
     }
