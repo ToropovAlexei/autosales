@@ -103,7 +103,7 @@ impl AuditLogRepositoryTrait for AuditLogRepository {
                 al.request_id,
                 al.error_message,
                 al.created_at,
-                au.login AS admin_user_login
+                au.login AS "admin_user_login?"
             FROM audit_logs al
             LEFT JOIN admin_users au ON al.admin_user_id = au.id
             WHERE al.id = $1
@@ -166,5 +166,33 @@ mod tests {
         let logs = repo.get_list(query).await.unwrap();
         assert!(!logs.items.is_empty());
         assert_eq!(logs.items[0].id, created_log.id);
+    }
+
+    #[sqlx::test]
+    async fn test_create_log_with_null_admin_id(pool: PgPool) {
+        let repo = AuditLogRepository::new(Arc::new(pool));
+        let new_log = NewAuditLog {
+            admin_user_id: None, // This is the key part of the test
+            customer_id: Some(123),
+            action: AuditAction::CustomerUpdate,
+            status: AuditStatus::Success,
+            target_table: "customers".to_string(),
+            target_id: "123".to_string(),
+            old_values: None,
+            new_values: None,
+            ip_address: None,
+            user_agent: Some("bot".to_string()),
+            request_id: None,
+            error_message: None,
+        };
+
+        // This call will fail if the SELECT query after the INSERT has a column
+        // ordering mismatch, causing the "unexpected null" error on a non-Option field.
+        let result = repo.create(new_log).await.unwrap();
+
+        // Verify that the LEFT JOIN produced a None for the login
+        assert_eq!(result.admin_user_id, None);
+        assert_eq!(result.admin_user_login, None);
+        assert_eq!(result.customer_id, Some(123));
     }
 }
