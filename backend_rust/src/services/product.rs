@@ -406,6 +406,9 @@ impl ProductServiceTrait
         let mut created = Vec::new();
         let mut errors = Vec::new();
         for row in command.products {
+            if self.product_repo.find_by_name(&row.name).await.is_ok() {
+                continue;
+            }
             let Some(price) = Decimal::from_f64(row.price) else {
                 errors.push(format!(
                     "Product '{}' has invalid price '{}'",
@@ -435,9 +438,6 @@ impl ProductServiceTrait
                 ));
                 continue;
             };
-            if self.product_repo.find_by_name(&row.name).await.is_ok() {
-                continue;
-            }
             match self
                 .create(CreateProductCommand {
                     category_id: category.id,
