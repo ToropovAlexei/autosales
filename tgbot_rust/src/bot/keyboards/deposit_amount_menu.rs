@@ -3,9 +3,9 @@ use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 use crate::bot::CallbackData;
 
 pub fn deposit_amount_menu() -> InlineKeyboardMarkup {
-    let amounts = [100, 500, 1000];
+    let amounts = [500, 1000, 1500];
 
-    let keyboard: Vec<Vec<InlineKeyboardButton>> = amounts
+    let mut keyboard: Vec<Vec<InlineKeyboardButton>> = amounts
         .iter()
         .map(|&amount| {
             vec![InlineKeyboardButton::callback(
@@ -14,6 +14,11 @@ pub fn deposit_amount_menu() -> InlineKeyboardMarkup {
             )]
         })
         .collect();
+
+    keyboard.push(vec![InlineKeyboardButton::callback(
+        "⬅️ Назад",
+        CallbackData::ToDepositSelectGateway,
+    )]);
 
     InlineKeyboardMarkup::new(keyboard)
 }
