@@ -148,6 +148,7 @@ async fn edit_text_msg(
         && let Ok(msg) = bot
             .edit_message_text(chat_id, msg_id, text)
             .reply_markup(reply_keyboard.clone())
+            .parse_mode(ParseMode::Html)
             .send()
             .await
     {

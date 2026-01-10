@@ -1,19 +1,12 @@
 use std::sync::Arc;
 
-use teloxide::{
-    Bot,
-    dispatching::dialogue::GetChatId,
-    prelude::{Request, Requester},
-    types::{CallbackQuery, MaybeInaccessibleMessage, ParseMode},
-    utils::html::bold,
-};
+use teloxide::{Bot, dispatching::dialogue::GetChatId, types::CallbackQuery, utils::html::bold};
 
 use crate::{
     api::backend_api::BackendApi,
-    bot::{MyDialogue, keyboards::balance_menu::balance_menu_inline_keyboard},
-    errors::AppResult,
+    bot::{MyDialogue, keyboards::balance_menu::balance_menu_inline_keyboard, utils::edit_msg},
+    errors::{AppError, AppResult},
 };
-use teloxide::payloads::EditMessageTextSetters;
 
 pub async fn balance_handler(
     bot: Bot,
@@ -21,41 +14,31 @@ pub async fn balance_handler(
     q: CallbackQuery,
     api_client: Arc<BackendApi>,
 ) -> AppResult<()> {
-    let chat_id = match q.chat_id() {
-        Some(chat_id) => chat_id,
-        None => return Ok(()),
-    };
-    let message_id = match &q.message {
-        Some(MaybeInaccessibleMessage::Regular(msg)) => msg.id,
-        Some(MaybeInaccessibleMessage::Inaccessible(_)) => return Ok(()),
-        None => return Ok(()),
-    };
-    match api_client.get_user(chat_id.0).await {
-        Ok(customer) => {
-            bot.edit_message_text(
-                chat_id,
-                message_id,
-                format!(
-                    "💳 Ваш текущий баланс: {} ₽",
-                    bold(&customer.balance.to_string())
-                ),
-            )
-            .reply_markup(balance_menu_inline_keyboard())
-            .parse_mode(ParseMode::Html)
-            .send()
-            .await?;
-            Ok(())
-        }
+    let telegram_id = q
+        .chat_id()
+        .map(|c| c.0)
+        .ok_or(AppError::InternalServerError(
+            "Failed to get telegram id".to_string(),
+        ))?;
+    let text = match api_client.get_user(telegram_id).await {
+        Ok(customer) => format!(
+            "💳 Ваш текущий баланс: {} ₽",
+            bold(&customer.balance.to_string())
+        ),
         Err(err) => {
             tracing::error!("Error getting balance: {err}");
-            bot.edit_message_text(
-                chat_id,
-                message_id,
-                "Ошибка получения баланса. Попробуйте позже.",
-            )
-            .send()
-            .await?;
-            Ok(())
+            "Ошибка получения баланса. Попробуйте позже.".to_string()
         }
-    }
+    };
+    edit_msg(
+        &api_client,
+        bot,
+        None,
+        Some(&q),
+        &text,
+        None,
+        balance_menu_inline_keyboard(),
+    )
+    .await?;
+    Ok(())
 }
