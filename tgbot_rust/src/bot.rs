@@ -10,9 +10,9 @@ use teloxide::{
     },
     dptree,
     macros::BotCommands,
-    payloads::{EditMessageTextSetters, SendMessageSetters},
+    payloads::{SendMessageSetters, SendPhotoSetters},
     prelude::{Dialogue, Dispatcher, Request, Requester},
-    types::{CallbackQuery, ChatId, Message, MessageId, ParseMode, Update},
+    types::{CallbackQuery, ChatId, InputFile, Message, ParseMode, Update},
 };
 use tokio_stream::StreamExt;
 
@@ -188,6 +188,7 @@ type MyDialogue = Dialogue<BotState, RedisStorage<Json>>;
 
 pub async fn run_bot(
     bot_token: String,
+    bot_id: i64,
     app_state: AppState,
     client: Arc<BackendApi>,
 ) -> AppResult<()> {
@@ -205,7 +206,8 @@ pub async fn run_bot(
     let listener_handle = tokio::spawn(start_redis_listener(
         bot.clone(),
         redis_url,
-        username.clone(),
+        bot_id,
+        client.clone(),
     ));
 
     let handler = Update::filter_message()
@@ -377,8 +379,13 @@ async fn command_handler(
     }
 }
 
-async fn start_redis_listener(bot: Bot, redis_url: String, bot_username: String) -> AppResult<()> {
-    let channel = format!("bot-notifications:{bot_username}");
+async fn start_redis_listener(
+    bot: Bot,
+    redis_url: String,
+    bot_id: i64,
+    api_client: Arc<BackendApi>,
+) -> AppResult<()> {
+    let channel = format!("bot-notifications:{bot_id}");
     tracing::info!("Subscribing to Redis channel: {channel}");
 
     let conn = redis::Client::open(redis_url)?;
@@ -391,7 +398,7 @@ async fn start_redis_listener(bot: Bot, redis_url: String, bot_username: String)
         if let Ok(payload_str) = msg.get_payload::<String>()
             && let Ok(parsed) = serde_json::from_str::<DispatchMessagePayload>(&payload_str)
         {
-            let res = handle_msg(bot.clone(), parsed).await;
+            let res = handle_msg(bot.clone(), parsed, api_client.clone()).await;
             if let Err(e) = res {
                 tracing::error!("Error handling message: {e}");
             }
@@ -401,59 +408,36 @@ async fn start_redis_listener(bot: Bot, redis_url: String, bot_username: String)
     Ok(())
 }
 
-async fn handle_msg(bot: Bot, payload: DispatchMessagePayload) -> AppResult<()> {
+async fn handle_msg(
+    bot: Bot,
+    payload: DispatchMessagePayload,
+    api_client: Arc<BackendApi>,
+) -> AppResult<()> {
     let chat_id = ChatId(payload.telegram_id);
 
-    if let Some(msg_id) = payload.message_to_delete {
-        if let Err(e) = bot.delete_message(chat_id, MessageId(msg_id)).send().await {
-            tracing::warn!(
-                "Could not delete message {} for user {}. It might have been deleted already. Error: {}",
-                msg_id,
-                chat_id,
-                e
-            );
-        } else {
-            tracing::info!("Deleted message {} for user {}", msg_id, chat_id);
-        }
-    }
-
-    let text = payload.message;
-
-    if let Some(msg_id) = payload.message_to_edit {
-        match bot
-            .edit_message_text(chat_id, MessageId(msg_id), text.clone())
+    if let Some(image_id) = payload.image_id {
+        let bytes = api_client.get_image_bytes(&image_id).await?;
+        if let Err(e) = bot
+            .send_photo(chat_id, InputFile::memory(bytes))
+            .caption(payload.message)
             .parse_mode(ParseMode::Html)
             .reply_markup(back_to_main_menu_inline_keyboard())
             .send()
             .await
         {
-            Ok(_) => tracing::info!("Edited message {} for user {}", msg_id, chat_id),
-            Err(e) => {
-                tracing::warn!(
-                    "Could not edit message {}, sending new one. Error: {}",
-                    msg_id,
-                    e
-                );
-                if let Err(e) = bot
-                    .send_message(chat_id, text)
-                    .parse_mode(ParseMode::Html)
-                    .reply_markup(back_to_main_menu_inline_keyboard())
-                    .send()
-                    .await
-                {
-                    tracing::warn!(
-                        "Failed to send new message to user {}. Error: {}",
-                        chat_id,
-                        e
-                    );
-                }
-            }
+            tracing::warn!(
+                "Failed to send notification to user {}. Error: {}",
+                chat_id,
+                e
+            );
+        } else {
+            tracing::info!("Sent notification to user {}", chat_id);
         }
         return Ok(());
     }
 
     if let Err(e) = bot
-        .send_message(chat_id, text)
+        .send_message(chat_id, payload.message)
         .parse_mode(ParseMode::Html)
         .reply_markup(back_to_main_menu_inline_keyboard())
         .send()

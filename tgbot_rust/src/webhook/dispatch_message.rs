@@ -23,7 +23,7 @@ pub async fn dispatch_message(
         return Err(AppError::AuthenticationError("Invalid API key".to_string()));
     }
 
-    let channel = format!("bot-notifications:{}", payload.bot_name);
+    let channel = format!("bot-notifications:{}", payload.bot_id);
     let message_json = serde_json::to_string(&payload.0).map_err(|err| {
         AppError::InternalServerError(format!("Failed to serialize message: {err}"))
     })?;

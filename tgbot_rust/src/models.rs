@@ -8,14 +8,14 @@ pub mod settings;
 pub mod user_subscription;
 
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct DispatchMessagePayload {
-    pub bot_name: String,
+    pub bot_id: i64,
     pub telegram_id: i64,
     pub message: String,
-    pub message_to_edit: Option<i32>,
-    pub message_to_delete: Option<i32>,
+    pub image_id: Option<Uuid>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

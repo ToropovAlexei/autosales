@@ -71,7 +71,7 @@ impl BotManager {
                 )
                 .expect("Failed to create BackendApi"),
             );
-            if let Err(e) = run_bot(token_clone, app_state, api).await {
+            if let Err(e) = run_bot(token_clone, bot_id, app_state, api).await {
                 tracing::error!("Bot exited with error: {}", e);
             }
         });
@@ -106,7 +106,7 @@ impl BotManager {
                     )
                     .expect("Failed to create BackendApi"),
                 );
-                if let Err(e) = run_bot(bot_token, app_state, api).await {
+                if let Err(e) = run_bot(bot_token, bot_id, app_state, api).await {
                     tracing::error!("Bot exited with error: {}", e);
                 }
             });

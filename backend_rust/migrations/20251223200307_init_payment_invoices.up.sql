@@ -3,7 +3,7 @@ CREATE TABLE payment_invoices (
     customer_id BIGINT NOT NULL,
 
     original_amount NUMERIC(12,2) NOT NULL CHECK (original_amount > 0),
-    amount NUMERIC(12,2) NOT NULL CHECK (amount >= original_amount),
+    amount NUMERIC(12,2) NOT NULL CHECK (amount <= original_amount),
 
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'expired', 'refunded')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),

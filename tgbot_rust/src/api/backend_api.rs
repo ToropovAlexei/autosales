@@ -116,15 +116,16 @@ impl BackendApi {
 
     pub async fn create_deposit_invoice(
         &self,
-        gateway_name: &PaymentSystem,
+        gateway: &PaymentSystem,
         amount: f64,
         telegram_id: i64,
     ) -> ApiClientResult<InvoiceResponse> {
-        self.api_client.post_with_body::<InvoiceResponse, _>(
-            "deposit/invoice",
-            &json!({"telegram_id": telegram_id, "gateway_name": gateway_name, "amount": amount}),
-        )
-        .await
+        self.api_client
+            .post_with_body::<InvoiceResponse, _>(
+                "bot/invoices",
+                &json!({"telegram_id": telegram_id, "gateway": gateway, "amount": amount}),
+            )
+            .await
     }
 
     pub async fn set_invoice_message_id(
