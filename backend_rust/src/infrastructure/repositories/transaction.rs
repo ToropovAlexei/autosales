@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use sqlx::{PgPool, Postgres, QueryBuilder};
+use sqlx::{PgPool, QueryBuilder};
 
 use crate::{
     errors::repository::RepositoryResult,
@@ -39,14 +39,13 @@ impl TransactionRepositoryTrait for TransactionRepository {
         &self,
         query: TransactionListQuery,
     ) -> RepositoryResult<PaginatedResult<TransactionRow>> {
-        let mut count_qb: QueryBuilder<Postgres> =
-            QueryBuilder::new("SELECT COUNT(*) FROM transactions");
+        let mut count_qb = QueryBuilder::new("SELECT COUNT(*) FROM transactions");
         apply_filters(&mut count_qb, &query);
 
         let count_query = count_qb.build_query_scalar();
         let total: i64 = count_query.fetch_one(&*self.pool).await?;
 
-        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+        let mut query_builder = QueryBuilder::new(
             r#"
         SELECT
             id, customer_id, order_id, type, amount, store_balance_delta,
