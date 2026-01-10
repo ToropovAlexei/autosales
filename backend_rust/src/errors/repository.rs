@@ -26,6 +26,7 @@ impl RepositoryError {
         if let sqlx::Error::Database(db_err) = &err
             && let Some(code) = db_err.code()
         {
+            tracing::error!("Database error: {:?}", db_err);
             let message = db_err.message().to_string();
             match code.as_ref() {
                 // foreign_key_violation

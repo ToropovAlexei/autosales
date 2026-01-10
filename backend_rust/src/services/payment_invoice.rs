@@ -111,7 +111,7 @@ impl PaymentInvoiceServiceTrait
             PaymentSystem::PlatformCard => settings.pricing_gateway_bonus_platform_card,
             PaymentSystem::PlatformSBP => settings.pricing_gateway_bonus_platform_sbp,
         };
-        let amount = command.amount * (dec!(1) - discount);
+        let amount = command.amount * (dec!(1) - discount / dec!(100));
         let amount_parsed = amount.to_f64().ok_or(ApiError::InternalServerError(
             "Failed to convert decimal".to_string(),
         ))?;
