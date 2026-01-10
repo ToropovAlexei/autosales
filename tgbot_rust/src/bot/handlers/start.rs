@@ -90,10 +90,16 @@ pub async fn start_handler(
     let referral_program_enabled = api_client.is_referral_program_enabled().await;
     let settings = api_client.get_settings().await?;
     // TODO Не has_passed_captcha, а юзер пришел еще раз
-    let welcome_msg = if !user.has_passed_captcha {
-        settings.bot_messages_new_user_welcome
+    let (welcome_msg, image_id) = if !user.has_passed_captcha {
+        (
+            settings.bot_messages_new_user_welcome,
+            settings.bot_messages_new_user_welcome_image_id,
+        )
     } else {
-        settings.bot_messages_returning_user_welcome
+        (
+            settings.bot_messages_returning_user_welcome,
+            settings.bot_messages_returning_user_welcome_image_id,
+        )
     };
     let welcome_msg = welcome_msg.replace(
         "{username}",
@@ -103,13 +109,14 @@ pub async fn start_handler(
             .unwrap_or_default()
             .as_str(),
     );
+    let welcome_msg_img_id = image_id.map(MessageImage::Uuid);
 
     edit_msg(
         &api_client,
         &bot,
         &MsgBy::Message(&msg),
         &welcome_msg,
-        None,
+        welcome_msg_img_id,
         main_menu_inline_keyboard(referral_program_enabled),
     )
     .await?;
