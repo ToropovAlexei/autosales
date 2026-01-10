@@ -360,6 +360,11 @@ pub async fn run_bot(
     .default_handler(|upd| async move {
         tracing::warn!("Unhandled update: {upd:?}");
     })
+    .error_handler(Arc::new(|err| {
+        Box::pin(async move {
+            tracing::error!(?err, "dispatcher error");
+        })
+    }))
     .enable_ctrlc_handler()
     .build();
 
