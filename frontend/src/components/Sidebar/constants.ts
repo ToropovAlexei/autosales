@@ -20,7 +20,7 @@ export const MENU_ITEMS = [
   { label: "Категории", Icon: CategoryIcon, route: AppRoute.Categories },
   { label: "Ценообразование", Icon: PriceCheckIcon, route: AppRoute.Pricing },
   { label: "Товары", Icon: ShoppingCartIcon, route: AppRoute.Products },
-  { label: "Пользователи бота", Icon: GroupIcon, route: AppRoute.BotUsers },
+  { label: "Покупатели", Icon: GroupIcon, route: AppRoute.BotUsers },
   {
     label: "Управление рекламой",
     Icon: CampaignIcon,
