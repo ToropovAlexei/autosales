@@ -68,9 +68,13 @@ pub enum PaymentAction {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct InvoiceData {
-    pub order_id: String,
-    pub pay_url: Option<String>,
+    pub id: i64,
     pub details: Option<serde_json::Value>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct MockDetails {
+    pub pay_url: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]

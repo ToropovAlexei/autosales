@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::api::backend_api::BackendApi;
 use crate::bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard;
-use crate::bot::{BotState, CallbackData, InvoiceData, MyDialogue};
+use crate::bot::{BotState, CallbackData, InvoiceData, MockDetails, MyDialogue};
 use crate::errors::AppResult;
 use teloxide::dispatching::dialogue::GetChatId;
 use teloxide::prelude::*;
@@ -70,9 +70,8 @@ pub async fn deposit_confirm_handler(
     };
 
     let invoice_data = InvoiceData {
-        order_id: response.order_id.clone(),
-        pay_url: response.pay_url.clone(),
-        details: response.details.clone(),
+        id: response.id,
+        details: Some(response.payment_details.clone()),
     };
 
     dialogue
@@ -83,7 +82,9 @@ pub async fn deposit_confirm_handler(
         })
         .await?;
 
-    let text = if let Some(_pay_url) = &invoice_data.pay_url {
+    let mock_details = serde_json::from_value::<MockDetails>(response.payment_details);
+
+    let text = if let Ok(_pay_url) = &mock_details {
         format!(
             "✅ Ваш счет на {} ₽ создан.\n\nНажмите на кнопку ниже, чтобы перейти к оплате.",
             amount
@@ -107,8 +108,8 @@ pub async fn deposit_confirm_handler(
     };
 
     let mut keyboard: Vec<Vec<InlineKeyboardButton>> = vec![];
-    if let Some(pay_url) = &invoice_data.pay_url
-        && let Ok(pay_url) = Url::parse(pay_url)
+    if let Ok(details) = &mock_details
+        && let Ok(pay_url) = Url::parse(details.pay_url.as_str())
     {
         keyboard.push(vec![InlineKeyboardButton::url("Оплатить", pay_url)]);
     }
@@ -118,15 +119,10 @@ pub async fn deposit_confirm_handler(
         CallbackData::ToMainMenu,
     )]);
 
-    let sent_msg = bot
-        .edit_message_text(chat_id, message_id, text)
+    bot.edit_message_text(chat_id, message_id, text)
         .reply_markup(InlineKeyboardMarkup::new(keyboard))
         .parse_mode(ParseMode::Html)
         .send()
-        .await?;
-
-    api_client
-        .set_invoice_message_id(&invoice_data.order_id, sent_msg.id)
         .await?;
 
     Ok(())

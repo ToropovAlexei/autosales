@@ -26,10 +26,12 @@ pub struct ListResponse<T> {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct InvoiceResponse {
-    pub pay_url: Option<String>,
-    pub gateway_invoice_id: String,
-    pub order_id: String,
-    pub details: Option<serde_json::Value>,
+    pub id: i64,
+    pub customer_id: i64,
+    pub original_amount: f64,
+    pub amount: f64,
+    pub order_id: uuid::Uuid,
+    pub payment_details: serde_json::Value,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

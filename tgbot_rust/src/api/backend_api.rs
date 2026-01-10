@@ -2,7 +2,6 @@ use axum::http::{HeaderMap, HeaderValue};
 use bytes::Bytes;
 use reqwest::header;
 use serde_json::json;
-use teloxide::types::MessageId;
 use uuid::Uuid;
 
 use crate::{
@@ -124,19 +123,6 @@ impl BackendApi {
             .post_with_body::<InvoiceResponse, _>(
                 "bot/invoices",
                 &json!({"telegram_id": telegram_id, "gateway": gateway, "amount": amount}),
-            )
-            .await
-    }
-
-    pub async fn set_invoice_message_id(
-        &self,
-        order_id: &str,
-        message_id: MessageId,
-    ) -> ApiClientResult<serde_json::Value> {
-        self.api_client
-            .patch_with_body::<serde_json::Value, _>(
-                &format!("invoices/{order_id}/message-id"),
-                &json!({"message_id": message_id.0}),
             )
             .await
     }
