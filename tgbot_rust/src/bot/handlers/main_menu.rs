@@ -1,19 +1,12 @@
 use std::sync::Arc;
 
-use teloxide::{
-    Bot,
-    payloads::EditMessageTextSetters,
-    prelude::Request,
-    types::{CallbackQuery, MaybeInaccessibleMessage, ParseMode},
-};
+use teloxide::{Bot, types::CallbackQuery};
 
 use crate::{
     api::backend_api::BackendApi,
-    bot::{MyDialogue, keyboards::main_menu::main_menu_inline_keyboard},
+    bot::{MyDialogue, keyboards::main_menu::main_menu_inline_keyboard, utils::edit_msg},
     errors::AppResult,
 };
-use teloxide::dispatching::dialogue::GetChatId;
-use teloxide::prelude::Requester;
 
 pub async fn main_menu_handler(
     bot: Bot,
@@ -21,29 +14,18 @@ pub async fn main_menu_handler(
     q: CallbackQuery,
     api_client: Arc<BackendApi>,
 ) -> AppResult<()> {
-    let chat_id = match q.chat_id() {
-        Some(chat_id) => chat_id,
-        None => {
-            tracing::error!("No chat id found");
-            return Ok(());
-        }
-    };
-    let message_id = match &q.message {
-        Some(MaybeInaccessibleMessage::Regular(msg)) => msg.id,
-        Some(MaybeInaccessibleMessage::Inaccessible(_)) => {
-            tracing::error!("Inaccessible message found");
-            return Ok(());
-        }
-        None => {
-            tracing::error!("No message found");
-            return Ok(());
-        }
-    };
     let is_referral_program_enabled = api_client.is_referral_program_enabled().await;
-    bot.edit_message_text(chat_id, message_id, "Главное меню")
-        .reply_markup(main_menu_inline_keyboard(is_referral_program_enabled))
-        .parse_mode(ParseMode::Html)
-        .send()
-        .await?;
+
+    edit_msg(
+        &api_client,
+        bot,
+        None,
+        Some(&q),
+        "Главное меню",
+        None,
+        main_menu_inline_keyboard(is_referral_program_enabled),
+    )
+    .await?;
+
     Ok(())
 }
