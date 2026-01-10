@@ -9,6 +9,8 @@ pub struct Config {
     pub database_user: String,
     pub database_password: String,
     pub database_name: String,
+    pub redis_host: String,
+    pub redis_port: u16,
     pub cors_origins: String,
     pub jwt_secret: String,
     pub totp_encode_secret: String,

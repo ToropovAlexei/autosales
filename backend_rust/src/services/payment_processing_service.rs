@@ -8,8 +8,9 @@ use crate::{
     infrastructure::{
         external::payment::mock::MockPaymentsProvider,
         repositories::{
-            audit_log::AuditLogRepository, payment_invoice::PaymentInvoiceRepository,
-            settings::SettingsRepository, transaction::TransactionRepository,
+            audit_log::AuditLogRepository, customer::CustomerRepository,
+            payment_invoice::PaymentInvoiceRepository, settings::SettingsRepository,
+            transaction::TransactionRepository,
         },
     },
     models::{
@@ -18,6 +19,10 @@ use crate::{
     },
     services::{
         audit_log::AuditLogService,
+        customer::{CustomerService, CustomerServiceTrait},
+        notification_service::{
+            DispatchMessageCommand, NotificationService, NotificationServiceTrait,
+        },
         payment_invoice::{
             PaymentInvoiceService, PaymentInvoiceServiceTrait, UpdatePaymentInvoiceCommand,
         },
@@ -31,20 +36,31 @@ pub trait PaymentProcessingServiceTrait: Send + Sync {
     async fn handle_payment_success(&self, order_id: Uuid) -> ApiResult<()>;
 }
 
-pub struct PaymentProcessingService<T, P> {
+pub struct PaymentProcessingService<T, P, N, C> {
     pub transactions_service: Arc<T>,
     pub payment_invoice_service: Arc<P>,
+    pub notification_service: Arc<N>,
+    pub customer_service: Arc<C>,
 }
 
-impl<T, P> PaymentProcessingService<T, P>
+impl<T, P, N, C> PaymentProcessingService<T, P, N, C>
 where
     T: TransactionServiceTrait + Send + Sync,
     P: PaymentInvoiceServiceTrait + Send + Sync,
+    N: NotificationServiceTrait + Send + Sync,
+    C: CustomerServiceTrait + Send + Sync,
 {
-    pub fn new(transactions_service: Arc<T>, payment_invoice_service: Arc<P>) -> Self {
+    pub fn new(
+        transactions_service: Arc<T>,
+        payment_invoice_service: Arc<P>,
+        notification_service: Arc<N>,
+        customer_service: Arc<C>,
+    ) -> Self {
         Self {
             transactions_service,
             payment_invoice_service,
+            notification_service,
+            customer_service,
         }
     }
 }
@@ -59,12 +75,18 @@ impl PaymentProcessingServiceTrait
             MockPaymentsProvider,
             SettingsRepository,
         >,
+        NotificationService,
+        CustomerService<CustomerRepository, AuditLogService<AuditLogRepository>>,
     >
 {
     async fn handle_payment_success(&self, order_id: Uuid) -> ApiResult<()> {
         let payment_invoice = self
             .payment_invoice_service
             .get_by_order_id(order_id)
+            .await?;
+        let customer = self
+            .customer_service
+            .get_by_id(payment_invoice.customer_id)
             .await?;
         self.transactions_service
             .create(NewTransaction {
@@ -87,7 +109,17 @@ impl PaymentProcessingServiceTrait
                 status: Some(InvoiceStatus::Completed),
             })
             .await?;
-        // TODO Notify user
+        self.notification_service
+            .dispatch_message(DispatchMessageCommand {
+                bot_id: customer.last_seen_with_bot,
+                message: format!(
+                    "✅ Баланс пополнен на {} RUB",
+                    payment_invoice.original_amount.trunc_with_scale(2)
+                ),
+                image_id: None,
+                telegram_id: customer.telegram_id,
+            })
+            .await?;
         Ok(())
     }
 }

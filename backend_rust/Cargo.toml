@@ -22,12 +22,14 @@ blake3 = "1.8"
 bytes = "1.10"
 chrono = { version = "0.4", features = ["serde"] }
 csv = "1.4.0"
+deadpool-redis = "0.22.0"
 dotenvy = "0.15"
 envy = "0.4"
 image = { version = "0.25", default-features = false, features = ["png"] }
 infer = "0.19"
 qrcode = "0.14"
 rand = "0.9"
+redis = "0.32.7"
 reqwest = { version = "0.13", features = ["json"] }
 rust_decimal = "1.39.0"
 rust_decimal_macros = "1.39.0"

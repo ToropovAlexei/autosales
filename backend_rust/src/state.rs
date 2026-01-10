@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use chrono::Duration;
+use deadpool_redis::Runtime;
 use totp_rs::Algorithm;
 
 #[cfg(feature = "mock-payments-provider")]
@@ -57,6 +58,7 @@ type ProductServiceShortType = ProductService<
 #[derive(Clone)]
 pub struct AppState {
     pub db: db::Database,
+    pub redis_pool: Arc<deadpool_redis::Pool>,
     pub config: config::Config,
     pub auth_service: Arc<
         AuthService<
@@ -228,6 +230,16 @@ impl AppState {
             config.contms_api_url.clone(),
         ));
 
+        let redis_config = deadpool_redis::Config::from_url(format!(
+            "redis://{}:{}",
+            config.redis_host, config.redis_port
+        ));
+        let redis_pool = Arc::new(
+            redis_config
+                .create_pool(Some(Runtime::Tokio1))
+                .expect("Failed to create redis pool"),
+        );
+
         Self {
             db,
             config,
@@ -249,6 +261,7 @@ impl AppState {
             order_service,
             captcha_service,
             payment_invoice_service,
+            redis_pool,
             #[cfg(feature = "contms-provider")]
             contms_products_provider,
             #[cfg(feature = "mock-payments-provider")]

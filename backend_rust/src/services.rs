@@ -6,6 +6,7 @@ pub mod captcha;
 pub mod category;
 pub mod customer;
 pub mod image;
+pub mod notification_service;
 pub mod order;
 pub mod payment_invoice;
 pub mod payment_processing_service;
