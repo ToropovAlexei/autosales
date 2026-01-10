@@ -17,9 +17,9 @@ use crate::errors::{AppError, AppResult};
 
 use teloxide::Bot;
 
-pub enum MsgBy {
-    Message(Message),
-    CallbackQuery(CallbackQuery),
+pub enum MsgBy<'a> {
+    Message(&'a Message),
+    CallbackQuery(&'a CallbackQuery),
 }
 
 #[derive(Debug)]
@@ -33,12 +33,12 @@ pub enum MessageImage {
 pub async fn edit_msg(
     api_client: &Arc<BackendApi>,
     bot: &Bot,
-    msg_by: &MsgBy,
+    msg_by: &MsgBy<'_>,
     text: &str,
     image: Option<MessageImage>,
     reply_keyboard: InlineKeyboardMarkup,
 ) -> AppResult<Message> {
-    let (chat_id, msg_id) = get_chat_and_msg_id(&msg_by).ok_or(AppError::InternalServerError(
+    let (chat_id, msg_id) = get_chat_and_msg_id(msg_by).ok_or(AppError::InternalServerError(
         "Failed to get chat id".to_string(),
     ))?;
     let image_bytes = match image {
@@ -52,7 +52,7 @@ pub async fn edit_msg(
     // Msg id found, try to edit it
     if let Some(msg_id) = msg_id {
         // Telegram does not allow to change type of message
-        let is_type_changed = image_bytes.is_some() != has_photo(&msg_by);
+        let is_type_changed = image_bytes.is_some() != has_photo(msg_by);
         if is_type_changed {
             if let Err(e) = bot.delete_message(chat_id, msg_id).await {
                 tracing::error!("Failed to delete message: {:?}", e);

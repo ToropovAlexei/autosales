@@ -22,7 +22,7 @@ pub async fn start_handler(
             edit_msg(
                 &api_client,
                 &bot,
-                &MsgBy::Message(msg),
+                &MsgBy::Message(&msg),
                 "Произошла непредвиденная ошибка. Попробуйте позже.",
                 None,
                 InlineKeyboardMarkup::default(),
@@ -37,7 +37,7 @@ pub async fn start_handler(
         edit_msg(
             &api_client,
             &bot,
-            &MsgBy::Message(msg),
+            &MsgBy::Message(&msg),
             "Ваш аккаунт заблокирован",
             None,
             InlineKeyboardMarkup::default(),
@@ -55,7 +55,7 @@ pub async fn start_handler(
                     edit_msg(
                         &api_client,
                         &bot,
-                        &MsgBy::Message(msg),
+                        &MsgBy::Message(&msg),
                         "Что-то пошло не так. Попробуйте ещё раз",
                         None,
                         InlineKeyboardMarkup::default(),
@@ -70,7 +70,7 @@ pub async fn start_handler(
         edit_msg(
             &api_client,
             &bot,
-            &MsgBy::Message(msg),
+            &MsgBy::Message(&msg),
             "Пожалуйста, решите капчу, чтобы продолжить:",
             Some(MessageImage::Bytes(png_bytes)),
             keyboard,
@@ -124,7 +124,7 @@ pub async fn start_handler(
     edit_msg(
         &api_client,
         &bot,
-        &MsgBy::Message(msg),
+        &MsgBy::Message(&msg),
         &welcome_message,
         None,
         main_menu_inline_keyboard(referral_program_enabled),

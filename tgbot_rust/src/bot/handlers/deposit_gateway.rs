@@ -24,7 +24,7 @@ pub async fn deposit_gateway_handler(
     edit_msg(
         &api_client,
         &bot,
-        &MsgBy::CallbackQuery(q),
+        &MsgBy::CallbackQuery(&q),
         "💰 Выберите способ пополнения:",
         None,
         payment_gateways_menu(payment_gateways.items, &settings),

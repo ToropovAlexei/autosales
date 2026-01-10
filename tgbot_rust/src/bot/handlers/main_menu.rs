@@ -4,7 +4,11 @@ use teloxide::{Bot, types::CallbackQuery};
 
 use crate::{
     api::backend_api::BackendApi,
-    bot::{MyDialogue, keyboards::main_menu::main_menu_inline_keyboard, utils::{MsgBy, edit_msg}},
+    bot::{
+        MyDialogue,
+        keyboards::main_menu::main_menu_inline_keyboard,
+        utils::{MsgBy, edit_msg},
+    },
     errors::AppResult,
 };
 
@@ -19,7 +23,7 @@ pub async fn main_menu_handler(
     edit_msg(
         &api_client,
         &bot,
-        &MsgBy::CallbackQuery(q),
+        &MsgBy::CallbackQuery(&q),
         "Главное меню",
         None,
         main_menu_inline_keyboard(is_referral_program_enabled),

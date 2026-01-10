@@ -22,7 +22,7 @@ pub async fn deposit_amount_handler(
     edit_msg(
         &api_client,
         &bot,
-        &MsgBy::CallbackQuery(q),
+        &MsgBy::CallbackQuery(&q),
         "Выберите сумму для пополнения:",
         None,
         deposit_amount_menu(),

@@ -37,7 +37,7 @@ pub async fn balance_handler(
     edit_msg(
         &api_client,
         &bot,
-        &MsgBy::CallbackQuery(q),
+        &MsgBy::CallbackQuery(&q),
         &text,
         None,
         balance_menu_inline_keyboard(),
