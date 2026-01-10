@@ -2,13 +2,13 @@ use std::sync::Arc;
 
 use crate::bot::keyboards::captcha::captcha_keyboard_inline;
 use crate::bot::keyboards::main_menu::main_menu_inline_keyboard;
+use crate::bot::utils::{MessageImage, MsgBy, edit_msg};
 use crate::bot::{BotState, CallbackData, generate_captcha_and_options};
 use crate::{api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult};
 use teloxide::Bot;
-use teloxide::payloads::EditMessageMediaSetters;
-use teloxide::payloads::{AnswerCallbackQuerySetters, SendMessageSetters};
+use teloxide::payloads::AnswerCallbackQuerySetters;
 use teloxide::prelude::Requester;
-use teloxide::types::{CallbackQuery, InputFile, InputMedia, InputMediaPhoto, ParseMode};
+use teloxide::types::CallbackQuery;
 
 pub async fn captcha_answer_handler(
     bot: Bot,
@@ -42,6 +42,8 @@ pub async fn captcha_answer_handler(
         }
     };
 
+    let settings = api_client.get_settings().await?;
+
     if user_answer == correct_answer {
         if let Err(e) = api_client.confirm_user_captcha(dialogue.chat_id().0).await {
             tracing::error!("Error confirming user captcha: {e}");
@@ -54,20 +56,19 @@ pub async fn captcha_answer_handler(
 
         if let Some(msg) = q.message.clone() {
             bot.delete_message(msg.chat().id, msg.id()).await.ok();
+            let welcome_msg_img = settings
+                .bot_messages_new_user_welcome_image_id
+                .map(MessageImage::Uuid);
 
-            let referral_program_enabled = api_client.is_referral_program_enabled().await;
-            let welcome_msg = match api_client.get_new_user_welcome_msg().await {
-                Some(msg) => msg.replace("{username}", &q.from.full_name()),
-                None => {
-                    tracing::error!("No welcome message found");
-                    return Ok(());
-                }
-            };
-
-            bot.send_message(msg.chat().id, welcome_msg)
-                .parse_mode(ParseMode::Html)
-                .reply_markup(main_menu_inline_keyboard(referral_program_enabled))
-                .await?;
+            edit_msg(
+                &api_client,
+                &bot,
+                &MsgBy::CallbackQuery(&q),
+                &settings.bot_messages_new_user_welcome,
+                welcome_msg_img,
+                main_menu_inline_keyboard(settings.referral_program_enabled),
+            )
+            .await?;
         }
 
         dialogue.exit().await?;
@@ -95,15 +96,15 @@ pub async fn captcha_answer_handler(
             })
             .await?;
 
-        if let Some(msg) = q.message {
-            bot.edit_message_media(
-                msg.chat().id,
-                msg.id(),
-                InputMedia::Photo(InputMediaPhoto::new(InputFile::memory(captcha_image))),
-            )
-            .reply_markup(captcha_keyboard_inline(&options))
-            .await?;
-        }
+        edit_msg(
+            &api_client,
+            &bot,
+            &MsgBy::CallbackQuery(&q),
+            "Пожалуйста, решите капчу, чтобы продолжить:",
+            Some(MessageImage::Bytes(captcha_image)),
+            captcha_keyboard_inline(&options),
+        )
+        .await?;
     }
 
     Ok(())

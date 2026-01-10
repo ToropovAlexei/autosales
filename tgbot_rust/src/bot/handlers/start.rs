@@ -88,44 +88,27 @@ pub async fn start_handler(
     dialogue.update(BotState::MainMenu).await?;
 
     let referral_program_enabled = api_client.is_referral_program_enabled().await;
+    let settings = api_client.get_settings().await?;
     // TODO Не has_passed_captcha, а юзер пришел еще раз
-    let welcome_message = if !user.has_passed_captcha {
-        match api_client.get_new_user_welcome_msg().await {
-            Some(m) => m.replace(
-                "{username}",
-                msg.clone()
-                    .from
-                    .map(|user| user.full_name())
-                    .unwrap_or_default()
-                    .as_str(),
-            ),
-            None => {
-                tracing::error!("No new user welcome message found");
-                "Что-то пошло не так. Попробуйте ещё раз".to_string()
-            }
-        }
+    let welcome_msg = if !user.has_passed_captcha {
+        settings.bot_messages_new_user_welcome
     } else {
-        match api_client.get_returning_user_welcome_msg().await {
-            Some(m) => m.replace(
-                "{username}",
-                msg.clone()
-                    .from
-                    .map(|user| user.full_name())
-                    .unwrap_or_default()
-                    .as_str(),
-            ),
-            None => {
-                tracing::error!("No returning user welcome message found");
-                "Что-то пошло не так. Попробуйте ещё раз".to_string()
-            }
-        }
+        settings.bot_messages_returning_user_welcome
     };
+    let welcome_msg = welcome_msg.replace(
+        "{username}",
+        msg.clone()
+            .from
+            .map(|user| user.full_name())
+            .unwrap_or_default()
+            .as_str(),
+    );
 
     edit_msg(
         &api_client,
         &bot,
         &MsgBy::Message(&msg),
-        &welcome_message,
+        &welcome_msg,
         None,
         main_menu_inline_keyboard(referral_program_enabled),
     )

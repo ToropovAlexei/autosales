@@ -88,10 +88,9 @@ impl BackendApi {
             .map(|settings| settings.bot_messages_support)
     }
 
-    pub async fn get_new_user_welcome_msg(&self) -> Option<String> {
+    pub async fn get_new_user_welcome_msg(&self) -> ApiClientResult<String> {
         self.get_settings()
             .await
-            .ok()
             .map(|settings| settings.bot_messages_new_user_welcome)
     }
 
