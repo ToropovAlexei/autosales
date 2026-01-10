@@ -30,6 +30,7 @@ pub trait PaymentInvoiceRepositoryTrait {
         id: i64,
         payment_invoice: UpdatePaymentInvoice,
     ) -> RepositoryResult<PaymentInvoiceRow>;
+    async fn get_by_id(&self, id: i64) -> RepositoryResult<PaymentInvoiceRow>;
 }
 
 #[derive(Clone)]
@@ -86,7 +87,7 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             payment_invoice.amount,
             payment_invoice.status as InvoiceStatus,
             payment_invoice.expires_at,
-            payment_invoice.gateway,
+            payment_invoice.gateway as _,
             payment_invoice.gateway_invoice_id,
             payment_invoice.order_id,
             payment_invoice.payment_details,
@@ -101,15 +102,15 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
     async fn update(
         &self,
         id: i64,
-        bot: UpdatePaymentInvoice,
+        payment_invoice: UpdatePaymentInvoice,
     ) -> RepositoryResult<PaymentInvoiceRow> {
         let mut query_builder: QueryBuilder<Postgres> =
             QueryBuilder::new("UPDATE payment_invoices SET status = COALESCE(");
 
-        query_builder.push_bind(bot.status);
+        query_builder.push_bind(payment_invoice.status);
         query_builder.push(", status)");
 
-        if let Some(notification_sent_at) = bot.notification_sent_at {
+        if let Some(notification_sent_at) = payment_invoice.notification_sent_at {
             query_builder.push(", notification_sent_at = ");
             if let Some(notification_sent_at) = notification_sent_at {
                 query_builder.push_bind(notification_sent_at);
@@ -129,12 +130,32 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             .await
             .map_err(RepositoryError::from)
     }
+
+    async fn get_by_id(&self, id: i64) -> RepositoryResult<PaymentInvoiceRow> {
+        let result = sqlx::query_as!(
+            PaymentInvoiceRow,
+            r#"
+            SELECT 
+                id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
+                expires_at, deleted_at, gateway, gateway_invoice_id, order_id, payment_details,
+                bot_message_id, notification_sent_at
+            FROM payment_invoices WHERE id = $1"#,
+            id
+        )
+        .fetch_one(&*self.pool)
+        .await?;
+
+        Ok(result)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::common::{OrderDir, Pagination};
+    use crate::models::{
+        common::{OrderDir, Pagination},
+        payment::PaymentSystem,
+    };
     use chrono::{Duration, Utc};
     use rust_decimal::Decimal;
     use serde_json::Value;
@@ -188,7 +209,7 @@ mod tests {
             amount: Decimal::from(100),
             status: InvoiceStatus::Pending,
             expires_at,
-            gateway: "test_gateway".to_string(),
+            gateway: PaymentSystem::Mock,
             gateway_invoice_id: "test_invoice_id".to_string(),
             payment_details: Value::Null,
             bot_message_id: None,

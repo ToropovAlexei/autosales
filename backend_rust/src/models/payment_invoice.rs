@@ -5,7 +5,7 @@ use sqlx::prelude::FromRow;
 use ts_rs::TS;
 use utoipa::ToSchema;
 
-use crate::define_list_query;
+use crate::{define_list_query, models::payment::PaymentSystem};
 
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS, ToSchema)]
 #[sqlx(type_name = "TEXT", rename_all = "snake_case")]
@@ -45,7 +45,7 @@ pub struct NewPaymentInvoice {
     pub amount: Decimal,
     pub status: InvoiceStatus,
     pub expires_at: DateTime<Utc>,
-    pub gateway: String,
+    pub gateway: PaymentSystem,
     pub gateway_invoice_id: String,
     pub order_id: uuid::Uuid,
     pub payment_details: serde_json::Value,

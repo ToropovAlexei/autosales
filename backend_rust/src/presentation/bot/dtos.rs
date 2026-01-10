@@ -4,6 +4,7 @@ pub mod captcha;
 pub mod category;
 pub mod customer;
 pub mod gateway;
+pub mod invoice;
 pub mod product;
 pub mod settings;
 pub mod user_subscription;

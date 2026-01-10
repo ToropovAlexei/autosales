@@ -14,8 +14,8 @@ use crate::{
         active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
         audit_log::AuditLogRepository, bot::BotRepository, category::CategoryRepository,
         customer::CustomerRepository, effective_permission::EffectivePermissionRepository,
-        image::ImageRepository, order::OrderRepository, permission::PermissionRepository,
-        products::ProductRepository, role::RoleRepository,
+        image::ImageRepository, order::OrderRepository, payment_invoice::PaymentInvoiceRepository,
+        permission::PermissionRepository, products::ProductRepository, role::RoleRepository,
         role_permission::RolePermissionRepository, settings::SettingsRepository,
         stock_movement::StockMovementRepository, temporary_token::TemporaryTokenRepository,
         transaction::TransactionRepository, user_permission::UserPermissionRepository,
@@ -31,6 +31,7 @@ use crate::{
         customer::CustomerService,
         image::ImageService,
         order::OrderService,
+        payment_invoice::PaymentInvoiceService,
         permission::PermissionService,
         product::ProductService,
         role::RoleService,
@@ -96,6 +97,14 @@ pub struct AppState {
     >,
     pub order_service: Arc<OrderService<OrderRepository>>,
     pub captcha_service: Arc<CaptchaService>,
+    pub payment_invoice_service: Arc<
+        PaymentInvoiceService<
+            PaymentInvoiceRepository,
+            AuditLogService<AuditLogRepository>,
+            MockPaymentsProvider,
+            SettingsRepository,
+        >,
+    >,
     pub client: Arc<reqwest::Client>,
     #[cfg(feature = "contms-provider")]
     pub contms_products_provider: Arc<ContmsProductsProvider>,
@@ -202,16 +211,21 @@ impl AppState {
             client.clone(),
             config.captcha_api_url.clone(),
         ));
-
-        #[cfg(feature = "contms-provider")]
-        let contms_products_provider = Arc::new(ContmsProductsProvider::new(
-            client.clone(),
-            config.contms_api_url.clone(),
-        ));
         #[cfg(feature = "mock-payments-provider")]
         let mock_payments_provider = Arc::new(MockPaymentsProvider::new(
             client.clone(),
             config.mock_payments_provider_url.clone(),
+        ));
+        let payment_invoice_service = Arc::new(PaymentInvoiceService::new(
+            Arc::new(PaymentInvoiceRepository::new(db_pool.clone())),
+            settings_repo.clone(),
+            mock_payments_provider.clone(),
+            audit_logs_service.clone(),
+        ));
+        #[cfg(feature = "contms-provider")]
+        let contms_products_provider = Arc::new(ContmsProductsProvider::new(
+            client.clone(),
+            config.contms_api_url.clone(),
         ));
 
         Self {
@@ -234,6 +248,7 @@ impl AppState {
             bot_service,
             order_service,
             captcha_service,
+            payment_invoice_service,
             #[cfg(feature = "contms-provider")]
             contms_products_provider,
             #[cfg(feature = "mock-payments-provider")]
