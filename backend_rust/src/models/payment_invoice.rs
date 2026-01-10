@@ -30,7 +30,7 @@ pub struct PaymentInvoiceRow {
     pub updated_at: DateTime<Utc>,
     pub expires_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
-    pub gateway: String,
+    pub gateway: PaymentSystem,
     pub gateway_invoice_id: String,
     pub order_id: uuid::Uuid,
     pub payment_details: serde_json::Value,

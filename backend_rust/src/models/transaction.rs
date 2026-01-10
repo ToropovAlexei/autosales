@@ -5,7 +5,7 @@ use sqlx::prelude::FromRow;
 use ts_rs::TS;
 use utoipa::ToSchema;
 
-use crate::define_list_query;
+use crate::{define_list_query, models::payment::PaymentSystem};
 
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]
 #[sqlx(type_name = "TEXT", rename_all = "snake_case")]
@@ -34,7 +34,7 @@ pub struct TransactionRow {
     pub gateway_commission: Decimal,
     pub created_at: DateTime<Utc>,
     pub description: Option<String>,
-    pub payment_gateway: Option<String>,
+    pub payment_gateway: Option<PaymentSystem>,
     pub details: Option<serde_json::Value>,
 }
 
@@ -48,7 +48,7 @@ pub struct NewTransaction {
     pub platform_commission: Decimal,
     pub gateway_commission: Decimal,
     pub description: Option<String>,
-    pub payment_gateway: Option<String>,
+    pub payment_gateway: Option<PaymentSystem>,
     pub details: Option<serde_json::Value>,
 }
 

@@ -71,7 +71,7 @@ impl TransactionRepositoryTrait for TransactionRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING
                 id, customer_id, order_id, type as "type: _", amount, store_balance_delta,
-                platform_commission, gateway_commission, description, payment_gateway,
+                platform_commission, gateway_commission, description, payment_gateway as "payment_gateway: _",
                 details, created_at, store_balance_after, user_balance_after
             "#,
             transaction.customer_id,
@@ -82,7 +82,7 @@ impl TransactionRepositoryTrait for TransactionRepository {
             transaction.platform_commission,
             transaction.gateway_commission,
             transaction.description,
-            transaction.payment_gateway,
+            transaction.payment_gateway as _,
             transaction.details
         )
         .fetch_one(&*self.pool)
@@ -97,7 +97,7 @@ impl TransactionRepositoryTrait for TransactionRepository {
             r#"
             SELECT
                 id, customer_id, order_id, type as "type: _", amount, store_balance_delta,
-                platform_commission, gateway_commission, description, payment_gateway,
+                platform_commission, gateway_commission, description, payment_gateway as "payment_gateway: _",
                 details, created_at, store_balance_after, user_balance_after
             FROM transactions
             ORDER BY id DESC
@@ -114,7 +114,7 @@ impl TransactionRepositoryTrait for TransactionRepository {
 mod tests {
     use rust_decimal::Decimal;
 
-    use crate::models::transaction::TransactionType;
+    use crate::models::{payment::PaymentSystem, transaction::TransactionType};
 
     use super::*;
 
@@ -143,7 +143,7 @@ mod tests {
             platform_commission: Decimal::from(0),
             gateway_commission: Decimal::from(0),
             description: Some("Test deposit".to_string()),
-            payment_gateway: Some("test_gw".to_string()),
+            payment_gateway: Some(PaymentSystem::Mock),
             details: None,
         };
 

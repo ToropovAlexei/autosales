@@ -4,7 +4,10 @@ use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
 
-use crate::models::transaction::{TransactionRow, TransactionType};
+use crate::models::{
+    payment::PaymentSystem,
+    transaction::{TransactionRow, TransactionType},
+};
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, ToResponse, TS)]
 #[ts(export, export_to = "transaction.ts", rename = "Transaction")]
@@ -19,7 +22,7 @@ pub struct TransactionResponse {
     pub gateway_commission: f64,
     pub created_at: DateTime<Utc>,
     pub description: Option<String>,
-    pub payment_gateway: Option<String>,
+    pub payment_gateway: Option<PaymentSystem>,
 }
 
 impl From<TransactionRow> for TransactionResponse {

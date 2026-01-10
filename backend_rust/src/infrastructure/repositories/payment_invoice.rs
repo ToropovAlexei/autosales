@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use sqlx::{PgPool, Postgres, QueryBuilder};
+use uuid::Uuid;
 
 use crate::{
     errors::repository::{RepositoryError, RepositoryResult},
@@ -31,6 +32,7 @@ pub trait PaymentInvoiceRepositoryTrait {
         payment_invoice: UpdatePaymentInvoice,
     ) -> RepositoryResult<PaymentInvoiceRow>;
     async fn get_by_id(&self, id: i64) -> RepositoryResult<PaymentInvoiceRow>;
+    async fn get_by_order_id(&self, order_id: Uuid) -> RepositoryResult<PaymentInvoiceRow>;
 }
 
 #[derive(Clone)]
@@ -79,7 +81,7 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING
                 id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
-                expires_at, deleted_at, gateway, gateway_invoice_id, order_id, payment_details,
+                expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
                 bot_message_id, notification_sent_at
             "#,
             payment_invoice.customer_id,
@@ -137,10 +139,27 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             r#"
             SELECT 
                 id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
-                expires_at, deleted_at, gateway, gateway_invoice_id, order_id, payment_details,
+                expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
                 bot_message_id, notification_sent_at
             FROM payment_invoices WHERE id = $1"#,
             id
+        )
+        .fetch_one(&*self.pool)
+        .await?;
+
+        Ok(result)
+    }
+
+    async fn get_by_order_id(&self, order_id: Uuid) -> RepositoryResult<PaymentInvoiceRow> {
+        let result = sqlx::query_as!(
+            PaymentInvoiceRow,
+            r#"
+            SELECT 
+                id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
+                expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
+                bot_message_id, notification_sent_at
+            FROM payment_invoices WHERE order_id = $1"#,
+            order_id
         )
         .fetch_one(&*self.pool)
         .await?;

@@ -53,6 +53,7 @@ pub trait PaymentInvoiceServiceTrait: Send + Sync {
     ) -> ApiResult<PaginatedResult<PaymentInvoiceRow>>;
     async fn create(&self, command: CreatePaymentInvoiceCommand) -> ApiResult<PaymentInvoiceRow>;
     async fn get_by_id(&self, id: i64) -> ApiResult<PaymentInvoiceRow>;
+    async fn get_by_order_id(&self, order_id: Uuid) -> ApiResult<PaymentInvoiceRow>;
     async fn update(&self, command: UpdatePaymentInvoiceCommand) -> ApiResult<PaymentInvoiceRow>;
 }
 
@@ -153,6 +154,11 @@ impl PaymentInvoiceServiceTrait
 
     async fn get_by_id(&self, id: i64) -> ApiResult<PaymentInvoiceRow> {
         let res = self.repo.get_by_id(id).await?;
+        Ok(res)
+    }
+
+    async fn get_by_order_id(&self, order_id: Uuid) -> ApiResult<PaymentInvoiceRow> {
+        let res = self.repo.get_by_order_id(order_id).await?;
         Ok(res)
     }
 
