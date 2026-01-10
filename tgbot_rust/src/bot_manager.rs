@@ -1,6 +1,6 @@
 use crate::AppState;
 use crate::api::backend_api::BackendApi;
-use crate::bot::run_bot;
+use crate::bot::{BotUsername, run_bot};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::task::JoinHandle;
@@ -71,7 +71,15 @@ impl BotManager {
                 )
                 .expect("Failed to create BackendApi"),
             );
-            if let Err(e) = run_bot(token_clone, bot_id, app_state, api).await {
+            if let Err(e) = run_bot(
+                token_clone,
+                bot_id,
+                app_state,
+                api,
+                BotUsername("test".to_string()),
+            )
+            .await
+            {
                 tracing::error!("Bot exited with error: {}", e);
             }
         });
@@ -106,7 +114,15 @@ impl BotManager {
                     )
                     .expect("Failed to create BackendApi"),
                 );
-                if let Err(e) = run_bot(bot_token, bot_id, app_state, api).await {
+                if let Err(e) = run_bot(
+                    bot_token,
+                    bot_id,
+                    app_state,
+                    api,
+                    BotUsername("test".to_string()),
+                )
+                .await
+                {
                     tracing::error!("Bot exited with error: {}", e);
                 }
             });

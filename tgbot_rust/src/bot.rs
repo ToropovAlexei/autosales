@@ -24,7 +24,8 @@ use crate::{
             balance::balance_handler, buy::buy_handler, captcha_answer::captcha_answer_handler,
             catalog::catalog_handler, deposit_amount::deposit_amount_handler,
             deposit_confirm::deposit_confirm_handler, deposit_gateway::deposit_gateway_handler,
-            main_menu::main_menu_handler, my_bots::my_bots_handler, my_orders::my_orders_handler,
+            fallback_bot_msg::fallback_bot_msg, main_menu::main_menu_handler,
+            my_bots::my_bots_handler, my_orders::my_orders_handler,
             my_subscriptions::my_subscriptions_handler, product::product_handler,
             start::start_handler, support::support_handler,
         },
@@ -126,7 +127,7 @@ impl From<BotState> for String {
 }
 
 #[derive(Clone)]
-pub struct BotUsername(String);
+pub struct BotUsername(pub String);
 
 impl std::fmt::Display for BotUsername {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -195,6 +196,7 @@ pub async fn run_bot(
     bot_id: i64,
     app_state: AppState,
     client: Arc<BackendApi>,
+    fallback_bot_username: BotUsername,
 ) -> AppResult<()> {
     let bot = Bot::new(bot_token);
     let me = bot.get_me().await?;
@@ -346,7 +348,12 @@ pub async fn run_bot(
             .branch(handler)
             .branch(callback_query_handler),
     )
-    .dependencies(dptree::deps![app_state.clone(), storage, client.clone()])
+    .dependencies(dptree::deps![
+        app_state.clone(),
+        storage,
+        client.clone(),
+        fallback_bot_username
+    ])
     .default_handler(|upd| async move {
         tracing::warn!("Unhandled update: {upd:?}");
     })
@@ -368,9 +375,11 @@ async fn command_handler(
     dialogue: MyDialogue,
     api_client: Arc<BackendApi>,
     app_state: AppState,
+    fallback_bot_username: BotUsername,
 ) -> AppResult<()> {
     match cmd {
         Command::Start => {
+            fallback_bot_msg(bot.clone(), msg.chat.id, fallback_bot_username).await?;
             dialogue.update(BotState::Initial).await?;
             start_handler(bot, dialogue, msg, api_client).await
         }

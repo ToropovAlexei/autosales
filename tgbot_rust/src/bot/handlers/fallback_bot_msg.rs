@@ -1,7 +1,6 @@
 use crate::{bot::BotUsername, errors::AppResult};
 use teloxide::prelude::*;
 
-#[allow(dead_code)]
 pub async fn fallback_bot_msg(
     bot: Bot,
     chat_id: ChatId,
