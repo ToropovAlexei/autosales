@@ -26,26 +26,27 @@ impl RepositoryError {
         if let sqlx::Error::Database(db_err) = &err
             && let Some(code) = db_err.code()
         {
-            tracing::error!("Database error: {:?}", db_err);
-            let message = db_err.message().to_string();
             match code.as_ref() {
                 // foreign_key_violation
                 "23503" => {
                     return RepositoryError::ForeignKeyViolation(format!(
-                        "{}: {}",
-                        context, message
+                        "{}: {:?}",
+                        context, db_err
                     ));
                 }
                 // unique_violation
                 "23505" => {
-                    return RepositoryError::UniqueViolation(format!("{}: {}", context, message));
+                    return RepositoryError::UniqueViolation(format!("{}: {:?}", context, db_err));
                 }
                 // string_data_right_truncation
                 "22001" => {
-                    return RepositoryError::Validation(format!("{}: value too long", context));
+                    return RepositoryError::Validation(format!(
+                        "{}: value too long: {:?}",
+                        context, db_err
+                    ));
                 }
                 _ => {
-                    return RepositoryError::QueryFailed(format!("{}: {}", context, message));
+                    return RepositoryError::QueryFailed(format!("{}: {:?}", context, db_err));
                 }
             }
         }
