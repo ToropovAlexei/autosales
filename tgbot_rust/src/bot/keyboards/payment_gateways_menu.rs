@@ -10,7 +10,7 @@ use crate::{
 
 pub fn payment_gateways_menu(
     gateways: Vec<PaymentGateway>,
-    public_settings: Settings,
+    public_settings: &Settings,
 ) -> InlineKeyboardMarkup {
     let mut buttons = Vec::new();
     // TODO Instructions must be in settings

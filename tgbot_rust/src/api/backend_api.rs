@@ -102,15 +102,10 @@ impl BackendApi {
             .map(|settings| settings.bot_messages_returning_user_welcome)
     }
 
-    // TODO Unused
-    pub async fn get_payment_gateways(&self) -> ListResponse<PaymentGateway> {
+    pub async fn get_payment_gateways(&self) -> ApiClientResult<ListResponse<PaymentGateway>> {
         self.api_client
             .get::<ListResponse<PaymentGateway>>("bot/gateways")
             .await
-            .unwrap_or(ListResponse {
-                items: Vec::new(),
-                total: 0,
-            })
     }
 
     pub async fn create_deposit_invoice(
