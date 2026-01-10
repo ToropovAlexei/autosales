@@ -27,10 +27,16 @@ async fn mock_payments_provider_webhook(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<MockProviderInvoiceWebhookPayload>,
 ) -> ApiResult<Json<Uuid>> {
+    use crate::services::payment_processing_service::PaymentProcessingServiceTrait;
+
     let order_id = state
         .mock_payments_provider
         .handle_webhook(payload)
         .await
         .map_err(ApiError::BadRequest)?;
+    state
+        .payment_processing_service
+        .handle_payment_success(order_id)
+        .await?;
     Ok(Json(order_id))
 }

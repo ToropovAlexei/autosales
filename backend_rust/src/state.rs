@@ -31,8 +31,10 @@ use crate::{
         category::CategoryService,
         customer::CustomerService,
         image::ImageService,
+        notification_service::NotificationService,
         order::OrderService,
         payment_invoice::PaymentInvoiceService,
+        payment_processing_service::PaymentProcessingService,
         permission::PermissionService,
         product::ProductService,
         role::RoleService,
@@ -44,15 +46,25 @@ use crate::{
     },
 };
 
-type CategoryServiceShortType =
-    CategoryService<CategoryRepository, AuditLogService<AuditLogRepository>>;
+type AuditLogShortType = AuditLogService<AuditLogRepository>;
+
+type CategoryServiceShortType = CategoryService<CategoryRepository, AuditLogShortType>;
 
 type ProductServiceShortType = ProductService<
     ProductRepository,
     StockMovementRepository,
-    AuditLogService<AuditLogRepository>,
+    AuditLogShortType,
     SettingsRepository,
     CategoryServiceShortType,
+>;
+
+type CustomerServiceShortType = CustomerService<CustomerRepository, AuditLogShortType>;
+
+type PaymentInvoiceShortType = PaymentInvoiceService<
+    PaymentInvoiceRepository,
+    AuditLogShortType,
+    MockPaymentsProvider,
+    SettingsRepository,
 >;
 
 #[derive(Clone)]
@@ -68,15 +80,9 @@ pub struct AppState {
             EffectivePermissionRepository,
         >,
     >,
-    pub category_service:
-        Arc<CategoryService<CategoryRepository, AuditLogService<AuditLogRepository>>>,
-    pub admin_user_service: Arc<
-        AdminUserService<
-            AdminUserRepository,
-            UserRoleRepository,
-            AuditLogService<AuditLogRepository>,
-        >,
-    >,
+    pub category_service: Arc<CategoryService<CategoryRepository, AuditLogShortType>>,
+    pub admin_user_service:
+        Arc<AdminUserService<AdminUserRepository, UserRoleRepository, AuditLogShortType>>,
     pub role_service: Arc<RoleService<RoleRepository>>,
     pub permission_service: Arc<PermissionService<PermissionRepository, UserPermissionRepository>>,
     pub role_permission_service: Arc<RolePermissionService<RolePermissionRepository>>,
@@ -84,27 +90,22 @@ pub struct AppState {
     pub product_service: Arc<ProductServiceShortType>,
     pub image_service: Arc<ImageService<ImageRepository>>,
     pub stock_movement_service: Arc<StockMovementService<StockMovementRepository>>,
-    pub customer_service:
-        Arc<CustomerService<CustomerRepository, AuditLogService<AuditLogRepository>>>,
-    pub settings_service:
-        Arc<SettingsService<SettingsRepository, AuditLogService<AuditLogRepository>>>,
-    pub audit_logs_service: Arc<AuditLogService<AuditLogRepository>>,
+    pub customer_service: Arc<CustomerServiceShortType>,
+    pub settings_service: Arc<SettingsService<SettingsRepository, AuditLogShortType>>,
+    pub audit_logs_service: Arc<AuditLogShortType>,
     pub bot_service: Arc<
-        BotService<
-            BotRepository,
-            SettingsRepository,
-            AuditLogService<AuditLogRepository>,
-            TransactionRepository,
-        >,
+        BotService<BotRepository, SettingsRepository, AuditLogShortType, TransactionRepository>,
     >,
     pub order_service: Arc<OrderService<OrderRepository>>,
     pub captcha_service: Arc<CaptchaService>,
-    pub payment_invoice_service: Arc<
-        PaymentInvoiceService<
-            PaymentInvoiceRepository,
-            AuditLogService<AuditLogRepository>,
-            MockPaymentsProvider,
-            SettingsRepository,
+    pub payment_invoice_service: Arc<PaymentInvoiceShortType>,
+    pub notification_service: Arc<NotificationService>,
+    pub payment_processing_service: Arc<
+        PaymentProcessingService<
+            TransactionService<TransactionRepository>,
+            PaymentInvoiceShortType,
+            NotificationService,
+            CustomerServiceShortType,
         >,
     >,
     pub client: Arc<reqwest::Client>,
@@ -240,6 +241,14 @@ impl AppState {
                 .expect("Failed to create redis pool"),
         );
 
+        let notification_service = Arc::new(NotificationService::new(redis_pool.clone()));
+        let payment_processing_service = Arc::new(PaymentProcessingService::new(
+            transaction_service.clone(),
+            payment_invoice_service.clone(),
+            notification_service.clone(),
+            customer_service.clone(),
+        ));
+
         Self {
             db,
             config,
@@ -261,6 +270,8 @@ impl AppState {
             order_service,
             captcha_service,
             payment_invoice_service,
+            notification_service,
+            payment_processing_service,
             redis_pool,
             #[cfg(feature = "contms-provider")]
             contms_products_provider,
