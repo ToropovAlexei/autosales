@@ -35,6 +35,8 @@ use crate::{
     models::{DispatchMessagePayload, payment::PaymentSystem},
 };
 
+pub mod utils;
+
 mod handlers {
     pub mod balance;
     pub mod buy;
