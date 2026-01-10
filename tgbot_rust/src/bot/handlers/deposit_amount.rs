@@ -5,7 +5,9 @@ use teloxide::{Bot, types::CallbackQuery};
 use crate::{
     api::backend_api::BackendApi,
     bot::{
-        BotState, MyDialogue, keyboards::deposit_amount_menu::deposit_amount_menu, utils::edit_msg,
+        BotState, MyDialogue,
+        keyboards::deposit_amount_menu::deposit_amount_menu,
+        utils::{MsgBy, edit_msg},
     },
     errors::AppResult,
 };
@@ -19,9 +21,8 @@ pub async fn deposit_amount_handler(
 ) -> AppResult<()> {
     edit_msg(
         &api_client,
-        bot,
-        None,
-        Some(&q),
+        &bot,
+        &MsgBy::CallbackQuery(q),
         "Выберите сумму для пополнения:",
         None,
         deposit_amount_menu(),

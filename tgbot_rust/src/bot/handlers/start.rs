@@ -2,13 +2,11 @@ use std::sync::Arc;
 
 use crate::bot::keyboards::captcha::captcha_keyboard_inline;
 use crate::bot::keyboards::main_menu::main_menu_inline_keyboard;
+use crate::bot::utils::{MessageImage, MsgBy, edit_msg};
 use crate::bot::{BotState, generate_captcha_and_options};
 use crate::{api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult};
 use teloxide::Bot;
-use teloxide::payloads::{SendMessageSetters, SendPhotoSetters};
-use teloxide::prelude::Request;
-use teloxide::prelude::Requester;
-use teloxide::types::{InputFile, Message, ParseMode};
+use teloxide::types::{InlineKeyboardMarkup, Message};
 
 pub async fn start_handler(
     bot: Bot,
@@ -21,11 +19,14 @@ pub async fn start_handler(
         Ok(res) => res,
         Err(err) => {
             tracing::error!("Error getting user: {user_id}, {err}");
-            bot.send_message(
-                msg.chat.id,
+            edit_msg(
+                &api_client,
+                &bot,
+                &MsgBy::Message(msg),
                 "Произошла непредвиденная ошибка. Попробуйте позже.",
+                None,
+                InlineKeyboardMarkup::default(),
             )
-            .send()
             .await?;
             return Ok(());
         }
@@ -33,31 +34,48 @@ pub async fn start_handler(
 
     if user.is_blocked {
         tracing::info!("User is blocked: {user_id}");
-        bot.send_message(msg.chat.id, "Ваш аккаунт заблокирован")
-            .send()
-            .await?;
+        edit_msg(
+            &api_client,
+            &bot,
+            &MsgBy::Message(msg),
+            "Ваш аккаунт заблокирован",
+            None,
+            InlineKeyboardMarkup::default(),
+        )
+        .await?;
         return Ok(());
     }
 
     if !user.has_passed_captcha {
         let (png_bytes, captcha_text, options) =
-            match generate_captcha_and_options(api_client).await {
+            match generate_captcha_and_options(&api_client).await {
                 Ok((i, a, o)) => (i, a, o),
                 Err(e) => {
                     tracing::error!("Error generating captcha: {e}");
-                    bot.send_message(msg.chat.id, "Что-то пошло не так. Попробуйте ещё раз")
-                        .send()
-                        .await?;
+                    edit_msg(
+                        &api_client,
+                        &bot,
+                        &MsgBy::Message(msg),
+                        "Что-то пошло не так. Попробуйте ещё раз",
+                        None,
+                        InlineKeyboardMarkup::default(),
+                    )
+                    .await?;
                     return Ok(());
                 }
             };
 
         let keyboard = captcha_keyboard_inline(&options);
 
-        bot.send_photo(msg.chat.id, InputFile::memory(png_bytes))
-            .caption("Пожалуйста, решите капчу, чтобы продолжить:")
-            .reply_markup(keyboard)
-            .await?;
+        edit_msg(
+            &api_client,
+            &bot,
+            &MsgBy::Message(msg),
+            "Пожалуйста, решите капчу, чтобы продолжить:",
+            Some(MessageImage::Bytes(png_bytes)),
+            keyboard,
+        )
+        .await?;
 
         dialogue
             .update(BotState::WaitingForCaptcha {
@@ -75,7 +93,8 @@ pub async fn start_handler(
         match api_client.get_new_user_welcome_msg().await {
             Some(m) => m.replace(
                 "{username}",
-                msg.from
+                msg.clone()
+                    .from
                     .map(|user| user.full_name())
                     .unwrap_or_default()
                     .as_str(),
@@ -89,7 +108,8 @@ pub async fn start_handler(
         match api_client.get_returning_user_welcome_msg().await {
             Some(m) => m.replace(
                 "{username}",
-                msg.from
+                msg.clone()
+                    .from
                     .map(|user| user.full_name())
                     .unwrap_or_default()
                     .as_str(),
@@ -101,10 +121,15 @@ pub async fn start_handler(
         }
     };
 
-    bot.send_message(msg.chat.id, welcome_message)
-        .parse_mode(ParseMode::Html)
-        .reply_markup(main_menu_inline_keyboard(referral_program_enabled))
-        .await?;
+    edit_msg(
+        &api_client,
+        &bot,
+        &MsgBy::Message(msg),
+        &welcome_message,
+        None,
+        main_menu_inline_keyboard(referral_program_enabled),
+    )
+    .await?;
 
     Ok(())
 }

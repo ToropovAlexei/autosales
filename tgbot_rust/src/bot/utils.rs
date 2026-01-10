@@ -17,29 +17,42 @@ use crate::errors::{AppError, AppResult};
 
 use teloxide::Bot;
 
+pub enum MsgBy {
+    Message(Message),
+    CallbackQuery(CallbackQuery),
+}
+
+#[derive(Debug)]
+pub enum MessageImage {
+    Uuid(Uuid),
+    Bytes(Bytes),
+}
+
 /// Edit msg, if edit is failed, send new message
 /// Automatically detect type of message
 pub async fn edit_msg(
     api_client: &Arc<BackendApi>,
-    bot: Bot,
-    msg: Option<&Message>,
-    q: Option<&CallbackQuery>,
+    bot: &Bot,
+    msg_by: &MsgBy,
     text: &str,
-    image_id: Option<Uuid>,
+    image: Option<MessageImage>,
     reply_keyboard: InlineKeyboardMarkup,
 ) -> AppResult<Message> {
-    let (chat_id, msg_id) = get_chat_and_msg_id(msg, q).ok_or(AppError::InternalServerError(
+    let (chat_id, msg_id) = get_chat_and_msg_id(&msg_by).ok_or(AppError::InternalServerError(
         "Failed to get chat id".to_string(),
     ))?;
-    let image_bytes = if let Some(image_id) = image_id {
-        Some(api_client.get_image_bytes(&image_id).await?)
-    } else {
-        None
+    let image_bytes = match image {
+        Some(MessageImage::Uuid(uuid)) => {
+            let bytes = api_client.get_image_bytes(&uuid).await?;
+            Some(bytes)
+        }
+        Some(MessageImage::Bytes(bytes)) => Some(bytes),
+        None => None,
     };
     // Msg id found, try to edit it
     if let Some(msg_id) = msg_id {
         // Telegram does not allow to change type of message
-        let is_type_changed = image_bytes.is_some() != has_photo(msg, q);
+        let is_type_changed = image_bytes.is_some() != has_photo(&msg_by);
         if is_type_changed {
             if let Err(e) = bot.delete_message(chat_id, msg_id).await {
                 tracing::error!("Failed to delete message: {:?}", e);
@@ -67,7 +80,7 @@ pub async fn edit_msg(
 
 /// Send message with or without photo
 async fn send_msg(
-    bot: Bot,
+    bot: &Bot,
     chat_id: ChatId,
     text: &str,
     image_bytes: Option<Bytes>,
@@ -80,40 +93,34 @@ async fn send_msg(
 }
 
 /// Check if message has photo
-fn has_photo(msg: Option<&Message>, q: Option<&CallbackQuery>) -> bool {
-    if let Some(msg) = msg {
-        return msg.photo().is_some();
+fn has_photo(msg_by: &MsgBy) -> bool {
+    match msg_by {
+        MsgBy::Message(msg) => msg.photo().is_some(),
+        MsgBy::CallbackQuery(q) => match &q.message {
+            Some(MaybeInaccessibleMessage::Regular(msg)) => msg.photo().is_some(),
+            _ => false,
+        },
     }
-    if let Some(q) = q
-        && let Some(MaybeInaccessibleMessage::Regular(msg)) = &q.message
-    {
-        return msg.photo().is_some();
-    }
-    false
 }
 
-pub fn get_chat_and_msg_id(
-    msg: Option<&Message>,
-    q: Option<&CallbackQuery>,
-) -> Option<(ChatId, Option<MessageId>)> {
-    if let Some(msg) = msg {
-        return Some((msg.chat.id, Some(msg.id)));
+pub fn get_chat_and_msg_id(msg_by: &MsgBy) -> Option<(ChatId, Option<MessageId>)> {
+    match msg_by {
+        MsgBy::Message(msg) => Some((msg.chat.id, Some(msg.id))),
+        MsgBy::CallbackQuery(q) => {
+            let chat_id = q.chat_id()?;
+            let message_id = match &q.message {
+                Some(MaybeInaccessibleMessage::Regular(msg)) => Some(msg.id),
+                Some(MaybeInaccessibleMessage::Inaccessible(_)) => None,
+                None => None,
+            };
+            Some((chat_id, message_id))
+        }
     }
-    if let Some(q) = q {
-        let chat_id = q.chat_id()?;
-        let message_id = match &q.message {
-            Some(MaybeInaccessibleMessage::Regular(msg)) => Some(msg.id),
-            Some(MaybeInaccessibleMessage::Inaccessible(_)) => None,
-            None => None,
-        };
-        return Some((chat_id, message_id));
-    }
-    None
 }
 
 /// Try edit message with photo. If edit is failed, send new message
 async fn edit_media_msg(
-    bot: Bot,
+    bot: &Bot,
     chat_id: ChatId,
     msg_id: Option<MessageId>,
     text: &str,
@@ -138,7 +145,7 @@ async fn edit_media_msg(
 
 /// Try edit text message. If edit is failed, send new message
 async fn edit_text_msg(
-    bot: Bot,
+    bot: &Bot,
     chat_id: ChatId,
     msg_id: Option<MessageId>,
     text: &str,
@@ -159,7 +166,7 @@ async fn edit_text_msg(
 
 /// Send message with photo
 async fn send_media_msg(
-    bot: Bot,
+    bot: &Bot,
     chat_id: ChatId,
     text: &str,
     image_bytes: Bytes,
@@ -176,7 +183,7 @@ async fn send_media_msg(
 
 /// Send text message
 async fn send_text_msg(
-    bot: Bot,
+    bot: &Bot,
     chat_id: ChatId,
     text: &str,
     reply_keyboard: InlineKeyboardMarkup,

@@ -4,7 +4,11 @@ use teloxide::{Bot, dispatching::dialogue::GetChatId, types::CallbackQuery, util
 
 use crate::{
     api::backend_api::BackendApi,
-    bot::{MyDialogue, keyboards::balance_menu::balance_menu_inline_keyboard, utils::edit_msg},
+    bot::{
+        MyDialogue,
+        keyboards::balance_menu::balance_menu_inline_keyboard,
+        utils::{MsgBy, edit_msg},
+    },
     errors::{AppError, AppResult},
 };
 
@@ -32,9 +36,8 @@ pub async fn balance_handler(
     };
     edit_msg(
         &api_client,
-        bot,
-        None,
-        Some(&q),
+        &bot,
+        &MsgBy::CallbackQuery(q),
         &text,
         None,
         balance_menu_inline_keyboard(),

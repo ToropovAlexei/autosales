@@ -1,6 +1,7 @@
 use std::{result::Result::Ok, sync::Arc};
 
 use base64::{Engine as _, engine::general_purpose::STANDARD};
+use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use teloxide::{
     Bot,
@@ -471,8 +472,8 @@ async fn handle_msg(
 }
 
 pub async fn generate_captcha_and_options(
-    api_client: Arc<BackendApi>,
-) -> AppResult<(Vec<u8>, String, Vec<String>)> {
+    api_client: &Arc<BackendApi>,
+) -> AppResult<(Bytes, String, Vec<String>)> {
     let captcha = api_client.get_captcha().await?;
 
     let image = STANDARD.decode(
@@ -484,5 +485,5 @@ pub async fn generate_captcha_and_options(
             .unwrap_or(("", ""))
             .1,
     )?;
-    Ok((image, captcha.answer, captcha.variants))
+    Ok((Bytes::from(image), captcha.answer, captcha.variants))
 }

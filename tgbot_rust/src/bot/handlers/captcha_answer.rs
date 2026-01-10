@@ -78,7 +78,7 @@ pub async fn captcha_answer_handler(
             .await?;
 
         let (captcha_image, new_correct_answer, options) =
-            match generate_captcha_and_options(api_client).await {
+            match generate_captcha_and_options(&api_client).await {
                 Ok((i, a, o)) => (i, a, o),
                 Err(e) => {
                     tracing::error!("Error generating captcha: {e}");

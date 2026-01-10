@@ -4,7 +4,11 @@ use teloxide::{Bot, types::CallbackQuery};
 
 use crate::{
     api::backend_api::BackendApi,
-    bot::{MyDialogue, keyboards::payment_gateways_menu::payment_gateways_menu, utils::edit_msg},
+    bot::{
+        MyDialogue,
+        keyboards::payment_gateways_menu::payment_gateways_menu,
+        utils::{MsgBy, edit_msg},
+    },
     errors::AppResult,
 };
 
@@ -19,9 +23,8 @@ pub async fn deposit_gateway_handler(
 
     edit_msg(
         &api_client,
-        bot,
-        None,
-        Some(&q),
+        &bot,
+        &MsgBy::CallbackQuery(q),
         "💰 Выберите способ пополнения:",
         None,
         payment_gateways_menu(payment_gateways.items, &settings),
