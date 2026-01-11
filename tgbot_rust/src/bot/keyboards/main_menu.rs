@@ -17,6 +17,10 @@ pub fn main_menu_inline_keyboard(show_referral_program: bool) -> InlineKeyboardM
             CallbackData::ToMyOrders,
         )],
         vec![InlineKeyboardButton::callback(
+            "🧾 Мои платежи",
+            CallbackData::ToMyPayments,
+        )],
+        vec![InlineKeyboardButton::callback(
             "🧾 Мои подписки",
             CallbackData::ToMySubscriptions,
         )],

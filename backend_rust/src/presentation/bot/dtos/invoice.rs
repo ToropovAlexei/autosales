@@ -17,7 +17,9 @@ pub struct PaymentInvoiceResponse {
     pub amount: f64,
     pub order_id: uuid::Uuid,
     pub payment_details: serde_json::Value,
+    pub gateway: PaymentSystem,
     pub status: InvoiceStatus,
+    pub created_at: DateTime<Utc>,
 }
 
 impl From<PaymentInvoiceRow> for PaymentInvoiceResponse {
@@ -30,6 +32,8 @@ impl From<PaymentInvoiceRow> for PaymentInvoiceResponse {
             order_id: r.order_id,
             payment_details: r.payment_details,
             status: r.status,
+            created_at: r.created_at,
+            gateway: r.gateway,
         }
     }
 }

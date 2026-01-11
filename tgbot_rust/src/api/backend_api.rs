@@ -118,6 +118,12 @@ impl BackendApi {
             .await
     }
 
+    pub async fn get_invoice(&self, id: i64) -> ApiClientResult<PaymentInvoiceResponse> {
+        self.api_client
+            .get::<PaymentInvoiceResponse>(&format!("bot/invoices/{id}"))
+            .await
+    }
+
     pub async fn create_deposit_invoice(
         &self,
         gateway: &PaymentSystem,

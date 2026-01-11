@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -33,4 +34,6 @@ pub struct PaymentInvoiceResponse {
     pub order_id: uuid::Uuid,
     pub payment_details: serde_json::Value,
     pub status: InvoiceStatus,
+    pub gateway: PaymentSystem,
+    pub created_at: DateTime<Utc>,
 }

@@ -139,6 +139,7 @@ pub enum CallbackData {
     ToReferralProgram,
     ToSupport,
     ToProduct { id: i64 },
+    ToDepositConfirm { id: i64 },
     Buy { id: i64 },
 }
 
@@ -324,6 +325,25 @@ pub async fn run_bot(
                         .await
                         .map_err(AppError::from)?;
                     product_handler(bot, q, api_client, id).await?;
+                }
+                CallbackData::ToDepositConfirm { id } => {
+                    let invoice = api_client.get_invoice(id).await?;
+                    let new_state = BotState::DepositConfirm {
+                        gateway: invoice.gateway,
+                        amount: invoice.amount as i64,
+                        invoice: Some(InvoiceData {
+                            id,
+                            details: Some(
+                                serde_json::to_value(invoice.payment_details)
+                                    .map_err(|e| AppError::InternalServerError(e.to_string()))?,
+                            ),
+                        }),
+                    };
+                    dialogue
+                        .update(new_state.clone())
+                        .await
+                        .map_err(AppError::from)?;
+                    deposit_confirm_handler(bot, q, dialogue, api_client, new_state).await?;
                 }
                 CallbackData::Buy { id } => {
                     buy_handler(bot, q, api_client, id).await?;
