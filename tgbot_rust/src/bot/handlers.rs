@@ -1,4 +1,5 @@
 pub mod balance;
+pub mod buy;
 pub mod captcha_answer;
 pub mod catalog;
 pub mod deposit_amount;
@@ -6,9 +7,10 @@ pub mod deposit_confirm;
 pub mod deposit_gateway;
 pub mod fallback_bot_msg;
 pub mod main_menu;
+pub mod my_bots;
 pub mod my_orders;
+pub mod my_payments;
 pub mod my_subscriptions;
+pub mod product;
 pub mod start;
 pub mod support;
-pub mod product;
-pub mod buy;

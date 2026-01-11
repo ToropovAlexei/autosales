@@ -13,3 +13,24 @@ pub struct PaymentGateway {
     pub name: PaymentSystem,
     pub display_name: String,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum InvoiceStatus {
+    Pending,
+    Completed,
+    Failed,
+    Expired,
+    Refunded,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PaymentInvoiceResponse {
+    pub id: i64,
+    pub customer_id: i64,
+    pub original_amount: f64,
+    pub amount: f64,
+    pub order_id: uuid::Uuid,
+    pub payment_details: serde_json::Value,
+    pub status: InvoiceStatus,
+}

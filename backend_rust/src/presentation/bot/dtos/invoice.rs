@@ -17,6 +17,7 @@ pub struct PaymentInvoiceResponse {
     pub amount: f64,
     pub order_id: uuid::Uuid,
     pub payment_details: serde_json::Value,
+    pub status: InvoiceStatus,
 }
 
 impl From<PaymentInvoiceRow> for PaymentInvoiceResponse {
@@ -28,6 +29,7 @@ impl From<PaymentInvoiceRow> for PaymentInvoiceResponse {
             amount: r.amount.to_f64().unwrap_or_default(),
             order_id: r.order_id,
             payment_details: r.payment_details,
+            status: r.status,
         }
     }
 }

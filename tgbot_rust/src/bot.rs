@@ -27,8 +27,8 @@ use crate::{
             deposit_confirm::deposit_confirm_handler, deposit_gateway::deposit_gateway_handler,
             fallback_bot_msg::fallback_bot_msg, main_menu::main_menu_handler,
             my_bots::my_bots_handler, my_orders::my_orders_handler,
-            my_subscriptions::my_subscriptions_handler, product::product_handler,
-            start::start_handler, support::support_handler,
+            my_payments::my_payments_handler, my_subscriptions::my_subscriptions_handler,
+            product::product_handler, start::start_handler, support::support_handler,
         },
         keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard,
     },
@@ -36,25 +36,9 @@ use crate::{
     models::{DispatchMessagePayload, payment::PaymentSystem},
 };
 
+pub mod handlers;
 pub mod utils;
 
-mod handlers {
-    pub mod balance;
-    pub mod buy;
-    pub mod captcha_answer;
-    pub mod catalog;
-    pub mod deposit_amount;
-    pub mod deposit_confirm;
-    pub mod deposit_gateway;
-    pub mod fallback_bot_msg;
-    pub mod main_menu;
-    pub mod my_bots;
-    pub mod my_orders;
-    pub mod my_subscriptions;
-    pub mod product;
-    pub mod start;
-    pub mod support;
-}
 mod keyboards;
 mod middlewares;
 
@@ -105,6 +89,7 @@ pub enum BotState {
     Balance,
     MyOrders,
     MySubscriptions,
+    MyPayments,
     ReferralProgram,
     Support,
     MainMenu,
@@ -150,6 +135,7 @@ pub enum CallbackData {
     ToBalance,
     ToMyOrders,
     ToMySubscriptions,
+    ToMyPayments,
     ToReferralProgram,
     ToSupport,
     ToProduct { id: i64 },
@@ -297,6 +283,13 @@ pub async fn run_bot(
                         .await
                         .map_err(AppError::from)?;
                     my_orders_handler(bot, dialogue, q, api_client).await?;
+                }
+                CallbackData::ToMyPayments => {
+                    dialogue
+                        .update(BotState::MyPayments)
+                        .await
+                        .map_err(AppError::from)?;
+                    my_payments_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToMySubscriptions => {
                     dialogue

@@ -12,7 +12,7 @@ use crate::{
         category::Category,
         common::CaptchaResponse,
         customer::Customer,
-        payment::{PaymentGateway, PaymentSystem},
+        payment::{PaymentGateway, PaymentInvoiceResponse, PaymentSystem},
         product::Product,
         settings::Settings,
         user_subscription::UserSubscription,
@@ -104,6 +104,17 @@ impl BackendApi {
     pub async fn get_payment_gateways(&self) -> ApiClientResult<ListResponse<PaymentGateway>> {
         self.api_client
             .get::<ListResponse<PaymentGateway>>("bot/gateways")
+            .await
+    }
+
+    pub async fn get_customer_invoices(
+        &self,
+        telegram_id: i64,
+    ) -> ApiClientResult<ListResponse<PaymentInvoiceResponse>> {
+        self.api_client
+            .get::<ListResponse<PaymentInvoiceResponse>>(&format!(
+                "bot/customers/{telegram_id}/invoices"
+            ))
             .await
     }
 
