@@ -7,10 +7,12 @@ import {
   GridPaginationModel,
 } from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
-import { IAuditLog } from "@/types";
+import { AuditLog } from "@/types";
+import * as jsondiffpatch from "jsondiffpatch";
+import * as formatters from "jsondiffpatch/formatters/console";
 
 interface AuditLogTableProps {
-  logs: IAuditLog[];
+  logs: AuditLog[];
   loading: boolean;
   rowCount: number;
   paginationModel: GridPaginationModel;
@@ -28,26 +30,23 @@ export const AuditLogTable = ({
   filterModel,
   onFilterModelChange,
 }: AuditLogTableProps) => {
-  const columns: GridColDef[] = [
-    { field: "id", headerName: "Id", width: 90, sortable: false },
+  const columns: GridColDef<AuditLog>[] = [
+    { field: "id", headerName: "Id", width: 90 },
     {
-      field: "user_login",
+      field: "admin_user_login",
       headerName: "Логин",
-      flex: 1,
     },
     {
       field: "action",
       headerName: "Действие",
       width: 200,
-      flex: 1,
       sortable: false,
     },
     {
       field: "target",
       headerName: "Объект",
       width: 200,
-      valueGetter: (value, row) => `${row.target_type} (${row.target_id})`,
-      flex: 1,
+      valueGetter: (_value, row) => `${row.target_table} (${row.target_id})`,
       filterable: false,
       sortable: false,
     },
@@ -56,7 +55,8 @@ export const AuditLogTable = ({
       headerName: "Изменения",
       width: 200,
       flex: 1,
-      valueGetter: (value, row) => JSON.stringify(row.changes),
+      valueGetter: (_value, row) =>
+        formatters.format(jsondiffpatch.diff(row.old_values, row.new_values)),
       sortable: false,
     },
     { field: "status", headerName: "Статус", width: 110, sortable: false },
@@ -65,7 +65,6 @@ export const AuditLogTable = ({
       headerName: "Дата",
       width: 200,
       valueGetter: (value) => new Date(value).toLocaleString(),
-      sortable: false,
     },
   ];
 

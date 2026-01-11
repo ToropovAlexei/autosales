@@ -9,22 +9,28 @@ import { toast } from "react-toastify";
 import { queryKeys } from "@/utils/query";
 import { Fragment, useEffect } from "react";
 import { InputNumber, InputSlider } from "@/components";
-import { useList } from "@/hooks";
-
-interface PaymentGateway {
-  name: string;
-  display_name: string;
-}
-
-interface PaymentDiscountsFormData {
-  [key: string]: number;
-}
+import { PricingSettings, UpdatePricingSettings } from "@/types/settings";
 
 interface PaymentDiscountsFormProps {
-  settings: { [key: string]: string } | undefined;
+  settings: PricingSettings | undefined;
   isSettingsPending: boolean;
   refetchSettings: () => void;
 }
+
+const GATEWAYS: { name: keyof PricingSettings; display_name: string }[] = [
+  {
+    name: "pricing_gateway_bonus_mock_provider",
+    display_name: "Криптоплатежи (мок-провайдер)",
+  },
+  {
+    name: "pricing_gateway_bonus_platform_card",
+    display_name: "Платформа (карта)",
+  },
+  {
+    name: "pricing_gateway_bonus_platform_sbp",
+    display_name: "Платформа (СБП)",
+  },
+];
 
 export const PaymentDiscountsForm = ({
   settings,
@@ -32,49 +38,35 @@ export const PaymentDiscountsForm = ({
   refetchSettings,
 }: PaymentDiscountsFormProps) => {
   const queryClient = useQueryClient();
-  const { data: gatewaysData } = useList<PaymentGateway>({
-    endpoint: ENDPOINTS.ADMIN_PAYMENT_PROVIDERS,
-  });
-  const gateways = gatewaysData?.data || [];
 
-  const form = useForm<PaymentDiscountsFormData>({
-    defaultValues: {},
+  const form = useForm<UpdatePricingSettings>({
+    defaultValues: settings,
   });
   const { handleSubmit, reset, formState } = form;
 
   useEffect(() => {
-    if (settings && gateways.length > 0) {
-      const defaultValues: PaymentDiscountsFormData = {};
-      gateways.forEach((gateway) => {
-        const key = `GATEWAY_BONUS_${gateway.name}`;
-        defaultValues[key] = Number(settings[key] || 0);
-      });
-      reset(defaultValues);
+    if (settings) {
+      reset(settings);
     }
-  }, [settings, gateways, reset]);
+  }, [settings, reset]);
 
   const { mutate, isPending } = useMutation({
-    mutationFn: async (data: PaymentDiscountsFormData) => {
-      const params: { [key: string]: string } = {};
-      for (const key in data) {
-        params[key] = String(data[key]);
-      }
-      return dataLayer.update({
-        url: ENDPOINTS.ADMIN_SETTINGS,
+    mutationFn: async (params: UpdatePricingSettings) =>
+      dataLayer.update({
+        url: ENDPOINTS.PRICING_SETTINGS,
         params,
-      });
-    },
+      }),
     onSuccess: () => {
       toast.success("Настройки скидок платежных систем сохранены");
       queryClient.invalidateQueries({
-        queryKey: queryKeys.one(ENDPOINTS.ADMIN_SETTINGS),
+        queryKey: queryKeys.one(ENDPOINTS.PRICING_SETTINGS),
       });
       refetchSettings();
     },
     onError: () => toast.error("Ошибка сохранения настроек"),
   });
 
-  const onSubmit = (data: PaymentDiscountsFormData) => {
+  const onSubmit = (data: UpdatePricingSettings) => {
     mutate(data);
   };
 
@@ -87,11 +79,11 @@ export const PaymentDiscountsForm = ({
         ) : (
           <FormProvider {...form}>
             <Stack component="form" onSubmit={handleSubmit(onSubmit)} gap={2}>
-              {gateways.map((gateway) => (
+              {GATEWAYS.map((gateway) => (
                 <Fragment key={gateway.name}>
                   <InputSlider
                     key={gateway.name}
-                    name={`GATEWAY_BONUS_${gateway.name}`}
+                    name={gateway.name}
                     label={`Бонус для ${gateway.display_name}`}
                     min={0}
                     max={25.8}
@@ -99,7 +91,7 @@ export const PaymentDiscountsForm = ({
                     disabled={isPending}
                   />
                   <InputNumber
-                    name={`GATEWAY_BONUS_${gateway.name}`}
+                    name={gateway.name}
                     label={`Бонус для ${gateway.display_name}`}
                     rules={{
                       min: {

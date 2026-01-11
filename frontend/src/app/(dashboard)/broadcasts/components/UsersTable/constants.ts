@@ -18,7 +18,7 @@ export const COLUMNS: GridColDef[] = [
     sortable: false,
   },
   {
-    field: "last_seen_with_bot",
+    field: "bot_name",
     headerName: "Последний бот",
     flex: 1,
     sortable: false,

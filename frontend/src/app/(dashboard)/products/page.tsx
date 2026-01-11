@@ -4,8 +4,7 @@ import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDataGrid, useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
-import { ICategory, IProduct } from "@/types";
-import { flattenCategoriesForSelect, findCategoryNameById } from "@/lib/utils";
+import { flattenCategoriesForSelect } from "@/lib/utils";
 import { Button, Stack } from "@mui/material";
 import { ProductForm } from "./components/ProductForm";
 import { ProductsTable } from "./components/ProductsTable";
@@ -13,11 +12,12 @@ import { ProductCSVUploadModal } from "./components/ProductCSVUploadModal";
 import { dataLayer } from "@/lib/dataLayer";
 import { queryKeys } from "@/utils/query";
 import { PageLayout } from "@/components/PageLayout";
+import { Category, Product } from "@/types";
 
 export default function ProductsPage() {
   const queryClient = useQueryClient();
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<IProduct | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const {
     rows: products,
@@ -33,7 +33,7 @@ export default function ProductsPage() {
   } = useDataGrid(ENDPOINTS.PRODUCTS);
 
   const { data: categories, isPending: isLoadingCategories } =
-    useList<ICategory>({
+    useList<Category>({
       endpoint: ENDPOINTS.CATEGORIES,
     });
 
@@ -42,13 +42,8 @@ export default function ProductsPage() {
     [categories]
   );
 
-  const getCategoryName = (categoryId: number) => {
-    if (!categoryId) return "N/A";
-    return findCategoryNameById(categories?.data || [], categoryId) || "N/A";
-  };
-
   const mutation = useMutation({
-    mutationFn: (payload: Partial<IProduct>) => {
+    mutationFn: (payload: Partial<Product>) => {
       const params = { url: ENDPOINTS.PRODUCTS, params: payload };
       if (payload.id) {
         return dataLayer.update({ ...params, id: payload.id });
@@ -74,12 +69,12 @@ export default function ProductsPage() {
     },
   });
 
-  const openForm = (product?: IProduct) => {
+  const openForm = (product?: Product) => {
     setSelectedProduct(product || null);
     setIsFormOpen(true);
   };
 
-  const handleConfirmForm = (data: Partial<IProduct>) => {
+  const handleConfirmForm = (data: Product) => {
     mutation.mutate(data);
   };
 
@@ -100,7 +95,6 @@ export default function ProductsPage() {
         products={products}
         onEdit={openForm}
         onDelete={deleteMutation.mutate}
-        getCategoryName={getCategoryName}
         loading={isLoadingProducts}
         rowCount={rowCount}
         paginationModel={paginationModel}

@@ -4,8 +4,7 @@ import { useDataGrid } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { PageLayout } from "@/components/PageLayout";
 import { AuditLogTable } from "./components/AuditLogTable";
-
-import { IAuditLog } from "@/types";
+import { AuditLog } from "@/types";
 
 export default function AuditLogPage() {
   const {
@@ -16,7 +15,7 @@ export default function AuditLogPage() {
     onPaginationModelChange,
     filterModel,
     onFilterModelChange,
-  } = useDataGrid<IAuditLog>(ENDPOINTS.AUDIT_LOGS);
+  } = useDataGrid<AuditLog>(ENDPOINTS.AUDIT_LOGS);
 
   return (
     <PageLayout title="Журнал аудита">

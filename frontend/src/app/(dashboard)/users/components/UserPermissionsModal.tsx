@@ -10,10 +10,16 @@ import {
   InputLabel,
   CircularProgress,
 } from "@mui/material";
-import { User, Role, UserPermission, Permission } from "@/types";
+import {
+  Role,
+  Permission,
+  AdminUserWithRoles,
+  UpdateUserPermissions,
+  UserPermission,
+} from "@/types";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dataLayer } from "@/lib/dataLayer";
 import { queryKeys } from "@/utils/query";
@@ -23,7 +29,7 @@ import { getUserPermissions } from "./utils";
 interface UserPermissionsModalProps {
   open: boolean;
   onClose: () => void;
-  user: User | null;
+  user: AdminUserWithRoles | null;
 }
 
 export const UserPermissionsModal = ({
@@ -37,7 +43,13 @@ export const UserPermissionsModal = ({
     Record<number, "allow" | "deny">
   >({});
 
-  // Fetch all possible roles and permissions
+  const role = user?.roles?.[0];
+  const { data: rolePermissions, isLoading: isRolePermissionsLoading } =
+    useList<Permission>({
+      endpoint: ENDPOINTS.ROLE_PERMISSIONS,
+      meta: { ":id": role?.id },
+      enabled: !!role,
+    });
   const { data: allRoles, isPending: isRolesLoading } = useList<Role>({
     endpoint: ENDPOINTS.ROLES,
   });
@@ -54,15 +66,15 @@ export const UserPermissionsModal = ({
 
   // Effect to initialize the state when the user prop changes
   useEffect(() => {
-    if (user && currentUserPermissions?.data && allRoles?.data) {
+    if (user && currentUserPermissions?.data) {
       setSelectedRole(user.roles?.[0]?.id || "");
       const overrides: Record<number, "allow" | "deny"> = {};
       currentUserPermissions.data.forEach((p) => {
-        overrides[p.permission_id] = p.effect;
+        overrides[p.id] = p.effect;
       });
       setPermissionOverrides(overrides);
     }
-  }, [user, currentUserPermissions, allRoles]);
+  }, [user, currentUserPermissions]);
 
   const setRoleMutation = useMutation({
     mutationFn: (roleId: number) =>
@@ -71,81 +83,67 @@ export const UserPermissionsModal = ({
         params: { role_id: roleId },
         meta: { ":id": user?.id },
       }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.USERS),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.USER_PERMISSIONS),
+      });
+    },
   });
 
   const setUserPermissionMutation = useMutation({
-    mutationFn: (params: { permissionId: number; effect: string }) =>
-      dataLayer.create({
-        url: `${ENDPOINTS.USERS}/${user?.id}/permissions`,
-        params: { permission_id: params.permissionId, effect: params.effect },
+    mutationFn: (params: UpdateUserPermissions) =>
+      dataLayer.update({
+        url: ENDPOINTS.USER_PERMISSIONS,
+        params,
+        meta: { ":id": user?.id },
       }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.USERS),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.USER_PERMISSIONS),
+      });
+    },
   });
-
-  const removeUserPermissionMutation = useMutation({
-    mutationFn: (permissionId: number) =>
-      dataLayer.delete({
-        url: `${ENDPOINTS.USERS}/${user?.id}/permissions/${permissionId}`,
-      }),
-  });
-
-  // Memoize the permissions derived from the selected role
-  const rolePermissions = useMemo(() => {
-    if (!selectedRole || !allRoles?.data) {
-      return new Set<number>();
-    }
-    const role = allRoles.data.find((r) => r.id === selectedRole);
-    // The backend now sends permissions with roles
-    return new Set(role?.permissions?.map((p) => p.id) || []);
-  }, [selectedRole, allRoles]);
 
   const handleSave = async () => {
-    // 1. Update the role if it has changed
     const initialRoleId = user?.roles?.[0]?.id || "";
     if (selectedRole && selectedRole !== initialRoleId) {
       await setRoleMutation.mutateAsync(Number(selectedRole));
     }
 
-    // 2. Calculate permission changes
     const originalOverrides: Record<number, "allow" | "deny"> = {};
     currentUserPermissions?.data.forEach((p) => {
-      originalOverrides[p.permission_id] = p.effect;
+      originalOverrides[p.id] = p.effect;
     });
 
-    const promises: Promise<any>[] = [];
+    const update: UpdateUserPermissions = { removed: [], upserted: [] };
 
-    // Check for new or modified permissions
     for (const permIdStr in permissionOverrides) {
       const permId = Number(permIdStr);
       const newEffect = permissionOverrides[permId];
       const originalEffect = originalOverrides[permId];
 
       if (newEffect !== originalEffect) {
-        promises.push(
-          setUserPermissionMutation.mutateAsync({
-            permissionId: permId,
-            effect: newEffect,
-          })
-        );
+        update.upserted.push({ id: permId, effect: newEffect });
       }
     }
 
-    // Check for removed permissions
     for (const permIdStr in originalOverrides) {
       const permId = Number(permIdStr);
-      if (permissionOverrides[permId] === undefined) {
-        promises.push(removeUserPermissionMutation.mutateAsync(permId));
+      if (permissionOverrides[permId] === undefined && permId) {
+        update.removed.push(permId);
       }
     }
 
-    await Promise.all(promises);
+    if (update.upserted.length || update.removed.length) {
+      setUserPermissionMutation.mutate(update);
+    }
 
-    // Invalidate queries to refetch data on next open
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.list(ENDPOINTS.USERS),
-    });
-    queryClient.invalidateQueries({
-      queryKey: queryKeys.list(ENDPOINTS.USER_PERMISSIONS),
-    });
     setPermissionOverrides({});
     onClose();
   };
@@ -176,7 +174,10 @@ export const UserPermissionsModal = ({
   if (!user) return null;
 
   const isLoading =
-    isPermissionsLoading || isRolesLoading || isUserPermissionsLoading;
+    isPermissionsLoading ||
+    isRolePermissionsLoading ||
+    isUserPermissionsLoading ||
+    isRolesLoading;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md">
@@ -207,7 +208,7 @@ export const UserPermissionsModal = ({
             <PermissionsSelector
               value={getUserPermissions(
                 allPermissions?.data || [],
-                rolePermissions,
+                new Set(rolePermissions?.data.map((p) => p.id) || []),
                 permissionOverrides
               )}
               onChange={handlePermissionToggle}
@@ -221,9 +222,7 @@ export const UserPermissionsModal = ({
         <Button
           onClick={handleSave}
           disabled={
-            setRoleMutation.isPending ||
-            setUserPermissionMutation.isPending ||
-            removeUserPermissionMutation.isPending
+            setRoleMutation.isPending || setUserPermissionMutation.isPending
           }
         >
           Сохранить

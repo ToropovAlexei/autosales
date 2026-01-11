@@ -9,13 +9,10 @@ import { toast } from "react-toastify";
 import { queryKeys } from "@/utils/query";
 import { useEffect } from "react";
 import { InputNumber, InputSlider } from "@/components";
-
-interface PaymentSystemMarkupFormData {
-  PAYMENT_SYSTEM_MARKUP: number;
-}
+import { PricingSettings, UpdatePricingSettings } from "@/types/settings";
 
 interface PaymentSystemMarkupFormProps {
-  settings: { [key: string]: string } | undefined;
+  settings: PricingSettings | undefined;
   isSettingsPending: boolean;
   refetchSettings: () => void;
 }
@@ -27,9 +24,9 @@ export const PaymentSystemMarkupForm = ({
 }: PaymentSystemMarkupFormProps) => {
   const queryClient = useQueryClient();
 
-  const form = useForm<PaymentSystemMarkupFormData>({
+  const form = useForm<UpdatePricingSettings>({
     defaultValues: {
-      PAYMENT_SYSTEM_MARKUP: Number(settings?.PAYMENT_SYSTEM_MARKUP || 0),
+      pricing_gateway_markup: Number(settings?.pricing_gateway_markup || 0),
     },
   });
   const { handleSubmit, reset, formState } = form;
@@ -37,31 +34,30 @@ export const PaymentSystemMarkupForm = ({
   useEffect(() => {
     if (settings) {
       reset({
-        PAYMENT_SYSTEM_MARKUP: Number(settings.PAYMENT_SYSTEM_MARKUP || 0),
+        pricing_gateway_markup: Number(settings.pricing_gateway_markup || 0),
       });
     }
   }, [settings, reset]);
 
   const { mutate, isPending } = useMutation({
-    mutationFn: async (data: PaymentSystemMarkupFormData) => {
-      return dataLayer.update({
-        url: ENDPOINTS.ADMIN_SETTINGS,
+    mutationFn: async (data: UpdatePricingSettings) =>
+      dataLayer.update({
+        url: ENDPOINTS.PRICING_SETTINGS,
         params: {
-          PAYMENT_SYSTEM_MARKUP: String(data.PAYMENT_SYSTEM_MARKUP),
+          pricing_gateway_markup: Number(data.pricing_gateway_markup),
         },
-      });
-    },
+      }),
     onSuccess: () => {
       toast.success("Наценка платежной системы сохранена");
       queryClient.invalidateQueries({
-        queryKey: queryKeys.one(ENDPOINTS.ADMIN_SETTINGS),
+        queryKey: queryKeys.one(ENDPOINTS.PRICING_SETTINGS),
       });
       refetchSettings();
     },
     onError: () => toast.error("Ошибка сохранения настроек"),
   });
 
-  const onSubmit = (data: PaymentSystemMarkupFormData) => {
+  const onSubmit = (data: UpdatePricingSettings) => {
     mutate(data);
   };
 
@@ -75,7 +71,7 @@ export const PaymentSystemMarkupForm = ({
           <FormProvider {...form}>
             <Stack gap={2} component="form" onSubmit={handleSubmit(onSubmit)}>
               <InputSlider
-                name="PAYMENT_SYSTEM_MARKUP"
+                name="pricing_gateway_markup"
                 label="Наценка платежной системы"
                 min={0}
                 max={25}
@@ -83,7 +79,7 @@ export const PaymentSystemMarkupForm = ({
                 disabled={isPending}
               />
               <InputNumber
-                name="PAYMENT_SYSTEM_MARKUP"
+                name="pricing_gateway_markup"
                 label="Наценка платежной системы"
                 rules={{
                   min: {

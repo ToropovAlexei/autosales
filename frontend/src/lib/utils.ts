@@ -19,22 +19,3 @@ export const flattenCategoriesForSelect = (
   }
   return flatList;
 };
-
-// Рекурсивно ищет имя категории по ID в дереве
-export const findCategoryNameById = (
-  categories: ICategory[],
-  id: number
-): string | null => {
-  for (const category of categories) {
-    if (category.id === id) {
-      return category.name;
-    }
-    if (category.sub_categories && category.sub_categories.length > 0) {
-      const found = findCategoryNameById(category.sub_categories, id);
-      if (found) {
-        return found;
-      }
-    }
-  }
-  return null;
-};

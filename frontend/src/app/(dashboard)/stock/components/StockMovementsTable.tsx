@@ -44,7 +44,7 @@ export const StockMovementsTable = ({
   onSortModelChange,
 }: StockMovementsTableProps) => {
   const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 90, sortable: false },
+    { field: "id", headerName: "ID", width: 90 },
     {
       field: "product_id",
       headerName: "ID Товара",

@@ -1,51 +1,25 @@
 export * from "./common";
-export * from "./role";
 export * from "./permissions";
 export * from "./routing";
-
-export interface IAuditLog {
-  id: number;
-  user_id: number;
-  user_login: string;
-  action: string;
-  target_type: string;
-  target_id: number;
-  changes: any;
-  status: string;
-  ip_address: string;
-  user_agent: string;
-  created_at: string;
-}
-
-export interface ICategory {
-  id: number;
-  name: string;
-  parent_id?: number;
-  sub_categories: ICategory[];
-  image_id?: string;
-}
-
-export interface IProduct {
-  id: number;
-  name: string;
-  category_id: number;
-  base_price: number;
-  price: number;
-  stock: number;
-  type: "item" | "subscription";
-  subscription_period_days: number;
-  provider?: string;
-  external_id?: string;
-  image_id?: string;
-  image_url?: string;
-  fulfillment_text?: string;
-  fulfillment_image_id?: string;
-}
+export * from "./auth";
+export * from "./admin_user";
+export * from "./category";
+export * from "./bot";
+export * from "./audit_log";
+export * from "./customer";
+export * from "./image";
+export * from "./invoice";
+export * from "./order";
+export * from "./product";
+export * from "./settings";
+export * from "./stock_movement";
+export * from "./transaction";
+export * from "./store_balance";
 
 export interface IFilter {
   page?: number;
-  pageSize?: number;
-  orderBy?: string;
+  page_size?: number;
+  order_by?: string;
   order?: string;
   filters?: {
     field: string;
@@ -53,19 +27,4 @@ export interface IFilter {
     value: any;
   }[];
   [key: string]: any;
-}
-
-export interface IImage {
-  ID: string;
-  OriginalFilename: string;
-}
-
-export interface IStockMovement {
-  id: number;
-  product_id: number;
-  type: "initial" | "sale" | "restock" | "return" | "adjustment";
-  quantity: number;
-  created_at: string;
-  description: string;
-  order_id?: number;
 }

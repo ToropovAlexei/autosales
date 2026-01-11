@@ -11,14 +11,14 @@ import {
 } from "@mui/material";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
-import { Role } from "@/types";
+import { NewAdminUser, Role } from "@/types";
 import { FormProvider, useForm } from "react-hook-form";
 import { InputPassword, InputSelect, InputText } from "@/components";
 
 interface UserModalProps {
   open: boolean;
   onClose: () => void;
-  onSave: (data: any) => void;
+  onSave: (data: NewAdminUser) => void;
   tfaSecret: string | null;
   tfaQrCode: string | null;
 }
@@ -41,7 +41,13 @@ export const UserModal = ({
   const { data: allRoles } = useList<Role>({ endpoint: ENDPOINTS.ROLES });
 
   const handleSave = () => {
-    form.handleSubmit(onSave)();
+    form.handleSubmit((form) => {
+      onSave({
+        login: form.login,
+        password: form.password,
+        roles: [form.role_id].map(Number),
+      });
+    })();
   };
 
   return (
@@ -55,7 +61,11 @@ export const UserModal = ({
             <Typography>
               Отсканируйте QR-код с помощью Google Authenticator:
             </Typography>
-            <img src={`data:image/png;base64,${tfaQrCode}`} alt="2FA QR Code" />
+            <img
+              src={`data:image/png;base64,${tfaQrCode}`}
+              alt="2FA QR Code"
+              style={{ borderRadius: "12px" }}
+            />
             <Typography>Или введите ваш код мануально:</Typography>
             <Typography fontFamily="monospace">{tfaSecret}</Typography>
           </Stack>

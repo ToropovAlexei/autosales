@@ -1,10 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { useDataGrid, useCan } from "@/hooks";
+import { useCan, useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { PageLayout } from "@/components/PageLayout";
-import { PermissionName, User } from "@/types";
+import {
+  AdminUserWithRoles,
+  NewAdminUser,
+  NewAdminUserResponse,
+  PermissionName,
+  User,
+} from "@/types";
 import { UserPermissionsModal } from "./components/UserPermissionsModal";
 import { UsersTable } from "./components/UsersTable";
 import { Button } from "@mui/material";
@@ -15,24 +21,20 @@ import { queryKeys } from "@/utils/query";
 import { toast } from "react-toastify";
 
 export default function UsersPage() {
-  const {
-    rows,
-    rowCount,
-    loading,
-    paginationModel,
-    onPaginationModelChange,
-    filterModel,
-    onFilterModelChange,
-  } = useDataGrid(ENDPOINTS.USERS);
+  const { data, isFetching } = useList<AdminUserWithRoles>({
+    endpoint: ENDPOINTS.USERS,
+  });
   const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<AdminUserWithRoles | null>(
+    null
+  );
   const [tfaSecret, setTfaSecret] = useState<string | null>(null);
   const [tfaQrCode, setTfaQrCode] = useState<string | null>(null);
-  const { can: canCreate } = useCan(PermissionName.UsersCreate);
+  const { can: canCreate } = useCan(PermissionName.AdminUsersCreate);
   const queryClient = useQueryClient();
 
-  const openPermissionsModal = (user: User) => {
+  const openPermissionsModal = (user: AdminUserWithRoles) => {
     setSelectedUser(user);
     setIsPermissionsModalOpen(true);
   };
@@ -52,21 +54,23 @@ export default function UsersPage() {
     setTfaQrCode(null);
   };
 
-  const createMutation = useMutation({
-    mutationFn: (params: any) =>
-      dataLayer.create<{ user: User; two_fa_secret: string; qr_code: string }>({
-        url: ENDPOINTS.USERS,
-        params,
-      }),
-    onSuccess: (response) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.list(ENDPOINTS.USERS),
-      });
-      setTfaSecret(response.two_fa_secret);
-      setTfaQrCode(response.qr_code);
-    },
-    onError: (error) => toast.error(error.message),
-  });
+  const createMutation = useMutation<NewAdminUserResponse, Error, NewAdminUser>(
+    {
+      mutationFn: (params) =>
+        dataLayer.create({
+          url: ENDPOINTS.USERS,
+          params,
+        }),
+      onSuccess: (response) => {
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.list(ENDPOINTS.USERS),
+        });
+        setTfaSecret(response.two_fa_secret);
+        setTfaQrCode(response.two_fa_qr_code);
+      },
+      onError: (error) => toast.error(error.message),
+    }
+  );
 
   return (
     <PageLayout title="Управление администраторами">
@@ -76,14 +80,9 @@ export default function UsersPage() {
         </Button>
       )}
       <UsersTable
-        users={rows}
+        users={data?.data || []}
         onConfigure={openPermissionsModal}
-        loading={loading}
-        rowCount={rowCount}
-        paginationModel={paginationModel}
-        onPaginationModelChange={onPaginationModelChange}
-        filterModel={filterModel}
-        onFilterModelChange={onFilterModelChange}
+        loading={isFetching}
       />
       {isPermissionsModalOpen && (
         <UserPermissionsModal

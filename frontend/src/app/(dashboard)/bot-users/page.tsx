@@ -7,17 +7,16 @@ import { queryKeys } from "@/utils/query";
 import { dataLayer } from "@/lib/dataLayer";
 import { BotUsersTable } from "./components/BotUsersTable";
 import { PageLayout } from "@/components/PageLayout";
-import { BotUser } from "@/types/common";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button, Stack } from "@mui/material";
 import Link from "next/link";
-import { AppRoute } from "@/types";
+import { AppRoute, Customer, UpdateCustomer } from "@/types";
 
 export default function BotUsersPage() {
   const queryClient = useQueryClient();
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<BotUser | null>(null);
+  const [selectedUser, setSelectedUser] = useState<Customer | null>(null);
 
   const {
     rows: botUsers,
@@ -30,31 +29,43 @@ export default function BotUsersPage() {
     sortModel,
     onSortModelChange,
     refetch,
-  } = useDataGrid<BotUser>(ENDPOINTS.BOT_USERS);
+  } = useDataGrid<Customer>(ENDPOINTS.CUSTOMERS);
 
-  const toggleBlockMutation = useMutation({
-    mutationFn: (user: BotUser) =>
+  const { mutate, isPending } = useMutation({
+    mutationFn: ({
+      id,
+      params,
+    }: {
+      id: Customer["id"];
+      params: UpdateCustomer;
+    }) =>
       dataLayer.update({
-        url: ENDPOINTS.TOGGLE_BLOCK,
-        meta: { ":id": user.telegram_id },
+        url: ENDPOINTS.CUSTOMERS,
+        id,
+        params,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.list(ENDPOINTS.BOT_USERS),
+        queryKey: queryKeys.list(ENDPOINTS.CUSTOMERS),
       });
       setIsConfirmOpen(false);
       setSelectedUser(null);
     },
   });
 
-  const openConfirmDialog = (user: BotUser) => {
+  const openConfirmDialog = (user: Customer) => {
     setSelectedUser(user);
     setIsConfirmOpen(true);
   };
 
   const handleToggleBlock = () => {
     if (selectedUser) {
-      toggleBlockMutation.mutate(selectedUser);
+      mutate({
+        id: selectedUser.id,
+        params: {
+          is_blocked: !selectedUser.is_blocked,
+        },
+      });
     }
   };
 
@@ -67,10 +78,14 @@ export default function BotUsersPage() {
     : "Заблокировать";
 
   return (
-    <PageLayout title="Пользователи бота">
+    <PageLayout title="Покупатели">
       <Stack direction="row" mb={2} gap={2}>
         <Button onClick={() => refetch()}>Обновить</Button>
-        <Button LinkComponent={Link} href={APP_ROUTES[AppRoute.Broadcasts]} variant="outlined">
+        <Button
+          LinkComponent={Link}
+          href={APP_ROUTES[AppRoute.Broadcasts]}
+          variant="outlined"
+        >
           Сделать рекламную рассылку
         </Button>
       </Stack>
@@ -95,7 +110,7 @@ export default function BotUsersPage() {
         contentText={confirmText}
         closeBtnText="Отмена"
         confirmBtnText={confirmBtnText}
-        loading={toggleBlockMutation.isPending}
+        loading={isPending}
         confirmBtnColor={selectedUser?.is_blocked ? "success" : "error"}
       />
     </PageLayout>

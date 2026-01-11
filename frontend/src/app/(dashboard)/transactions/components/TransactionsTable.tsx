@@ -55,8 +55,8 @@ export const TransactionsTable = ({
       type: "number",
     },
     {
-      field: "user_id",
-      headerName: "ID Пользователя",
+      field: "customer_id",
+      headerName: "Id покупателя",
       width: 150,
       sortable: false,
       type: "number",

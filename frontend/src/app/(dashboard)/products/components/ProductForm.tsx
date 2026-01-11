@@ -8,7 +8,6 @@ import {
   DialogActions,
   Button,
 } from "@mui/material";
-import { ICategory, IProduct } from "@/types";
 import { useState } from "react";
 import {
   ConfirmModal,
@@ -19,6 +18,8 @@ import {
 } from "@/components";
 import { CONFIG } from "../../../../../config";
 import classes from "./styles.module.css";
+import { ImageResponse } from "@/types/image";
+import { Category, Product } from "@/types";
 
 interface ProductFormData {
   name: string;
@@ -36,25 +37,11 @@ interface ProductFormData {
 interface ProductFormProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (data: Partial<IProduct>) => void;
-  defaultValues?: IProduct;
+  onConfirm: (data: Partial<Product>) => void;
+  defaultValues?: Product;
   categories: { value: number; label: string }[];
-  allCategories: ICategory[];
+  allCategories: Category[];
 }
-
-const findCategory = (
-  categories: ICategory[],
-  id: number
-): ICategory | null => {
-  for (const category of categories) {
-    if (category.id === id) return category;
-    if (category.sub_categories) {
-      const found = findCategory(category.sub_categories, id);
-      if (found) return found;
-    }
-  }
-  return null;
-};
 
 export const ProductForm = ({
   open,
@@ -93,22 +80,22 @@ export const ProductForm = ({
   const imageId = watch("image_id");
   const fulfillmentImageId = watch("fulfillment_image_id");
 
-  const handleImageSelect = (image: { ID: string }) => {
-    setValue("image_id", image.ID);
+  const handleImageSelect = (image: ImageResponse) => {
+    setValue("image_id", image.id);
     setIsImageSelectorOpen(false);
   };
 
-  const handleFulfillmentImageSelect = (image: { ID: string }) => {
-    setValue("fulfillment_image_id", image.ID);
+  const handleFulfillmentImageSelect = (image: ImageResponse) => {
+    setValue("fulfillment_image_id", image.id);
     setIsFulfillmentImageSelectorOpen(false);
   };
 
   const proceedToConfirm = (data: ProductFormData) => {
-    const payload: Partial<IProduct> = {
+    const payload: Partial<Product> = {
       id: defaultValues?.id,
       name: data.name,
-      category_id: data.category_id,
-      base_price: data.base_price,
+      category_id: Number(data.category_id),
+      base_price: Number(data.base_price),
       type: data.type,
       ...(data.image_id && { image_id: data.image_id }),
     };
@@ -134,13 +121,14 @@ export const ProductForm = ({
   };
 
   const handleFormSubmit = (data: ProductFormData) => {
-    const selectedCategory = findCategory(allCategories, data.category_id);
+    const selectedCategory = allCategories.find(
+      (c) => c.id === data.category_id
+    );
+    const hasSubCategories = allCategories.some(
+      (c) => c.parent_id === data.category_id
+    );
 
-    if (
-      selectedCategory &&
-      selectedCategory.sub_categories &&
-      selectedCategory.sub_categories.length > 0
-    ) {
+    if (selectedCategory && hasSubCategories) {
       setConfirmState({ open: true, data });
     } else {
       proceedToConfirm(data);

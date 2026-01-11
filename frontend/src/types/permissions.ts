@@ -1,33 +1,70 @@
 export enum PermissionName {
+  // 🔐 RBAC
   RbacManage = "rbac:manage",
+
+  // 📊 Dashboard
   DashboardRead = "dashboard:read",
-  ProductsRead = "products:read",
+
+  // 🛍️ Продукты
   ProductsCreate = "products:create",
+  ProductsRead = "products:read",
   ProductsUpdate = "products:update",
   ProductsDelete = "products:delete",
-  CategoriesRead = "categories:read",
+
+  // 🗂️ Категории
   CategoriesCreate = "categories:create",
+  CategoriesRead = "categories:read",
   CategoriesUpdate = "categories:update",
   CategoriesDelete = "categories:delete",
+
+  // 📦 Склад
+  StockCreate = "stock:create",
+  StockRead = "stock:read",
+
+  // 📦 Заказы
   OrdersRead = "orders:read",
-  UsersRead = "users:read",
-  UsersCreate = "users:create",
-  UsersUpdate = "users:update",
-  UsersDelete = "users:delete",
-  SettingsRead = "settings:read",
-  SettingsEdit = "settings:edit",
+
+  // 👥 Администраторы
+  AdminUsersCreate = "admin_users:create",
+  AdminUsersRead = "admin_users:read",
+  AdminUsersUpdate = "admin_users:update",
+  AdminUsersDelete = "admin_users:delete",
+
+  // 👤 Покупатели
+  CustomersRead = "customers:read",
+  CustomersUpdate = "customers:update",
+
+  // 🖼️ Изображения
+  ImagesCreate = "images:create",
   ImagesRead = "images:read",
-  ImagesUpload = "images:upload",
+  ImagesUpdate = "images:update",
   ImagesDelete = "images:delete",
-  ReferralsRead = "referrals:read",
-  ReferralsUpdate = "referrals:update",
+
+  // 💰 Финансы
   TransactionsRead = "transactions:read",
   StoreBalanceRead = "store_balance:read",
-  StoreBalanceManage = "store_balance:manage",
-  StockRead = "stock:read",
-  StockUpdate = "stock:update",
-  AuditLogRead = "audit_log:read",
+  StoreBalanceDeposit = "store_balance:deposit",
+  StoreBalanceWithdraw = "store_balance:withdraw",
+
+  // 📋 Инвойсы
+  InvoicesRead = "invoices:read",
+
+  // 🤖 Боты
+  BotsCreate = "bots:create",
+  BotsRead = "bots:read",
+  BotsUpdate = "bots:update",
+  BotsDelete = "bots:delete",
+
+  // ⚙️ Настройки
+  SettingsRead = "settings:read",
+  SettingsEdit = "settings:edit",
   PricingRead = "pricing:read",
   PricingEdit = "pricing:edit",
-  BroadcastsManage = "broadcasts:manage",
+
+  // 📢 Рассылки
+  BroadcastCreate = "broadcast:create",
+  BroadcastRead = "broadcast:read",
+
+  // 📝 Аудит
+  AuditLogRead = "audit_log:read",
 }

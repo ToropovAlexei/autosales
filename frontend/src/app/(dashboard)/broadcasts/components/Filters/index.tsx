@@ -5,9 +5,7 @@ import { Bot } from "@/types";
 import { Typography } from "@mui/material";
 
 export const Filters = () => {
-  const { data: bots } = useList<Bot>({
-    endpoint: ENDPOINTS.ADMIN_REFERRAL_BOTS,
-  });
+  const { data: bots } = useList<Bot>({ endpoint: ENDPOINTS.BOTS });
 
   return (
     <div>

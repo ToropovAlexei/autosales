@@ -25,38 +25,42 @@ import classes from "./styles.module.css";
 import { CONFIG } from "../../../config";
 import { IImage } from "@/types";
 import { queryKeys } from "@/utils/query";
+import { ImageResponse } from "@/types/image";
 
 const FOLDERS = [
-  { id: "product_images", name: "Изображения товаров" },
-  { id: "fulfillment_images", name: "Выдача (картинки)" },
-  { id: "categories", name: "Категории" },
+  { id: "product", name: "Изображения товаров" },
+  { id: "fulfillment", name: "Выдача (картинки)" },
+  { id: "category", name: "Категории" },
 ];
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 interface SelectImageProps {
   open: boolean;
   onClose: () => void;
-  onSelect: (image: IImage) => void;
+  onSelect: (image: ImageResponse) => void;
 }
 
 export const SelectImage = ({ open, onClose, onSelect }: SelectImageProps) => {
-  const [selectedFolder, setSelectedFolder] = useState("product_images");
+  const [selectedFolder, setSelectedFolder] = useState(FOLDERS[0].id);
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const client = useQueryClient();
 
-  const { data: imagesData, isPending: isLoadingImages } = useList<IImage>({
-    endpoint: ENDPOINTS.IMAGES,
-    filter: { folder: selectedFolder },
-    enabled: open,
-  });
+  const { data: imagesData, isPending: isLoadingImages } =
+    useList<ImageResponse>({
+      endpoint: ENDPOINTS.IMAGES,
+      filter: {
+        filters: [{ op: "eq", field: "context", value: selectedFolder }],
+      },
+      enabled: open,
+    });
   const images = imagesData?.data || [];
 
   const uploadMutation = useMutation({
-    mutationFn: (variables: { file: File; folder: string }) => {
+    mutationFn: (variables: { file: File; context: string }) => {
       const formData = new FormData();
-      formData.append("image", variables.file);
-      formData.append("folder", variables.folder);
+      formData.append("file", variables.file);
+      formData.append("context", variables.context);
       return dataLayer.create<{ data: IImage }>({
         url: ENDPOINTS.IMAGES,
         params: formData,
@@ -73,7 +77,9 @@ export const SelectImage = ({ open, onClose, onSelect }: SelectImageProps) => {
 
   const validateFile = (file: File) => {
     if (!ALLOWED_TYPES.includes(file.type)) {
-      setError(`Неверный тип файла. Пожалуйста, загрузите изображение в формате JPEG, PNG, GIF или WEBP.`);
+      setError(
+        `Неверный тип файла. Пожалуйста, загрузите изображение в формате JPEG, PNG, GIF или WEBP.`
+      );
       return false;
     }
     setError(null);
@@ -86,7 +92,7 @@ export const SelectImage = ({ open, onClose, onSelect }: SelectImageProps) => {
     setIsDragging(false);
     const file = event.dataTransfer.files?.[0];
     if (file && validateFile(file)) {
-      uploadMutation.mutate({ file, folder: selectedFolder });
+      uploadMutation.mutate({ file, context: selectedFolder });
     }
   };
 
@@ -125,7 +131,11 @@ export const SelectImage = ({ open, onClose, onSelect }: SelectImageProps) => {
             </List>
           </div>
           <div className={classes.mainContent}>
-            {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
             {uploadMutation.error && (
               <Alert severity="error" sx={{ mb: 2 }}>
                 {uploadMutation.error.message}
@@ -145,19 +155,18 @@ export const SelectImage = ({ open, onClose, onSelect }: SelectImageProps) => {
                 <ImageList cols={8}>
                   {images.map((image) => (
                     <ImageListItem
-                      key={image.ID}
+                      key={image.id}
                       onClick={() => onSelect(image)}
                       sx={{ cursor: "pointer" }}
                     >
-                      <img
-                        src={`${CONFIG.IMAGES_URL}/${image.ID}`}
-                        alt={image.OriginalFilename}
-                      />
+                      <img src={`${CONFIG.IMAGES_URL}/${image.id}`} />
                     </ImageListItem>
                   ))}
                 </ImageList>
               ) : (
-                <Typography color="info">Перетащите файлы сюда для загрузки.</Typography>
+                <Typography color="info">
+                  Перетащите файлы сюда для загрузки.
+                </Typography>
               )}
             </div>
           </div>

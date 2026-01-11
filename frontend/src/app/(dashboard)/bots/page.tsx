@@ -11,80 +11,60 @@ import classes from "./styles.module.css";
 import { PageLayout } from "@/components/PageLayout";
 import { Button } from "@mui/material";
 import { BotFormModal } from "./components/BotFormModal";
-import { Bot } from "@/types";
+import { Bot, NewBot, UpdateBot } from "@/types";
+import { toast } from "react-toastify";
 
 export default function BotsPage() {
   const queryClient = useQueryClient();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const { data: bots } = useList<Bot>({
-    endpoint: ENDPOINTS.ADMIN_REFERRAL_BOTS,
+    endpoint: ENDPOINTS.BOTS,
+    filter: { order_by: "id" },
   });
 
-  const createMutation = useMutation({
-    mutationFn: (params: { token: string }) =>
+  const { mutate: createBot, isPending: isCreatePending } = useMutation<
+    Bot,
+    unknown,
+    NewBot
+  >({
+    mutationFn: (params) =>
       dataLayer.create({
-        url: ENDPOINTS.ADMIN_REFERRAL_BOTS,
+        url: ENDPOINTS.BOTS,
         params,
       }),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      toast.success(`Бот ${data.username} создан`);
       queryClient.invalidateQueries({
-        queryKey: queryKeys.list(ENDPOINTS.ADMIN_REFERRAL_BOTS),
+        queryKey: queryKeys.list(ENDPOINTS.BOTS),
       });
       setIsModalOpen(false);
     },
-  });
-
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ botId, isActive }: { botId: number; isActive: boolean }) =>
-      dataLayer.update({
-        url: `${ENDPOINTS.ADMIN_REFERRAL_BOTS}/${botId}/status`,
-        params: { is_active: isActive },
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.list(ENDPOINTS.ADMIN_REFERRAL_BOTS),
-      });
+    onError: () => {
+      toast.error("Произошла ошибка при создании бота");
     },
   });
 
-  const updatePercentageMutation = useMutation({
-    mutationFn: ({
-      botId,
-      percentage,
-    }: {
-      botId: number;
-      percentage: number;
-    }) =>
-      dataLayer.update({
-        url: `${ENDPOINTS.ADMIN_REFERRAL_BOTS}/${botId}/percentage`,
-        params: { percentage },
-      }),
+  const { mutate: updateBot, isPending: isUpdatePending } = useMutation({
+    mutationFn: ({ id, params }: { id: Bot["id"]; params: UpdateBot }) =>
+      dataLayer.update({ url: ENDPOINTS.BOTS, id, params }),
     onSuccess: () => {
+      toast.success("Настройки бота сохранены");
       queryClient.invalidateQueries({
-        queryKey: queryKeys.list(ENDPOINTS.ADMIN_REFERRAL_BOTS),
+        queryKey: queryKeys.list(ENDPOINTS.BOTS),
       });
+    },
+    onError: () => {
+      toast.error("Произошла ошибка при сохранении бота");
     },
   });
 
-  const setPrimaryMutation = useMutation({
-    mutationFn: (botId: number) =>
-      dataLayer.update({
-        url: `${ENDPOINTS.ADMIN_REFERRAL_BOTS}/${botId}/set-primary`,
-      }),
+  const { mutate: deleteBot, isPending: isDeletePending } = useMutation({
+    mutationFn: (botId: Bot["id"]) =>
+      dataLayer.delete({ url: ENDPOINTS.BOTS, id: botId }),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: queryKeys.list(ENDPOINTS.ADMIN_REFERRAL_BOTS),
-      });
-    },
-  });
-
-  const deleteMutation = useMutation({
-    mutationFn: (botId: number) =>
-      dataLayer.delete({ url: ENDPOINTS.ADMIN_REFERRAL_BOTS, id: botId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.list(ENDPOINTS.ADMIN_REFERRAL_BOTS),
+        queryKey: queryKeys.list(ENDPOINTS.BOTS),
       });
     },
   });
@@ -103,20 +83,17 @@ export default function BotsPage() {
           <BotCard
             key={bot.id}
             bot={bot}
-            onUpdateStatus={updateStatusMutation.mutate}
-            onSetPrimary={setPrimaryMutation.mutate}
-            onUpdatePercentage={updatePercentageMutation.mutate}
-            onDelete={deleteMutation.mutate}
-            isUpdatingStatus={updateStatusMutation.isPending}
-            isSettingPrimary={setPrimaryMutation.isPending}
+            onUpdate={updateBot}
+            onDelete={deleteBot}
+            isPending={isUpdatePending || isDeletePending}
           />
         ))}
       </div>
       <BotFormModal
         open={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onConfirm={createMutation.mutate}
-        isCreating={createMutation.isPending}
+        onConfirm={createBot}
+        isCreating={isCreatePending}
       />
     </PageLayout>
   );

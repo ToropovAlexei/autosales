@@ -29,12 +29,15 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
   const [name, setName] = useState(role?.name || "");
   const [selectedPermissions, setSelectedPermissions] = useState<number[]>([]);
 
-  const { data: rolePermissions, isPending } = useList<Permission>({
+  const { data: rolePermissions } = useList<Permission>({
     endpoint: ENDPOINTS.ROLE_PERMISSIONS,
     meta: { ":id": role?.id },
     enabled: !!role,
   });
-  const { data: allPermissions } = useList<Permission>({ endpoint: ENDPOINTS.PERMISSIONS });
+
+  const { data: allPermissions } = useList<Permission>({
+    endpoint: ENDPOINTS.PERMISSIONS,
+  });
 
   useEffect(() => {
     if (open) {

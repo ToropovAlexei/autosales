@@ -22,6 +22,7 @@ import { ENDPOINTS } from "@/constants";
 import classes from "./styles.module.css";
 import { CONFIG } from "../../../../config";
 import { queryKeys } from "@/utils/query";
+import { ImageResponse } from "@/types/image";
 
 interface IImage {
   ID: string;
@@ -29,30 +30,33 @@ interface IImage {
 }
 
 const FOLDERS = [
-  { id: "product_images", name: "Изображения товаров" },
-  { id: "fulfillment_images", name: "Выдача (картинки)" },
-  { id: "categories", name: "Категории" },
+  { id: "product", name: "Изображения товаров" },
+  { id: "fulfillment", name: "Выдача (картинки)" },
+  { id: "category", name: "Категории" },
 ];
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
 export default function ImagesPage() {
   const [error, setError] = useState<string | null>(null);
-  const [selectedFolder, setSelectedFolder] = useState("categories");
+  const [selectedFolder, setSelectedFolder] = useState(FOLDERS[2].id);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
-  const { data: imagesData, isPending: isLoadingImages } = useList<IImage>({
-    endpoint: ENDPOINTS.IMAGES,
-    filter: { folder: selectedFolder },
-  });
+  const { data: imagesData, isPending: isLoadingImages } =
+    useList<ImageResponse>({
+      endpoint: ENDPOINTS.IMAGES,
+      filter: {
+        filters: [{ op: "eq", field: "context", value: selectedFolder }],
+      },
+    });
   const images = imagesData?.data || [];
 
   const uploadMutation = useMutation({
-    mutationFn: (variables: { file: File; folder: string }) => {
+    mutationFn: (variables: { file: File; context: string }) => {
       const formData = new FormData();
-      formData.append("image", variables.file);
-      formData.append("folder", variables.folder);
+      formData.append("file", variables.file);
+      formData.append("context", variables.context);
       return dataLayer.create<{ data: IImage }>({
         url: ENDPOINTS.IMAGES,
         params: formData,
@@ -83,7 +87,7 @@ export default function ImagesPage() {
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && validateFile(file)) {
-      uploadMutation.mutate({ file, folder: selectedFolder });
+      uploadMutation.mutate({ file, context: selectedFolder });
     }
   };
 
@@ -95,7 +99,7 @@ export default function ImagesPage() {
     setIsDragging(false);
     const file = event.dataTransfer.files?.[0];
     if (file && validateFile(file)) {
-      uploadMutation.mutate({ file, folder: selectedFolder });
+      uploadMutation.mutate({ file, context: selectedFolder });
     }
   };
 
@@ -175,11 +179,10 @@ export default function ImagesPage() {
             ) : images.length > 0 ? (
               <ImageList variant="quilted" cols={8} gap={8}>
                 {images.map((image) => (
-                  <ImageListItem key={image.ID}>
+                  <ImageListItem key={image.id}>
                     <img
                       className={classes.img}
-                      src={`${CONFIG.IMAGES_URL}/${image.ID}`}
-                      alt={image.OriginalFilename}
+                      src={`${CONFIG.IMAGES_URL}/${image.id}`}
                     />
                   </ImageListItem>
                 ))}

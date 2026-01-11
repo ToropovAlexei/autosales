@@ -7,18 +7,15 @@ import { PaymentDiscountsForm } from "../settings/components/PaymentDiscountsFor
 import { Stack } from "@mui/material";
 import { GlobalMarkupForm } from "../settings/components/GlobalMarkupForm";
 import { PaymentSystemMarkupForm } from "../settings/components/PaymentSystemMarkupForm";
-
-interface Settings {
-  [key: string]: string;
-}
+import { PricingSettings } from "@/types/settings";
 
 export default function PricingPage() {
   const {
     data: settings,
     isPending: isSettingsPending,
     refetch,
-  } = useOne<Settings>({
-    endpoint: ENDPOINTS.ADMIN_SETTINGS,
+  } = useOne<PricingSettings>({
+    endpoint: ENDPOINTS.PRICING_SETTINGS,
   });
 
   return (

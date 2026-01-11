@@ -27,10 +27,10 @@ export const useDataGrid = <T>(
 
   const queryFilter = {
     page: paginationModel.page + 1, // MUI is 0-indexed, backend is 1-indexed
-    pageSize: paginationModel.pageSize,
+    page_size: paginationModel.pageSize,
     filters: formattedFilters.length > 0 ? formattedFilters : undefined,
-    orderBy: sortModel[0]?.field,
-    order: sortModel[0]?.sort,
+    order_by: sortModel[0]?.field,
+    order_dir: sortModel[0]?.sort,
     ...options?.filters,
   };
 

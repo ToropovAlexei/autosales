@@ -18,39 +18,20 @@ import { Edit, ContentCopy as ContentCopyIcon } from "@mui/icons-material";
 import { useState } from "react";
 import classes from "./styles.module.css";
 import { toast } from "react-toastify";
-
-interface Bot {
-  id: number;
-  owner_telegram_id: number;
-  token: string;
-  username: string;
-  created_at: string;
-  type: "main" | "referral";
-  is_active: boolean;
-  is_primary: boolean;
-  turnover: number;
-  accruals: number;
-  referral_percentage: number;
-}
+import { Bot, UpdateBot } from "@/types";
 
 interface BotCardProps {
   bot: Bot;
-  onUpdateStatus: (opts: { botId: number; isActive: boolean }) => void;
-  onSetPrimary: (botId: number) => void;
-  onUpdatePercentage: (opts: { botId: number; percentage: number }) => void;
-  onDelete: (botId: number) => void;
-  isUpdatingStatus: boolean;
-  isSettingPrimary: boolean;
+  onUpdate: (opts: { id: Bot["id"]; params: UpdateBot }) => void;
+  onDelete: (botId: Bot["id"]) => void;
+  isPending: boolean;
 }
 
 export const BotCard = ({
   bot,
-  onUpdateStatus,
-  onSetPrimary,
-  onUpdatePercentage,
+  isPending,
+  onUpdate,
   onDelete,
-  isUpdatingStatus,
-  isSettingPrimary,
 }: BotCardProps) => {
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -82,7 +63,7 @@ export const BotCard = ({
       setValidationError("Процент должен быть от 0 до 100");
       return;
     }
-    onUpdatePercentage({ botId: bot.id, percentage: percentageValue });
+    onUpdate({ id: bot.id, params: { referral_percentage: percentageValue } });
     setIsEditing(false);
     setValidationError("");
   };
@@ -100,8 +81,8 @@ export const BotCard = ({
         <CardHeader
           title={bot.username}
           subheader={
-            bot.owner_telegram_id
-              ? `TG ID владельца: ${bot.owner_telegram_id}`
+            bot.owner_id
+              ? `TG ID владельца: ${bot.owner_id}`
               : "Основной бот магазина"
           }
           action={
@@ -163,7 +144,8 @@ export const BotCard = ({
                 <ContentCopyIcon fontSize="small" />
               </IconButton>
             </Stack>
-            {bot.type === "referral" && (
+            {/* TODO: add turnover and accruals */}
+            {/* {bot.type === "referral" && (
               <>
                 <Typography variant="body2" color="text.secondary">
                   Оборот: {bot.turnover.toFixed(2)} ₽
@@ -172,7 +154,7 @@ export const BotCard = ({
                   Начисления: {bot.accruals.toFixed(2)} ₽
                 </Typography>
               </>
-            )}
+            )} */}
             {bot.type === "referral" && (
               <>
                 {isEditing ? (
@@ -211,17 +193,25 @@ export const BotCard = ({
             <Switch
               checked={bot.is_active}
               onChange={(e) =>
-                onUpdateStatus({ botId: bot.id, isActive: e.target.checked })
+                onUpdate({
+                  id: bot.id,
+                  params: { is_active: e.target.checked },
+                })
               }
-              disabled={isUpdatingStatus}
+              disabled={isPending}
             />
           </Stack>
         </CardContent>
         <CardActions>
           <Button
             variant="outlined"
-            onClick={() => onSetPrimary(bot.id)}
-            disabled={bot.is_primary || isSettingPrimary}
+            onClick={() =>
+              onUpdate({
+                id: bot.id,
+                params: { is_primary: true },
+              })
+            }
+            disabled={bot.is_primary || isPending}
           >
             Сделать основным
           </Button>

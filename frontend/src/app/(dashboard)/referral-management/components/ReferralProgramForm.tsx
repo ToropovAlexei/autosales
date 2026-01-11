@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, Button, Stack } from "@mui/material";
+import { Card, CardContent, Button, Stack } from "@mui/material";
 import { useForm, FormProvider, useWatch } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dataLayer } from "@/lib/dataLayer";
@@ -9,28 +9,19 @@ import { toast } from "react-toastify";
 import { queryKeys } from "@/utils/query";
 import { useEffect } from "react";
 import { InputNumber, InputSwitch } from "@/components";
+import { PricingSettings, UpdatePricingSettings } from "@/types/settings";
+import { useOne } from "@/hooks";
 
-interface ReferralProgramFormData {
-  referral_program_enabled: boolean;
-  referral_percentage: number;
-}
-
-interface ReferralProgramFormProps {
-  settings: { [key: string]: string } | undefined;
-  isSettingsPending: boolean;
-  refetchSettings: () => void;
-}
-
-export const ReferralProgramForm = ({
-  settings,
-  isSettingsPending,
-  refetchSettings,
-}: ReferralProgramFormProps) => {
+export const ReferralProgramForm = () => {
+  const { data: settings, isPending: isSettingsPending } =
+    useOne<PricingSettings>({
+      endpoint: ENDPOINTS.PRICING_SETTINGS,
+    });
   const queryClient = useQueryClient();
 
-  const form = useForm<ReferralProgramFormData>({
+  const form = useForm<UpdatePricingSettings>({
     defaultValues: {
-      referral_program_enabled: settings?.referral_program_enabled === "true",
+      referral_program_enabled: !!settings?.referral_program_enabled,
       referral_percentage: Number(settings?.referral_percentage || 0),
     },
   });
@@ -38,34 +29,26 @@ export const ReferralProgramForm = ({
 
   useEffect(() => {
     if (settings) {
-      reset({
-        referral_program_enabled: settings.referral_program_enabled === "true",
-        referral_percentage: Number(settings.referral_percentage || 0),
-      });
+      reset(settings);
     }
   }, [settings, reset]);
 
   const { mutate, isPending } = useMutation({
-    mutationFn: async (data: ReferralProgramFormData) => {
-      return dataLayer.update({
-        url: ENDPOINTS.ADMIN_SETTINGS,
-        params: {
-          referral_program_enabled: String(data.referral_program_enabled),
-          referral_percentage: String(data.referral_percentage),
-        },
-      });
-    },
+    mutationFn: async (params: UpdatePricingSettings) =>
+      dataLayer.update({
+        url: ENDPOINTS.PRICING_SETTINGS,
+        params,
+      }),
     onSuccess: () => {
       toast.success("Настройки реферальной программы сохранены");
       queryClient.invalidateQueries({
-        queryKey: queryKeys.one(ENDPOINTS.ADMIN_SETTINGS),
+        queryKey: queryKeys.one(ENDPOINTS.PRICING_SETTINGS),
       });
-      refetchSettings();
     },
     onError: () => toast.error("Ошибка сохранения настроек"),
   });
 
-  const onSubmit = (data: ReferralProgramFormData) => {
+  const onSubmit = (data: UpdatePricingSettings) => {
     mutate(data);
   };
 

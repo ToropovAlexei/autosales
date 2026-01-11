@@ -10,18 +10,16 @@ import {
   GridSortModel,
 } from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
-import { IProduct } from "@/types";
 import EditIcon from "@mui/icons-material/Edit";
-import DeleteIcon from "@mui/icons-material/Delete";
 import HistoryIcon from "@mui/icons-material/History";
 import { CONFIG } from "../../../../../config";
 import { StockMovementHistoryModal } from "./StockMovementHistoryModal";
+import { Product } from "@/types";
 
 interface ProductsTableProps {
-  products: IProduct[];
-  onEdit: (product: IProduct) => void;
+  products: Product[];
+  onEdit: (product: Product) => void;
   onDelete: (id: number) => void;
-  getCategoryName: (id: number) => string;
   loading: boolean;
   rowCount: number;
   paginationModel: GridPaginationModel;
@@ -37,7 +35,6 @@ export const ProductsTable = ({
   products,
   onEdit,
   onDelete,
-  getCategoryName,
   loading,
   rowCount,
   paginationModel,
@@ -49,10 +46,23 @@ export const ProductsTable = ({
   categories,
 }: ProductsTableProps) => {
   const [isStockHistoryModalOpen, setIsStockHistoryModalOpen] = useState(false);
-  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(
+    null
+  );
+
+  const getCategoryName = (categoryId: number) => {
+    if (!categoryId) return "N/A";
+    return categories.find((c) => c.id === categoryId)?.name || "N/A";
+  };
 
   const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 90, filterable: false, sortable: false }, // Not reliable for sorting/filtering
+    {
+      field: "id",
+      headerName: "Id",
+      width: 90,
+      filterable: false,
+      sortable: false,
+    },
     {
       field: "image_url",
       headerName: "Изображение",
@@ -67,7 +77,13 @@ export const ProductsTable = ({
           />
         ) : null,
     },
-    { field: "name", headerName: "Название", width: 250, flex: 1, sortable: false },
+    {
+      field: "name",
+      headerName: "Название",
+      width: 250,
+      flex: 1,
+      sortable: false,
+    },
     {
       field: "type",
       headerName: "Тип",
@@ -94,7 +110,13 @@ export const ProductsTable = ({
       valueOptions: categories.map((c) => ({ value: c.id, label: c.name })),
       sortable: false,
     },
-    { field: "base_price", headerName: "Базовая цена", type: "number", width: 110, sortable: false },
+    {
+      field: "base_price",
+      headerName: "Базовая цена",
+      type: "number",
+      width: 110,
+      sortable: false,
+    },
     {
       field: "stock",
       headerName: "Остаток",

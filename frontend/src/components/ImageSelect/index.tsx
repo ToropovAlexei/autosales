@@ -12,7 +12,10 @@ interface ImageSelectProps {
   onSelectImage: (id: string | null) => void;
 }
 
-export const ImageSelect = ({ selectedImageId, onSelectImage }: ImageSelectProps) => {
+export const ImageSelect = ({
+  selectedImageId,
+  onSelectImage,
+}: ImageSelectProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleImageSelect = (image: IImage) => {

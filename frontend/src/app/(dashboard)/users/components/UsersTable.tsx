@@ -1,48 +1,35 @@
 "use client";
 
-import {
-  DataGrid,
-  GridColDef,
-  GridActionsCellItem,
-  GridPaginationModel,
-  GridFilterModel,
-} from "@mui/x-data-grid";
+import { DataGrid, GridColDef, GridActionsCellItem } from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
 import ManageAccountsIcon from "@mui/icons-material/ManageAccounts";
-import { PermissionName, User } from "@/types";
+import { AdminUserWithRoles, PermissionName } from "@/types";
 import { useCan } from "@/hooks";
 
 interface UsersTableProps {
-  users: User[];
-  onConfigure: (user: User) => void;
+  users: AdminUserWithRoles[];
+  onConfigure: (user: AdminUserWithRoles) => void;
   loading: boolean;
-  rowCount: number;
-  paginationModel: GridPaginationModel;
-  onPaginationModelChange: (model: GridPaginationModel) => void;
-  filterModel: GridFilterModel;
-  onFilterModelChange: (model: GridFilterModel) => void;
 }
 
 export const UsersTable = ({
   users,
   onConfigure,
   loading,
-  rowCount,
-  paginationModel,
-  onPaginationModelChange,
-  filterModel,
-  onFilterModelChange,
 }: UsersTableProps) => {
   const { can: canConfigure } = useCan(PermissionName.RbacManage);
 
-  const columns: GridColDef[] = [
-    { field: "id", headerName: "ID", width: 90, sortable: false },
+  const columns: GridColDef<AdminUserWithRoles>[] = [
+    { field: "id", headerName: "Id", width: 90, sortable: false },
     { field: "login", headerName: "Логин", flex: 1, sortable: false },
     {
       field: "roles",
       headerName: "Роли",
       flex: 1,
-      valueGetter: (value) => value?.map((role: any) => role.name).join(", "),
+      valueGetter: (value) =>
+        (value as AdminUserWithRoles["roles"])
+          ?.map((role) => role.name)
+          .join(", "),
       sortable: false,
     },
     {
@@ -75,13 +62,6 @@ export const UsersTable = ({
         columns={columns}
         density="compact"
         loading={loading}
-        rowCount={rowCount}
-        paginationModel={paginationModel}
-        onPaginationModelChange={onPaginationModelChange}
-        filterModel={filterModel}
-        onFilterModelChange={onFilterModelChange}
-        paginationMode="server"
-        filterMode="server"
         localeText={ruRU.components.MuiDataGrid.defaultProps.localeText}
       />
     </div>

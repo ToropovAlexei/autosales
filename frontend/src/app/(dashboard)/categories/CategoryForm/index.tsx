@@ -1,7 +1,6 @@
 import { InputSelect, InputText, SelectImage } from "@/components";
-import { ICategory } from "@/types";
+import { Category, NewCategory, UpdateCategory } from "@/types";
 import {
-  Box,
   Button,
   Dialog,
   DialogActions,
@@ -9,50 +8,97 @@ import {
   DialogTitle,
   Stack,
 } from "@mui/material";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { FormProvider, useForm } from "react-hook-form";
 import { CONFIG } from "../../../../../config";
 import classes from "./styles.module.css";
-
-type Form = {
-  name: string;
-  parent_id: number;
-  image_id?: string;
-};
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ENDPOINTS } from "@/constants";
+import { queryKeys } from "@/utils/query";
+import { dataLayer } from "@/lib/dataLayer";
+import { toast } from "react-toastify";
+import { flattenCategoriesForSelect } from "../utils";
+import { ImageResponse } from "@/types/image";
 
 interface IProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (form: Form) => void;
-  categories: { label: string; value: number }[];
-  defaultValues?: Partial<ICategory>;
+  categories: Category[];
+  defaultValues?: Partial<Category>;
 }
 
 export const CategoryForm = ({
   open,
   onClose,
-  onConfirm,
   defaultValues,
   categories,
 }: IProps) => {
+  const queryClient = useQueryClient();
+  const invalidateCategories = () => {
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.list(ENDPOINTS.CATEGORIES),
+    });
+  };
+  const { mutate: createCategory } = useMutation<Category, Error, NewCategory>({
+    mutationFn: (payload) =>
+      dataLayer.create({
+        url: ENDPOINTS.CATEGORIES,
+        params: {
+          name: payload.name,
+          parent_id: payload.parent_id,
+          image_id: payload.image_id,
+        },
+      }),
+    onSuccess: (data) => {
+      toast.success(`Категория ${data.name} создана`);
+      invalidateCategories();
+      onClose();
+    },
+    onError: () => {
+      toast.error("Произошла ошибка");
+    },
+  });
+
+  const { mutate: updateCategory } = useMutation<
+    Category,
+    Error,
+    { id: number; params: UpdateCategory }
+  >({
+    mutationFn: ({ id, params }) =>
+      dataLayer.update({
+        url: ENDPOINTS.CATEGORIES,
+        params,
+        id,
+      }),
+    onSuccess: (data) => {
+      invalidateCategories();
+      toast.success(`Категория ${data.name} обновлена`);
+      onClose();
+    },
+    onError: () => {
+      toast.error("Произошла ошибка");
+    },
+  });
+
   const isCreate = !defaultValues?.id;
   const [isImageSelectorOpen, setIsImageSelectorOpen] = useState(false);
 
-  const form = useForm<Form>({
-    defaultValues: {
-      parent_id: 0,
-      ...defaultValues,
-      image_id: defaultValues?.image_id,
-    },
+  const form = useForm<UpdateCategory>({
+    defaultValues,
   });
 
   const { watch, setValue } = form;
   const imageId = watch("image_id");
 
-  const handleImageSelect = (image: { ID: string }) => {
-    setValue("image_id", image.ID);
+  const handleImageSelect = (image: ImageResponse) => {
+    setValue("image_id", image.id);
     setIsImageSelectorOpen(false);
   };
+
+  const flattenedCategories = useMemo(
+    () => flattenCategoriesForSelect(categories),
+    [categories]
+  );
 
   return (
     <>
@@ -67,7 +113,10 @@ export const CategoryForm = ({
               <InputSelect
                 name="parent_id"
                 label="Родительская категория"
-                options={categories}
+                options={flattenedCategories}
+                noneLabel="Нет (корневая категория)"
+                withNone
+                displayEmpty
               />
               <div className={classes.selectImg}>
                 <Button
@@ -89,7 +138,31 @@ export const CategoryForm = ({
           </FormProvider>
         </DialogContent>
         <DialogActions>
-          <Button variant="contained" onClick={form.handleSubmit(onConfirm)}>
+          <Button
+            variant="contained"
+            onClick={form.handleSubmit((form) => {
+              if (isCreate && form.name) {
+                createCategory({
+                  name: form.name,
+                  parent_id: form.parent_id,
+                  image_id: form.image_id,
+                });
+                return;
+              }
+              if (!defaultValues?.id) {
+                return;
+              }
+              updateCategory({
+                id: defaultValues.id,
+                params: {
+                  name: form.name,
+                  parent_id: form.parent_id ? Number(form.parent_id) : null,
+                  image_id: form.image_id,
+                  position: form.position,
+                },
+              });
+            })}
+          >
             {isCreate ? "Создать" : "Сохранить"}
           </Button>
           <Button onClick={onClose}>Закрыть</Button>

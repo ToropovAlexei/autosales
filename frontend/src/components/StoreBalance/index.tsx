@@ -3,10 +3,10 @@
 import { CircularProgress, Typography } from "@mui/material";
 import { useCan, useOne } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
-import { PermissionName } from "@/types";
+import { PermissionName, StoreBalance as StoreBalanceResponse } from "@/types";
 
 export const StoreBalance = () => {
-  const { data, isLoading, error } = useOne<{ current_balance: number }>({
+  const { data, isLoading, error } = useOne<StoreBalanceResponse>({
     endpoint: ENDPOINTS.STORE_BALANCE,
   });
 
@@ -26,7 +26,7 @@ export const StoreBalance = () => {
 
   return (
     <Typography variant="h6" sx={{ mr: 2 }}>
-      Баланс магазина: {data?.current_balance.toFixed(2)} RUB
+      Баланс магазина: {data?.balance.toFixed(2)} RUB
     </Typography>
   );
 };

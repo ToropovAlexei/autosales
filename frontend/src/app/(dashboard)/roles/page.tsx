@@ -3,7 +3,7 @@
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { PageLayout } from "@/components/PageLayout";
-import { Role } from "@/types";
+import { NewRole, Role, UpdateRole, UpdateRolePermissions } from "@/types";
 import { Button } from "@mui/material";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dataLayer } from "@/lib/dataLayer";
@@ -12,6 +12,7 @@ import { ConfirmModal } from "@/components";
 import { useState } from "react";
 import { RoleModal } from "./components/RoleModal";
 import { RolesTable } from "./components/RolesTable";
+import { toast } from "react-toastify";
 
 export default function RolesPage() {
   const queryClient = useQueryClient();
@@ -33,21 +34,51 @@ export default function RolesPage() {
     },
   });
 
-  const createMutation = useMutation({
-    mutationFn: (params: { name: string; permissions: number[] }) =>
-      dataLayer.create<{ id: number }>({
-        url: ENDPOINTS.ROLES,
-        params: { name: params.name },
+  const { mutate: updatePermissions } = useMutation({
+    mutationFn: ({
+      id,
+      params,
+    }: {
+      id: number;
+      params: UpdateRolePermissions;
+    }) =>
+      dataLayer.update({
+        url: ENDPOINTS.ROLE_PERMISSIONS,
+        params,
+        meta: { ":id": id },
       }),
-    onSuccess: async (data, variables) => {
-      const promises = variables.permissions.map((permissionId) =>
-        addPermissionMutation.mutateAsync({
-          role_id: data.id,
-          permissionId,
-        })
-      );
+    onSuccess: () => {
+      toast.success("Настройки роли сохранены");
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.ROLE_PERMISSIONS),
+      });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.list(ENDPOINTS.ROLES),
+      });
+    },
+    onError: () => toast.error("Произошла ошибка"),
+  });
 
-      await Promise.all(promises);
+  const createMutation = useMutation<
+    Role,
+    Error,
+    { role: NewRole; permissions: number[] }
+  >({
+    mutationFn: ({ role }) =>
+      dataLayer.create({
+        url: ENDPOINTS.ROLES,
+        params: role,
+      }),
+    onSuccess: (data, variables) => {
+      toast.success(`Роль ${data.name} создана`);
+      updatePermissions({
+        id: data.id,
+        params: {
+          added: variables.permissions,
+          removed: [],
+        },
+      });
+
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.ROLES),
       });
@@ -59,9 +90,10 @@ export default function RolesPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, name }: { id: number; name: string }) =>
-      dataLayer.update({ url: ENDPOINTS.ROLES, id, params: { name } }),
-    onSuccess: (data, variables) => {
+    mutationFn: ({ id, params }: { id: number; params: UpdateRole }) =>
+      dataLayer.update({ url: ENDPOINTS.ROLES, id, params }),
+    onSuccess: () => {
+      toast.success("Настройки роли сохранены");
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.ROLES),
       });
@@ -71,43 +103,7 @@ export default function RolesPage() {
       setIsModalOpen(false);
       setEditingRole(null);
     },
-  });
-
-  const addPermissionMutation = useMutation({
-    mutationFn: (params: { role_id: number; permissionId: number }) =>
-      dataLayer.create({
-        url: `${ENDPOINTS.ROLES}/${params.role_id}/permissions`,
-        params: { permission_id: params.permissionId },
-      }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.list(ENDPOINTS.ROLE_PERMISSIONS),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.list(ENDPOINTS.ROLES),
-      });
-    },
-  });
-
-  const removePermissionMutation = useMutation({
-    mutationFn: ({
-      role_id,
-      permissionId,
-    }: {
-      role_id: number;
-      permissionId: number;
-    }) =>
-      dataLayer.delete({
-        url: `${ENDPOINTS.ROLES}/${role_id}/permissions/${permissionId}`,
-      }),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.list(ENDPOINTS.ROLE_PERMISSIONS),
-      });
-      queryClient.invalidateQueries({
-        queryKey: queryKeys.list(ENDPOINTS.ROLES),
-      });
-    },
+    onError: () => toast.error("Произошла ошибка"),
   });
 
   const openConfirmDialog = (role: Role) => {
@@ -142,34 +138,27 @@ export default function RolesPage() {
     permissions: number[],
     initialPermissions: number[]
   ) => {
-    if (editingRole) {
-      if (editingRole.name !== name) {
-        updateMutation.mutate({ id: editingRole.id, name });
-      }
+    closeModal();
 
-      const toAdd = permissions.filter((p) => !initialPermissions.includes(p));
-      const toRemove = initialPermissions.filter(
-        (p) => !permissions.includes(p)
-      );
-
-      toAdd.forEach((permissionId) => {
-        addPermissionMutation.mutate({
-          role_id: editingRole.id,
-          permissionId,
-        });
-      });
-
-      toRemove.forEach((permissionId) => {
-        removePermissionMutation.mutate({
-          role_id: editingRole.id,
-          permissionId,
-        });
-      });
-
-      closeModal();
-    } else {
-      createMutation.mutate({ name, permissions });
+    if (!editingRole) {
+      createMutation.mutate({ role: { name, description: null }, permissions });
+      return;
     }
+
+    if (editingRole.name !== name) {
+      updateMutation.mutate({
+        id: editingRole.id,
+        params: { name, description: null },
+      });
+    }
+
+    const toAdd = permissions.filter((p) => !initialPermissions.includes(p));
+    const toRemove = initialPermissions.filter((p) => !permissions.includes(p));
+
+    updatePermissions({
+      id: editingRole.id,
+      params: { added: toAdd, removed: toRemove },
+    });
   };
 
   return (

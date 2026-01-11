@@ -11,10 +11,10 @@ import {
 import CloseIcon from "@mui/icons-material/Close";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
-import { IStockMovement } from "@/types";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
 import dayjs from "dayjs";
+import { StockMovement } from "@/types";
 
 interface StockMovementHistoryModalProps {
   open: boolean;
@@ -28,10 +28,10 @@ export const StockMovementHistoryModal = ({
   productId,
 }: StockMovementHistoryModalProps) => {
   const { data: stockMovementsData, isPending: isLoadingStockMovements } =
-    useList<IStockMovement>({
+    useList<StockMovement>({
       endpoint: ENDPOINTS.STOCK_MOVEMENTS,
       filter: {
-        filters: [{ field: "product_id", op: "=", value: productId }],
+        filters: [{ field: "product_id", op: "eq", value: productId }],
         orderBy: "id",
         order: "desc",
       },

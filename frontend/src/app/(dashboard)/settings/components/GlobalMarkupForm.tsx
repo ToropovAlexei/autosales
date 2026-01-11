@@ -9,13 +9,10 @@ import { toast } from "react-toastify";
 import { queryKeys } from "@/utils/query";
 import { useEffect } from "react";
 import { InputNumber, InputSlider } from "@/components";
-
-interface GlobalMarkupFormData {
-  GLOBAL_PRICE_MARKUP: number;
-}
+import { PricingSettings, UpdatePricingSettings } from "@/types/settings";
 
 interface GlobalMarkupFormProps {
-  settings: { [key: string]: string } | undefined;
+  settings: PricingSettings | undefined;
   isSettingsPending: boolean;
   refetchSettings: () => void;
 }
@@ -27,9 +24,9 @@ export const GlobalMarkupForm = ({
 }: GlobalMarkupFormProps) => {
   const queryClient = useQueryClient();
 
-  const form = useForm<GlobalMarkupFormData>({
+  const form = useForm<UpdatePricingSettings>({
     defaultValues: {
-      GLOBAL_PRICE_MARKUP: Number(settings?.GLOBAL_PRICE_MARKUP || 0),
+      pricing_global_markup: Number(settings?.pricing_global_markup || 0),
     },
   });
   const { handleSubmit, reset, formState } = form;
@@ -37,31 +34,28 @@ export const GlobalMarkupForm = ({
   useEffect(() => {
     if (settings) {
       reset({
-        GLOBAL_PRICE_MARKUP: Number(settings.GLOBAL_PRICE_MARKUP || 0),
+        pricing_global_markup: Number(settings.pricing_global_markup || 0),
       });
     }
   }, [settings, reset]);
 
   const { mutate, isPending } = useMutation({
-    mutationFn: async (data: GlobalMarkupFormData) => {
-      return dataLayer.update({
-        url: ENDPOINTS.ADMIN_SETTINGS,
-        params: {
-          GLOBAL_PRICE_MARKUP: String(data.GLOBAL_PRICE_MARKUP),
-        },
-      });
-    },
+    mutationFn: async (params: UpdatePricingSettings) =>
+      dataLayer.update({
+        url: ENDPOINTS.PRICING_SETTINGS,
+        params,
+      }),
     onSuccess: () => {
       toast.success("Глобальная наценка сохранена");
       queryClient.invalidateQueries({
-        queryKey: queryKeys.one(ENDPOINTS.ADMIN_SETTINGS),
+        queryKey: queryKeys.one(ENDPOINTS.PRICING_SETTINGS),
       });
       refetchSettings();
     },
     onError: () => toast.error("Ошибка сохранения настроек"),
   });
 
-  const onSubmit = (data: GlobalMarkupFormData) => {
+  const onSubmit = (data: UpdatePricingSettings) => {
     mutate(data);
   };
 
@@ -75,7 +69,7 @@ export const GlobalMarkupForm = ({
           <FormProvider {...form}>
             <Stack gap={2} component="form" onSubmit={handleSubmit(onSubmit)}>
               <InputSlider
-                name="GLOBAL_PRICE_MARKUP"
+                name="pricing_global_markup"
                 label="Наценка"
                 min={0}
                 max={1000}
@@ -83,7 +77,7 @@ export const GlobalMarkupForm = ({
                 disabled={isPending}
               />
               <InputNumber
-                name="GLOBAL_PRICE_MARKUP"
+                name="pricing_global_markup"
                 label="Наценка"
                 disabled={isPending}
                 rules={{

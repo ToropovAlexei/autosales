@@ -10,12 +10,15 @@ import { ruRU } from "@mui/x-data-grid/locales";
 import BlockIcon from "@mui/icons-material/Block";
 import LockOpenIcon from "@mui/icons-material/LockOpen";
 import { Chip } from "@mui/material";
-import { BotUser } from "@/types/common";
 import dayjs from "dayjs";
+import { useList } from "@/hooks";
+import { ENDPOINTS } from "@/constants";
+import { Bot, Customer } from "@/types";
+import { keyBy } from "@/utils";
 
 interface BotUsersTableProps {
-  users: BotUser[];
-  onToggleBlock: (user: BotUser) => void;
+  users: Customer[];
+  onToggleBlock: (user: Customer) => void;
   loading: boolean;
   rowCount: number;
   paginationModel: GridPaginationModel;
@@ -38,6 +41,8 @@ export const BotUsersTable = ({
   sortModel,
   onSortModelChange,
 }: BotUsersTableProps) => {
+  const { data: bots } = useList<Bot>({ endpoint: ENDPOINTS.BOTS });
+  const botsById = keyBy(bots?.data || [], "id");
   const columns: GridColDef[] = [
     { field: "id", headerName: "ID", width: 60, sortable: false },
     {
@@ -82,12 +87,14 @@ export const BotUsersTable = ({
       field: "registered_with_bot",
       headerName: "Бот регистрации",
       flex: 1,
+      valueGetter: (value) => botsById[value]?.username || value,
       sortable: false,
     },
     {
       field: "last_seen_with_bot",
       headerName: "Последний бот",
       flex: 1,
+      valueGetter: (value) => botsById[value]?.username || value,
       sortable: false,
     },
     {

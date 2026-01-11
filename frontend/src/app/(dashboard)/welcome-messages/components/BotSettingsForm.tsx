@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  Button,
-  Stack,
-  Box,
-} from "@mui/material";
+import { Card, CardContent, Button, Stack, Box } from "@mui/material";
 import { useForm, FormProvider } from "react-hook-form";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { dataLayer } from "@/lib/dataLayer";
@@ -16,29 +9,16 @@ import { toast } from "react-toastify";
 import { queryKeys } from "@/utils/query";
 import { useEffect, useState } from "react";
 import { InputText, SelectImage } from "@/components";
-import { IImage } from "@/types";
 import { CONFIG } from "../../../../../config";
+import { BotSettings, UpdateBotSettings } from "@/types/settings";
+import { useOne } from "@/hooks";
+import { ImageResponse } from "@/types/image";
 
-interface BotSettingsFormData {
-  new_user_welcome_message: string;
-  new_user_welcome_message_image_id: string;
-  returning_user_welcome_message: string;
-  returning_user_welcome_message_image_id: string;
-  support_message: string;
-  support_message_image_id: string;
-}
+export const BotSettingsForm = () => {
+  const { data: settings, isPending: isSettingsPending } = useOne<BotSettings>({
+    endpoint: ENDPOINTS.BOT_SETTINGS,
+  });
 
-interface BotSettingsFormProps {
-  settings: { [key: string]: string } | undefined;
-  isSettingsPending: boolean;
-  refetchSettings: () => void;
-}
-
-export const BotSettingsForm = ({
-  settings,
-  isSettingsPending,
-  refetchSettings,
-}: BotSettingsFormProps) => {
   const queryClient = useQueryClient();
   const [isNewUserImageSelectorOpen, setIsNewUserImageSelectorOpen] =
     useState(false);
@@ -49,76 +29,45 @@ export const BotSettingsForm = ({
   const [isSupportImageSelectorOpen, setIsSupportImageSelectorOpen] =
     useState(false);
 
-  const form = useForm<BotSettingsFormData>({
-    defaultValues: {
-      new_user_welcome_message: settings?.new_user_welcome_message || "",
-      new_user_welcome_message_image_id:
-        settings?.new_user_welcome_message_image_id || "",
-      returning_user_welcome_message:
-        settings?.returning_user_welcome_message || "",
-      returning_user_welcome_message_image_id:
-        settings?.returning_user_welcome_message_image_id || "",
-      support_message: settings?.support_message || "",
-      support_message_image_id: settings?.support_message_image_id || "",
-    },
-  });
+  const form = useForm<UpdateBotSettings>({ defaultValues: settings });
   const { handleSubmit, reset, formState, setValue, watch } = form;
 
   useEffect(() => {
     if (settings) {
-      reset({
-        new_user_welcome_message: settings.new_user_welcome_message || "",
-        new_user_welcome_message_image_id:
-          settings.new_user_welcome_message_image_id || "",
-        returning_user_welcome_message:
-          settings.returning_user_welcome_message || "",
-        returning_user_welcome_message_image_id:
-          settings.returning_user_welcome_message_image_id || "",
-        support_message: settings.support_message || "",
-        support_message_image_id: settings.support_message_image_id || "",
-      });
+      reset(settings);
     }
   }, [settings, reset]);
 
-  const newUserImageId = watch("new_user_welcome_message_image_id");
-  const returningUserImageId = watch("returning_user_welcome_message_image_id");
-  const supportImageId = watch("support_message_image_id");
+  const newUserImageId = watch("bot_messages_new_user_welcome_image_id");
+  const returningUserImageId = watch(
+    "bot_messages_returning_user_welcome_image_id"
+  );
+  const supportImageId = watch("bot_messages_support_image_id");
 
   const { mutate, isPending } = useMutation({
-    mutationFn: async (data: BotSettingsFormData) => {
-      return dataLayer.update({
-        url: ENDPOINTS.ADMIN_SETTINGS,
-        params: {
-          new_user_welcome_message: data.new_user_welcome_message,
-          new_user_welcome_message_image_id:
-            data.new_user_welcome_message_image_id,
-          returning_user_welcome_message: data.returning_user_welcome_message,
-          returning_user_welcome_message_image_id:
-            data.returning_user_welcome_message_image_id,
-          support_message: data.support_message,
-          support_message_image_id: data.support_message_image_id,
-        },
-      });
-    },
+    mutationFn: async (params: UpdateBotSettings) =>
+      dataLayer.update({
+        url: ENDPOINTS.BOT_SETTINGS,
+        params,
+      }),
     onSuccess: () => {
       toast.success("Настройки бота сохранены");
       queryClient.invalidateQueries({
-        queryKey: queryKeys.one(ENDPOINTS.ADMIN_SETTINGS),
+        queryKey: queryKeys.one(ENDPOINTS.BOT_SETTINGS),
       });
-      refetchSettings();
     },
     onError: () => toast.error("Ошибка сохранения настроек"),
   });
 
-  const onSubmit = (data: BotSettingsFormData) => {
+  const onSubmit = (data: UpdateBotSettings) => {
     mutate(data);
   };
 
   const handleSelectImage = (
-    field: keyof BotSettingsFormData,
-    image: IImage
+    field: keyof UpdateBotSettings,
+    image: ImageResponse
   ) => {
-    setValue(field, image.ID, { shouldDirty: true });
+    setValue(field, image.id, { shouldDirty: true });
     setIsNewUserImageSelectorOpen(false);
     setIsReturningUserImageSelectorOpen(false);
     setIsSupportImageSelectorOpen(false);
@@ -154,7 +103,7 @@ export const BotSettingsForm = ({
                   )}
                 </Box>
                 <InputText
-                  name="new_user_welcome_message"
+                  name="bot_messages_new_user_welcome"
                   label="Приветственное сообщение для новых пользователей (используйте {username})"
                   multiline
                   minRows={4}
@@ -181,7 +130,7 @@ export const BotSettingsForm = ({
                   )}
                 </Box>
                 <InputText
-                  name="returning_user_welcome_message"
+                  name="bot_messages_returning_user_welcome"
                   label="Приветственное сообщение для вернувшихся пользователей (используйте {username})"
                   multiline
                   minRows={4}
@@ -208,7 +157,7 @@ export const BotSettingsForm = ({
                   )}
                 </Box>
                 <InputText
-                  name="support_message"
+                  name="bot_messages_support"
                   label="Сообщение поддержки"
                   multiline
                   minRows={2}
@@ -232,21 +181,24 @@ export const BotSettingsForm = ({
         open={isNewUserImageSelectorOpen}
         onClose={() => setIsNewUserImageSelectorOpen(false)}
         onSelect={(image) =>
-          handleSelectImage("new_user_welcome_message_image_id", image)
+          handleSelectImage("bot_messages_new_user_welcome_image_id", image)
         }
       />
       <SelectImage
         open={isReturningUserImageSelectorOpen}
         onClose={() => setIsReturningUserImageSelectorOpen(false)}
         onSelect={(image) =>
-          handleSelectImage("returning_user_welcome_message_image_id", image)
+          handleSelectImage(
+            "bot_messages_returning_user_welcome_image_id",
+            image
+          )
         }
       />
       <SelectImage
         open={isSupportImageSelectorOpen}
         onClose={() => setIsSupportImageSelectorOpen(false)}
         onSelect={(image) =>
-          handleSelectImage("support_message_image_id", image)
+          handleSelectImage("bot_messages_support_image_id", image)
         }
       />
     </>

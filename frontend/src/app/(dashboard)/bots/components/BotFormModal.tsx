@@ -9,15 +9,12 @@ import {
 } from "@mui/material";
 import { useForm, FormProvider } from "react-hook-form";
 import { InputText } from "@/components";
-
-interface BotFormData {
-  token: string;
-}
+import { NewBot } from "@/types";
 
 interface BotFormModalProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (data: BotFormData) => void;
+  onConfirm: (data: NewBot) => void;
   isCreating: boolean;
 }
 
@@ -27,18 +24,32 @@ export const BotFormModal = ({
   onConfirm,
   isCreating,
 }: BotFormModalProps) => {
-  const form = useForm<BotFormData>();
+  const form = useForm<NewBot>();
   const { handleSubmit } = form;
 
   return (
-    <Dialog open={open} onClose={onClose}>
+    <Dialog open={open} onClose={onClose} fullWidth>
       <DialogTitle>Добавить нового бота</DialogTitle>
       <FormProvider {...form}>
         <form onSubmit={handleSubmit(onConfirm)}>
           <DialogContent
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
-            <InputText name="token" label="Токен" required />
+            <InputText
+              name="token"
+              label="Токен"
+              rules={{
+                required: "Поле обязательно к заполнению",
+                minLength: {
+                  value: 44,
+                  message: "Токен должен состоять минимум из 44 символов",
+                },
+                maxLength: {
+                  value: 48,
+                  message: "Токен должен состоять максимум из 48 символов",
+                },
+              }}
+            />
           </DialogContent>
           <DialogActions>
             <Button onClick={onClose}>Отмена</Button>

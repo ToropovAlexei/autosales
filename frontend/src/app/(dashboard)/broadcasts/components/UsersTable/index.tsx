@@ -1,13 +1,14 @@
 import { DataGrid } from "@mui/x-data-grid";
 import { COLUMNS } from "./constants";
 import { useList } from "@/hooks";
-import { BotUser } from "@/types";
+import { Bot, Customer } from "@/types";
 import { ENDPOINTS } from "@/constants";
 import { ruRU } from "@mui/x-data-grid/locales";
 import { useWatch } from "react-hook-form";
 import { BroadcastForm } from "../../types";
 import { cleanFilters } from "../../utils";
 import { useDebouncedValue } from "@tanstack/react-pacer";
+import { keyBy } from "@/utils";
 
 export const UsersTable = () => {
   const {
@@ -32,14 +33,23 @@ export const UsersTable = () => {
     { wait: 500 }
   );
 
-  const { data, isFetching } = useList<BotUser>({
-    endpoint: ENDPOINTS.BROADCAST_USERS,
+  const { data, isFetching } = useList<Customer>({
+    endpoint: ENDPOINTS.CUSTOMERS,
     filter: debounced,
   });
 
+  const { data: bots } = useList<Bot>({
+    endpoint: ENDPOINTS.BOTS,
+  });
+  const botById = keyBy(bots?.data || [], "id");
+  const usersWithBot = (data?.data || []).map((customer) => ({
+    ...customer,
+    bot_name: botById[Number(customer.registered_with_bot)]?.username,
+  }));
+
   return (
     <DataGrid
-      rows={data?.data || []}
+      rows={usersWithBot || []}
       columns={COLUMNS}
       density="compact"
       loading={isFetching}

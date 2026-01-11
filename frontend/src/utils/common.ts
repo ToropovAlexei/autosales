@@ -3,22 +3,22 @@ import { IFilter } from "@/types";
 export const serializeFilter = (filter: IFilter) => {
   const params = new URLSearchParams();
 
-  const { page, pageSize, orderBy, order, filters, ...rest } = filter;
+  const { page, page_size, order_by, order_dir, filters, ...rest } = filter;
 
   if (page) {
     params.append("page", String(filter.page));
   }
 
-  if (pageSize) {
-    params.append("pageSize", String(filter.pageSize));
+  if (page_size) {
+    params.append("page_size", String(filter.page_size));
   }
 
-  if (orderBy) {
-    params.append("orderBy", orderBy);
+  if (order_by) {
+    params.append("order_by", order_by);
   }
 
-  if (order) {
-    params.append("order", order);
+  if (order_dir) {
+    params.append("order", order_dir);
   }
 
   if (filters) {
@@ -26,7 +26,11 @@ export const serializeFilter = (filter: IFilter) => {
       ...f,
       op: f.op === "is" ? "=" : f.op,
     }));
-    params.append("filters", JSON.stringify(mappedFilters));
+    mappedFilters.forEach((f, idx) => {
+      params.append(`filters[${idx}][field]`, f.field);
+      params.append(`filters[${idx}][op]`, f.op);
+      params.append(`filters[${idx}][value]`, String(f.value));
+    });
   }
 
   Object.entries(rest).forEach(([key, value]) => {

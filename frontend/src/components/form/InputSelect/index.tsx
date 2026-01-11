@@ -19,6 +19,8 @@ interface IProps {
   disabled?: boolean;
   rules?: RegisterOptions;
   withNone?: boolean;
+  noneLabel?: string;
+  displayEmpty?: boolean;
 }
 
 export const InputSelect = ({
@@ -27,27 +29,30 @@ export const InputSelect = ({
   options,
   rules,
   withNone,
+  noneLabel,
+  displayEmpty,
 }: IProps) => {
   const {
     field: { value, onChange },
     fieldState: { error },
-  } = useController({ name, rules, defaultValue: "" });
+  } = useController({ name, rules, defaultValue: null });
 
   return (
     <FormControl error={!!error}>
-      <InputLabel id={name} size="small">
+      <InputLabel id={name} size="small" shrink={displayEmpty}>
         {label ?? name}
       </InputLabel>
       <Select
         labelId={name}
-        value={value}
+        displayEmpty={displayEmpty}
+        value={withNone ? value || "" : value}
         onChange={onChange}
         size="small"
         label={label ?? name}
       >
-        {withNone && <MenuItem value="">Не выбрано</MenuItem>}
+        {withNone && <MenuItem value="">{noneLabel || "Не выбрано"}</MenuItem>}
         {options?.map(({ value, label }) => (
-          <MenuItem key={value} value={value}>
+          <MenuItem key={value} value={String(value)}>
             {label}
           </MenuItem>
         ))}

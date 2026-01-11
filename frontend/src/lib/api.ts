@@ -8,7 +8,7 @@ const getAuthToken = () => {
   return null;
 };
 
-export const newApi = ky.extend({
+export const api = ky.extend({
   prefixUrl: CONFIG.API_URL,
   timeout: 30000,
   hooks: {
@@ -24,7 +24,10 @@ export const newApi = ky.extend({
       (request, options, response) => {
         if (response.status === 401 || response.status === 403) {
           localStorage.removeItem("jwt");
-          if (typeof window !== "undefined") {
+          if (
+            typeof window !== "undefined" &&
+            window.location.pathname !== "/login"
+          ) {
             window.location.href = "/login";
           }
         }
