@@ -33,6 +33,7 @@ pub trait PaymentInvoiceRepositoryTrait {
     ) -> RepositoryResult<PaymentInvoiceRow>;
     async fn get_by_id(&self, id: i64) -> RepositoryResult<PaymentInvoiceRow>;
     async fn get_by_order_id(&self, order_id: Uuid) -> RepositoryResult<PaymentInvoiceRow>;
+    async fn get_for_customer(&self, customer_id: i64) -> RepositoryResult<Vec<PaymentInvoiceRow>>;
 }
 
 #[derive(Clone)]
@@ -162,6 +163,23 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             order_id
         )
         .fetch_one(&*self.pool)
+        .await?;
+
+        Ok(result)
+    }
+
+    async fn get_for_customer(&self, customer_id: i64) -> RepositoryResult<Vec<PaymentInvoiceRow>> {
+        let result = sqlx::query_as!(
+            PaymentInvoiceRow,
+            r#"
+            SELECT 
+                id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
+                expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
+                bot_message_id, notification_sent_at
+            FROM payment_invoices WHERE customer_id = $1"#,
+            customer_id
+        )
+        .fetch_all(&*self.pool)
         .await?;
 
         Ok(result)

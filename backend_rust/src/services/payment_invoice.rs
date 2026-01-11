@@ -55,6 +55,7 @@ pub trait PaymentInvoiceServiceTrait: Send + Sync {
     async fn get_by_id(&self, id: i64) -> ApiResult<PaymentInvoiceRow>;
     async fn get_by_order_id(&self, order_id: Uuid) -> ApiResult<PaymentInvoiceRow>;
     async fn update(&self, command: UpdatePaymentInvoiceCommand) -> ApiResult<PaymentInvoiceRow>;
+    async fn get_for_customer(&self, customer_id: i64) -> ApiResult<Vec<PaymentInvoiceRow>>;
 }
 
 pub struct PaymentInvoiceService<R, A, M, S> {
@@ -175,5 +176,10 @@ impl PaymentInvoiceServiceTrait
             .await?;
 
         Ok(updated)
+    }
+
+    async fn get_for_customer(&self, customer_id: i64) -> ApiResult<Vec<PaymentInvoiceRow>> {
+        let res = self.repo.get_for_customer(customer_id).await?;
+        Ok(res)
     }
 }

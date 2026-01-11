@@ -10,10 +10,17 @@ use crate::{
     errors::api::ApiResult,
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson},
     models::customer::NewCustomer,
-    presentation::bot::dtos::customer::{
-        CustomerResponse, NewCustomerRequest, UpdateCustomerRequest,
+    presentation::{
+        admin::dtos::list_response::ListResponse,
+        bot::dtos::{
+            customer::{CustomerResponse, NewCustomerRequest, UpdateCustomerRequest},
+            invoice::PaymentInvoiceResponse,
+        },
     },
-    services::customer::{CustomerServiceTrait, UpdateCustomerCommand},
+    services::{
+        customer::{CustomerServiceTrait, UpdateCustomerCommand},
+        payment_invoice::PaymentInvoiceServiceTrait,
+    },
     state::AppState,
 };
 
@@ -21,6 +28,7 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", post(create_customer))
         .route("/{telegram_id}", get(get_customer).patch(update_customer))
+        .route("/{telegram_id}/invoices", get(get_customer_invoices))
 }
 
 #[utoipa::path(
@@ -106,4 +114,37 @@ async fn update_customer(
         })
         .await?;
     Ok(Json(CustomerResponse::from(customer)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/bot/customers/{telegram_id}/invoices",
+    tag = "Customers",
+    responses(
+        (status = 200, description = "Get customer invoices", body = ListResponse<PaymentInvoiceResponse>),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
+async fn get_customer_invoices(
+    State(state): State<Arc<AppState>>,
+    Path(telegram_id): Path<i64>,
+    _bot: AuthBot,
+) -> ApiResult<Json<ListResponse<PaymentInvoiceResponse>>> {
+    let customer_id = state
+        .customer_service
+        .get_by_telegram_id(telegram_id)
+        .await?;
+    let invoices = state
+        .payment_invoice_service
+        .get_for_customer(customer_id.id)
+        .await?;
+
+    Ok(Json(ListResponse {
+        total: invoices.len() as i64,
+        items: invoices
+            .into_iter()
+            .map(PaymentInvoiceResponse::from)
+            .collect(),
+    }))
 }
