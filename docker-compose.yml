@@ -62,9 +62,9 @@ services:
       IMAGE_UPLOAD_PATH: ${IMAGE_UPLOAD_PATH}
 
       # --- Telegram Bots ---
-      MAIN_BOT_NAME: ${MAIN_BOT_NAME}
+      MAIN_BOT_NAME: ${MAIN_BOT_NAME:-MainBot}
       MAIN_BOT_TOKEN: ${MAIN_BOT_TOKEN}
-      FALLBACK_BOT_NAME: ${FALLBACK_BOT_NAME}
+      FALLBACK_BOT_NAME: ${FALLBACK_BOT_NAME:-FallbackBot}
       FALLBACK_BOT_TOKEN: ${FALLBACK_BOT_TOKEN}
 
       # --- External Payment System ---
