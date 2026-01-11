@@ -1,4 +1,4 @@
-from aiogram import Router, F
+from aiogram import Router, F, Bot
 import logging
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup
@@ -191,6 +191,7 @@ async def select_amount_handler(callback_query: CallbackQuery, callback_data: Pa
                     callback_query,
                     requisites_text,
                     reply_markup=inline.InlineKeyboardMarkup(inline_keyboard=[
+                        [inline.InlineKeyboardButton(text="Перевод выполнен", callback_data=f"payment_confirm:{order_id}")],
                         [inline.InlineKeyboardButton(text="⬅️ Назад", callback_data="deposit")]
                     ]),
                     parse_mode="HTML"
@@ -218,3 +219,16 @@ async def select_amount_handler(callback_query: CallbackQuery, callback_data: Pa
         logging.exception("An error occurred in select_amount_handler")
         await _safe_edit_message(callback_query, "Произошла непредвиденная ошибка. Попробуйте позже.")
     await callback_query.answer()
+
+@router.callback_query(F.data.startswith("payment_confirm:"))
+async def confirm_payment_handler(query: CallbackQuery, state: FSMContext, api_client: APIClient, bot: Bot):
+    order_id = query.data.split(":")[1]
+    
+    response = await api_client.confirm_payment(order_id)
+    
+    if response and response.get("success"):
+        await query.answer("Ваш платеж подтверждается, пожалуйста, подождите.", show_alert=True)
+        await bot.edit_message_reply_markup(chat_id=query.message.chat.id, message_id=query.message.message_id, reply_markup=None)
+    else:
+        error_message = response.get("error", "Произошла ошибка. Попробуйте позже.")
+        await query.answer(f"Ошибка: {error_message}", show_alert=True)

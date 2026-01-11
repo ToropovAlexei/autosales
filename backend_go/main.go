@@ -73,7 +73,7 @@ func main() {
 	container.StartWorkers()
 
 	// Run migrations
-	if err := container.DB.AutoMigrate(&models.Product{}, &models.Order{}, &models.Setting{}, &models.AuditLog{}, &models.ActiveToken{}, &models.BotUser{}, &models.PaymentInvoice{}, &models.User{}, &models.TemporaryToken{}, &models.Bot{}, &models.RefTransaction{}, &models.Transaction{}, &models.StoreBalance{}); err != nil {
+	if err := container.DB.AutoMigrate(&models.User{}, &models.Category{}, &models.Product{}, &models.BotUser{}, &models.Transaction{}, &models.Order{}, &models.StockMovement{}, &models.Bot{}, &models.RefTransaction{}, &models.UserSubscription{}, &models.PaymentInvoice{}, &models.Image{}, &models.Role{}, &models.Permission{}, &models.RolePermission{}, &models.UserRole{}, &models.UserPermission{}, &models.ActiveToken{}, &models.TemporaryToken{}, &models.StoreBalance{}, &models.Setting{}, &models.AuditLog{}); err != nil {
 		log.Fatal().Err(err).Msg("failed to migrate database")
 	}
 

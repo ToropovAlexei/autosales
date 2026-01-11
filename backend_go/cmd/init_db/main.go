@@ -63,6 +63,7 @@ func dropAllTables(db *gorm.DB) {
 		&models.TemporaryToken{},
 		&models.StoreBalance{},
 		&models.Setting{},
+		&models.AuditLog{},
 	}
 	if err := db.Migrator().DropTable(tables...); err != nil {
 		log.Fatalf("Failed to drop tables: %v", err)
@@ -92,6 +93,7 @@ func autoMigrate(db *gorm.DB) {
 		&models.TemporaryToken{},
 		&models.StoreBalance{},
 		&models.Setting{},
+		&models.AuditLog{},
 	); err != nil {
 		log.Fatalf("failed to migrate database: %v", err)
 	}
@@ -100,7 +102,7 @@ func autoMigrate(db *gorm.DB) {
 func createDefaultSettings(db *gorm.DB) {
 	fmt.Println("Creating default settings...")
 	settings := []models.Setting{
-		{Key: "support_message", Value: "Здравствуйте! Чем могу помочь? Наша служба поддержки работает с 9:00 до 18:00 по будням."}, 
+		{Key: "support_message", Value: "Здравствуйте! Чем могу помочь? Наша служба поддержки работает с 9:00 до 18:00 по будням."},
 		{Key: "new_user_welcome_message", Value: `Добро пожаловать, {username}!
 					Я - ваш личный помощник для покупок. Здесь вы можете:
 					- 🛍️ Смотреть каталог товаров
