@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     api_id: str
     api_hash: str
     payment_instructions_url: Optional[str] = None
+    bot_id: int
 
     @model_validator(mode='after')
     def set_bot_type(self) -> 'Settings':

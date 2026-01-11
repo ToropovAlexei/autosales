@@ -7,6 +7,7 @@ import time
 import json
 from pathlib import Path
 from collections import deque
+from urllib.parse import urlencode
 
 import requests
 from dotenv import load_dotenv
@@ -132,12 +133,17 @@ def get_bot_info(token: str) -> (dict | None, bool, bool):
 # --- Referral Bot Logic ---
 
 def get_all_bots_from_api(session: requests.Session, bot_type: str) -> list:
-    url = f"{API_URL}/bots?type={bot_type}"
+    params = {
+        "filters[0][field]": "type",
+        "filters[0][op]": "eq",
+        "filters[0][value]": bot_type,
+    }
+    url = f"{API_URL}/bots"
     try:
-        response = session.get(url)
+        response = session.get(url, params=params)
         response.raise_for_status()
         data = response.json()
-        return data.get("data", []) if data.get("success") else []
+        return data.get("items", [])
     except requests.exceptions.RequestException as e:
         logging.error(f"Failed to get all {bot_type} bots from API: {e}")
         return []
@@ -158,6 +164,7 @@ async def manage_referral_bots():
     while True:
         try:
             api_bots = get_all_bots_from_api(session, "referral") or []
+            logging.info(f"Found {len(api_bots)} referral bots. Checking for healthy bots...")
             bots_by_owner = {}
             for bot in api_bots:
                 if not bot.get("is_active"):
@@ -226,6 +233,7 @@ async def manage_referral_bots():
                     logging.info(f"Starting process for bot ID {bot_to_start['id']} (Owner: {owner_id}).")
                     env = os.environ.copy()
                     env["BOT_TOKEN"] = bot_to_start["bot_token"]
+                    env["BOT_ID"] = str(bot_to_start["id"])
                     if "FALLBACK_BOT_USERNAME" in env:
                         del env["FALLBACK_BOT_USERNAME"]
                     proc = subprocess.Popen(BOT_COMMAND, env=env, cwd=str(Path(__file__).parent))
@@ -238,12 +246,18 @@ async def manage_referral_bots():
 # --- Main Bot Logic ---
 
 def get_main_bots_from_api(session: requests.Session) -> list:
-    url = f"{API_URL}/bots/main"
+    params = {
+        "filters[0][field]": "type",
+        "filters[0][op]": "eq",
+        "filters[0][value]": "main",
+    }
+
+    url = f"{API_URL}/bots?{urlencode(params)}"
     try:
         response = session.get(url)
         response.raise_for_status()
         data = response.json()
-        return data.get("data", []) if data.get("success") else []
+        return data.get("items", [])
     except requests.exceptions.RequestException as e:
         logging.error(f"Failed to get main bots from API: {e}")
         return []
@@ -343,6 +357,7 @@ async def manage_main_bots():
             env = os.environ.copy()
             env["BOT_TOKEN"] = active_token
             env["BOT_TYPE"] = "main"
+            env["BOT_ID"] = str(active_bot_id)
 
             if healthy_bots:
                 fallback_bot = healthy_bots[0]

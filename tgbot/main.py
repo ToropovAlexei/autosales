@@ -40,7 +40,7 @@ async def check_bot_status(api_client: APIClient):
     while True:
         try:
             response = await api_client.get_bot_status()
-            can_operate = response.get("data", {}).get("can_operate", False)
+            can_operate = response.get("can_operate", False)
             if can_operate != BOT_CAN_OPERATE:
                 logging.info(f"Bot operational status changed to: {can_operate}")
                 BOT_CAN_OPERATE = can_operate
@@ -147,7 +147,7 @@ async def main():
 
     bot = Bot(token=settings.bot_token, default=DefaultBotProperties(parse_mode="HTML"))
     me = await bot.get_me()
-    api_client = APIClient(me.username)
+    api_client = APIClient(settings.bot_id)
     dp = Dispatcher(storage=storage, api_client=api_client, bot=bot)
 
     dp.update.middleware(UnblockUserMiddleware())

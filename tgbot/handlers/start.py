@@ -66,10 +66,10 @@ async def start_handler(message: Message, state: FSMContext, api_client: APIClie
                 await state.update_data(referral_bot_id=referral_bot_id)
             except (ValueError, IndexError):
                 pass  # Ignore if the payload is not a valid integer
-
-        response = await api_client.register_user(message.from_user.id)
-        if response.get("success"):
-            user_data = response["data"]
+            
+        response = await api_client.ensure_user(message.from_user.id)
+        if response:
+            user_data = response
 
             if user_data.get("is_blocked"):
                 await message.answer("Ваш аккаунт заблокирован.")
@@ -77,24 +77,23 @@ async def start_handler(message: Message, state: FSMContext, api_client: APIClie
 
             if not user_data.get("has_passed_captcha"):
                 captcha_response = await api_client.get_captcha()
-                if not captcha_response.get("success"):
+                logging.info(f"Received captcha response: {captcha_response}")
+                if not captcha_response:
                     await message.answer("Не удалось загрузить капчу. Попробуйте позже.")
                     return
 
-                captcha_data = captcha_response["data"]
-                correct_answer = captcha_data["answer"]
-                image_data_b64 = captcha_data["image_data"].split(",")[1]
+                correct_answer = captcha_response["answer"]
+                image_data_b64 = captcha_response["image_data"].split(",")[1]
                 image_bytes = base64.b64decode(image_data_b64)
 
-                options = generate_options(correct_answer)
-
                 await state.set_state(CaptchaState.waiting_for_answer)
+                logging.info(f"user_data: {user_data}")
                 await state.update_data(correct_answer=correct_answer, user_id=user_data["id"], telegram_id=message.from_user.id)
                 
                 await message.answer_photo(
                     photo=BufferedInputFile(image_bytes, "captcha.png"),
                     caption="Пожалуйста, решите капчу, чтобы продолжить:",
-                    reply_markup=captcha_keyboard(options)
+                    reply_markup=captcha_keyboard(captcha_response['variants'])
                 )
             else:
                 await update_pinned_message(message)

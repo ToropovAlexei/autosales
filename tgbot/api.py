@@ -7,11 +7,11 @@ from urllib.parse import urlencode
 from config import settings
 
 class APIClient:
-    def __init__(self, bot_username: str):
+    def __init__(self, bot_id: int):
         self.base_url = settings.api_url
-        self.bot_username = bot_username
         self.headers = {
-            "X-API-KEY": f"{settings.service_token}"
+            "X-API-KEY": f"{settings.service_token}",
+            "X-BOT-ID": f"{bot_id}"
         }
         self._public_settings = None
 
@@ -40,7 +40,7 @@ class APIClient:
             return {"success": False, "error": {"message": "API request failed."}}
 
     async def load_public_settings(self):
-        self._public_settings = await self._request("GET", "/settings/public")
+        self._public_settings = await self._request("GET", "/settings")
 
     async def get_public_settings(self):
         if not self._public_settings:
@@ -49,17 +49,17 @@ class APIClient:
 
     async def get_support_message(self):
         public_settings = await self.get_public_settings()
-        message = public_settings.get("support_message", "Что-то пошло не так, попробуйте позже.")
-        image_id = public_settings.get("support_message_image_id")
+        message = public_settings.get("bot_messages_support", "Что-то пошло не так, попробуйте позже.")
+        image_id = public_settings.get("bot_messages_support_image_id")
         return message, image_id
 
     async def get_welcome_message(self):
         public_settings = await self.get_public_settings()
-        return public_settings.get("welcome_message", "Привет! Я бот магазина. Используйте меню ниже для навигации.")
+        return public_settings.get("bot_messages_returning_user_welcome", "Привет! Я бот магазина. Используйте меню ниже для навигации.")
 
     async def get_new_user_welcome_message(self):
         public_settings = await self.get_public_settings()
-        message = public_settings.get("new_user_welcome_message", """Добро пожаловать, {username}!
+        message = public_settings.get("bot_messages_new_user_welcome", """Добро пожаловать, {username}!
 
 Я - ваш личный помощник для покупок. Здесь вы можете:
 - 🛍️ Смотреть каталог товаров
@@ -67,12 +67,12 @@ class APIClient:
 - 💳 Проверять свой счет
 
 Выберите действие в меню ниже:""")
-        image_id = public_settings.get("new_user_welcome_message_image_id")
+        image_id = public_settings.get("bot_messages_new_user_welcome_image_id")
         return message, image_id
 
     async def get_returning_user_welcome_message(self):
         public_settings = await self.get_public_settings()
-        message = public_settings.get("returning_user_welcome_message", """С возвращением, {username}!
+        message = public_settings.get("bot_messages_returning_user_welcome", """С возвращением, {username}!
 
 Я - ваш личный помощник для покупок. Здесь вы можете:
 - 🛍️ Смотреть каталог товаров
@@ -80,14 +80,20 @@ class APIClient:
 - 💳 Проверять свой счет
 
 Выберите действие в меню ниже:""")
-        image_id = public_settings.get("returning_user_welcome_message_image_id")
+        image_id = public_settings.get("bot_messages_returning_user_welcome_image_id")
         return message, image_id
 
     async def register_user(self, telegram_id: int):
-        return await self._request("POST", "/users/register", json={"telegram_id": telegram_id, "bot_name": self.bot_username})
+        return await self._request("POST", "/customers", json={"telegram_id": telegram_id})
 
     async def get_user(self, telegram_id: int):
-        return await self._request("GET", f"/users/{telegram_id}", params={"bot_name": self.bot_username})
+        return await self._request("GET", f"/customers/{telegram_id}")
+    
+    async def ensure_user(self, telegram_id: int):
+        user = await self.get_user(telegram_id)
+        if user.get("error"):
+            return await self.register_user(telegram_id)
+        return user
 
     async def get_user_balance(self, telegram_id: int):
         return await self._request("GET", f"/users/{telegram_id}/balance")
@@ -124,10 +130,10 @@ class APIClient:
 
 
     async def update_user_captcha_status(self, telegram_id: int, status: bool):
-        return await self._request("PUT", f"/users/{telegram_id}/captcha-status", json={"has_passed_captcha": status})
+        return await self._request("PATCH", f"/customers/{telegram_id}", json={"has_passed_captcha": status})
 
     async def update_user_status(self, telegram_id: int, payload: dict):
-        return await self._request("PATCH", f"/users/{telegram_id}/status", json=payload)
+        return await self._request("PATCH", f"/users/{telegram_id}", json=payload)
 
     async def get_referral_bots(self):
         return await self._request("GET", "/referrals")
@@ -182,7 +188,7 @@ class APIClient:
         return await self._request("GET", "/captcha", params=params)
 
     async def get_bot_status(self):
-        return await self._request("GET", "/bot/status")
+        return await self._request("GET", "/can-operate")
 
     # --- Admin Auth ---
     async def initiate_bot_admin_auth(self, email, password):
