@@ -337,7 +337,7 @@ func (c *Client) MerchProcess(objectToken string) error {
 	data.Set("version", "1")
 	data.Set("object_token", objectToken)
 
-	return c.doRequest("/api/method/merch/payin/merch_process", data, nil)
+	return c.doRequest("/api/method/merch/payin/order_process", data, nil)
 }
 
 // OrderGetStatus retrieves the status of a specific order

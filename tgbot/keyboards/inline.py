@@ -96,9 +96,9 @@ def payment_gateways_menu(gateways: list, public_settings: dict, instructions_ur
 
 def deposit_amount_menu(gateway: str):
     buttons = [
-        [InlineKeyboardButton(text="100 ₽", callback_data=PaymentCallback(action="select_amount", gateway=gateway, amount=100).pack())],
         [InlineKeyboardButton(text="500 ₽", callback_data=PaymentCallback(action="select_amount", gateway=gateway, amount=500).pack())],
         [InlineKeyboardButton(text="1000 ₽", callback_data=PaymentCallback(action="select_amount", gateway=gateway, amount=1000).pack())],
+        [InlineKeyboardButton(text="1500 ₽", callback_data=PaymentCallback(action="select_amount", gateway=gateway, amount=1500).pack())],
         [InlineKeyboardButton(text="⬅️ Назад", callback_data="deposit")]
     ]
     return InlineKeyboardMarkup(inline_keyboard=buttons)

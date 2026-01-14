@@ -228,7 +228,7 @@ async def confirm_payment_handler(query: CallbackQuery, state: FSMContext, api_c
     
     if response and response.get("success"):
         await query.answer("Ваш платеж подтверждается, пожалуйста, подождите.", show_alert=True)
-        await bot.edit_message_reply_markup(chat_id=query.message.chat.id, message_id=query.message.message_id, reply_markup=None)
+        await bot.edit_message_reply_markup(chat_id=query.message.chat.id, message_id=query.message.message_id, reply_markup=inline.back_to_main_menu_keyboard())
     else:
         error_message = response.get("error", "Произошла ошибка. Попробуйте позже.")
         await query.answer(f"Ошибка: {error_message}", show_alert=True)
