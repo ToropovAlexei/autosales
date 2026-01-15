@@ -15,10 +15,12 @@ use crate::{
         bot::dtos::{
             customer::{CustomerResponse, NewCustomerRequest, UpdateCustomerRequest},
             invoice::PaymentInvoiceResponse,
+            order::EnrichedOrderResponse,
         },
     },
     services::{
         customer::{CustomerServiceTrait, UpdateCustomerCommand},
+        order::OrderServiceTrait,
         payment_invoice::PaymentInvoiceServiceTrait,
     },
     state::AppState,
@@ -29,6 +31,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/", post(create_customer))
         .route("/{telegram_id}", get(get_customer).patch(update_customer))
         .route("/{telegram_id}/invoices", get(get_customer_invoices))
+        .route("/{telegram_id}/orders", get(get_customer_orders))
 }
 
 #[utoipa::path(
@@ -145,6 +148,36 @@ async fn get_customer_invoices(
         items: invoices
             .into_iter()
             .map(PaymentInvoiceResponse::from)
+            .collect(),
+    }))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/bot/customers/{telegram_id}/orders",
+    tag = "Customers",
+    responses(
+        (status = 200, description = "Get customer orders", body = ListResponse<EnrichedOrderResponse>),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
+async fn get_customer_orders(
+    State(state): State<Arc<AppState>>,
+    Path(telegram_id): Path<i64>,
+    _bot: AuthBot,
+) -> ApiResult<Json<ListResponse<EnrichedOrderResponse>>> {
+    let customer_id = state
+        .customer_service
+        .get_by_telegram_id(telegram_id)
+        .await?;
+    let orders = state.order_service.get_for_customer(customer_id.id).await?;
+
+    Ok(Json(ListResponse {
+        total: orders.len() as i64,
+        items: orders
+            .into_iter()
+            .map(EnrichedOrderResponse::from)
             .collect(),
     }))
 }

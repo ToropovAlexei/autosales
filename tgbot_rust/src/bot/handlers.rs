@@ -11,6 +11,7 @@ pub mod my_bots;
 pub mod my_orders;
 pub mod my_payments;
 pub mod my_subscriptions;
+pub mod order_details;
 pub mod product;
 pub mod start;
 pub mod support;

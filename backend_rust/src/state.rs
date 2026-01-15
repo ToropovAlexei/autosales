@@ -79,7 +79,7 @@ type PurchaseServiceShortType = PurchaseService<
     TransactionServiceShortType,
     CustomerServiceShortType,
     OrderItemServiceShortType,
-    OrderService<OrderRepository>,
+    OrderService<OrderRepository, OrderItemRepository>,
     ProductServiceShortType,
     ContmsProductsProvider,
     UserSubscriptionService<UserSubscriptionRepository>,
@@ -114,7 +114,7 @@ pub struct AppState {
     pub bot_service: Arc<
         BotService<BotRepository, SettingsRepository, AuditLogShortType, TransactionRepository>,
     >,
-    pub order_service: Arc<OrderService<OrderRepository>>,
+    pub order_service: Arc<OrderService<OrderRepository, OrderItemRepository>>,
     pub captcha_service: Arc<CaptchaService>,
     pub payment_invoice_service: Arc<PaymentInvoiceShortType>,
     pub notification_service: Arc<NotificationService>,
@@ -228,15 +228,17 @@ impl AppState {
             audit_logs_service.clone(),
             client.clone(),
         ));
-        let order_service = Arc::new(OrderService::new(Arc::new(OrderRepository::new(
-            db_pool.clone(),
-        ))));
+        let order_item_repo = Arc::new(OrderItemRepository::new(db_pool.clone()));
+        let order_service = Arc::new(OrderService::new(
+            Arc::new(OrderRepository::new(db_pool.clone())),
+            order_item_repo.clone(),
+        ));
         let captcha_service = Arc::new(CaptchaService::new(
             client.clone(),
             config.captcha_api_url.clone(),
         ));
         let order_item_service = Arc::new(OrderItemService::new(
-            Arc::new(OrderItemRepository::new(db_pool.clone())),
+            order_item_repo.clone(),
             stock_movement_repo.clone(),
         ));
         #[cfg(feature = "mock-payments-provider")]

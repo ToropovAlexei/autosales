@@ -15,6 +15,7 @@ use crate::{
 #[async_trait]
 pub trait OrderRepositoryTrait {
     async fn get_list(&self, query: OrderListQuery) -> RepositoryResult<PaginatedResult<OrderRow>>;
+    async fn get_for_customer(&self, customer_id: i64) -> RepositoryResult<Vec<OrderRow>>;
     async fn create(&self, order: NewOrder) -> RepositoryResult<OrderRow>;
     async fn get_by_id(&self, id: i64) -> RepositoryResult<OrderRow>;
 }
@@ -44,6 +45,22 @@ impl OrderRepositoryTrait for OrderRepository {
         let query = query_builder.build_query_as::<OrderRow>();
         let items = query.fetch_all(&*self.pool).await?;
         Ok(PaginatedResult { items, total })
+    }
+
+    async fn get_for_customer(&self, customer_id: i64) -> RepositoryResult<Vec<OrderRow>> {
+        let result = sqlx::query_as!(
+            OrderRow,
+            r#"
+        SELECT 
+            id, customer_id, amount, currency, status as "status: _", bot_id,
+            created_at, updated_at, paid_at, fulfilled_at, cancelled_at
+        FROM orders WHERE customer_id = $1"#,
+            customer_id
+        )
+        .fetch_all(&*self.pool)
+        .await?;
+
+        Ok(result)
     }
 
     async fn create(&self, order: NewOrder) -> RepositoryResult<OrderRow> {

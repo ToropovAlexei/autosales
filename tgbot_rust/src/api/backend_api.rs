@@ -7,11 +7,12 @@ use uuid::Uuid;
 use crate::{
     api::{api_client::ApiClient, api_errors::ApiClientResult},
     models::{
-        InvoiceResponse, ListResponse, UserOrder,
+        InvoiceResponse, ListResponse,
         bot::Bot,
         category::Category,
         common::CaptchaResponse,
         customer::Customer,
+        order::OrderResponse,
         payment::{PaymentGateway, PaymentInvoiceResponse, PaymentSystem},
         product::Product,
         purchase::PurchaseResponse,
@@ -142,9 +143,15 @@ impl BackendApi {
     pub async fn get_user_orders(
         &self,
         telegram_id: i64,
-    ) -> ApiClientResult<ListResponse<UserOrder>> {
+    ) -> ApiClientResult<ListResponse<OrderResponse>> {
         self.api_client
-            .get::<ListResponse<UserOrder>>(&format!("bot/customers/{telegram_id}/orders"))
+            .get::<ListResponse<OrderResponse>>(&format!("bot/customers/{telegram_id}/orders"))
+            .await
+    }
+
+    pub async fn get_order(&self, id: i64) -> ApiClientResult<OrderResponse> {
+        self.api_client
+            .get::<OrderResponse>(&format!("bot/orders/{id}"))
             .await
     }
 

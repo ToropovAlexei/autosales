@@ -1,14 +1,12 @@
+use crate::bot::keyboards::my_orders_menu::my_orders_inline_keyboard;
+use crate::bot::utils::edit_msg;
 use crate::{
     api::backend_api::BackendApi, bot::MyDialogue,
     bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard, errors::AppResult,
 };
 use std::sync::Arc;
-use teloxide::payloads::EditMessageTextSetters;
 use teloxide::{
-    dispatching::dialogue::GetChatId,
-    prelude::{Bot, Request, Requester},
-    types::{CallbackQuery, MaybeInaccessibleMessage, ParseMode},
-    utils::html::{bold, italic},
+    dispatching::dialogue::GetChatId, prelude::Bot, types::CallbackQuery, utils::html::bold,
 };
 
 pub async fn my_orders_handler(
@@ -21,65 +19,36 @@ pub async fn my_orders_handler(
         Some(chat_id) => chat_id,
         None => return Ok(()),
     };
-    let message_id = match &q.message {
-        Some(MaybeInaccessibleMessage::Regular(msg)) => msg.id,
-        Some(MaybeInaccessibleMessage::Inaccessible(_)) => return Ok(()),
-        None => return Ok(()),
-    };
 
-    match api_client.get_user_orders(chat_id.0).await {
+    let (msg, keyboard) = match api_client.get_user_orders(chat_id.0).await {
         Ok(orders) => {
             if orders.items.is_empty() {
-                bot.edit_message_text(chat_id, message_id, "У вас пока нет заказов.")
-                    .reply_markup(back_to_main_menu_inline_keyboard())
-                    .send()
-                    .await?;
-                return Ok(());
+                (
+                    "У вас пока нет заказов.".to_string(),
+                    back_to_main_menu_inline_keyboard(),
+                )
+            } else {
+                (
+                    format!("{}\n\n", bold("🧾 Ваши заказы:")),
+                    my_orders_inline_keyboard(&orders.items),
+                )
             }
-
-            let mut response_text = format!("{}\n\n", bold("🧾 Ваши заказы:"));
-
-            for order in orders.items {
-                let product_name = order.product_name;
-                let created_formatted = order.created_at.format("%d.%m.%Y %H:%M").to_string();
-
-                response_text.push_str(&format!(
-                    "🔹 {} - {} ₽\n",
-                    bold(&product_name),
-                    order.amount
-                ));
-                response_text.push_str(&format!("   {}\n", italic(&created_formatted)));
-
-                if let Some(fulfilled_content) = order.fulfilled_content {
-                    response_text.push_str(&format!(
-                        "   {}\n<pre>{}</pre>\n",
-                        bold("Ваш товар:"),
-                        fulfilled_content
-                    ));
-                }
-
-                response_text.push('\n');
-            }
-
-            bot.edit_message_text(chat_id, message_id, response_text)
-                .parse_mode(ParseMode::Html)
-                .reply_markup(back_to_main_menu_inline_keyboard())
-                .send()
-                .await?;
         }
-        Err(err) => {
-            tracing::error!("Error getting user orders: {err}");
-            bot.edit_message_text(
-                chat_id,
-                message_id,
-                "Произошла ошибка при получении заказов. Попробуйте позже.",
-            )
-            .parse_mode(ParseMode::Html)
-            .reply_markup(back_to_main_menu_inline_keyboard())
-            .send()
-            .await?;
-        }
-    }
+        Err(_) => (
+            "Произошла ошибка при получении заказов. Попробуйте позже.".to_string(),
+            back_to_main_menu_inline_keyboard(),
+        ),
+    };
+
+    edit_msg(
+        &api_client,
+        &bot,
+        &crate::bot::utils::MsgBy::CallbackQuery(&q),
+        &msg,
+        None,
+        keyboard,
+    )
+    .await?;
 
     Ok(())
 }

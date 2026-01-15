@@ -119,7 +119,7 @@ impl PurchaseServiceTrait
         TransactionService<TransactionRepository>,
         CustomerService<CustomerRepository, AuditLogServiceShort>,
         OrderItemService<OrderItemRepository, StockMovementRepository>,
-        OrderService<OrderRepository>,
+        OrderService<OrderRepository, OrderItemRepository>,
         ProductServiceShort,
         ContmsProductsProvider,
         UserSubscriptionService<UserSubscriptionRepository>,

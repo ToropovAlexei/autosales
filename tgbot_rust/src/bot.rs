@@ -28,7 +28,8 @@ use crate::{
             fallback_bot_msg::fallback_bot_msg, main_menu::main_menu_handler,
             my_bots::my_bots_handler, my_orders::my_orders_handler,
             my_payments::my_payments_handler, my_subscriptions::my_subscriptions_handler,
-            product::product_handler, start::start_handler, support::support_handler,
+            order_details::order_details_handler, product::product_handler, start::start_handler,
+            support::support_handler,
         },
         keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard,
     },
@@ -140,6 +141,7 @@ pub enum CallbackData {
     ToSupport,
     ToProduct { id: i64 },
     ToDepositConfirm { id: i64 },
+    ToOrderDetails { id: i64 },
     Buy { id: i64 },
 }
 
@@ -344,6 +346,9 @@ pub async fn run_bot(
                         .await
                         .map_err(AppError::from)?;
                     deposit_confirm_handler(bot, q, dialogue, api_client, new_state).await?;
+                }
+                CallbackData::ToOrderDetails { id } => {
+                    order_details_handler(bot, dialogue, q, api_client, id).await?;
                 }
                 CallbackData::Buy { id } => {
                     buy_handler(bot, q, api_client, id).await?;

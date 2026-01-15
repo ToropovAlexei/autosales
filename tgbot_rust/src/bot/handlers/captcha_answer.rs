@@ -66,7 +66,7 @@ pub async fn captcha_answer_handler(
                 &MsgBy::CallbackQuery(&q),
                 &settings
                     .bot_messages_new_user_welcome
-                    .replace("{username}", &&q.from.first_name),
+                    .replace("{username}", &q.from.first_name),
                 welcome_msg_img,
                 main_menu_inline_keyboard(settings.referral_program_enabled),
             )

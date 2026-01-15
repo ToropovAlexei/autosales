@@ -12,6 +12,7 @@ use crate::{
 pub trait OrderItemRepositoryTrait {
     async fn create(&self, order_item: NewOrderItem) -> RepositoryResult<OrderItemRow>;
     async fn get_for_order(&self, id: i64) -> RepositoryResult<Vec<OrderItemRow>>;
+    async fn get_for_orders(&self, ids: Vec<i64>) -> RepositoryResult<Vec<OrderItemRow>>;
 }
 
 #[derive(Clone)]
@@ -59,6 +60,18 @@ impl OrderItemRepositoryTrait for OrderItemRepository {
             OrderItemRow,
             "SELECT * FROM order_items WHERE order_id = $1",
             id
+        )
+        .fetch_all(&*self.pool)
+        .await?;
+
+        Ok(result)
+    }
+
+    async fn get_for_orders(&self, ids: Vec<i64>) -> RepositoryResult<Vec<OrderItemRow>> {
+        let result = sqlx::query_as!(
+            OrderItemRow,
+            "SELECT * FROM order_items WHERE order_id = ANY($1)",
+            &ids
         )
         .fetch_all(&*self.pool)
         .await?;
