@@ -25,7 +25,8 @@ pub trait UserSubscriptionRepositoryTrait {
         &self,
         user_subscription: NewUserSubscription,
     ) -> RepositoryResult<UserSubscriptionRow>;
-    async fn get_for_user(&self, id: i64) -> RepositoryResult<Vec<UserSubscriptionEnrichedRow>>;
+    async fn get_for_customer(&self, id: i64)
+    -> RepositoryResult<Vec<UserSubscriptionEnrichedRow>>;
 }
 
 #[derive(Clone)]
@@ -90,7 +91,10 @@ impl UserSubscriptionRepositoryTrait for UserSubscriptionRepository {
         Ok(result)
     }
 
-    async fn get_for_user(&self, id: i64) -> RepositoryResult<Vec<UserSubscriptionEnrichedRow>> {
+    async fn get_for_customer(
+        &self,
+        id: i64,
+    ) -> RepositoryResult<Vec<UserSubscriptionEnrichedRow>> {
         let result = sqlx::query_as!(
             UserSubscriptionEnrichedRow,
             r#"
@@ -268,7 +272,7 @@ mod tests {
 
         repo.create(new_sub).await.unwrap();
 
-        let subs = repo.get_for_user(customer.id).await.unwrap();
+        let subs = repo.get_for_customer(customer.id).await.unwrap();
         assert_eq!(subs.len(), 1);
         assert_eq!(subs[0].product_id, Some(product.id));
         assert_eq!(subs[0].product_name, Some(product.name));

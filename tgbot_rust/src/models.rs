@@ -4,6 +4,7 @@ pub mod common;
 pub mod customer;
 pub mod payment;
 pub mod product;
+pub mod purchase;
 pub mod settings;
 pub mod user_subscription;
 
@@ -40,13 +41,5 @@ pub struct UserOrder {
     pub product_name: String,
     pub amount: f64,
     pub created_at: chrono::DateTime<chrono::Utc>,
-    pub fulfilled_content: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct BuyResponse {
-    pub balance: f64,
-    pub product_name: String,
-    pub product_price: f64,
     pub fulfilled_content: Option<String>,
 }

@@ -1,5 +1,5 @@
 use rust_decimal::Decimal;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
 
 #[derive(FromRow, Debug, Clone, Serialize)]
@@ -17,7 +17,7 @@ pub struct OrderItemRow {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct NewOrderItem {
     pub order_id: i64,
     pub product_id: i64,

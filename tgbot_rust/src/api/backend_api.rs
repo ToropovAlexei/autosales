@@ -7,13 +7,14 @@ use uuid::Uuid;
 use crate::{
     api::{api_client::ApiClient, api_errors::ApiClientResult},
     models::{
-        BuyResponse, InvoiceResponse, ListResponse, UserOrder,
+        InvoiceResponse, ListResponse, UserOrder,
         bot::Bot,
         category::Category,
         common::CaptchaResponse,
         customer::Customer,
         payment::{PaymentGateway, PaymentInvoiceResponse, PaymentSystem},
         product::Product,
+        purchase::PurchaseResponse,
         settings::Settings,
         user_subscription::UserSubscription,
     },
@@ -191,10 +192,10 @@ impl BackendApi {
         &self,
         telegram_id: i64,
         product_id: i64,
-    ) -> ApiClientResult<BuyResponse> {
+    ) -> ApiClientResult<PurchaseResponse> {
         self.api_client
-            .post_with_body::<BuyResponse, _>(
-                "buy/product",
+            .post_with_body::<PurchaseResponse, _>(
+                "bot/orders",
                 &json!({
                     "telegram_id": telegram_id,
                     "product_id": product_id,

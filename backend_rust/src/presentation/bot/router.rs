@@ -4,7 +4,7 @@ use axum::Router;
 
 use crate::{
     presentation::bot::handlers::{
-        bot, can_operate, captcha, category, customer, gateway, invoice, product, settings,
+        bot, can_operate, captcha, category, customer, gateway, invoice, order, product, settings,
     },
     state::AppState,
 };
@@ -20,4 +20,5 @@ pub fn router() -> Router<Arc<AppState>> {
         .nest("/customers", customer::router())
         .nest("/gateways", gateway::router())
         .nest("/invoices", invoice::router())
+        .nest("/orders", order::router())
 }

@@ -5,6 +5,7 @@ pub mod category;
 pub mod customer;
 pub mod gateway;
 pub mod invoice;
+pub mod order;
 pub mod product;
 pub mod settings;
 pub mod user_subscription;

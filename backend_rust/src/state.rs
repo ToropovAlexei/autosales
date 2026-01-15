@@ -15,12 +15,13 @@ use crate::{
         active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
         audit_log::AuditLogRepository, bot::BotRepository, category::CategoryRepository,
         customer::CustomerRepository, effective_permission::EffectivePermissionRepository,
-        image::ImageRepository, order::OrderRepository, payment_invoice::PaymentInvoiceRepository,
-        permission::PermissionRepository, products::ProductRepository, role::RoleRepository,
+        image::ImageRepository, order::OrderRepository, order_item::OrderItemRepository,
+        payment_invoice::PaymentInvoiceRepository, permission::PermissionRepository,
+        products::ProductRepository, role::RoleRepository,
         role_permission::RolePermissionRepository, settings::SettingsRepository,
         stock_movement::StockMovementRepository, temporary_token::TemporaryTokenRepository,
         transaction::TransactionRepository, user_permission::UserPermissionRepository,
-        user_role::UserRoleRepository,
+        user_role::UserRoleRepository, user_subscription::UserSubscriptionRepository,
     },
     services::{
         admin_user::AdminUserService,
@@ -33,16 +34,19 @@ use crate::{
         image::ImageService,
         notification_service::NotificationService,
         order::OrderService,
+        order_item::OrderItemService,
         payment_invoice::PaymentInvoiceService,
         payment_processing_service::PaymentProcessingService,
         permission::PermissionService,
         product::ProductService,
+        purchase::PurchaseService,
         role::RoleService,
         role_permission::RolePermissionService,
         settings::SettingsService,
         stock_movement::StockMovementService,
         topt_encryptor::TotpEncryptor,
         transaction::TransactionService,
+        user_subscription::UserSubscriptionService,
     },
 };
 
@@ -58,6 +62,8 @@ type ProductServiceShortType = ProductService<
     CategoryServiceShortType,
 >;
 
+type TransactionServiceShortType = TransactionService<TransactionRepository>;
+
 type CustomerServiceShortType = CustomerService<CustomerRepository, AuditLogShortType>;
 
 type PaymentInvoiceShortType = PaymentInvoiceService<
@@ -65,6 +71,18 @@ type PaymentInvoiceShortType = PaymentInvoiceService<
     AuditLogShortType,
     MockPaymentsProvider,
     SettingsRepository,
+>;
+
+type OrderItemServiceShortType = OrderItemService<OrderItemRepository, StockMovementRepository>;
+
+type PurchaseServiceShortType = PurchaseService<
+    TransactionServiceShortType,
+    CustomerServiceShortType,
+    OrderItemServiceShortType,
+    OrderService<OrderRepository>,
+    ProductServiceShortType,
+    ContmsProductsProvider,
+    UserSubscriptionService<UserSubscriptionRepository>,
 >;
 
 #[derive(Clone)]
@@ -80,7 +98,7 @@ pub struct AppState {
             EffectivePermissionRepository,
         >,
     >,
-    pub category_service: Arc<CategoryService<CategoryRepository, AuditLogShortType>>,
+    pub category_service: Arc<CategoryServiceShortType>,
     pub admin_user_service:
         Arc<AdminUserService<AdminUserRepository, UserRoleRepository, AuditLogShortType>>,
     pub role_service: Arc<RoleService<RoleRepository>>,
@@ -102,12 +120,15 @@ pub struct AppState {
     pub notification_service: Arc<NotificationService>,
     pub payment_processing_service: Arc<
         PaymentProcessingService<
-            TransactionService<TransactionRepository>,
+            TransactionServiceShortType,
             PaymentInvoiceShortType,
             NotificationService,
             CustomerServiceShortType,
         >,
     >,
+    pub order_item_service: Arc<OrderItemServiceShortType>,
+    pub user_subscription_service: Arc<UserSubscriptionService<UserSubscriptionRepository>>,
+    pub purchase_service: Arc<PurchaseServiceShortType>,
     pub client: Arc<reqwest::Client>,
     #[cfg(feature = "contms-provider")]
     pub contms_products_provider: Arc<ContmsProductsProvider>,
@@ -214,6 +235,10 @@ impl AppState {
             client.clone(),
             config.captcha_api_url.clone(),
         ));
+        let order_item_service = Arc::new(OrderItemService::new(
+            Arc::new(OrderItemRepository::new(db_pool.clone())),
+            stock_movement_repo.clone(),
+        ));
         #[cfg(feature = "mock-payments-provider")]
         let mock_payments_provider = Arc::new(MockPaymentsProvider::new(
             client.clone(),
@@ -248,6 +273,18 @@ impl AppState {
             notification_service.clone(),
             customer_service.clone(),
         ));
+        let user_subscription_service = Arc::new(UserSubscriptionService::new(Arc::new(
+            UserSubscriptionRepository::new(db_pool.clone()),
+        )));
+        let purchase_service = Arc::new(PurchaseService::new(
+            transaction_service.clone(),
+            customer_service.clone(),
+            product_service.clone(),
+            order_service.clone(),
+            order_item_service.clone(),
+            contms_products_provider.clone(),
+            user_subscription_service.clone(),
+        ));
 
         Self {
             db,
@@ -273,6 +310,9 @@ impl AppState {
             notification_service,
             payment_processing_service,
             redis_pool,
+            order_item_service,
+            purchase_service,
+            user_subscription_service,
             #[cfg(feature = "contms-provider")]
             contms_products_provider,
             #[cfg(feature = "mock-payments-provider")]

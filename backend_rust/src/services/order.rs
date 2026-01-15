@@ -7,7 +7,7 @@ use crate::{
     infrastructure::repositories::order::{OrderRepository, OrderRepositoryTrait},
     models::{
         common::PaginatedResult,
-        order::{OrderListQuery, OrderRow},
+        order::{NewOrder, OrderListQuery, OrderRow},
     },
 };
 
@@ -15,6 +15,7 @@ use crate::{
 pub trait OrderServiceTrait: Send + Sync {
     async fn get_list(&self, query: OrderListQuery) -> ApiResult<PaginatedResult<OrderRow>>;
     async fn get_by_id(&self, id: i64) -> ApiResult<OrderRow>;
+    async fn create(&self, order: NewOrder) -> ApiResult<OrderRow>;
 }
 
 pub struct OrderService<R> {
@@ -41,6 +42,11 @@ impl OrderServiceTrait for OrderService<OrderRepository> {
 
     async fn get_by_id(&self, id: i64) -> ApiResult<OrderRow> {
         let res = self.order_repo.get_by_id(id).await?;
+        Ok(res)
+    }
+
+    async fn create(&self, order: NewOrder) -> ApiResult<OrderRow> {
+        let res = self.order_repo.create(order).await?;
         Ok(res)
     }
 }
