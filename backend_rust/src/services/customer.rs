@@ -37,6 +37,7 @@ pub trait CustomerServiceTrait: Send + Sync {
     async fn get_by_id(&self, id: i64) -> ApiResult<CustomerRow>;
     async fn get_by_telegram_id(&self, id: i64) -> ApiResult<CustomerRow>;
     async fn update(&self, command: UpdateCustomerCommand) -> ApiResult<CustomerRow>;
+    async fn update_last_seen(&self, id: i64, bot_id: i64) -> ApiResult<CustomerRow>;
 }
 
 pub struct CustomerService<R, A> {
@@ -115,6 +116,24 @@ impl CustomerServiceTrait
                 request_id: command.ctx.clone().map(|ctx| ctx.request_id),
                 user_agent: command.ctx.and_then(|ctx| ctx.user_agent),
             })
+            .await?;
+
+        Ok(updated)
+    }
+
+    async fn update_last_seen(&self, id: i64, bot_id: i64) -> ApiResult<CustomerRow> {
+        let updated = self
+            .customer_repo
+            .update(
+                id,
+                UpdateCustomer {
+                    bot_is_blocked_by_user: None,
+                    has_passed_captcha: None,
+                    is_blocked: None,
+                    last_seen_at: Some(Utc::now()),
+                    last_seen_with_bot: Some(bot_id),
+                },
+            )
             .await?;
 
         Ok(updated)
