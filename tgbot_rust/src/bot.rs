@@ -232,6 +232,11 @@ pub async fn run_bot(
                 None => return Ok(()),
             };
 
+            let telegram_id = q.from.id;
+            api_client
+                .update_customer_last_seen(telegram_id.0 as i64)
+                .await?;
+
             match data {
                 CallbackData::AnswerCaptcha { .. } => {
                     captcha_answer_handler(bot, dialogue, q, api_client).await?;

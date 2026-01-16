@@ -236,4 +236,10 @@ impl BackendApi {
     pub async fn get_captcha(&self) -> ApiClientResult<CaptchaResponse> {
         self.api_client.get::<CaptchaResponse>("bot/captcha").await
     }
+
+    pub async fn update_customer_last_seen(&self, telegram_id: i64) -> ApiClientResult<()> {
+        self.api_client
+            .post(&format!("bot/customers/{telegram_id}/update-last-seen"))
+            .await
+    }
 }

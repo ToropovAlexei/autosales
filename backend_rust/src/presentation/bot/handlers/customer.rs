@@ -5,6 +5,7 @@ use axum::{
     extract::{Path, State},
     routing::{get, post},
 };
+use chrono::Utc;
 
 use crate::{
     errors::api::ApiResult,
@@ -32,6 +33,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/{telegram_id}", get(get_customer).patch(update_customer))
         .route("/{telegram_id}/invoices", get(get_customer_invoices))
         .route("/{telegram_id}/orders", get(get_customer_orders))
+        .route(
+            "/{telegram_id}/update-last-seen",
+            post(update_customer_last_seen),
+        )
 }
 
 #[utoipa::path(
@@ -180,4 +185,40 @@ async fn get_customer_orders(
             .map(EnrichedOrderResponse::from)
             .collect(),
     }))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/bot/customers/{telegram_id}/update-last-seen",
+    tag = "Customers",
+    responses(
+        (status = 200, description = "Update last seen"),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
+async fn update_customer_last_seen(
+    State(state): State<Arc<AppState>>,
+    Path(telegram_id): Path<i64>,
+    bot: AuthBot,
+) -> ApiResult<Json<()>> {
+    let customer_id = state
+        .customer_service
+        .get_by_telegram_id(telegram_id)
+        .await?;
+    state
+        .customer_service
+        .update(UpdateCustomerCommand {
+            last_seen_with_bot: Some(bot.bot_id),
+            last_seen_at: Some(Utc::now()),
+            bot_is_blocked_by_user: None,
+            has_passed_captcha: None,
+            id: customer_id.id,
+            is_blocked: None,
+            updated_by: None,
+            ctx: None,
+        })
+        .await?;
+
+    Ok(Json(()))
 }
