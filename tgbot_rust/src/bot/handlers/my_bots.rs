@@ -1,6 +1,6 @@
 use crate::{
     AppState,
-    bot::{BotState, MyDialogue},
+    bot::{BotState, BotStep, MyDialogue},
     errors::AppResult,
 };
 use teloxide::prelude::*;
@@ -10,10 +10,14 @@ pub async fn my_bots_handler(
     dialogue: MyDialogue,
     _app_state: AppState,
 ) -> AppResult<()> {
+    let state_data = dialogue.get().await?.unwrap_or_default();
     bot.send_message(dialogue.chat_id(), "Please send me the token of your bot.")
         .await?;
     dialogue
-        .update(BotState::WaitingForReferralBotToken)
+        .update(BotState {
+            step: BotStep::WaitingForReferralBotToken,
+            ..state_data
+        })
         .await?;
     Ok(())
 }
@@ -24,6 +28,7 @@ pub async fn referral_bot_token_handler(
     msg: Message,
     app_state: AppState,
 ) -> AppResult<()> {
+    let state_data = dialogue.get().await?.unwrap_or_default();
     let token = msg.text().unwrap_or_default();
     let telegram_id = msg.chat.id.0;
     match app_state.api.create_referral_bot(telegram_id, token).await {
@@ -42,6 +47,11 @@ pub async fn referral_bot_token_handler(
             .await?;
         }
     }
-    dialogue.update(BotState::MainMenu).await?;
+    dialogue
+        .update(BotState {
+            step: BotStep::MainMenu,
+            ..state_data
+        })
+        .await?;
     Ok(())
 }

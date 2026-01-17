@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use teloxide::{Bot, types::CallbackQuery};
 
+use crate::bot::MyDialogue;
 use crate::bot::utils::{MessageImage, MsgBy, edit_msg};
 use crate::models::product::Product;
 use crate::{
@@ -15,6 +16,7 @@ use crate::{
 
 pub async fn product_handler(
     bot: Bot,
+    dialogue: MyDialogue,
     q: CallbackQuery,
     api_client: Arc<BackendApi>,
     id: i64,
@@ -23,12 +25,13 @@ pub async fn product_handler(
 
     match product_result {
         Ok(product) => {
-            display_product(bot, q, api_client, &product).await?;
+            display_product(bot, dialogue, q, api_client, &product).await?;
         }
         Err(err) => {
             tracing::error!("Error getting product: {}", err);
             edit_msg(
                 &api_client,
+                &dialogue,
                 &bot,
                 &MsgBy::CallbackQuery(&q),
                 "Что-то пошло не так. Попробуйте позже.",
@@ -44,6 +47,7 @@ pub async fn product_handler(
 
 async fn display_product(
     bot: Bot,
+    dialogue: MyDialogue,
     q: CallbackQuery,
     api_client: Arc<BackendApi>,
     product: &Product,
@@ -71,6 +75,7 @@ async fn display_product(
 
     edit_msg(
         &api_client,
+        &dialogue,
         &bot,
         &MsgBy::CallbackQuery(&q),
         &caption,

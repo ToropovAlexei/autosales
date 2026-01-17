@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::api::backend_api::BackendApi;
 use crate::bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard;
 use crate::bot::utils::{MsgBy, edit_msg};
-use crate::bot::{BotState, CallbackData, InvoiceData, MockDetails, MyDialogue};
+use crate::bot::{BotState, BotStep, CallbackData, InvoiceData, MockDetails, MyDialogue};
 use crate::errors::AppResult;
 use teloxide::prelude::*;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
@@ -16,8 +16,8 @@ pub async fn deposit_confirm_handler(
     api_client: Arc<BackendApi>,
     bot_state: BotState,
 ) -> AppResult<()> {
-    let (gateway, amount, invoice_data) = match bot_state {
-        BotState::DepositConfirm {
+    let (gateway, amount, invoice_data) = match bot_state.step {
+        BotStep::DepositConfirm {
             gateway,
             amount,
             invoice,
@@ -41,6 +41,7 @@ pub async fn deposit_confirm_handler(
                     tracing::error!("Error creating invoice: {err}");
                     edit_msg(
                         &api_client,
+                        &dialogue,
                         &bot,
                         &MsgBy::CallbackQuery(&q),
                         "Что-то пошло не так. Попробуйте ещё раз.",
@@ -60,10 +61,13 @@ pub async fn deposit_confirm_handler(
     };
 
     dialogue
-        .update(BotState::DepositConfirm {
-            gateway: gateway.clone(),
-            amount,
-            invoice: Some(invoice_data.clone()),
+        .update(BotState {
+            step: BotStep::DepositConfirm {
+                gateway: gateway.clone(),
+                amount,
+                invoice: Some(invoice_data.clone()),
+            },
+            ..bot_state
         })
         .await?;
 
@@ -107,6 +111,7 @@ pub async fn deposit_confirm_handler(
 
     edit_msg(
         &api_client,
+        &dialogue,
         &bot,
         &MsgBy::CallbackQuery(&q),
         &text,

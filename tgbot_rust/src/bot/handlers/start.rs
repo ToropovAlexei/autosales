@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::bot::keyboards::captcha::captcha_keyboard_inline;
 use crate::bot::keyboards::main_menu::main_menu_inline_keyboard;
 use crate::bot::utils::{MessageImage, MsgBy, edit_msg};
-use crate::bot::{BotState, generate_captcha_and_options};
+use crate::bot::{BotState, BotStep, generate_captcha_and_options};
 use crate::{api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult};
 use teloxide::Bot;
 use teloxide::types::{InlineKeyboardMarkup, Message};
@@ -14,6 +14,7 @@ pub async fn start_handler(
     msg: Message,
     api_client: Arc<BackendApi>,
 ) -> AppResult<()> {
+    let state_data = dialogue.get().await?.unwrap_or_default();
     let user_id = msg.chat.id;
     let user = match api_client.ensure_user(user_id.0).await {
         Ok(res) => res,
@@ -21,6 +22,7 @@ pub async fn start_handler(
             tracing::error!("Error getting user: {user_id}, {err}");
             edit_msg(
                 &api_client,
+                &dialogue,
                 &bot,
                 &MsgBy::Message(&msg),
                 "Произошла непредвиденная ошибка. Попробуйте позже.",
@@ -36,6 +38,7 @@ pub async fn start_handler(
         tracing::info!("User is blocked: {user_id}");
         edit_msg(
             &api_client,
+            &dialogue,
             &bot,
             &MsgBy::Message(&msg),
             "Ваш аккаунт заблокирован",
@@ -54,6 +57,7 @@ pub async fn start_handler(
                     tracing::error!("Error generating captcha: {e}");
                     edit_msg(
                         &api_client,
+                        &dialogue,
                         &bot,
                         &MsgBy::Message(&msg),
                         "Что-то пошло не так. Попробуйте ещё раз",
@@ -69,6 +73,7 @@ pub async fn start_handler(
 
         edit_msg(
             &api_client,
+            &dialogue,
             &bot,
             &MsgBy::Message(&msg),
             "Пожалуйста, решите капчу, чтобы продолжить:",
@@ -78,14 +83,22 @@ pub async fn start_handler(
         .await?;
 
         dialogue
-            .update(BotState::WaitingForCaptcha {
-                correct_answer: captcha_text,
+            .update(BotState {
+                step: BotStep::WaitingForCaptcha {
+                    correct_answer: captcha_text,
+                },
+                ..state_data
             })
             .await?;
         return Ok(());
     }
 
-    dialogue.update(BotState::MainMenu).await?;
+    dialogue
+        .update(BotState {
+            step: BotStep::MainMenu,
+            ..state_data
+        })
+        .await?;
 
     let referral_program_enabled = api_client.is_referral_program_enabled().await;
     let settings = api_client.get_settings().await?;
@@ -113,6 +126,7 @@ pub async fn start_handler(
 
     edit_msg(
         &api_client,
+        &dialogue,
         &bot,
         &MsgBy::Message(&msg),
         &welcome_msg,

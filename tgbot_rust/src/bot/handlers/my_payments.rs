@@ -30,6 +30,7 @@ pub async fn my_payments_handler(
         Err(_) => {
             edit_msg(
                 &api_client,
+                &dialogue,
                 &bot,
                 &MsgBy::CallbackQuery(&q),
                 "Не удалось загрузить историю платежей. Попробуйте позже.",
@@ -70,6 +71,7 @@ pub async fn my_payments_handler(
 
     edit_msg(
         &api_client,
+        &dialogue,
         &bot,
         &MsgBy::CallbackQuery(&q),
         &text,

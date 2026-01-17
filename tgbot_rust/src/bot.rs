@@ -11,9 +11,8 @@ use teloxide::{
     },
     dptree,
     macros::BotCommands,
-    payloads::{SendMessageSetters, SendPhotoSetters},
-    prelude::{Dialogue, Dispatcher, Request, Requester},
-    types::{CallbackQuery, ChatId, InputFile, Message, ParseMode, Update},
+    prelude::{Dialogue, Dispatcher, Requester},
+    types::{CallbackQuery, ChatId, Message, MessageId, Update},
 };
 use tokio_stream::StreamExt;
 
@@ -32,6 +31,7 @@ use crate::{
             support::support_handler,
         },
         keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard,
+        utils::{MessageImage, send_msg},
     },
     errors::{AppError, AppResult},
     models::{DispatchMessagePayload, payment::PaymentSystem},
@@ -68,7 +68,7 @@ pub struct MockDetails {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 #[serde(tag = "t", content = "c")]
-pub enum BotState {
+pub enum BotStep {
     #[default]
     Initial,
     WaitingForCaptcha {
@@ -97,6 +97,13 @@ pub enum BotState {
     Product {
         id: i64,
     },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+pub struct BotState {
+    pub last_bot_msg_id: Option<i64>,
+    pub last_user_msg_id: Option<i64>,
+    pub step: BotStep,
 }
 
 impl BotState {
@@ -206,6 +213,7 @@ pub async fn run_bot(
         redis_url,
         bot_id,
         client.clone(),
+        storage.clone(),
     ));
 
     let handler = Update::filter_message()
@@ -216,7 +224,7 @@ pub async fn run_bot(
                 .endpoint(command_handler),
         )
         .branch(
-            dptree::filter(|state: BotState| state == BotState::WaitingForReferralBotToken)
+            dptree::filter(|state: BotState| state.step == BotStep::WaitingForReferralBotToken)
                 .endpoint(handlers::my_bots::referral_bot_token_handler),
         );
 
@@ -243,20 +251,26 @@ pub async fn run_bot(
                 }
                 CallbackData::SelectGateway { gateway } => {
                     dialogue
-                        .update(BotState::DepositSelectAmount { gateway })
+                        .update(BotState {
+                            step: BotStep::DepositSelectAmount { gateway },
+                            ..bot_state
+                        })
                         .await
                         .map_err(AppError::from)?;
                     deposit_amount_handler(bot, dialogue, q, api_client, bot_state).await?;
                 }
                 CallbackData::SelectAmount { amount } => {
-                    let gateway = match &bot_state {
-                        BotState::DepositSelectAmount { gateway } => gateway.clone(),
+                    let gateway = match &bot_state.step {
+                        BotStep::DepositSelectAmount { gateway } => gateway.clone(),
                         _ => return Ok(()),
                     };
-                    let new_state = BotState::DepositConfirm {
-                        gateway,
-                        amount,
-                        invoice: None,
+                    let new_state = BotState {
+                        step: BotStep::DepositConfirm {
+                            gateway,
+                            amount,
+                            invoice: None,
+                        },
+                        ..bot_state
                     };
                     dialogue
                         .update(new_state.clone())
@@ -266,85 +280,119 @@ pub async fn run_bot(
                 }
                 CallbackData::ToMainMenu => {
                     dialogue
-                        .update(BotState::MainMenu)
+                        .update(BotState {
+                            step: BotStep::MainMenu,
+                            ..bot_state
+                        })
                         .await
                         .map_err(AppError::from)?;
                     main_menu_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToDepositSelectGateway => {
                     dialogue
-                        .update(BotState::DepositSelectGateway)
+                        .update(BotState {
+                            step: BotStep::DepositSelectGateway,
+                            ..bot_state
+                        })
                         .await
                         .map_err(AppError::from)?;
                     deposit_gateway_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToBalance => {
                     dialogue
-                        .update(BotState::Balance)
+                        .update(BotState {
+                            step: BotStep::Balance,
+                            ..bot_state
+                        })
                         .await
                         .map_err(AppError::from)?;
                     balance_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToMyOrders => {
                     dialogue
-                        .update(BotState::MyOrders)
+                        .update(BotState {
+                            step: BotStep::MyOrders,
+                            ..bot_state
+                        })
                         .await
                         .map_err(AppError::from)?;
                     my_orders_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToMyPayments => {
                     dialogue
-                        .update(BotState::MyPayments)
+                        .update(BotState {
+                            step: BotStep::MyPayments,
+                            ..bot_state
+                        })
                         .await
                         .map_err(AppError::from)?;
                     my_payments_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToMySubscriptions => {
                     dialogue
-                        .update(BotState::MySubscriptions)
+                        .update(BotState {
+                            step: BotStep::MySubscriptions,
+                            ..bot_state
+                        })
                         .await
                         .map_err(AppError::from)?;
                     my_subscriptions_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToReferralProgram => {
                     dialogue
-                        .update(BotState::ReferralProgram)
+                        .update(BotState {
+                            step: BotStep::ReferralProgram,
+                            ..bot_state
+                        })
                         .await
                         .map_err(AppError::from)?;
                 }
                 CallbackData::ToSupport => {
                     dialogue
-                        .update(BotState::Support)
+                        .update(BotState {
+                            step: BotStep::Support,
+                            ..bot_state
+                        })
                         .await
                         .map_err(AppError::from)?;
                     support_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToCategory { category_id } => {
                     dialogue
-                        .update(BotState::Category { category_id })
+                        .update(BotState {
+                            step: BotStep::Category { category_id },
+                            ..bot_state
+                        })
                         .await
                         .map_err(AppError::from)?;
                     catalog_handler(bot, dialogue, q, api_client, category_id).await?;
                 }
                 CallbackData::ToProduct { id } => {
                     dialogue
-                        .update(BotState::Product { id })
+                        .update(BotState {
+                            step: BotStep::Product { id },
+                            ..bot_state
+                        })
                         .await
                         .map_err(AppError::from)?;
-                    product_handler(bot, q, api_client, id).await?;
+                    product_handler(bot, dialogue, q, api_client, id).await?;
                 }
                 CallbackData::ToDepositConfirm { id } => {
                     let invoice = api_client.get_invoice(id).await?;
-                    let new_state = BotState::DepositConfirm {
-                        gateway: invoice.gateway,
-                        amount: invoice.amount as i64,
-                        invoice: Some(InvoiceData {
-                            id,
-                            details: Some(
-                                serde_json::to_value(invoice.payment_details)
-                                    .map_err(|e| AppError::InternalServerError(e.to_string()))?,
-                            ),
-                        }),
+                    let new_state = BotState {
+                        step: BotStep::DepositConfirm {
+                            gateway: invoice.gateway,
+                            amount: invoice.amount as i64,
+                            invoice: Some(InvoiceData {
+                                id,
+                                details: Some(
+                                    serde_json::to_value(invoice.payment_details).map_err(|e| {
+                                        AppError::InternalServerError(e.to_string())
+                                    })?,
+                                ),
+                            }),
+                        },
+                        ..bot_state
                     };
                     dialogue
                         .update(new_state.clone())
@@ -356,7 +404,7 @@ pub async fn run_bot(
                     order_details_handler(bot, dialogue, q, api_client, id).await?;
                 }
                 CallbackData::Buy { id } => {
-                    buy_handler(bot, q, api_client, id).await?;
+                    buy_handler(bot, dialogue, q, api_client, id).await?;
                 }
             }
 
@@ -411,12 +459,22 @@ async fn command_handler(
     match cmd {
         Command::Start => {
             fallback_bot_msg(bot.clone(), msg.chat.id, fallback_bot_username).await?;
-            dialogue.update(BotState::Initial).await?;
+            dialogue
+                .update(BotState {
+                    step: BotStep::Initial,
+                    // TODO NOT DEFAULT!
+                    ..Default::default()
+                })
+                .await?;
             start_handler(bot, dialogue, msg, api_client).await
         }
         Command::MyBots => {
             dialogue
-                .update(BotState::WaitingForReferralBotToken)
+                .update(BotState {
+                    step: BotStep::WaitingForReferralBotToken,
+                    // TODO NOT DEFAULT!
+                    ..Default::default()
+                })
                 .await?;
             my_bots_handler(bot, dialogue, app_state).await
         }
@@ -428,6 +486,7 @@ async fn start_redis_listener(
     redis_url: String,
     bot_id: i64,
     api_client: Arc<BackendApi>,
+    storage: Arc<RedisStorage<Json>>,
 ) -> AppResult<()> {
     let channel = format!("bot-notifications:{bot_id}");
     tracing::info!("Subscribing to Redis channel: {channel}");
@@ -442,7 +501,7 @@ async fn start_redis_listener(
         if let Ok(payload_str) = msg.get_payload::<String>()
             && let Ok(parsed) = serde_json::from_str::<DispatchMessagePayload>(&payload_str)
         {
-            let res = handle_msg(bot.clone(), parsed, api_client.clone()).await;
+            let res = handle_msg(bot.clone(), parsed, api_client.clone(), storage.clone()).await;
             if let Err(e) = res {
                 tracing::error!("Error handling message: {e}");
             }
@@ -456,45 +515,26 @@ async fn handle_msg(
     bot: Bot,
     payload: DispatchMessagePayload,
     api_client: Arc<BackendApi>,
+    storage: Arc<RedisStorage<Json>>,
 ) -> AppResult<()> {
     let chat_id = ChatId(payload.telegram_id);
+    let dialogue = MyDialogue::new(storage, chat_id);
+    let state = dialogue.get_or_default().await.unwrap_or_default();
 
-    if let Some(image_id) = payload.image_id {
-        let bytes = api_client.get_image_bytes(&image_id).await?;
-        if let Err(e) = bot
-            .send_photo(chat_id, InputFile::memory(bytes))
-            .caption(payload.message)
-            .parse_mode(ParseMode::Html)
-            .reply_markup(back_to_main_menu_inline_keyboard())
-            .send()
-            .await
-        {
-            tracing::warn!(
-                "Failed to send notification to user {}. Error: {}",
-                chat_id,
-                e
-            );
-        } else {
-            tracing::info!("Sent notification to user {}", chat_id);
-        }
-        return Ok(());
+    if let Some(msg_id) = state.last_bot_msg_id {
+        // Ignore error is ok
+        let _ = bot.delete_message(chat_id, MessageId(msg_id as i32)).await;
     }
 
-    if let Err(e) = bot
-        .send_message(chat_id, payload.message)
-        .parse_mode(ParseMode::Html)
-        .reply_markup(back_to_main_menu_inline_keyboard())
-        .send()
-        .await
-    {
-        tracing::warn!(
-            "Failed to send notification to user {}. Error: {}",
-            chat_id,
-            e
-        );
-    } else {
-        tracing::info!("Sent notification to user {}", chat_id);
-    }
+    send_msg(
+        &api_client,
+        &dialogue,
+        &bot,
+        &payload.message,
+        payload.image_id.map(MessageImage::Uuid),
+        back_to_main_menu_inline_keyboard(),
+    )
+    .await?;
 
     Ok(())
 }

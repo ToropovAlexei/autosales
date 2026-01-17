@@ -14,7 +14,7 @@ use crate::{
 
 pub async fn support_handler(
     bot: Bot,
-    _dialogue: MyDialogue,
+    dialogue: MyDialogue,
     q: CallbackQuery,
     api_client: Arc<BackendApi>,
 ) -> AppResult<()> {
@@ -25,6 +25,7 @@ pub async fn support_handler(
 
     edit_msg(
         &api_client,
+        &dialogue,
         &bot,
         &MsgBy::CallbackQuery(&q),
         &settings.bot_messages_support,

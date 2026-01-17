@@ -14,7 +14,7 @@ use crate::{
 
 pub async fn main_menu_handler(
     bot: Bot,
-    _dialogue: MyDialogue,
+    dialogue: MyDialogue,
     q: CallbackQuery,
     api_client: Arc<BackendApi>,
 ) -> AppResult<()> {
@@ -22,6 +22,7 @@ pub async fn main_menu_handler(
 
     edit_msg(
         &api_client,
+        &dialogue,
         &bot,
         &MsgBy::CallbackQuery(&q),
         "Главное меню",

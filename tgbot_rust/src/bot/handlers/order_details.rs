@@ -16,7 +16,7 @@ use crate::{
 
 pub async fn order_details_handler(
     bot: Bot,
-    _dialogue: MyDialogue,
+    dialogue: MyDialogue,
     q: CallbackQuery,
     api_client: Arc<BackendApi>,
     id: i64,
@@ -60,6 +60,7 @@ pub async fn order_details_handler(
 
     edit_msg(
         &api_client,
+        &dialogue,
         &bot,
         &MsgBy::CallbackQuery(&q),
         &msg,

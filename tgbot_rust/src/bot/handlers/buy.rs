@@ -4,6 +4,7 @@ use teloxide::dispatching::dialogue::GetChatId;
 use teloxide::{Bot, types::CallbackQuery};
 
 use crate::api::api_errors::ApiClientError;
+use crate::bot::MyDialogue;
 use crate::bot::utils::{MessageImage, MsgBy, edit_msg};
 use crate::{
     api::backend_api::BackendApi,
@@ -12,6 +13,7 @@ use crate::{
 
 pub async fn buy_handler(
     bot: Bot,
+    dialogue: MyDialogue,
     q: CallbackQuery,
     api_client: Arc<BackendApi>,
     product_id: i64,
@@ -63,6 +65,7 @@ pub async fn buy_handler(
 
     edit_msg(
         &api_client,
+        &dialogue,
         &bot,
         &MsgBy::CallbackQuery(&q),
         &msg,

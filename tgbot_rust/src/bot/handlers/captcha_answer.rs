@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::bot::keyboards::captcha::captcha_keyboard_inline;
 use crate::bot::keyboards::main_menu::main_menu_inline_keyboard;
 use crate::bot::utils::{MessageImage, MsgBy, edit_msg};
-use crate::bot::{BotState, CallbackData, generate_captcha_and_options};
+use crate::bot::{BotState, BotStep, CallbackData, generate_captcha_and_options};
 use crate::{api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult};
 use teloxide::Bot;
 use teloxide::payloads::AnswerCallbackQuerySetters;
@@ -17,8 +17,8 @@ pub async fn captcha_answer_handler(
     api_client: Arc<BackendApi>,
 ) -> AppResult<()> {
     let state_data = dialogue.get().await?.unwrap_or_default();
-    let correct_answer = match &state_data {
-        BotState::WaitingForCaptcha { correct_answer } => correct_answer.clone(),
+    let correct_answer = match &state_data.step {
+        BotStep::WaitingForCaptcha { correct_answer } => correct_answer.clone(),
         _ => return Ok(()),
     };
 
@@ -55,13 +55,15 @@ pub async fn captcha_answer_handler(
         }
 
         if let Some(msg) = q.message.clone() {
-            bot.delete_message(msg.chat().id, msg.id()).await.ok();
+            // We can ignore error as it expected
+            let _ = bot.delete_message(msg.chat().id, msg.id()).await;
             let welcome_msg_img = settings
                 .bot_messages_new_user_welcome_image_id
                 .map(MessageImage::Uuid);
 
             edit_msg(
                 &api_client,
+                &dialogue,
                 &bot,
                 &MsgBy::CallbackQuery(&q),
                 &settings
@@ -93,13 +95,17 @@ pub async fn captcha_answer_handler(
                 }
             };
         dialogue
-            .update(BotState::WaitingForCaptcha {
-                correct_answer: new_correct_answer,
+            .update(BotState {
+                step: BotStep::WaitingForCaptcha {
+                    correct_answer: new_correct_answer,
+                },
+                ..state_data
             })
             .await?;
 
         edit_msg(
             &api_client,
+            &dialogue,
             &bot,
             &MsgBy::CallbackQuery(&q),
             "Пожалуйста, решите капчу, чтобы продолжить:",

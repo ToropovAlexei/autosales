@@ -13,6 +13,7 @@ use teloxide::types::{
 use uuid::Uuid;
 
 use crate::api::backend_api::BackendApi;
+use crate::bot::{BotState, MyDialogue};
 use crate::errors::{AppError, AppResult};
 
 use teloxide::Bot;
@@ -28,10 +29,42 @@ pub enum MessageImage {
     Bytes(Bytes),
 }
 
+/// Send message with or without photo
+pub async fn send_msg(
+    api_client: &Arc<BackendApi>,
+    dialogue: &MyDialogue,
+    bot: &Bot,
+    text: &str,
+    image: Option<MessageImage>,
+    reply_keyboard: InlineKeyboardMarkup,
+) -> AppResult<Message> {
+    let image_bytes = match image {
+        Some(MessageImage::Uuid(uuid)) => {
+            let bytes = api_client.get_image_bytes(&uuid).await?;
+            Some(bytes)
+        }
+        Some(MessageImage::Bytes(bytes)) => Some(bytes),
+        None => None,
+    };
+
+    let msg = send_msg_impl(bot, dialogue.chat_id(), text, image_bytes, reply_keyboard).await?;
+
+    let prev_state = dialogue.get_or_default().await.unwrap_or_default();
+    dialogue
+        .update(BotState {
+            last_bot_msg_id: Some(msg.id.0 as i64),
+            ..prev_state
+        })
+        .await?;
+
+    Ok(msg)
+}
+
 /// Edit msg, if edit is failed, send new message
 /// Automatically detect type of message
 pub async fn edit_msg(
     api_client: &Arc<BackendApi>,
+    dialogue: &MyDialogue,
     bot: &Bot,
     msg_by: &MsgBy<'_>,
     text: &str,
@@ -49,15 +82,43 @@ pub async fn edit_msg(
         Some(MessageImage::Bytes(bytes)) => Some(bytes),
         None => None,
     };
+    let msg = edit_msg_impl(
+        bot,
+        chat_id,
+        msg_id,
+        has_photo(msg_by),
+        text,
+        image_bytes,
+        reply_keyboard,
+    )
+    .await?;
+    let prev_state = dialogue.get_or_default().await.unwrap_or_default();
+    dialogue
+        .update(BotState {
+            last_bot_msg_id: Some(msg.id.0 as i64),
+            ..prev_state
+        })
+        .await?;
+    Ok(msg)
+}
+
+async fn edit_msg_impl(
+    bot: &Bot,
+    chat_id: ChatId,
+    msg_id: Option<MessageId>,
+    has_photo: bool,
+    text: &str,
+    image_bytes: Option<Bytes>,
+    reply_keyboard: InlineKeyboardMarkup,
+) -> AppResult<Message> {
     // Msg id found, try to edit it
     if let Some(msg_id) = msg_id {
         // Telegram does not allow to change type of message
-        let is_type_changed = image_bytes.is_some() != has_photo(msg_by);
+        let is_type_changed = image_bytes.is_some() != has_photo;
         if is_type_changed {
-            if let Err(e) = bot.delete_message(chat_id, msg_id).await {
-                tracing::error!("Failed to delete message: {:?}", e);
-            }
-            return send_msg(bot, chat_id, text, image_bytes, reply_keyboard).await;
+            // We can safely ignore error as it expected behavior
+            let _ = bot.delete_message(chat_id, msg_id).await;
+            return send_msg_impl(bot, chat_id, text, image_bytes, reply_keyboard).await;
         }
         return match image_bytes {
             Some(image_bytes) => {
@@ -75,11 +136,11 @@ pub async fn edit_msg(
         };
     }
     // If no msg id, just send new message
-    send_msg(bot, chat_id, text, image_bytes, reply_keyboard).await
+    send_msg_impl(bot, chat_id, text, image_bytes, reply_keyboard).await
 }
 
 /// Send message with or without photo
-async fn send_msg(
+async fn send_msg_impl(
     bot: &Bot,
     chat_id: ChatId,
     text: &str,

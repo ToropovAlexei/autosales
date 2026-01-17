@@ -11,7 +11,7 @@ use teloxide::{
 
 pub async fn my_orders_handler(
     bot: Bot,
-    _dialogue: MyDialogue,
+    dialogue: MyDialogue,
     q: CallbackQuery,
     api_client: Arc<BackendApi>,
 ) -> AppResult<()> {
@@ -42,6 +42,7 @@ pub async fn my_orders_handler(
 
     edit_msg(
         &api_client,
+        &dialogue,
         &bot,
         &crate::bot::utils::MsgBy::CallbackQuery(&q),
         &msg,
