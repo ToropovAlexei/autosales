@@ -15,6 +15,7 @@ export * from "./settings";
 export * from "./stock_movement";
 export * from "./transaction";
 export * from "./store_balance";
+export * from "./broadcast";
 
 export interface IFilter {
   page?: number;

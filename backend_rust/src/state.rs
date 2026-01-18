@@ -13,9 +13,10 @@ use crate::{
     db,
     infrastructure::repositories::{
         active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
-        audit_log::AuditLogRepository, bot::BotRepository, category::CategoryRepository,
-        customer::CustomerRepository, effective_permission::EffectivePermissionRepository,
-        image::ImageRepository, order::OrderRepository, order_item::OrderItemRepository,
+        audit_log::AuditLogRepository, bot::BotRepository, broadcast::BroadcastRepository,
+        category::CategoryRepository, customer::CustomerRepository,
+        effective_permission::EffectivePermissionRepository, image::ImageRepository,
+        order::OrderRepository, order_item::OrderItemRepository,
         payment_invoice::PaymentInvoiceRepository, permission::PermissionRepository,
         products::ProductRepository, role::RoleRepository,
         role_permission::RolePermissionRepository, settings::SettingsRepository,
@@ -28,6 +29,7 @@ use crate::{
         audit_log::AuditLogService,
         auth::{AuthService, AuthServiceConfig},
         bot::BotService,
+        broadcast::BroadcastService,
         captcha::CaptchaService,
         category::CategoryService,
         customer::CustomerService,
@@ -118,6 +120,7 @@ pub struct AppState {
     pub captcha_service: Arc<CaptchaService>,
     pub payment_invoice_service: Arc<PaymentInvoiceShortType>,
     pub notification_service: Arc<NotificationService>,
+    pub broadcast_service: Arc<BroadcastService<BroadcastRepository, AuditLogShortType>>,
     pub payment_processing_service: Arc<
         PaymentProcessingService<
             TransactionServiceShortType,
@@ -287,6 +290,10 @@ impl AppState {
             contms_products_provider.clone(),
             user_subscription_service.clone(),
         ));
+        let broadcast_service = Arc::new(BroadcastService::new(
+            Arc::new(BroadcastRepository::new(db_pool.clone())),
+            audit_logs_service.clone(),
+        ));
 
         Self {
             db,
@@ -315,6 +322,7 @@ impl AppState {
             order_item_service,
             purchase_service,
             user_subscription_service,
+            broadcast_service,
             #[cfg(feature = "contms-provider")]
             contms_products_provider,
             #[cfg(feature = "mock-payments-provider")]

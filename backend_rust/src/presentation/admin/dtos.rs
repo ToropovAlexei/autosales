@@ -2,6 +2,7 @@ pub mod admin_user;
 pub mod audit_log;
 pub mod auth;
 pub mod bot;
+pub mod broadcast;
 pub mod category;
 pub mod customer;
 pub mod image;

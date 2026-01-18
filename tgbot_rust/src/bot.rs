@@ -1,4 +1,4 @@
-use std::{result::Result::Ok, sync::Arc};
+use std::{result::Result::Ok, sync::Arc, time::Duration};
 
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use bytes::Bytes;
@@ -496,14 +496,25 @@ async fn start_redis_listener(
     let mut pubsub = conn.get_async_pubsub().await?;
     pubsub.subscribe(&channel).await?;
     let mut msg_stream = pubsub.on_message();
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<DispatchMessagePayload>();
+
+    tokio::spawn(async move {
+        while let Some(payload) = rx.recv().await {
+            let res = handle_msg(bot.clone(), payload, api_client.clone(), storage.clone()).await;
+            if let Err(e) = res {
+                tracing::error!("Error handling message: {e}");
+            }
+            // Because of the telegram rate limit https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
+    });
 
     while let Some(msg) = msg_stream.next().await {
         if let Ok(payload_str) = msg.get_payload::<String>()
             && let Ok(parsed) = serde_json::from_str::<DispatchMessagePayload>(&payload_str)
         {
-            let res = handle_msg(bot.clone(), parsed, api_client.clone(), storage.clone()).await;
-            if let Err(e) = res {
-                tracing::error!("Error handling message: {e}");
+            if let Err(e) = tx.send(parsed) {
+                tracing::error!("Error sending message: {e}");
             }
         }
     }

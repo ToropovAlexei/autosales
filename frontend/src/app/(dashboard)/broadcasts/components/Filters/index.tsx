@@ -24,10 +24,10 @@ export const Filters = () => {
         <InputDateTime name="last_seen_after" label="Последнее посещение с" />
         <InputDateTime name="last_seen_before" label="Последнее посещение по" />
         <InputSelect
-          name="bot_name"
+          name="last_seen_with_bot"
           label="Название бота"
           options={bots?.data.map((bot) => ({
-            value: bot.username,
+            value: bot.id,
             label: bot.username,
           }))}
           withNone

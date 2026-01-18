@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::Deserializer;
 use serde::{Deserialize, Serialize};
 use serde_with::DisplayFromStr;
@@ -70,6 +71,7 @@ pub enum ScalarValue {
     Text(String),
     Uuid(Uuid),
     Bool(bool),
+    DateTime(DateTime<Utc>),
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -171,6 +173,10 @@ impl<'de> Deserialize<'de> for ScalarValue {
 
         if s == "true" || s == "false" {
             return Ok(ScalarValue::Bool(s == "true"));
+        }
+
+        if let Ok(dt) = s.parse::<DateTime<Utc>>() {
+            return Ok(ScalarValue::DateTime(dt));
         }
 
         if let Ok(uuid) = Uuid::parse_str(&s) {

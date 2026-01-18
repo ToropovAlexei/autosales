@@ -7,5 +7,5 @@ export interface BroadcastForm {
   registered_before?: string | null;
   last_seen_after?: string | null;
   last_seen_before?: string | null;
-  bot_name?: string | null;
+  last_seen_with_bot?: bigint | null;
 }

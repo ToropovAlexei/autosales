@@ -32,6 +32,7 @@ use backend_rust::{
     },
     run_migrations,
     state::AppState,
+    workers::broadcasts::broadcasts_task,
 };
 
 #[derive(OpenApi)]
@@ -132,6 +133,8 @@ async fn main() -> anyhow::Result<()> {
 
     #[cfg(feature = "contms-provider")]
     tokio::spawn(contms_products_sync_task(app_state.clone()));
+
+    tokio::spawn(broadcasts_task(app_state.clone()));
 
     let app = create_app(app_state.clone())
         .merge(SwaggerUi::new("/swagger-ui").url("/openapi.json", ApiDoc::openapi()));

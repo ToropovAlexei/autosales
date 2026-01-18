@@ -5,7 +5,7 @@ use serde::Deserialize;
 use urlencoding::decode;
 
 use crate::{
-    errors::api::ApiError,
+    errors::api::{ApiError, ApiResult},
     models::common::{
         AllowedField, Filter, FilterValue, ListQuery, Operator, OrderDir, Pagination,
     },
@@ -13,7 +13,7 @@ use crate::{
 
 /// A raw version of Filter used for initial deserialization
 #[derive(Debug, Deserialize)]
-struct RawFilter {
+pub struct RawFilter {
     field: String,
     op: Operator,
     value: FilterValue,
@@ -22,7 +22,7 @@ struct RawFilter {
 /// A raw version of ListQuery for initial deserialization from a query string.
 /// Fields that require validation (filters, order_by) are taken as strings.
 #[derive(Debug, Deserialize, Default)]
-struct RawListQuery {
+pub struct RawListQuery {
     #[serde(default)]
     filters: Vec<RawFilter>,
     #[serde(flatten)]
@@ -48,6 +48,16 @@ where
         let raw_query: RawListQuery =
             serde_qs::from_str(&decoded).map_err(|e| ApiError::BadRequest(e.to_string()))?;
 
+        ListQuery::try_from_raw(raw_query)
+    }
+}
+
+impl<F, O> ListQuery<F, O>
+where
+    F: AllowedField + TryFrom<String, Error = String> + Send,
+    O: AllowedField + TryFrom<String, Error = String> + Send,
+{
+    pub fn try_from_raw(raw_query: RawListQuery) -> ApiResult<Self> {
         let mut filters = Vec::new();
         for raw_filter in raw_query.filters {
             let field =

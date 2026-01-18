@@ -8,7 +8,7 @@ import {
 import { RegisterOptions, useController } from "react-hook-form";
 
 type Option = {
-  value: string | number;
+  value: string | number | bigint;
   label: string;
 };
 

@@ -6,36 +6,17 @@ import { ENDPOINTS } from "@/constants";
 import { ruRU } from "@mui/x-data-grid/locales";
 import { useWatch } from "react-hook-form";
 import { BroadcastForm } from "../../types";
-import { cleanFilters } from "../../utils";
+import { formToFilters } from "../../utils";
 import { useDebouncedValue } from "@tanstack/react-pacer";
 import { keyBy } from "@/utils";
 
 export const UsersTable = () => {
-  const {
-    balance_max,
-    balance_min,
-    bot_name,
-    last_seen_after,
-    last_seen_before,
-    registered_after,
-    registered_before,
-  } = useWatch<BroadcastForm>();
-  const [debounced] = useDebouncedValue(
-    cleanFilters({
-      balance_max,
-      balance_min,
-      bot_name,
-      last_seen_after,
-      last_seen_before,
-      registered_after,
-      registered_before,
-    }),
-    { wait: 500 }
-  );
+  const form = useWatch<BroadcastForm>();
+  const [debounced] = useDebouncedValue(form, { wait: 500 });
 
   const { data, isFetching } = useList<Customer>({
     endpoint: ENDPOINTS.CUSTOMERS,
-    filter: debounced,
+    filter: { filters: formToFilters(debounced) },
   });
 
   const { data: bots } = useList<Bot>({

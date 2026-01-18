@@ -5,9 +5,12 @@ import { useState } from "react";
 import { Button, Typography } from "@mui/material";
 import classes from "./styles.module.css";
 import { CONFIG } from "../../../../../../config";
-import { usePost } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
 import { toast } from "react-toastify";
+import { Broadcast, ImageResponse, NewBroadcast } from "@/types";
+import { useMutation } from "@tanstack/react-query";
+import { dataLayer } from "@/lib/dataLayer";
+import { formToFilters } from "../../utils";
 
 export const InputMsg = () => {
   const [isImageSelectorOpen, setIsImageSelectorOpen] = useState(false);
@@ -16,12 +19,14 @@ export const InputMsg = () => {
     field: { value, onChange },
   } = useController<BroadcastForm>({ name: "image_id" });
 
-  const handleImageSelect = (image: { ID: string }) => {
-    onChange(image.ID);
+  const handleImageSelect = (image: ImageResponse) => {
+    onChange(image.id);
     setIsImageSelectorOpen(false);
   };
 
-  const { mutate, isPending } = usePost({
+  const { mutate, isPending } = useMutation<Broadcast, Error, NewBroadcast>({
+    mutationFn: (params) =>
+      dataLayer.create({ url: ENDPOINTS.BROADCAST, params }),
     onSuccess: () => {
       toast.success("Рекламное сообщение отправлено");
     },
@@ -38,12 +43,9 @@ export const InputMsg = () => {
   const handleConfirm = () => {
     const { image_id, text, ...filters } = getValues();
     mutate({
-      endpoint: ENDPOINTS.BROADCAST_SEND,
-      params: {
-        image_id: image_id,
-        text: text,
-        filters,
-      },
+      content_image_id: image_id || undefined,
+      content_text: text,
+      filters: { filters: formToFilters(filters) },
     });
   };
 

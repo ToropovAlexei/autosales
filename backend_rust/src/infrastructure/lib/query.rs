@@ -61,6 +61,7 @@ fn push_filter_clause<'a>(
                     ScalarValue::Bool(v) => sep.push_bind(v),
                     ScalarValue::Text(v) => sep.push_bind(v),
                     ScalarValue::Uuid(v) => sep.push_bind(v),
+                    ScalarValue::DateTime(v) => sep.push_bind(v),
                 };
             }
             qb.push(")");
@@ -88,7 +89,7 @@ fn push_filter_clause<'a>(
                 _ => return,
             };
             match scalar {
-                ScalarValue::Int(_) | ScalarValue::Float(_) => {
+                ScalarValue::Int(_) | ScalarValue::Float(_) | ScalarValue::DateTime(_) => {
                     qb.push(" AND ")
                         .push(field_col)
                         .push(" ")
@@ -130,5 +131,6 @@ pub fn push_bind_scalar<'a>(qb: &mut QueryBuilder<'a, Postgres>, scalar: &'a Sca
         ScalarValue::Bool(v) => qb.push_bind(v),
         ScalarValue::Text(v) => qb.push_bind(v),
         ScalarValue::Uuid(v) => qb.push_bind(v),
+        ScalarValue::DateTime(v) => qb.push_bind(v),
     };
 }
