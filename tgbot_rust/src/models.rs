@@ -13,11 +13,28 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct GenericMessage {
+    pub message: String,
+    pub image_id: Option<Uuid>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct InvoiceTroublesNotification {
+    pub invoice_id: i64,
+    pub amount: f64,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum DispatchMessage {
+    GenericMessage(GenericMessage),
+    InvoiceTroublesNotification(InvoiceTroublesNotification),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct DispatchMessagePayload {
     pub bot_id: i64,
     pub telegram_id: i64,
-    pub message: String,
-    pub image_id: Option<Uuid>,
+    pub message: DispatchMessage,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

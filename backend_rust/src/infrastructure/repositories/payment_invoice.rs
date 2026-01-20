@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use chrono::{DateTime, Utc};
 use sqlx::{PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
@@ -34,6 +35,12 @@ pub trait PaymentInvoiceRepositoryTrait {
     async fn get_by_id(&self, id: i64) -> RepositoryResult<PaymentInvoiceRow>;
     async fn get_by_order_id(&self, order_id: Uuid) -> RepositoryResult<PaymentInvoiceRow>;
     async fn get_for_customer(&self, customer_id: i64) -> RepositoryResult<Vec<PaymentInvoiceRow>>;
+    async fn expire_old_invoices(&self) -> RepositoryResult<u64>;
+    async fn get_pending_invoices(
+        &self,
+        older_than: DateTime<Utc>,
+    ) -> RepositoryResult<Vec<PaymentInvoiceRow>>;
+    async fn mark_invoices_notified(&self, ids: &[i64]) -> RepositoryResult<u64>;
 }
 
 #[derive(Clone)]
@@ -183,6 +190,58 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
         .await?;
 
         Ok(result)
+    }
+
+    async fn expire_old_invoices(&self) -> RepositoryResult<u64> {
+        let result = sqlx::query!(
+            r#"
+        UPDATE payment_invoices
+        SET status = 'expired'
+        WHERE status = 'pending'
+        AND expires_at < NOW()
+        AND deleted_at IS NULL
+        "#,
+        )
+        .execute(&*self.pool)
+        .await?;
+
+        Ok(result.rows_affected())
+    }
+
+    async fn get_pending_invoices(
+        &self,
+        older_than: DateTime<Utc>,
+    ) -> RepositoryResult<Vec<PaymentInvoiceRow>> {
+        let result = sqlx::query_as!(
+            PaymentInvoiceRow,
+            r#"
+            SELECT 
+                id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
+                expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
+                bot_message_id, notification_sent_at
+            FROM payment_invoices
+            WHERE 
+                status = 'pending' AND
+                created_at < $1 AND
+                deleted_at IS NULL AND
+                notification_sent_at IS NULL
+            "#,
+            older_than
+        )
+        .fetch_all(&*self.pool)
+        .await?;
+
+        Ok(result)
+    }
+
+    async fn mark_invoices_notified(&self, ids: &[i64]) -> RepositoryResult<u64> {
+        let result = sqlx::query!(
+            "UPDATE payment_invoices SET notification_sent_at = NOW() WHERE id = ANY($1)",
+            ids
+        )
+        .execute(&*self.pool)
+        .await?;
+        Ok(result.rows_affected())
     }
 }
 

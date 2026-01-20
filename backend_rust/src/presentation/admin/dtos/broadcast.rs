@@ -249,7 +249,7 @@ mod tests {
         }"#;
         let query: JsonRawListQuery = serde_json::from_str(json_str).unwrap();
         match &query.filters[0].value {
-            JsonFilterValue::Scalar(JsonScalarValue::Bool(val)) => assert_eq!(*val, true),
+            JsonFilterValue::Scalar(JsonScalarValue::Bool(val)) => assert!(*val),
             _ => panic!("Expected Bool scalar value"),
         }
     }
@@ -325,7 +325,7 @@ mod tests {
             _ => panic!("Expected Int scalar value"),
         }
         match &customer_list_query.filters[1].value {
-            FilterValue::Scalar(ScalarValue::Bool(val)) => assert_eq!(*val, true),
+            FilterValue::Scalar(ScalarValue::Bool(val)) => assert!(*val),
             _ => panic!("Expected Bool scalar value"),
         }
         match &customer_list_query.filters[2].value {

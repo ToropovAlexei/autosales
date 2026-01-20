@@ -8,11 +8,28 @@ use crate::errors::api::{ApiError, ApiResult};
 use deadpool_redis::redis::AsyncTypedCommands;
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct GenericMessage {
+    pub message: String,
+    pub image_id: Option<Uuid>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct InvoiceTroublesNotification {
+    pub invoice_id: i64,
+    pub amount: f64,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum DispatchMessage {
+    GenericMessage(GenericMessage),
+    InvoiceTroublesNotification(InvoiceTroublesNotification),
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 pub struct DispatchMessageCommand {
     pub bot_id: i64,
     pub telegram_id: i64,
-    pub message: String,
-    pub image_id: Option<Uuid>,
+    pub message: DispatchMessage,
 }
 
 #[async_trait]

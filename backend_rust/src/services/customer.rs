@@ -38,6 +38,7 @@ pub trait CustomerServiceTrait: Send + Sync {
     async fn get_by_telegram_id(&self, id: i64) -> ApiResult<CustomerRow>;
     async fn update(&self, command: UpdateCustomerCommand) -> ApiResult<CustomerRow>;
     async fn update_last_seen(&self, id: i64, bot_id: i64) -> ApiResult<CustomerRow>;
+    async fn get_list_by_ids(&self, ids: &[i64]) -> ApiResult<Vec<CustomerRow>>;
 }
 
 pub struct CustomerService<R, A> {
@@ -137,5 +138,10 @@ impl CustomerServiceTrait
             .await?;
 
         Ok(updated)
+    }
+
+    async fn get_list_by_ids(&self, ids: &[i64]) -> ApiResult<Vec<CustomerRow>> {
+        let res = self.customer_repo.get_list_by_ids(ids).await?;
+        Ok(res)
     }
 }

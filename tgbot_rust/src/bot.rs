@@ -12,7 +12,10 @@ use teloxide::{
     dptree,
     macros::BotCommands,
     prelude::{Dialogue, Dispatcher, Requester},
-    types::{CallbackQuery, ChatId, Message, MessageId, Update},
+    types::{
+        CallbackQuery, ChatId, InlineKeyboardButton, InlineKeyboardMarkup, Message, MessageId,
+        Update,
+    },
 };
 use tokio_stream::StreamExt;
 
@@ -21,8 +24,9 @@ use crate::{
     api::backend_api::BackendApi,
     bot::{
         handlers::{
-            balance::balance_handler, buy::buy_handler, captcha_answer::captcha_answer_handler,
-            catalog::catalog_handler, deposit_amount::deposit_amount_handler,
+            balance::balance_handler, buy::buy_handler, cancel_invoice::cancel_invoice_handler,
+            captcha_answer::captcha_answer_handler, catalog::catalog_handler,
+            confirm_invoice::confirm_invoice_handler, deposit_amount::deposit_amount_handler,
             deposit_confirm::deposit_confirm_handler, deposit_gateway::deposit_gateway_handler,
             fallback_bot_msg::fallback_bot_msg, main_menu::main_menu_handler,
             my_bots::my_bots_handler, my_orders::my_orders_handler,
@@ -34,7 +38,7 @@ use crate::{
         utils::{MessageImage, send_msg},
     },
     errors::{AppError, AppResult},
-    models::{DispatchMessagePayload, payment::PaymentSystem},
+    models::{DispatchMessage, DispatchMessagePayload, payment::PaymentSystem},
 };
 
 pub mod handlers;
@@ -150,6 +154,8 @@ pub enum CallbackData {
     ToDepositConfirm { id: i64 },
     ToOrderDetails { id: i64 },
     Buy { id: i64 },
+    ConfirmPayment { id: i64 },
+    CancelPayment { id: i64 },
 }
 
 impl CallbackData {
@@ -406,6 +412,12 @@ pub async fn run_bot(
                 CallbackData::Buy { id } => {
                     buy_handler(bot, dialogue, q, api_client, id).await?;
                 }
+                CallbackData::CancelPayment { id } => {
+                    cancel_invoice_handler(bot, dialogue, q, api_client, id).await?;
+                }
+                CallbackData::ConfirmPayment { id } => {
+                    confirm_invoice_handler(bot, dialogue, q, api_client, id).await?;
+                }
             }
 
             Ok(())
@@ -512,10 +524,9 @@ async fn start_redis_listener(
     while let Some(msg) = msg_stream.next().await {
         if let Ok(payload_str) = msg.get_payload::<String>()
             && let Ok(parsed) = serde_json::from_str::<DispatchMessagePayload>(&payload_str)
+            && let Err(e) = tx.send(parsed)
         {
-            if let Err(e) = tx.send(parsed) {
-                tracing::error!("Error sending message: {e}");
-            }
+            tracing::error!("Error sending message: {e}");
         }
     }
 
@@ -537,15 +548,32 @@ async fn handle_msg(
         let _ = bot.delete_message(chat_id, MessageId(msg_id as i32)).await;
     }
 
-    send_msg(
-        &api_client,
-        &dialogue,
-        &bot,
-        &payload.message,
-        payload.image_id.map(MessageImage::Uuid),
-        back_to_main_menu_inline_keyboard(),
-    )
-    .await?;
+    let (msg, img, keyboard) = match payload.message {
+        DispatchMessage::GenericMessage(msg) => (
+            msg.message,
+            msg.image_id.map(MessageImage::Uuid),
+            back_to_main_menu_inline_keyboard(),
+        ),
+        DispatchMessage::InvoiceTroublesNotification(msg) => (
+            format!(
+                "Вы недавно пытались пополнить баланс на {} ₽. Возникли ли у вас какие-либо проблемы с оплатой?",
+                msg.amount
+            ),
+            None,
+            InlineKeyboardMarkup::new(vec![
+                vec![InlineKeyboardButton::callback(
+                    "Я все оплатил",
+                    CallbackData::ConfirmPayment { id: msg.invoice_id },
+                )],
+                vec![InlineKeyboardButton::callback(
+                    "Отменить платеж",
+                    CallbackData::CancelPayment { id: msg.invoice_id },
+                )],
+            ]),
+        ),
+    };
+
+    send_msg(&api_client, &dialogue, &bot, &msg, img, keyboard).await?;
 
     Ok(())
 }

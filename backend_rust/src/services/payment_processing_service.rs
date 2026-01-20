@@ -21,7 +21,8 @@ use crate::{
         audit_log::AuditLogService,
         customer::{CustomerService, CustomerServiceTrait},
         notification_service::{
-            DispatchMessageCommand, NotificationService, NotificationServiceTrait,
+            DispatchMessage, DispatchMessageCommand, GenericMessage, NotificationService,
+            NotificationServiceTrait,
         },
         payment_invoice::{
             PaymentInvoiceService, PaymentInvoiceServiceTrait, UpdatePaymentInvoiceCommand,
@@ -112,11 +113,13 @@ impl PaymentProcessingServiceTrait
         self.notification_service
             .dispatch_message(DispatchMessageCommand {
                 bot_id: customer.last_seen_with_bot,
-                message: format!(
-                    "✅ Баланс пополнен на {} RUB",
-                    payment_invoice.original_amount.trunc_with_scale(2)
-                ),
-                image_id: None,
+                message: DispatchMessage::GenericMessage(GenericMessage {
+                    image_id: None,
+                    message: format!(
+                        "✅ Баланс пополнен на {} RUB",
+                        payment_invoice.original_amount.trunc_with_scale(2)
+                    ),
+                }),
                 telegram_id: customer.telegram_id,
             })
             .await?;

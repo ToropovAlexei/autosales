@@ -1,7 +1,9 @@
 pub mod balance;
 pub mod buy;
+pub mod cancel_invoice;
 pub mod captcha_answer;
 pub mod catalog;
+pub mod confirm_invoice;
 pub mod deposit_amount;
 pub mod deposit_confirm;
 pub mod deposit_gateway;

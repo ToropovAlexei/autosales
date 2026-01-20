@@ -24,6 +24,7 @@ pub struct Config {
     pub contms_api_url: String,
     #[cfg(feature = "mock-payments-provider")]
     pub mock_payments_provider_url: String,
+    pub payment_notification_minutes: u64,
 }
 
 impl Config {

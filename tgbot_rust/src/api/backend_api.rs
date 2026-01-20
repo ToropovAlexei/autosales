@@ -126,6 +126,18 @@ impl BackendApi {
             .await
     }
 
+    pub async fn cancel_invoice(&self, id: i64) -> ApiClientResult<PaymentInvoiceResponse> {
+        self.api_client
+            .post::<PaymentInvoiceResponse>(&format!("bot/invoices/{id}/cancel"))
+            .await
+    }
+
+    pub async fn confirm_invoice(&self, id: i64) -> ApiClientResult<PaymentInvoiceResponse> {
+        self.api_client
+            .post::<PaymentInvoiceResponse>(&format!("bot/invoices/{id}/confirm"))
+            .await
+    }
+
     pub async fn create_deposit_invoice(
         &self,
         gateway: &PaymentSystem,

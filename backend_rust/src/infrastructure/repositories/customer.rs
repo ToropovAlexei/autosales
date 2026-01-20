@@ -22,6 +22,7 @@ pub trait CustomerRepositoryTrait {
     async fn get_by_id(&self, id: i64) -> RepositoryResult<CustomerRow>;
     async fn get_by_telegram_id(&self, id: i64) -> RepositoryResult<CustomerRow>;
     async fn update(&self, id: i64, customer: UpdateCustomer) -> RepositoryResult<CustomerRow>;
+    async fn get_list_by_ids(&self, ids: &[i64]) -> RepositoryResult<Vec<CustomerRow>>;
 }
 
 #[derive(Clone)]
@@ -131,6 +132,17 @@ impl CustomerRepositoryTrait for CustomerRepository {
             .fetch_one(&*self.pool)
             .await
             .map_err(RepositoryError::from)
+    }
+
+    async fn get_list_by_ids(&self, ids: &[i64]) -> RepositoryResult<Vec<CustomerRow>> {
+        let query = sqlx::query_as!(
+            CustomerRow,
+            "SELECT * FROM customers WHERE id = ANY($1)",
+            ids
+        )
+        .fetch_all(&*self.pool)
+        .await?;
+        Ok(query)
     }
 }
 

@@ -31,6 +31,8 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", post(create_invoice).get(list_invoices))
         .route("/{id}", get(get_invoice).patch(update_invoice))
+        .route("/{id}/confirm", post(confirm_invoice))
+        .route("/{id}/cancel", post(cancel_invoice))
 }
 
 async fn list_invoices(
@@ -86,7 +88,7 @@ async fn update_invoice(
     _bot: AuthBot,
     ValidatedJson(payload): ValidatedJson<UpdatePaymentInvoiceRequest>,
 ) -> ApiResult<Json<PaymentInvoiceResponse>> {
-    let customer = state
+    let invoice = state
         .payment_invoice_service
         .update(UpdatePaymentInvoiceCommand {
             id,
@@ -94,5 +96,23 @@ async fn update_invoice(
             status: payload.status,
         })
         .await?;
-    Ok(Json(PaymentInvoiceResponse::from(customer)))
+    Ok(Json(PaymentInvoiceResponse::from(invoice)))
+}
+
+async fn confirm_invoice(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<i64>,
+    _bot: AuthBot,
+) -> ApiResult<Json<PaymentInvoiceResponse>> {
+    let invoice = state.payment_invoice_service.confirm_invoice(id).await?;
+    Ok(Json(PaymentInvoiceResponse::from(invoice)))
+}
+
+async fn cancel_invoice(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<i64>,
+    _bot: AuthBot,
+) -> ApiResult<Json<PaymentInvoiceResponse>> {
+    let invoice = state.payment_invoice_service.cancel_invoice(id).await?;
+    Ok(Json(PaymentInvoiceResponse::from(invoice)))
 }

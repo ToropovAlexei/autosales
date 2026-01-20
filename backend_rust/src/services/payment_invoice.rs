@@ -56,6 +56,14 @@ pub trait PaymentInvoiceServiceTrait: Send + Sync {
     async fn get_by_order_id(&self, order_id: Uuid) -> ApiResult<PaymentInvoiceRow>;
     async fn update(&self, command: UpdatePaymentInvoiceCommand) -> ApiResult<PaymentInvoiceRow>;
     async fn get_for_customer(&self, customer_id: i64) -> ApiResult<Vec<PaymentInvoiceRow>>;
+    async fn expire_old_invoices(&self) -> ApiResult<u64>;
+    async fn get_pending_invoices(
+        &self,
+        older_than: DateTime<Utc>,
+    ) -> ApiResult<Vec<PaymentInvoiceRow>>;
+    async fn mark_invoices_notified(&self, ids: &[i64]) -> ApiResult<u64>;
+    async fn confirm_invoice(&self, id: i64) -> ApiResult<PaymentInvoiceRow>;
+    async fn cancel_invoice(&self, id: i64) -> ApiResult<PaymentInvoiceRow>;
 }
 
 pub struct PaymentInvoiceService<R, A, M, S> {
@@ -180,6 +188,56 @@ impl PaymentInvoiceServiceTrait
 
     async fn get_for_customer(&self, customer_id: i64) -> ApiResult<Vec<PaymentInvoiceRow>> {
         let res = self.repo.get_for_customer(customer_id).await?;
+        Ok(res)
+    }
+
+    async fn expire_old_invoices(&self) -> ApiResult<u64> {
+        let res = self.repo.expire_old_invoices().await?;
+        Ok(res)
+    }
+
+    async fn get_pending_invoices(
+        &self,
+        older_than: DateTime<Utc>,
+    ) -> ApiResult<Vec<PaymentInvoiceRow>> {
+        let res = self.repo.get_pending_invoices(older_than).await?;
+        Ok(res)
+    }
+
+    async fn mark_invoices_notified(&self, ids: &[i64]) -> ApiResult<u64> {
+        let res = self.repo.mark_invoices_notified(ids).await?;
+        Ok(res)
+    }
+
+    async fn confirm_invoice(&self, id: i64) -> ApiResult<PaymentInvoiceRow> {
+        // TODO External providers
+        let res = self
+            .repo
+            .update(
+                id,
+                UpdatePaymentInvoice {
+                    status: Some(InvoiceStatus::Completed),
+                    notification_sent_at: None,
+                },
+            )
+            .await?;
+
+        Ok(res)
+    }
+
+    async fn cancel_invoice(&self, id: i64) -> ApiResult<PaymentInvoiceRow> {
+        // TODO External providers
+        let res = self
+            .repo
+            .update(
+                id,
+                UpdatePaymentInvoice {
+                    status: Some(InvoiceStatus::Failed),
+                    notification_sent_at: None,
+                },
+            )
+            .await?;
+
         Ok(res)
     }
 }
