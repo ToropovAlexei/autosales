@@ -4,7 +4,7 @@ use base64::{Engine as _, engine::general_purpose::STANDARD};
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
 use teloxide::{
-    Bot,
+    ApiError, Bot, RequestError,
     dispatching::{
         HandlerExt, UpdateFilterExt,
         dialogue::{RedisStorage, serializer::Json},
@@ -17,6 +17,7 @@ use teloxide::{
         Update,
     },
 };
+use tokio::time::interval;
 use tokio_stream::StreamExt;
 
 use crate::{
@@ -201,7 +202,7 @@ pub async fn run_bot(
     bot_id: i64,
     app_state: AppState,
     client: Arc<BackendApi>,
-    fallback_bot_username: BotUsername,
+    fallback_bot_username: Option<BotUsername>,
 ) -> AppResult<()> {
     let bot = Bot::new(bot_token);
     let me = bot.get_me().await?;
@@ -451,11 +452,60 @@ pub async fn run_bot(
     .enable_ctrlc_handler()
     .build();
 
-    dispatcher.dispatch().await;
+    let health_check_fut = async {
+        let mut interval = interval(Duration::from_secs(30));
+        let mut retries = 0u32;
+
+        loop {
+            interval.tick().await;
+
+            match bot.get_me().await {
+                Ok(_) => {
+                    retries = 0;
+                }
+                Err(e) => {
+                    tracing::error!("[Bot][{bot_id}] Health check failed: {}", e);
+
+                    if let RequestError::Api(ApiError::InvalidToken) = e {
+                        tracing::error!(
+                            "Received 401 Unauthorized — bot token is invalid. Exiting..."
+                        );
+                        return Err(e);
+                    };
+
+                    retries += 1;
+                    if retries >= 5 {
+                        tracing::error!(
+                            "[Bot][{bot_id}] Too many health check failures. Exiting..."
+                        );
+                        return Err(e);
+                    }
+                }
+            }
+        }
+    };
+
+    let dispatch_fut = dispatcher.dispatch();
+
+    tokio::select! {
+        result = dispatch_fut => {
+            tracing::info!("[Bot][{bot_id}] Dispatcher stopped: {:?}", result);
+        },
+        result = health_check_fut => {
+            match result {
+                Ok(()) => unreachable!(),
+                Err(e) => {
+                    if let RequestError::Api(ApiError::InvalidToken) = e {
+                        return Err(AppError::BotUnauthorized(e.to_string()));
+                    };
+                    return Err(AppError::BotHealthcheckFailed(e.to_string()));
+                }
+            }
+        }
+    }
 
     listener_handle.abort();
     bot.delete_webhook().await?;
-    tracing::info!("Bot stopped.");
     Ok(())
 }
 
@@ -466,11 +516,13 @@ async fn command_handler(
     dialogue: MyDialogue,
     api_client: Arc<BackendApi>,
     app_state: AppState,
-    fallback_bot_username: BotUsername,
+    fallback_bot_username: Option<BotUsername>,
 ) -> AppResult<()> {
     match cmd {
         Command::Start => {
-            fallback_bot_msg(bot.clone(), msg.chat.id, fallback_bot_username).await?;
+            if let Some(fallback_bot_username) = fallback_bot_username {
+                fallback_bot_msg(bot.clone(), msg.chat.id, fallback_bot_username).await?;
+            }
             dialogue
                 .update(BotState {
                     step: BotStep::Initial,

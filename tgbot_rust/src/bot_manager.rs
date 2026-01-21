@@ -1,8 +1,10 @@
 use crate::AppState;
 use crate::api::backend_api::BackendApi;
 use crate::bot::{BotUsername, run_bot};
+use crate::errors::AppError;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::task::JoinHandle;
 
 pub struct BotManager {
@@ -20,92 +22,42 @@ impl BotManager {
 
     pub async fn start_bots(&mut self) -> anyhow::Result<()> {
         let all_bots = self.app_state.api.get_bots().await?;
+        let fallback_bot = all_bots
+            .items
+            .iter()
+            .find(|b| b.is_active && b.owner_id.is_none() && !b.is_primary)
+            .map(|b| BotUsername(b.username.clone()));
 
-        let main_bots: Vec<_> = all_bots.items.iter().filter(|b| b.is_primary).collect();
-        // let referral_bots: Vec<_> = all_bots.items.iter().filter(|b| !b.is_primary).collect();
+        let bots_to_start = all_bots
+            .items
+            .iter()
+            .filter(|b| b.is_primary)
+            .collect::<Vec<_>>();
 
-        if let Some(main_bot) = main_bots.into_iter().find(|b| b.is_active) {
-            self.start_bot(main_bot.token.clone(), main_bot.id);
-        } else {
-            tracing::warn!("No active main bots found, requesting a new one...");
-
-            // let bot_father = BotFather::new(
-            //     self.app_state.api.clone(),
-            //     &self.app_state.config.telegram_api_id,
-            //     &self.app_state.config.telegram_api_hash,
-            // )?;
-
-            // match bot_father.request_new_main_bot_token().await {
-            //     Ok(true) => {
-            //         tracing::info!(
-            //             "Successfully requested and created a new bot. The bot manager will pick it up in the next health check cycle."
-            //         );
-            //     }
-            //     Ok(false) => {
-            //         tracing::error!("BotFather interaction finished, but no bot was created.");
-            //     }
-            //     Err(e) => {
-            //         tracing::error!("Failed to request a new bot via BotFather: {}", e);
-            //     }
-            // }
+        for bot in bots_to_start {
+            let fallback_bot_name = if bot.owner_id.is_some() {
+                None
+            } else {
+                fallback_bot.clone()
+            };
+            self.start_bot(bot.token.clone(), bot.id, fallback_bot_name);
         }
-
-        // for referral_bot in referral_bots {
-        //     if referral_bot.is_active {
-        //         self.start_bot(referral_bot.token.clone(), referral_bot.id);
-        //     }
-        // }
 
         Ok(())
     }
 
-    fn start_bot(&mut self, bot_token: String, bot_id: i64) {
+    fn start_bot(
+        &mut self,
+        bot_token: String,
+        bot_id: i64,
+        fallback_bot_name: Option<BotUsername>,
+    ) {
         let app_state = self.app_state.clone();
-        let token_clone = bot_token.clone();
+        let bot_token_clone = bot_token.clone();
         let handle = tokio::spawn(async move {
-            let api = Arc::new(
-                BackendApi::new(
-                    &app_state.config.backend_api_url,
-                    &app_state.config.service_api_key,
-                    Some(bot_id),
-                )
-                .expect("Failed to create BackendApi"),
-            );
-            if let Err(e) = run_bot(
-                token_clone,
-                bot_id,
-                app_state,
-                api,
-                BotUsername("test".to_string()),
-            )
-            .await
-            {
-                tracing::error!("Bot exited with error: {}", e);
-            }
-        });
-        self.bots.insert((bot_token, bot_id), handle);
-    }
-
-    pub async fn wait_for_all(&mut self) {
-        for (_, handle) in self.bots.iter_mut() {
-            handle.await.unwrap();
-        }
-    }
-
-    pub async fn check_bots_health(&mut self) {
-        let mut bots_to_restart = Vec::new();
-        for (token, handle) in &self.bots {
-            if handle.is_finished() {
-                bots_to_restart.push(token.clone());
-            }
-        }
-
-        for (token, bot_id) in bots_to_restart {
-            tracing::warn!("Bot with token {} has finished, restarting...", token);
-            self.bots.remove(&(token.clone(), bot_id));
-            let app_state = self.app_state.clone();
-            let bot_token = token.clone();
-            let handle = tokio::spawn(async move {
+            loop {
+                let app_state = app_state.clone();
+                let token_clone = bot_token.clone();
                 let api = Arc::new(
                     BackendApi::new(
                         &app_state.config.backend_api_url,
@@ -114,19 +66,31 @@ impl BotManager {
                     )
                     .expect("Failed to create BackendApi"),
                 );
-                if let Err(e) = run_bot(
-                    bot_token,
-                    bot_id,
-                    app_state,
-                    api,
-                    BotUsername("test".to_string()),
-                )
-                .await
-                {
-                    tracing::error!("Bot exited with error: {}", e);
+                let fallback_bot_name = fallback_bot_name.clone();
+                match run_bot(token_clone, bot_id, app_state, api, fallback_bot_name).await {
+                    Ok(_) => break,
+                    Err(e) => match e {
+                        AppError::BotHealthcheckFailed(msg) => {
+                            tracing::error!("Bot healthcheck failed: {}", msg);
+                        }
+                        AppError::BotUnauthorized(_) => {
+                            // TODO Mark bot as inactive
+                            break;
+                        }
+                        _ => {
+                            tracing::error!("Error running bot: {}", e);
+                        }
+                    },
                 }
-            });
-            self.bots.insert((token, bot_id), handle);
+                tokio::time::sleep(Duration::from_millis(1000)).await;
+            }
+        });
+        self.bots.insert((bot_token_clone, bot_id), handle);
+    }
+
+    pub async fn wait_for_all(&mut self) {
+        for (_, handle) in self.bots.iter_mut() {
+            handle.await.unwrap();
         }
     }
 }

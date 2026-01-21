@@ -24,6 +24,7 @@ pub trait BotRepositoryTrait {
         id: i64,
         owner_id: Option<i64>,
     ) -> RepositoryResult<()>;
+    async fn get_primary_bots(&self) -> RepositoryResult<Vec<BotRow>>;
 }
 
 #[derive(Clone)]
@@ -167,6 +168,22 @@ impl BotRepositoryTrait for BotRepository {
             .await?;
         tx.commit().await?;
         Ok(())
+    }
+
+    async fn get_primary_bots(&self) -> RepositoryResult<Vec<BotRow>> {
+        let result = sqlx::query_as!(
+            BotRow,
+            r#"
+        SELECT 
+            id, owner_id, token, username, type as "type: _", is_active,
+            is_primary, referral_percentage, 
+            created_at, updated_at, created_by
+        FROM bots WHERE is_primary = true"#,
+        )
+        .fetch_all(&*self.pool)
+        .await?;
+
+        Ok(result)
     }
 }
 

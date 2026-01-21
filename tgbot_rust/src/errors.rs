@@ -49,6 +49,10 @@ pub enum AppError {
     CaptchaError(String),
     #[error("Base64 decode error: {0}")]
     Base64DecodeError(#[from] base64::DecodeError),
+    #[error("Bot unauthorized: {0}")]
+    BotUnauthorized(String),
+    #[error("Bot healthcheck failed: {0}")]
+    BotHealthcheckFailed(String),
 }
 
 #[derive(Serialize)]
@@ -90,6 +94,8 @@ impl IntoResponse for AppError {
             AppError::Base64DecodeError(msg) => {
                 (StatusCode::INTERNAL_SERVER_ERROR, msg.to_string())
             }
+            AppError::BotUnauthorized(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
+            AppError::BotHealthcheckFailed(msg) => (StatusCode::INTERNAL_SERVER_ERROR, msg),
         };
 
         let body = Json(ErrorResponse { error: message });

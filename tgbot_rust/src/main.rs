@@ -3,7 +3,6 @@ use std::sync::Arc;
 use anyhow::Context;
 use tgbot_rust::bot_manager::BotManager;
 use tgbot_rust::config::Config;
-use tgbot_rust::health_checker::HealthChecker;
 use tgbot_rust::webhook::create_webhook_service;
 use tgbot_rust::{AppState, create_redis_pool, init_logging};
 
@@ -24,11 +23,6 @@ async fn main() -> anyhow::Result<()> {
     let bot_manager = Arc::new(tokio::sync::Mutex::new(BotManager::new(app_state)));
     bot_manager.lock().await.start_bots().await?;
 
-    let health_checker = HealthChecker::new(bot_manager.clone());
-    let health_checker_handle = tokio::spawn(async move {
-        health_checker.start().await;
-    });
-
     let server = axum::serve(listener, webhook_service);
 
     let mut bot_manager_guard = bot_manager.lock().await;
@@ -37,7 +31,6 @@ async fn main() -> anyhow::Result<()> {
             tracing::info!("All bots have exited.");
         },
         _ = server => {},
-        _ = health_checker_handle => {},
     }
 
     Ok(())

@@ -4,7 +4,6 @@ pub mod bot_father;
 pub mod bot_manager;
 pub mod config;
 pub mod errors;
-pub mod health_checker;
 pub mod models;
 pub mod webhook;
 

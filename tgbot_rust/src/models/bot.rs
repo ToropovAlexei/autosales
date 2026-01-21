@@ -8,4 +8,5 @@ pub struct Bot {
     pub is_active: bool,
     pub is_primary: bool,
     pub referral_percentage: f64,
+    pub owner_id: Option<i64>,
 }

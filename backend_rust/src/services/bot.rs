@@ -63,6 +63,7 @@ pub trait BotServiceTrait: Send + Sync {
     async fn get_by_id(&self, id: i64) -> ApiResult<BotRow>;
     async fn update(&self, command: UpdateBotCommand) -> ApiResult<BotRow>;
     async fn can_operate(&self) -> ApiResult<bool>;
+    async fn get_primary_bots(&self) -> ApiResult<Vec<BotRow>>;
 }
 
 pub struct BotService<R, S, A, T> {
@@ -210,6 +211,13 @@ impl BotServiceTrait
             .await
             .map(|t| t.store_balance_after.to_i64().unwrap_or_default() > 1000)
             .unwrap_or_default())
+    }
+
+    async fn get_primary_bots(&self) -> ApiResult<Vec<BotRow>> {
+        self.bot_repo
+            .get_primary_bots()
+            .await
+            .map_err(ApiError::from)
     }
 }
 

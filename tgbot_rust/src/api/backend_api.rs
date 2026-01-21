@@ -230,6 +230,12 @@ impl BackendApi {
             .await
     }
 
+    pub async fn get_primary_bots(&self) -> ApiClientResult<ListResponse<Bot>> {
+        self.api_client
+            .get::<ListResponse<Bot>>("bot/bots/primary")
+            .await
+    }
+
     pub async fn create_referral_bot(&self, telegram_id: i64, token: &str) -> ApiClientResult<Bot> {
         self.api_client
             .post_with_body::<Bot, _>(

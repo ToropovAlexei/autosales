@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{
     Json, Router,
     extract::{Path, State},
-    routing::{patch, post},
+    routing::{get, patch, post},
 };
 
 use crate::{
@@ -21,6 +21,7 @@ use crate::{
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", post(create_bot).get(list_bots))
+        .route("/primary", get(get_primary_bots))
         .route("/{id}", patch(update_bot))
 }
 
@@ -113,4 +114,27 @@ async fn update_bot(
         .await?;
 
     Ok(Json(bot.into()))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/bot/bots/primary",
+    tag = "Bots",
+    responses(
+        (status = 200, description = "Bot list", body = ListResponse<BotResponse>),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
+async fn get_primary_bots(
+    State(state): State<Arc<AppState>>,
+    _service: VerifiedService,
+) -> ApiResult<Json<ListResponse<BotResponse>>> {
+    let bots = state.bot_service.get_primary_bots().await?;
+
+    Ok(Json(ListResponse {
+        total: bots.len() as i64,
+        items: bots.into_iter().map(BotResponse::from).collect(),
+    }))
 }
