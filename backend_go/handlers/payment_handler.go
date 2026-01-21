@@ -178,3 +178,37 @@ func (h *PaymentHandler) GetInvoiceByIDHandler(c *gin.Context) {
 
 	responses.SuccessResponse(c, http.StatusOK, invoice)
 }
+
+type submitReceiptLinkPayload struct {
+	ReceiptURL string `json:"receipt_url" binding:"required,url"`
+}
+
+// @Summary      Submit Receipt Link
+// @Description  Submits a receipt link for an invoice that requires a check.
+// @Tags         Payments
+// @Accept       json
+// @Produce      json
+// @Param        order_id path string true "Internal Order ID of the invoice"
+// @Param        payload body submitReceiptLinkPayload true "Receipt URL payload"
+// @Success      200 {object} responses.MessageResponse
+// @Failure      400 {object} responses.ErrorResponseSchema
+// @Failure      404 {object} responses.ErrorResponseSchema
+// @Failure      409 {object} responses.ErrorResponseSchema
+// @Failure      500 {object} responses.ErrorResponseSchema
+// @Router       /invoices/{order_id}/submit-receipt [post]
+// @Security     ServiceApiKeyAuth
+func (h *PaymentHandler) SubmitReceiptLinkHandler(c *gin.Context) {
+	orderID := c.Param("order_id")
+	var jsonPayload submitReceiptLinkPayload
+	if err := c.ShouldBindJSON(&jsonPayload); err != nil {
+		c.Error(&apperrors.ErrValidation{Message: err.Error()})
+		return
+	}
+
+	if err := h.paymentService.SubmitReceiptLink(orderID, jsonPayload.ReceiptURL); err != nil {
+		c.Error(err)
+		return
+	}
+
+	responses.SuccessResponse(c, http.StatusOK, responses.MessageResponse{Message: "Receipt link submitted successfully"})
+}

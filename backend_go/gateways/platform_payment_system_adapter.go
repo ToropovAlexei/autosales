@@ -59,6 +59,10 @@ func (a *PlatformPaymentSystemAdapter) GetInvoiceStatus(gatewayInvoiceID string)
 	switch resp.Data.Status.Status {
 	case "trader_success", "merch_success", "system_timer_end_merch_process_success", "system_timer_end_merch_check_down_success", "admin_appeal_success":
 		internalStatus = InvoiceStatusCompleted
+	case "trader_check_query":
+		internalStatus = InvoiceStatusCheckRequired
+	case "trader_appeal":
+		internalStatus = InvoiceStatusAppeal
 	case "system_timer_end_merch_initialized_cancel", "order_cancel", "merch_cancel", "system_timer_end_trader_check_query_cancel", "admin_appeal_cancel": // Assuming these are failure/cancel statuses
 		internalStatus = InvoiceStatusFailed
 	default:
@@ -73,5 +77,15 @@ func (a *PlatformPaymentSystemAdapter) ConfirmPayment(gatewayInvoiceID string) e
 }
 
 func (a *PlatformPaymentSystemAdapter) CancelPayment(gatewayInvoiceID string) error {
+
 	return a.client.OrderCancel(gatewayInvoiceID)
+
+}
+
+
+
+func (a *PlatformPaymentSystemAdapter) SubmitReceipt(gatewayInvoiceID string, receiptURL string) error {
+
+	return a.client.OrderCheckDown(gatewayInvoiceID, receiptURL)
+
 }

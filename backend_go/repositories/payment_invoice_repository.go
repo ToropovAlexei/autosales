@@ -111,5 +111,10 @@ func (r *gormPaymentInvoiceRepository) FindUnfinished() ([]models.PaymentInvoice
 }
 
 func (r *gormPaymentInvoiceRepository) FindPendingPollable() ([]models.PaymentInvoice, error) {
-	return r.GetPendingInvoices()
+	var invoices []models.PaymentInvoice
+	err := r.db.
+		Preload("BotUser").
+		Where("status IN (?, ?)", models.InvoiceStatusPending, models.InvoiceStatusManuallyConfirmed).
+		Find(&invoices).Error
+	return invoices, err
 }

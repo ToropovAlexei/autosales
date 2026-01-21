@@ -61,6 +61,8 @@ async def handle_dispatch_message(request: web.Request):
         message_to_edit = data.get("message_to_edit")
         message_to_delete = data.get("message_to_delete")
         inline_keyboard = data.get("inline_keyboard")
+        state_to_set = data.get("state_to_set")
+        state_data = data.get("state_data")
         
         logging.info(f"Received dispatch message for bot '{bot_name}' with data: {data}")
 
@@ -75,8 +77,12 @@ async def handle_dispatch_message(request: web.Request):
             "message": message,
             "message_to_edit": message_to_edit,
             "message_to_delete": message_to_delete,
-            "inline_keyboard": inline_keyboard
+            "inline_keyboard": inline_keyboard,
+            "state_to_set": state_to_set,
+            "state_data": state_data,
         }
+        # Remove keys with None values to keep payload clean
+        payload_to_redis = {k: v for k, v in payload_to_redis.items() if v is not None}
         payload = json.dumps(payload_to_redis)
 
         await redis_client.publish(channel, payload)

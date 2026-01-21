@@ -6,6 +6,9 @@ from aiogram import Bot, Dispatcher, BaseMiddleware
 from aiogram.client.default import DefaultBotProperties
 from aiogram.exceptions import TelegramForbiddenError
 from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.storage.base import StorageKey
 from aiogram.types import TelegramObject, InlineKeyboardButton, InlineKeyboardMarkup, BufferedInputFile
 from typing import Callable, Dict, Any, Awaitable
 import redis.asyncio as redis
@@ -13,7 +16,8 @@ import redis.asyncio as redis
 from keyboards.inline import back_to_main_menu_keyboard
 
 from config import settings
-from handlers import start, balance, catalog, buy, referral, my_bots, my_subscriptions, my_orders, payment, admin, my_payments
+from handlers import start, balance, catalog, buy, referral, my_bots, my_subscriptions, my_orders, payment, admin, my_payments, payment_receipt
+from handlers.payment_receipt import PaymentReceiptStates
 from api import APIClient
 from logging_config import setup_logging
 from middleware.block_check import BlockCheckMiddleware
@@ -21,6 +25,10 @@ from middleware.unblock_user import UnblockUserMiddleware
 
 # Global flag to control bot operation
 BOT_CAN_OPERATE = True
+
+STATE_MAP = {
+    "payment_awaiting_receipt_link": PaymentReceiptStates.awaiting_receipt_link,
+}
 
 class CanOperateMiddleware(BaseMiddleware):
     async def __call__(
@@ -50,7 +58,7 @@ async def check_bot_status(api_client: APIClient):
         await asyncio.sleep(30)
 
 
-async def redis_listener(bot: Bot, redis_client: redis.Redis, bot_username: str, api_client: APIClient):
+async def redis_listener(dp: Dispatcher, bot: Bot, redis_client: redis.Redis, bot_username: str, api_client: APIClient):
     pubsub = redis_client.pubsub()
     channel = f"bot-notifications:{bot_username}"
     await pubsub.subscribe(channel)
@@ -71,11 +79,13 @@ async def redis_listener(bot: Bot, redis_client: redis.Redis, bot_username: str,
                 continue
 
             # Action variables
-            text = message_data.get('text') or message_data.get('text')
+            text = message_data.get('message')
             image_id = message_data.get('image_id')
             message_to_edit = message_data.get('message_to_edit')
             message_to_delete = message_data.get('message_to_delete')
             inline_keyboard_data = message_data.get('inline_keyboard')
+            state_to_set = message_data.get('state_to_set')
+            state_data = message_data.get('state_data')
             
             reply_markup = None
             if inline_keyboard_data:
@@ -86,6 +96,18 @@ async def redis_listener(bot: Bot, redis_client: redis.Redis, bot_username: str,
                 reply_markup = InlineKeyboardMarkup(inline_keyboard=buttons)
 
             try:
+                # Handle FSM State if provided
+                if state_to_set:
+                    state_object = STATE_MAP.get(state_to_set)
+                    if state_object:
+                        fsm_context = FSMContext(storage=dp.storage, key=StorageKey(bot_id=bot.id, chat_id=telegram_id, user_id=telegram_id))
+                        await fsm_context.set_state(state_object)
+                        if state_data:
+                            await fsm_context.set_data(state_data)
+                        logging.info(f"Set FSM state for user {telegram_id} to {state_to_set} with data {state_data}")
+                    else:
+                        logging.error(f"Unknown state to set: {state_to_set}")
+
                 # Priority 1: Delete a message
                 if message_to_delete:
                     await bot.delete_message(chat_id=telegram_id, message_id=message_to_delete)
@@ -165,12 +187,13 @@ async def main():
     dp.include_router(payment.router)
     dp.include_router(admin.router)
     dp.include_router(my_payments.router)
+    dp.include_router(payment_receipt.router)
 
 
     await bot.delete_webhook(drop_pending_updates=True)
     
     # Start background tasks
-    listener_task = asyncio.create_task(redis_listener(bot, redis_client, me.username, api_client))
+    listener_task = asyncio.create_task(redis_listener(dp, bot, redis_client, me.username, api_client))
     status_check_task = asyncio.create_task(check_bot_status(api_client))
 
 

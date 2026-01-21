@@ -363,3 +363,13 @@ func (c *Client) OrderCancel(objectToken string) error {
 
 	return c.doRequest("/api/method/merch/payin/order_cancel", data, nil)
 }
+
+// OrderCheckDown submits a check/receipt for an order
+func (c *Client) OrderCheckDown(objectToken string, urlFile string) error {
+	data := url.Values{}
+	data.Set("version", "2")
+	data.Set("object_token", objectToken)
+	data.Set("url_file", urlFile)
+
+	return c.doRequest("/api/method/merch/payin/order_check_down", data, nil)
+}

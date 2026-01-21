@@ -36,6 +36,7 @@ type PaymentService interface {
 	PollPendingPayments() error
 	ConfirmExternalPayment(orderID string) error
 	CancelExternalPayment(orderID string) error
+	SubmitReceiptLink(orderID string, receiptURL string) error
 }
 
 type paymentService struct {
@@ -84,7 +85,26 @@ func (s *paymentService) ConfirmExternalPayment(orderID string) error {
 		return apperrors.New(http.StatusInternalServerError, "invalid gateway adapter type", nil)
 	}
 
-	return ppsAdapter.ConfirmPayment(invoice.GatewayInvoiceID)
+	// Use a transaction for atomicity
+	err = s.db.Transaction(func(tx *gorm.DB) error {
+		// Perform the external confirmation
+		if err := ppsAdapter.ConfirmPayment(invoice.GatewayInvoiceID); err != nil {
+			return err // Rollback transaction on external API error
+		}
+
+		// Update local invoice status to prevent further notifications
+		invoice.Status = models.InvoiceStatusManuallyConfirmed
+		if err := s.invoiceRepo.WithTx(tx).Update(invoice); err != nil {
+			return fmt.Errorf("failed to update invoice status to manually_confirmed: %w", err)
+		}
+		return nil
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to confirm external payment: %w", err)
+	}
+
+	return nil
 }
 
 func (s *paymentService) CancelExternalPayment(orderID string) error {
@@ -379,6 +399,19 @@ func (s *paymentService) NotifyUnfinishedPayments() error {
 		invoiceCopy := invoice
 
 		go func() {
+			// Re-fetch the invoice to get the most current status to avoid race conditions
+			freshInvoice, findErr := s.invoiceRepo.FindByID(invoiceCopy.ID)
+			if findErr != nil {
+				slog.Error("failed to re-fetch invoice for notification check", "invoice_id", invoiceCopy.ID, "error", findErr)
+				return // Don't proceed if we can't get the latest state
+			}
+
+			// Only send notification if the payment is still pending
+			if freshInvoice.Status != models.InvoiceStatusPending {
+				slog.Info("skipping unfinished payment notification as status is no longer pending", "invoice_id", freshInvoice.ID, "status", freshInvoice.Status)
+				return
+			}
+
 			message := fmt.Sprintf(
 				"Вы недавно пытались пополнить баланс на %.2f ₽. Возникли ли у вас какие-либо проблемы с оплатой?",
 				invoiceCopy.Amount,
@@ -402,6 +435,8 @@ func (s *paymentService) NotifyUnfinishedPayments() error {
 				nil, // No message to edit
 				nil, // No message to delete
 				keyboard,
+				nil, // stateToSet
+				nil, // stateData
 			)
 			if err != nil {
 				slog.Error("failed to send payment notification", "invoice_id", invoiceCopy.ID, "error", err)
@@ -459,6 +494,26 @@ func (s *paymentService) PollPendingPayments() error {
 			if err != nil {
 				slog.Error("failed to process completed invoice from polling", "gateway", invoice.Gateway, "order_id", invoice.OrderID, "error", err)
 			}
+		} else if status == gateways.InvoiceStatusCheckRequired {
+			// Update status to awaiting_check to prevent sending notifications repeatedly
+			invoice.Status = models.InvoiceStatusAwaitingCheck
+			if err := s.invoiceRepo.Update(&invoice); err != nil {
+				slog.Error("failed to update invoice status to awaiting_check", "gateway", invoice.Gateway, "order_id", invoice.OrderID, "error", err)
+				continue
+			}
+			// Notify user to send a check
+			if err := s.webhookService.SendCheckRequestNotification(invoice.BotUser.RegisteredWithBot, invoice.BotUser.TelegramID, invoice.OrderID); err != nil {
+				slog.Error("failed to send check request notification", "gateway", invoice.Gateway, "order_id", invoice.OrderID, "error", err)
+			}
+		} else if status == gateways.InvoiceStatusAppeal {
+			invoice.Status = models.InvoiceStatusFailed // Stop polling
+			if err := s.invoiceRepo.Update(&invoice); err != nil {
+				slog.Error("failed to update invoice status to failed after appeal", "gateway", invoice.Gateway, "order_id", invoice.OrderID, "error", err)
+				continue
+			}
+			if err := s.webhookService.SendPaymentAppealNotification(invoice.BotUser.RegisteredWithBot, invoice.BotUser.TelegramID, invoice.OrderID); err != nil {
+				slog.Error("failed to send payment appeal notification", "gateway", invoice.Gateway, "order_id", invoice.OrderID, "error", err)
+			}
 		} else if status == gateways.InvoiceStatusFailed || status == gateways.InvoiceStatusRejected {
 			invoice.Status = models.InvoiceStatusFailed
 			if err := s.invoiceRepo.Update(&invoice); err != nil {
@@ -466,6 +521,41 @@ func (s *paymentService) PollPendingPayments() error {
 			}
 		}
 	}
+
+	return nil
+}
+
+func (s *paymentService) SubmitReceiptLink(orderID string, receiptURL string) error {
+	invoice, err := s.invoiceRepo.FindByOrderID(orderID)
+	if err != nil {
+		return &apperrors.ErrNotFound{Resource: "PaymentInvoice", IDString: orderID}
+	}
+
+	if invoice.Status != models.InvoiceStatusAwaitingCheck {
+		return apperrors.New(http.StatusConflict, "invoice is not awaiting a check", nil)
+	}
+
+	gateway, err := s.registry.GetProvider(invoice.Gateway)
+	if err != nil {
+		return apperrors.New(http.StatusInternalServerError, "gateway not found", err)
+	}
+
+	ppsAdapter, ok := gateway.(*gateways.PlatformPaymentSystemAdapter)
+	if !ok {
+		return apperrors.New(http.StatusInternalServerError, "invalid gateway adapter type", nil)
+	}
+
+	if err := ppsAdapter.SubmitReceipt(invoice.GatewayInvoiceID, receiptURL); err != nil {
+		return apperrors.New(http.StatusInternalServerError, "failed to submit receipt to gateway", err)
+	}
+
+	// Set status back to pending to re-enter polling cycle
+	invoice.Status = models.InvoiceStatusPending
+	if err := s.invoiceRepo.Update(invoice); err != nil {
+		return apperrors.New(http.StatusInternalServerError, "failed to update invoice status after submitting receipt", err)
+	}
+
+	slog.Info("successfully submitted receipt link", "order_id", orderID, "url", receiptURL)
 
 	return nil
 }
