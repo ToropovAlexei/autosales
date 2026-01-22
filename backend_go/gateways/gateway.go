@@ -5,10 +5,12 @@ import (
 )
 
 const (
-	InvoiceStatusCompleted = "completed"
-	InvoiceStatusPending   = "pending"
-	InvoiceStatusFailed    = "failed"
-	InvoiceStatusRejected  = "rejected"
+	InvoiceStatusCompleted     = "completed"
+	InvoiceStatusPending       = "pending"
+	InvoiceStatusFailed        = "failed"
+	InvoiceStatusRejected      = "rejected"
+	InvoiceStatusCheckRequired = "check_required"
+	InvoiceStatusAppeal        = "appeal"
 )
 
 // InvoiceCreationRequest contains the data needed to create an invoice.

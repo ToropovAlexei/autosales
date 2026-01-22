@@ -10,9 +10,11 @@ import (
 type InvoiceStatus string
 
 const (
-	InvoiceStatusPending   InvoiceStatus = "pending"
-	InvoiceStatusCompleted InvoiceStatus = "completed"
-	InvoiceStatusFailed    InvoiceStatus = "failed"
+	InvoiceStatusPending         InvoiceStatus = "pending"
+	InvoiceStatusCompleted       InvoiceStatus = "completed"
+	InvoiceStatusFailed          InvoiceStatus = "failed"
+	InvoiceStatusAwaitingCheck   InvoiceStatus = "awaiting_check"
+	InvoiceStatusManuallyConfirmed InvoiceStatus = "manually_confirmed"
 )
 
 // PaymentInvoice represents a record of a payment attempt.

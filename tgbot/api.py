@@ -229,3 +229,6 @@ class APIClient:
         except aiohttp.ClientError as e:
             logging.error(f"API request for image failed: {e}")
             return None
+
+    async def submit_receipt_link(self, order_id: str, receipt_url: str):
+        return await self._request("POST", f"/invoices/{order_id}/submit-receipt", json={"receipt_url": receipt_url})

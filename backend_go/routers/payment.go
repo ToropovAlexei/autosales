@@ -19,4 +19,5 @@ func RegisterPaymentRoutes(router *gin.Engine, handler *handlers.PaymentHandler,
 	api.POST("/deposit/invoice", handler.CreateInvoiceHandler)                      // TODO: fix this
 	api.PATCH("/invoices/:order_id/message-id", handler.SetInvoiceMessageIDHandler) // TODO: fix this
 	api.GET("/invoices/:invoice_id", handler.GetInvoiceByIDHandler)                 // New route to fetch a single invoice by ID
+	api.POST("/invoices/:order_id/submit-receipt", handler.SubmitReceiptLinkHandler)
 }

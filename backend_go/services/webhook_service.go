@@ -14,9 +14,11 @@ type InlineKeyboardButton struct {
 }
 
 type WebhookService interface {
-	SendNotification(botName string, telegramID int64, message string, messageToEdit *int64, messageToDelete *int64, inlineKeyboard [][]InlineKeyboardButton) error
+	SendNotification(botName string, telegramID int64, message string, messageToEdit *int64, messageToDelete *int64, inlineKeyboard [][]InlineKeyboardButton, stateToSet *string, stateData map[string]interface{}) error
 	SendSuccessfulPaymentNotification(botName string, telegramID int64, amount float64, bonus int, messageToDelete *int64) error
 	SendUnfinishedPaymentNotification(botName string, telegramID int64, amount float64, messageToDelete *int64) error
+	SendCheckRequestNotification(botName string, telegramID int64, orderID string) error
+	SendPaymentAppealNotification(botName string, telegramID int64, orderID string) error
 }
 
 type webhookService struct {
@@ -40,9 +42,11 @@ type notificationPayload struct {
 	MessageToEdit   *int64                   `json:"message_to_edit,omitempty"`
 	MessageToDelete *int64                   `json:"message_to_delete,omitempty"`
 	InlineKeyboard  [][]InlineKeyboardButton `json:"inline_keyboard,omitempty"`
+	StateToSet      *string                  `json:"state_to_set,omitempty"`
+	StateData       map[string]interface{}   `json:"state_data,omitempty"`
 }
 
-func (s *webhookService) SendNotification(botName string, telegramID int64, message string, messageToEdit *int64, messageToDelete *int64, inlineKeyboard [][]InlineKeyboardButton) error {
+func (s *webhookService) SendNotification(botName string, telegramID int64, message string, messageToEdit *int64, messageToDelete *int64, inlineKeyboard [][]InlineKeyboardButton, stateToSet *string, stateData map[string]interface{}) error {
 	if s.dispatcherURL == "" {
 		return nil
 	}
@@ -54,6 +58,8 @@ func (s *webhookService) SendNotification(botName string, telegramID int64, mess
 		MessageToEdit:   messageToEdit,
 		MessageToDelete: messageToDelete,
 		InlineKeyboard:  inlineKeyboard,
+		StateToSet:      stateToSet,
+		StateData:       stateData,
 	}
 
 	payloadBytes, err := json.Marshal(payload)
@@ -93,10 +99,24 @@ func (s *webhookService) SendSuccessfulPaymentNotification(botName string, teleg
 		},
 	}
 
-	return s.SendNotification(botName, telegramID, message, nil, messageToDelete, keyboard)
+	return s.SendNotification(botName, telegramID, message, nil, messageToDelete, keyboard, nil, nil)
 }
 
 func (s *webhookService) SendUnfinishedPaymentNotification(botName string, telegramID int64, amount float64, messageToDelete *int64) error {
 	message := fmt.Sprintf("⚠️ Не завершен платеж на сумму %.2f RUB", amount)
-	return s.SendNotification(botName, telegramID, message, nil, messageToDelete, nil)
+	return s.SendNotification(botName, telegramID, message, nil, messageToDelete, nil, nil, nil)
+}
+
+func (s *webhookService) SendCheckRequestNotification(botName string, telegramID int64, orderID string) error {
+	message := "Не видим Ваш платеж. Пожалуйста, загрузите чек (в формате jpg или pdf) на сайт https://dropmefiles.com/ и отправьте нам полученную ссылку."
+	stateToSet := "payment_awaiting_receipt_link"
+	stateData := map[string]interface{}{"order_id": orderID}
+	return s.SendNotification(botName, telegramID, message, nil, nil, nil, &stateToSet, stateData)
+}
+
+func (s *webhookService) SendPaymentAppealNotification(botName string, telegramID int64, orderID string) error {
+	// TODO: Get operator contact from settings/config
+	operatorContact := "@operator_contact_placeholder"
+	message := fmt.Sprintf("Мы не смогли увидеть Ваш платеж. Пожалуйста свяжитесь с оператором: %s", operatorContact)
+	return s.SendNotification(botName, telegramID, message, nil, nil, nil, nil, nil)
 }
