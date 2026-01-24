@@ -89,6 +89,7 @@ pub struct AutosalesPlatformOrderStatusRequisiteData {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AutosalesPlatformOrderStatusType {
+    MerchInitialized,
     TraderSuccess,
     MerchSuccess,
     SystemTimerEndMerchProcessSuccess,
@@ -108,15 +109,13 @@ pub struct AutosalesPlatformOrderStatus {
     pub token: String,
     pub status: AutosalesPlatformOrderStatusType,
     pub appeal_fake_status: Option<String>,
-    pub appeal_url_file: String,
+    pub appeal_url_file: Option<String>,
     pub requisite_data: AutosalesPlatformOrderStatusRequisiteData,
     pub token_link: Option<String>,
     pub amount_order_requested: String,
     pub amount_order_charged: String,
     pub datetime_created_cosmetics: String,
     pub datetime_created_datetime: String,
-    pub timer_cosmetics: String,
-    pub timer_datetime: String,
 }
 
 #[derive(Debug, Deserialize)]

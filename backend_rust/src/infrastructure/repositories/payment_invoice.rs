@@ -223,8 +223,7 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             WHERE 
                 status IN ('pending', 'processing', 'awaiting_receipt', 'disputed') AND
                 created_at < $1 AND
-                deleted_at IS NULL AND
-                notification_sent_at IS NULL
+                deleted_at IS NULL
             "#,
             older_than
         )

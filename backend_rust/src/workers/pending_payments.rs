@@ -90,12 +90,17 @@ pub async fn pending_payments_task(app_state: Arc<AppState>) {
         let polled_statuses = {
             let mut statuses = HashMap::with_capacity(pending_invoices.len());
             for invoice in pending_invoices.iter() {
-                if let Ok(order) = app_state
+                match app_state
                     .platform_payments_provider
                     .get_order_status(invoice.gateway_invoice_id.clone())
                     .await
                 {
-                    statuses.insert(invoice.id, InvoiceStatus::from(order.status));
+                    Ok(order) => {
+                        statuses.insert(invoice.id, InvoiceStatus::from(order.status));
+                    }
+                    Err(e) => {
+                        tracing::error!("Failed to get order status: {e}");
+                    }
                 }
             }
             statuses
@@ -181,7 +186,8 @@ async fn notify_pending_payments(
     let invoices_to_notify_about_troubles = pending_invoices
         .iter()
         .filter(|i| {
-            i.status == InvoiceStatus::Pending
+            i.notification_sent_at.is_none()
+                && i.status == InvoiceStatus::Pending
                 && polled_statuses
                     .get(&i.id)
                     .unwrap_or(&InvoiceStatus::Pending)
@@ -405,6 +411,7 @@ async fn update_invoices(
 impl From<AutosalesPlatformOrderStatusType> for InvoiceStatus {
     fn from(status: AutosalesPlatformOrderStatusType) -> Self {
         match status {
+            AutosalesPlatformOrderStatusType::MerchInitialized => InvoiceStatus::Pending,
             AutosalesPlatformOrderStatusType::TraderSuccess
             | AutosalesPlatformOrderStatusType::MerchSuccess
             | AutosalesPlatformOrderStatusType::SystemTimerEndMerchProcessSuccess
