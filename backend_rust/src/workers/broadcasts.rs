@@ -16,16 +16,16 @@ use crate::{
 };
 
 pub async fn broadcasts_task(app_state: Arc<AppState>) {
-    tracing::info!("Starting broadcasts task");
+    tracing::info!("[Broadcasts task] Starting...");
     let mut interval = interval(Duration::from_mins(1));
 
     loop {
         interval.tick().await;
-        tracing::info!("Running broadcasts task...");
+        tracing::info!("[Broadcasts task] Running...");
         let ready_broadcasts = match app_state.broadcast_service.get_ready_broadcasts().await {
             Ok(broadcasts) => broadcasts,
             Err(e) => {
-                tracing::error!("Error getting ready broadcasts: {}", e);
+                tracing::error!("[Broadcasts task] Error getting ready broadcasts: {}", e);
                 continue;
             }
         };
@@ -35,7 +35,7 @@ pub async fn broadcasts_task(app_state: Arc<AppState>) {
             let raw_query: JsonRawListQuery = match serde_json::from_value(json_val) {
                 Ok(q) => q,
                 Err(e) => {
-                    tracing::error!("Error parsing raw broadcast filters: {e}");
+                    tracing::error!("[Broadcasts task] Error parsing raw broadcast filters: {e}");
                     mark_broadcast_as_failed(broadcast.id, &app_state).await;
                     continue;
                 }
@@ -44,7 +44,7 @@ pub async fn broadcasts_task(app_state: Arc<AppState>) {
             let mut list_query = match CustomerListQuery::try_from_json(raw_query) {
                 Ok(q) => q,
                 Err(e) => {
-                    tracing::error!("Error parsing broadcast filters: {e}");
+                    tracing::error!("[Broadcasts task] Error parsing broadcast filters: {e}");
                     mark_broadcast_as_failed(broadcast.id, &app_state).await;
                     continue;
                 }
@@ -55,7 +55,7 @@ pub async fn broadcasts_task(app_state: Arc<AppState>) {
             let customers = match app_state.customer_service.get_list(list_query).await {
                 Ok(customers) => customers,
                 Err(e) => {
-                    tracing::error!("Error getting broadcast customers: {e}");
+                    tracing::error!("[Broadcasts task] Error getting broadcast customers: {e}");
                     mark_broadcast_as_failed(broadcast.id, &app_state).await;
                     continue;
                 }
@@ -63,7 +63,7 @@ pub async fn broadcasts_task(app_state: Arc<AppState>) {
 
             if customers.items.is_empty() {
                 mark_broadcast_as_failed(broadcast.id, &app_state).await;
-                tracing::error!("No customers found for broadcast");
+                tracing::error!("[Broadcasts task] No customers found for broadcast");
                 continue;
             }
 
@@ -84,14 +84,17 @@ pub async fn broadcasts_task(app_state: Arc<AppState>) {
                 })
                 .await
             {
-                tracing::error!("Error updating broadcast status: {e}");
+                tracing::error!("[Broadcasts task] Error updating broadcast status: {e}");
                 continue;
             }
 
             let mut sent = 0;
             let mut failed = 0;
 
-            tracing::info!("Sending broadcast to {} customers", customers.items.len());
+            tracing::info!(
+                "[Broadcasts task] Sending broadcast to {} customers",
+                customers.items.len()
+            );
 
             for customer in customers.items {
                 match app_state
@@ -109,7 +112,7 @@ pub async fn broadcasts_task(app_state: Arc<AppState>) {
                 {
                     Ok(_) => sent += 1,
                     Err(e) => {
-                        tracing::error!("Error sending broadcast message: {e}");
+                        tracing::error!("[Broadcasts task] Error sending broadcast message: {e}");
                         failed += 1;
                     }
                 }
@@ -117,8 +120,11 @@ pub async fn broadcasts_task(app_state: Arc<AppState>) {
                 tokio::time::sleep(Duration::from_millis(100)).await;
             }
 
-            tracing::info!("Broadcast sent to {} customers", sent);
-            tracing::info!("Broadcast failed to send to {} customers", failed);
+            tracing::info!("[Broadcasts task] Broadcast sent to {} customers", sent);
+            tracing::info!(
+                "[Broadcasts task] Broadcast failed to send to {} customers",
+                failed
+            );
 
             if let Err(e) = app_state
                 .broadcast_service
@@ -140,7 +146,7 @@ pub async fn broadcasts_task(app_state: Arc<AppState>) {
                 })
                 .await
             {
-                tracing::error!("Error updating broadcast status: {e}");
+                tracing::error!("[Broadcasts task] Error updating broadcast status: {e}");
                 continue;
             };
         }
@@ -165,6 +171,6 @@ pub async fn mark_broadcast_as_failed(broadcast_id: i64, app_state: &Arc<AppStat
         })
         .await
     {
-        tracing::error!("Error marking broadcast as failed: {e}");
+        tracing::error!("[Broadcasts task] Error marking broadcast as failed: {e}");
     };
 }
