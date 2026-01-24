@@ -252,7 +252,8 @@ async fn request_receipts(
     let to_request_receipt = pending_invoices
         .iter()
         .filter(|i| {
-            i.status == InvoiceStatus::Pending
+            i.status != InvoiceStatus::AwaitingReceipt
+                && i.status != InvoiceStatus::ReceiptSubmitted
                 && polled_statuses
                     .get(&i.id)
                     .unwrap_or(&InvoiceStatus::Pending)

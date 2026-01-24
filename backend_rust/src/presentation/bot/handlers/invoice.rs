@@ -128,7 +128,7 @@ async fn send_invoice_receipt(
     _bot: AuthBot,
     mut multipart: Multipart,
 ) -> ApiResult<Json<PaymentInvoiceResponse>> {
-    let (file, filename) = get_receipt_from_form(&mut multipart)
+    let file = get_receipt_from_form(&mut multipart)
         .await
         .map_err(ApiError::BadRequest)?;
     let _image = state
@@ -136,7 +136,7 @@ async fn send_invoice_receipt(
         .create(CreateImage {
             context: "invoice_receipt".to_string(),
             file,
-            filename,
+            filename: "receipt".to_string(),
             created_by: 1, // System
         })
         .await?;
@@ -151,14 +151,12 @@ async fn send_invoice_receipt(
     Ok(Json(PaymentInvoiceResponse::from(invoice)))
 }
 
-async fn get_receipt_from_form(multipart: &mut Multipart) -> Result<(Bytes, String), String> {
+async fn get_receipt_from_form(multipart: &mut Multipart) -> Result<Bytes, String> {
     let mut file: Option<Bytes> = None;
-    let mut filename: Option<String> = None;
 
     while let Some(field) = multipart.next_field().await.map_err(|e| e.to_string())? {
         let name = field.name().ok_or("Field name missing")?.to_string();
         if name.as_str() == "file" {
-            filename = field.file_name().map(|s| s.to_string());
             let data = field.bytes().await.map_err(|e| e.to_string())?;
             file = Some(data);
         }
@@ -166,5 +164,5 @@ async fn get_receipt_from_form(multipart: &mut Multipart) -> Result<(Bytes, Stri
 
     let file = file.ok_or("Missing 'file' field")?;
 
-    Ok((file, filename.ok_or("Missing 'filename' field")?))
+    Ok(file)
 }

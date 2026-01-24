@@ -32,7 +32,8 @@ use crate::{
             fallback_bot_msg::fallback_bot_msg, main_menu::main_menu_handler,
             my_bots::my_bots_handler, my_orders::my_orders_handler,
             my_payments::my_payments_handler, my_subscriptions::my_subscriptions_handler,
-            order_details::order_details_handler, product::product_handler, start::start_handler,
+            order_details::order_details_handler, product::product_handler,
+            receipt_submitted_handler::receipt_submitted_handler, start::start_handler,
             support::support_handler,
         },
         keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard,
@@ -243,6 +244,12 @@ pub async fn run_bot(
         .branch(
             dptree::filter(|state: BotState| state.step == BotStep::WaitingForReferralBotToken)
                 .endpoint(handlers::my_bots::referral_bot_token_handler),
+        )
+        .branch(
+            dptree::filter(|state: BotState| {
+                matches!(state.step, BotStep::ReceiptRequested { .. })
+            })
+            .endpoint(receipt_submitted_handler),
         );
 
     let callback_router = dptree::entry().endpoint(
@@ -636,7 +643,7 @@ async fn handle_msg(
                 })
                 .await?;
             (
-            "Не видим Ваш платеж. Пожалуйста, загрузите чек (в формате jpg или pdf) на сайт https://dropmefiles.com/ и отправьте нам полученную ссылку.".to_string(),
+            "Не видим Ваш платеж. Пожалуйста, загрузите чек (в формате jpg или pdf) и отправьте нам.".to_string(),
             None,
             back_to_main_menu_inline_keyboard(),
             )

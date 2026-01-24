@@ -221,7 +221,7 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
                 bot_message_id, notification_sent_at
             FROM payment_invoices
             WHERE 
-                status IN ('pending', 'processing', 'awaiting_receipt', 'disputed') AND
+                status IN ('pending', 'processing', 'awaiting_receipt', 'receipt_submitted', 'disputed') AND
                 created_at < $1 AND
                 deleted_at IS NULL
             "#,

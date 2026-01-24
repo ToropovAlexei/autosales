@@ -52,7 +52,7 @@ where
 
 #[derive(Debug)]
 pub struct CreateImage {
-    pub context: String,
+    pub context: String, // TODO Should be enum
     pub file: Bytes,
     pub filename: String,
     pub created_by: i64,
