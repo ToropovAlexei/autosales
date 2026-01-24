@@ -29,6 +29,7 @@ export const formToFilters = ({
     { field: "last_seen_at", op: "lt", value: last_seen_before },
     { field: "created_at", op: "gt", value: registered_after },
     { field: "created_at", op: "lt", value: registered_before },
+    { field: "bot_is_blocked_by_user", op: "eq", value: false },
   ].filter(
     (f) => f.value !== undefined && f.value !== null && f.value !== "",
   ) satisfies IFilter["filters"];

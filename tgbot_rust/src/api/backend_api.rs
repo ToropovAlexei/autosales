@@ -11,7 +11,7 @@ use crate::{
         bot::Bot,
         category::Category,
         common::CaptchaResponse,
-        customer::Customer,
+        customer::{Customer, UpdateCustomerRequest},
         order::OrderResponse,
         payment::{PaymentGateway, PaymentInvoiceResponse, PaymentSystem},
         product::Product,
@@ -277,6 +277,16 @@ impl BackendApi {
                 &format!("bot/invoices/{invoice_id}/send-receipt"),
                 form,
             )
+            .await
+    }
+
+    pub async fn update_customer(
+        &self,
+        telegram_id: i64,
+        update: &UpdateCustomerRequest,
+    ) -> ApiClientResult<Customer> {
+        self.api_client
+            .patch_with_body::<Customer, _>(&format!("bot/customers/{telegram_id}"), update)
             .await
     }
 }

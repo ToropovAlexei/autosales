@@ -41,6 +41,7 @@ use crate::{
     errors::{AppError, AppResult},
     models::{
         DispatchMessage, DispatchMessagePayload,
+        customer::UpdateCustomerRequest,
         payment::{PaymentDetails, PaymentSystem},
     },
 };
@@ -642,7 +643,20 @@ async fn handle_msg(
         }
     };
 
-    send_msg(&api_client, &dialogue, &bot, &msg, img, keyboard).await?;
+    if let Err(AppError::RequestError(RequestError::Api(ApiError::BotBlocked))) =
+        send_msg(&api_client, &dialogue, &bot, &msg, img, keyboard).await
+    {
+        tracing::info!("Bot is blocked by user: {}", payload.telegram_id);
+        api_client
+            .update_customer(
+                payload.telegram_id,
+                &UpdateCustomerRequest {
+                    bot_is_blocked_by_user: Some(true),
+                    ..Default::default()
+                },
+            )
+            .await?;
+    };
 
     Ok(())
 }
