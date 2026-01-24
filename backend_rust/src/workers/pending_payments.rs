@@ -411,7 +411,8 @@ async fn update_invoices(
 impl From<AutosalesPlatformOrderStatusType> for InvoiceStatus {
     fn from(status: AutosalesPlatformOrderStatusType) -> Self {
         match status {
-            AutosalesPlatformOrderStatusType::MerchInitialized => InvoiceStatus::Pending,
+            AutosalesPlatformOrderStatusType::MerchInitialized
+            | AutosalesPlatformOrderStatusType::MerchProcess => InvoiceStatus::Pending,
             AutosalesPlatformOrderStatusType::TraderSuccess
             | AutosalesPlatformOrderStatusType::MerchSuccess
             | AutosalesPlatformOrderStatusType::SystemTimerEndMerchProcessSuccess

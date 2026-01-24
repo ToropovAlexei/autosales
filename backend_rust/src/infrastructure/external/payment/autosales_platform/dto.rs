@@ -89,6 +89,7 @@ pub struct AutosalesPlatformOrderStatusRequisiteData {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum AutosalesPlatformOrderStatusType {
+    MerchProcess,
     MerchInitialized,
     TraderSuccess,
     MerchSuccess,
