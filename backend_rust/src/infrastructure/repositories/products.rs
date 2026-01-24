@@ -255,8 +255,13 @@ impl ProductRepositoryTrait for ProductRepository {
 
 #[cfg(test)]
 mod tests {
+    use std::marker::PhantomData;
+
     use super::*;
-    use crate::models::product::ProductType;
+    use crate::models::{
+        common::{OrderDir, Pagination},
+        product::ProductType,
+    };
     use rand::Rng;
     use rust_decimal::Decimal;
     use sqlx::PgPool;
@@ -506,5 +511,201 @@ mod tests {
         assert_eq!(fetched_product.external_id, initial_product.external_id);
         // Only updated_at should change
         assert_ne!(fetched_product.updated_at, initial_product.updated_at);
+    }
+
+    #[sqlx::test]
+    async fn test_create_and_get_product(pool: PgPool) {
+        let repo = ProductRepository::new(Arc::new(pool.clone()));
+        let category_id = create_test_category(&pool, "Electronics").await;
+
+        let new_product = NewProduct {
+            name: "Test Product".to_string(),
+            base_price: Decimal::try_from(100.00).unwrap(),
+            category_id,
+            image_id: None,
+            r#type: ProductType::Item,
+            subscription_period_days: 0,
+            details: None,
+            fulfillment_text: None,
+            fulfillment_image_id: None,
+            provider_name: "test_provider".to_string(),
+            external_id: None,
+            created_by: 1,
+        };
+
+        let created_product = repo.create(new_product.clone()).await.unwrap();
+        assert_eq!(created_product.name, new_product.name);
+        assert_eq!(created_product.base_price, new_product.base_price);
+
+        let fetched_product = repo.get_by_id(created_product.id).await.unwrap();
+        assert_eq!(fetched_product.id, created_product.id);
+        assert_eq!(fetched_product.name, new_product.name);
+    }
+
+    #[sqlx::test]
+    async fn test_delete_product(pool: PgPool) {
+        let repo = ProductRepository::new(Arc::new(pool.clone()));
+        let category_id = create_test_category(&pool, "Deletable").await;
+        let product_to_delete =
+            create_test_product(&pool, "To Be Deleted", 50.0, category_id).await;
+
+        repo.delete(product_to_delete.id).await.unwrap();
+
+        let result = repo.get_by_id(product_to_delete.id).await;
+        assert!(matches!(result, Err(RepositoryError::NotFound(_))));
+    }
+
+    #[sqlx::test]
+    async fn test_get_by_id_not_found(pool: PgPool) {
+        let repo = ProductRepository::new(Arc::new(pool.clone()));
+        let non_existent_id = -1;
+
+        let result = repo.get_by_id(non_existent_id).await;
+        assert!(matches!(result, Err(RepositoryError::NotFound(_))));
+    }
+
+    #[sqlx::test]
+    async fn test_get_list_products(pool: PgPool) {
+        let repo = ProductRepository::new(Arc::new(pool.clone()));
+        let category_id = create_test_category(&pool, "ListCategory").await;
+
+        // Create several products
+        create_test_product(&pool, "Product A", 10.0, category_id).await;
+        create_test_product(&pool, "Product B", 20.0, category_id).await;
+        create_test_product(&pool, "Product C", 30.0, category_id).await;
+
+        let query = ProductListQuery {
+            filters: vec![],
+            pagination: Pagination {
+                page: 1,
+                page_size: 2,
+            },
+            order_by: None,
+            order_dir: OrderDir::default(),
+            _phantom: PhantomData,
+        };
+
+        let result = repo.get_list(query).await.unwrap();
+        assert_eq!(result.items.len(), 2);
+        assert!(result.total >= 3); // Account for other tests creating products
+    }
+
+    #[sqlx::test]
+    async fn test_get_for_external_provider(pool: PgPool) {
+        let repo = ProductRepository::new(Arc::new(pool.clone()));
+        let category_id = create_test_category(&pool, "ExternalProviderCategory").await;
+
+        let provider_name = "external_shop";
+        let external_id = "ext_prod_123";
+
+        let new_product = NewProduct {
+            name: "External Product".to_string(),
+            base_price: Decimal::new(99, 2),
+            category_id,
+            image_id: None,
+            r#type: ProductType::Item,
+            subscription_period_days: 0,
+            details: None,
+            fulfillment_text: None,
+            fulfillment_image_id: None,
+            provider_name: provider_name.to_string(),
+            external_id: Some(external_id.to_string()),
+            created_by: 1,
+        };
+
+        repo.create(new_product.clone()).await.unwrap();
+
+        let fetched_product = repo
+            .get_for_external_provider(provider_name, external_id)
+            .await
+            .unwrap();
+        assert_eq!(fetched_product.name, new_product.name);
+        assert_eq!(fetched_product.provider_name, provider_name);
+        assert_eq!(fetched_product.external_id.unwrap(), external_id);
+
+        let non_existent_result = repo.get_for_external_provider("non_existent", "id").await;
+        assert!(matches!(
+            non_existent_result,
+            Err(RepositoryError::NotFound(_))
+        ));
+    }
+
+    #[sqlx::test]
+    async fn test_get_all_external_provider(pool: PgPool) {
+        let repo = ProductRepository::new(Arc::new(pool.clone()));
+        let category_id = create_test_category(&pool, "AllExternalProviderCategory").await;
+
+        let provider_name = "another_shop";
+        create_test_product(&pool, "Prod 1", 100.0, category_id).await; // created by default helper
+        create_test_product(&pool, "Prod 2", 200.0, category_id).await; // created by default helper
+
+        // Manually create products with the specific provider_name
+        let new_product1 = NewProduct {
+            name: "Manual Prod 1".to_string(),
+            base_price: Decimal::new(100, 2),
+            category_id,
+            image_id: None,
+            r#type: ProductType::Item,
+            subscription_period_days: 0,
+            details: None,
+            fulfillment_text: None,
+            fulfillment_image_id: None,
+            provider_name: provider_name.to_string(),
+            external_id: Some("manual_ext_1".to_string()),
+            created_by: 1,
+        };
+        let new_product2 = NewProduct {
+            name: "Manual Prod 2".to_string(),
+            base_price: Decimal::new(200, 2),
+            category_id,
+            image_id: None,
+            r#type: ProductType::Item,
+            subscription_period_days: 0,
+            details: None,
+            fulfillment_text: None,
+            fulfillment_image_id: None,
+            provider_name: provider_name.to_string(),
+            external_id: Some("manual_ext_2".to_string()),
+            created_by: 1,
+        };
+        repo.create(new_product1).await.unwrap();
+        repo.create(new_product2).await.unwrap();
+
+        let products = repo.get_all_external_provider(provider_name).await.unwrap();
+        assert_eq!(products.len(), 2);
+        assert!(
+            products
+                .iter()
+                .any(|p| p.name == "Manual Prod 1" && p.provider_name == provider_name)
+        );
+        assert!(
+            products
+                .iter()
+                .any(|p| p.name == "Manual Prod 2" && p.provider_name == provider_name)
+        );
+
+        let empty_products = repo
+            .get_all_external_provider("non_existent_provider")
+            .await
+            .unwrap();
+        assert!(empty_products.is_empty());
+    }
+
+    #[sqlx::test]
+    async fn test_find_by_name(pool: PgPool) {
+        let repo = ProductRepository::new(Arc::new(pool.clone()));
+        let category_id = create_test_category(&pool, "FindByNameCategory").await;
+
+        let product_name = "Unique Product Name";
+        create_test_product(&pool, product_name, 100.0, category_id).await;
+
+        let fetched_product = repo.find_by_name(product_name).await.unwrap();
+        assert_eq!(fetched_product.name, product_name);
+
+        let non_existent_result = repo.find_by_name("Non Existent Name").await;
+        assert!(matches!(
+            non_existent_result,
+            Err(RepositoryError::NotFound(_))
+        ));
     }
 }

@@ -38,7 +38,7 @@ pub struct ProductRow {
     pub created_by: i64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct NewProduct {
     pub name: String,
     pub base_price: Decimal,
