@@ -100,7 +100,7 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             payment_invoice.gateway as _,
             payment_invoice.gateway_invoice_id,
             payment_invoice.order_id,
-            payment_invoice.payment_details,
+            payment_invoice.payment_details.map(|p| serde_json::to_value(p).unwrap_or_default()).unwrap_or_default(),
             payment_invoice.bot_message_id
         )
         .fetch_one(&*self.pool)
@@ -254,7 +254,6 @@ mod tests {
     };
     use chrono::{Duration, Utc};
     use rust_decimal::Decimal;
-    use serde_json::Value;
     use sqlx::PgPool;
     use uuid::Uuid;
 
@@ -307,7 +306,7 @@ mod tests {
             expires_at,
             gateway: PaymentSystem::Mock,
             gateway_invoice_id: "test_invoice_id".to_string(),
-            payment_details: Value::Null,
+            payment_details: None,
             bot_message_id: None,
         };
 

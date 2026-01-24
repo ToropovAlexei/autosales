@@ -1,13 +1,13 @@
 use axum::http::{HeaderMap, HeaderValue};
 use bytes::Bytes;
-use reqwest::header;
+use reqwest::{header, multipart};
 use serde_json::json;
 use uuid::Uuid;
 
 use crate::{
     api::{api_client::ApiClient, api_errors::ApiClientResult},
     models::{
-        InvoiceResponse, ListResponse,
+        ListResponse,
         bot::Bot,
         category::Category,
         common::CaptchaResponse,
@@ -143,9 +143,9 @@ impl BackendApi {
         gateway: &PaymentSystem,
         amount: f64,
         telegram_id: i64,
-    ) -> ApiClientResult<InvoiceResponse> {
+    ) -> ApiClientResult<PaymentInvoiceResponse> {
         self.api_client
-            .post_with_body::<InvoiceResponse, _>(
+            .post_with_body::<PaymentInvoiceResponse, _>(
                 "bot/invoices",
                 &json!({"telegram_id": telegram_id, "gateway": gateway, "amount": amount}),
             )
@@ -258,6 +258,25 @@ impl BackendApi {
     pub async fn update_customer_last_seen(&self, telegram_id: i64) -> ApiClientResult<()> {
         self.api_client
             .post(&format!("bot/customers/{telegram_id}/update-last-seen"))
+            .await
+    }
+
+    pub async fn submit_payment_receipt_file(
+        &self,
+        invoice_id: i64,
+        file_bytes: Bytes,
+    ) -> ApiClientResult<PaymentInvoiceResponse> {
+        let form = multipart::Form::new().part(
+            "file",
+            multipart::Part::bytes(file_bytes.to_vec())
+                .file_name("receipt.jpg")
+                .mime_str("image/jpeg")?,
+        );
+        self.api_client
+            .post_with_multipart::<PaymentInvoiceResponse>(
+                &format!("bot/invoices/{invoice_id}/send-receipt"),
+                form,
+            )
             .await
     }
 }

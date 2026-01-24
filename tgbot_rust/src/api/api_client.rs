@@ -1,6 +1,6 @@
 use axum::http::HeaderMap;
 use bytes::Bytes;
-use reqwest::{Client, Method, RequestBuilder, Response, Url};
+use reqwest::{Client, Method, RequestBuilder, Response, Url, multipart};
 use serde::{Serialize, de::DeserializeOwned};
 
 use super::api_errors::{ApiClientError, ApiClientResult};
@@ -43,6 +43,19 @@ impl ApiClient {
         let url = self.base_url.join(endpoint)?;
         let response = self.client.get(url).send().await?;
         response.bytes().await.map_err(Into::into)
+    }
+
+    pub async fn post_with_multipart<T>(
+        &self,
+        endpoint: &str,
+        body: multipart::Form,
+    ) -> ApiClientResult<T>
+    where
+        T: DeserializeOwned + Send + 'static,
+    {
+        let url = self.base_url.join(endpoint)?;
+        let response = self.client.post(url).multipart(body).send().await?;
+        Self::parse_response(response).await
     }
 
     pub async fn post_with_body<T, B>(&self, endpoint: &str, body: &B) -> ApiClientResult<T>

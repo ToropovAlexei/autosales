@@ -39,13 +39,3 @@ pub struct ListResponse<T> {
     pub items: Vec<T>,
     pub total: i64,
 }
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct InvoiceResponse {
-    pub id: i64,
-    pub customer_id: i64,
-    pub original_amount: f64,
-    pub amount: f64,
-    pub order_id: uuid::Uuid,
-    pub payment_details: serde_json::Value,
-}

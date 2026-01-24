@@ -13,7 +13,7 @@ use crate::infrastructure::external::payment::autosales_platform::dto::{
     AutosalesPlatformInitializeOrderRequest, AutosalesPlatformObjectTokenPayload,
     AutosalesPlatformOrderInitializedDataRequisite, AutosalesPlatformOrderInitializedResponse,
     AutosalesPlatformOrderStatus, AutosalesPlatformOrderStatusResponse, AutosalesPlatformRequest,
-    AutosalesPlatformSendReceiptRequest,
+    AutosalesPlatformResponse, AutosalesPlatformSendReceiptRequest,
 };
 
 pub mod dto;
@@ -135,7 +135,8 @@ impl AutosalesPlatformPaymentsProvider {
     }
 
     fn generate_2fa_code(&self) -> Result<String, String> {
-        let totp = totp_rs::TOTP::new(
+        // Unchecked because of 2fa is too short and this is not safe
+        let totp = totp_rs::TOTP::new_unchecked(
             Algorithm::SHA1,
             6,
             1,
@@ -145,8 +146,7 @@ impl AutosalesPlatformPaymentsProvider {
                 .map_err(|e| e.to_string())?,
             None,
             "".to_string(),
-        )
-        .map_err(|e| e.to_string())?;
+        );
         totp.generate_current().map_err(|e| e.to_string())
     }
 
@@ -209,26 +209,33 @@ impl AutosalesPlatformPaymentsProviderTrait for AutosalesPlatformPaymentsProvide
     }
 
     async fn cancel_order(&self, object_token: String) -> Result<(), String> {
-        self.request::<(), AutosalesPlatformObjectTokenPayload>(
+        self.request::<AutosalesPlatformResponse<String>, AutosalesPlatformObjectTokenPayload>(
             "api/method/merch/payin/order_cancel",
             AutosalesPlatformObjectTokenPayload { object_token },
             1,
         )
-        .await
+        .await?;
+        Ok(())
     }
 
     async fn process_order(&self, object_token: String) -> Result<(), String> {
-        self.request::<(), AutosalesPlatformObjectTokenPayload>(
+        self.request::<AutosalesPlatformResponse<String>, AutosalesPlatformObjectTokenPayload>(
             "api/method/merch/payin/order_process",
             AutosalesPlatformObjectTokenPayload { object_token },
             1,
         )
-        .await
+        .await?;
+        Ok(())
     }
 
     async fn send_receipt(&self, req: AutosalesPlatformSendReceiptRequest) -> Result<(), String> {
-        self.request("api/method/merch/payin/order_check_down", req, 2)
-            .await
+        self.request::<AutosalesPlatformResponse<String>, AutosalesPlatformSendReceiptRequest>(
+            "api/method/merch/payin/order_check_down",
+            req,
+            2,
+        )
+        .await?;
+        Ok(())
     }
 
     async fn get_order_status(

@@ -15,5 +15,6 @@ pub mod my_payments;
 pub mod my_subscriptions;
 pub mod order_details;
 pub mod product;
+pub mod receipt_submitted_handler;
 pub mod start;
 pub mod support;

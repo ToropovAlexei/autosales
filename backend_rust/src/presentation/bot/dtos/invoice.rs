@@ -6,7 +6,7 @@ use validator::Validate;
 
 use crate::models::{
     payment::PaymentSystem,
-    payment_invoice::{InvoiceStatus, PaymentInvoiceRow},
+    payment_invoice::{InvoiceStatus, PaymentDetails, PaymentInvoiceRow},
 };
 
 #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -16,7 +16,7 @@ pub struct PaymentInvoiceResponse {
     pub original_amount: f64,
     pub amount: f64,
     pub order_id: uuid::Uuid,
-    pub payment_details: serde_json::Value,
+    pub payment_details: Option<PaymentDetails>,
     pub gateway: PaymentSystem,
     pub status: InvoiceStatus,
     pub created_at: DateTime<Utc>,
@@ -30,7 +30,7 @@ impl From<PaymentInvoiceRow> for PaymentInvoiceResponse {
             original_amount: r.original_amount.to_f64().unwrap_or_default(),
             amount: r.amount.to_f64().unwrap_or_default(),
             order_id: r.order_id,
-            payment_details: r.payment_details,
+            payment_details: serde_json::from_value(r.payment_details).unwrap_or_default(),
             status: r.status,
             created_at: r.created_at,
             gateway: r.gateway,

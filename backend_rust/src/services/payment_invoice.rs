@@ -33,13 +33,12 @@ use crate::{
         common::PaginatedResult,
         payment::PaymentSystem,
         payment_invoice::{
-            InvoiceStatus, NewPaymentInvoice, PaymentInvoiceListQuery, PaymentInvoiceRow,
-            UpdatePaymentInvoice,
+            InvoiceStatus, NewPaymentInvoice, PaymentDetails, PaymentInvoiceListQuery,
+            PaymentInvoiceRow, UpdatePaymentInvoice,
         },
     },
     services::audit_log::{AuditLogService, AuditLogServiceTrait},
 };
-use serde_json::json;
 
 #[derive(Debug)]
 pub struct CreatePaymentInvoiceCommand {
@@ -157,7 +156,12 @@ impl PaymentInvoiceServiceTrait
                     user_id: command.customer_id,
                 })
                 .await
-                .map(|r| (r.invoice_id.to_string(), json!({"pay_url": r.pay_url})))
+                .map(|r| {
+                    (
+                        r.invoice_id.to_string(),
+                        PaymentDetails::Mock { pay_url: r.pay_url },
+                    )
+                })
                 .map_err(ApiError::InternalServerError)?,
             PaymentSystem::PlatformCard | PaymentSystem::PlatformSBP => {
                 let id_pay_method = match command.gateway {
@@ -174,11 +178,32 @@ impl PaymentInvoiceServiceTrait
                     .await
                     .map_err(ApiError::InternalServerError)?;
 
-                (
-                    invoice.object_token.clone(),
-                    serde_json::to_value(invoice)
-                        .map_err(|e| ApiError::InternalServerError(e.to_string()))?,
-                )
+                let payment_details = match command.gateway {
+                    PaymentSystem::PlatformCard => PaymentDetails::PlatformCard {
+                        account_name: format!(
+                            "{} {} {}",
+                            invoice.data_people.surname,
+                            invoice.data_people.name,
+                            invoice.data_people.patronymic
+                        ),
+                        amount: invoice.data_mathematics.amount_pay,
+                        bank_name: invoice.data_bank.name,
+                        card_number: invoice.value,
+                    },
+                    PaymentSystem::PlatformSBP => PaymentDetails::PlatformSBP {
+                        account_name: format!(
+                            "{} {} {}",
+                            invoice.data_people.surname,
+                            invoice.data_people.name,
+                            invoice.data_people.patronymic
+                        ),
+                        amount: invoice.data_mathematics.amount_pay,
+                        bank_name: invoice.data_bank.name,
+                        sbp_number: invoice.value,
+                    },
+                    _ => unreachable!(),
+                };
+                (invoice.object_token.clone(), payment_details)
             }
         };
         let created = self
@@ -192,7 +217,7 @@ impl PaymentInvoiceServiceTrait
                 gateway: command.gateway,
                 gateway_invoice_id,
                 order_id,
-                payment_details,
+                payment_details: Some(payment_details),
                 status: InvoiceStatus::Pending,
             })
             .await?;

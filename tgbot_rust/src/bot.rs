@@ -39,7 +39,10 @@ use crate::{
         utils::{MessageImage, send_msg},
     },
     errors::{AppError, AppResult},
-    models::{DispatchMessage, DispatchMessagePayload, payment::PaymentSystem},
+    models::{
+        DispatchMessage, DispatchMessagePayload,
+        payment::{PaymentDetails, PaymentSystem},
+    },
 };
 
 pub mod handlers;
@@ -63,7 +66,7 @@ pub enum PaymentAction {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct InvoiceData {
     pub id: i64,
-    pub details: Option<serde_json::Value>,
+    pub details: Option<PaymentDetails>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -398,11 +401,7 @@ pub async fn run_bot(
                             amount: invoice.amount as i64,
                             invoice: Some(InvoiceData {
                                 id,
-                                details: Some(
-                                    serde_json::to_value(invoice.payment_details).map_err(|e| {
-                                        AppError::InternalServerError(e.to_string())
-                                    })?,
-                                ),
+                                details: invoice.payment_details,
                             }),
                         },
                         ..bot_state

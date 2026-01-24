@@ -3,8 +3,9 @@ use std::sync::Arc;
 use crate::api::backend_api::BackendApi;
 use crate::bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard;
 use crate::bot::utils::{MsgBy, edit_msg};
-use crate::bot::{BotState, BotStep, CallbackData, InvoiceData, MockDetails, MyDialogue};
+use crate::bot::{BotState, BotStep, CallbackData, InvoiceData, MyDialogue};
 use crate::errors::AppResult;
+use crate::models::payment::PaymentDetails;
 use teloxide::prelude::*;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 use url::Url;
@@ -55,7 +56,7 @@ pub async fn deposit_confirm_handler(
             };
             InvoiceData {
                 id: response.id,
-                details: Some(response.payment_details.clone()),
+                details: response.payment_details,
             }
         }
     };
@@ -71,37 +72,62 @@ pub async fn deposit_confirm_handler(
         })
         .await?;
 
-    let mock_details =
-        serde_json::from_value::<MockDetails>(invoice_data.details.clone().unwrap_or_default());
-
-    let text = if let Ok(_pay_url) = &mock_details {
-        format!(
-            "✅ Ваш счет на {} ₽ создан.\n\nНажмите на кнопку ниже, чтобы перейти к оплате.",
-            amount
-        )
-    } else if let Some(details) = &invoice_data.details {
-        let bank_name = details
-            .get("data_bank")
-            .and_then(|b| b.get("name"))
-            .and_then(|v| v.as_str())
-            .unwrap_or("N/A");
-        let card_number = details
-            .get("value")
-            .and_then(|v| v.as_str())
-            .unwrap_or("N/A");
-        format!(
-            "Реквизиты для оплаты:\n\nБанк: {}\nНомер карты: {}\nСумма: {} ₽\n\nПосле оплаты, пожалуйста, подождите. Статус платежа обновится автоматически.",
-            bank_name, card_number, amount
-        )
-    } else {
-        "Не удалось получить реквизиты для оплаты. Попробуйте другой способ.".into()
+    let text = match &invoice_data.details {
+        None => "Не удалось получить реквизиты для оплаты. Попробуйте другой способ.".to_string(),
+        Some(details) => match details {
+            PaymentDetails::Mock { .. } => format!(
+                "✅ Ваш счет на {} ₽ создан.\n\nНажмите на кнопку ниже, чтобы перейти к оплате.",
+                amount
+            ),
+            PaymentDetails::PlatformCard {
+                bank_name,
+                account_name,
+                card_number,
+                amount,
+            } => format!(
+                "Реквизиты для оплаты:\n\n\
+                 <b>Банк:</b> {}\n\
+                 <b>Номер карты:</b> {}\n\
+                 <b>Получатель:</b> {}\n\
+                 <b>Сумма:</b> {} ₽\n\n\
+                 После оплаты, пожалуйста, подождите. Статус платежа обновится автоматически в течение нескольких минут.",
+                bank_name, card_number, account_name, amount
+            ),
+            PaymentDetails::PlatformSBP {
+                bank_name,
+                account_name,
+                sbp_number,
+                amount,
+            } => format!(
+                "Реквизиты для оплаты:\n\n\
+                 <b>Банк:</b> {}\n\
+                 <b>Номер СБП:</b> {}\n\
+                 <b>Получатель:</b> {}\n\
+                 <b>Сумма:</b> {} ₽\n\n\
+                 После оплаты, пожалуйста, подождите. Статус платежа обновится автоматически в течение нескольких минут.",
+                bank_name, sbp_number, account_name, amount
+            ),
+        },
     };
 
     let mut keyboard: Vec<Vec<InlineKeyboardButton>> = vec![];
-    if let Ok(details) = &mock_details
-        && let Ok(pay_url) = Url::parse(details.pay_url.as_str())
-    {
-        keyboard.push(vec![InlineKeyboardButton::url("Оплатить", pay_url)]);
+
+    if let Some(details) = &invoice_data.details {
+        match details {
+            PaymentDetails::Mock { pay_url } => {
+                if let Ok(pay_url) = Url::parse(pay_url.as_str()) {
+                    keyboard.push(vec![InlineKeyboardButton::url("Оплатить", pay_url)]);
+                }
+            }
+            PaymentDetails::PlatformCard { .. } | PaymentDetails::PlatformSBP { .. } => {
+                keyboard.push(vec![InlineKeyboardButton::callback(
+                    "Я все оплатил",
+                    CallbackData::ConfirmPayment {
+                        id: invoice_data.id,
+                    },
+                )]);
+            }
+        }
     }
 
     keyboard.push(vec![InlineKeyboardButton::callback(

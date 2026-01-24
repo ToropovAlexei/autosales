@@ -24,6 +24,25 @@ pub enum InvoiceStatus {
     Refunded,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub enum PaymentDetails {
+    Mock {
+        pay_url: String,
+    },
+    PlatformCard {
+        bank_name: String,
+        account_name: String,
+        card_number: String,
+        amount: f64,
+    },
+    PlatformSBP {
+        bank_name: String,
+        account_name: String,
+        sbp_number: String,
+        amount: f64,
+    },
+}
+
 #[derive(FromRow, Debug, Clone, Serialize)]
 pub struct PaymentInvoiceRow {
     pub id: i64,
@@ -53,7 +72,7 @@ pub struct NewPaymentInvoice {
     pub gateway: PaymentSystem,
     pub gateway_invoice_id: String,
     pub order_id: uuid::Uuid,
-    pub payment_details: serde_json::Value,
+    pub payment_details: Option<PaymentDetails>,
     pub bot_message_id: Option<i64>,
 }
 
