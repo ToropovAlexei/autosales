@@ -6,7 +6,9 @@ use uuid::Uuid;
 use crate::{
     errors::api::ApiResult,
     infrastructure::{
-        external::payment::mock::MockPaymentsProvider,
+        external::payment::{
+            autosales_platform::AutosalesPlatformPaymentsProvider, mock::MockPaymentsProvider,
+        },
         repositories::{
             audit_log::AuditLogRepository, customer::CustomerRepository,
             payment_invoice::PaymentInvoiceRepository, settings::SettingsRepository,
@@ -21,8 +23,7 @@ use crate::{
         audit_log::AuditLogService,
         customer::{CustomerService, CustomerServiceTrait},
         notification_service::{
-            DispatchMessage, DispatchMessageCommand, GenericMessage, NotificationService,
-            NotificationServiceTrait,
+            DispatchMessage, DispatchMessageCommand, NotificationService, NotificationServiceTrait,
         },
         payment_invoice::{
             PaymentInvoiceService, PaymentInvoiceServiceTrait, UpdatePaymentInvoiceCommand,
@@ -75,6 +76,7 @@ impl PaymentProcessingServiceTrait
             AuditLogService<AuditLogRepository>,
             MockPaymentsProvider,
             SettingsRepository,
+            AutosalesPlatformPaymentsProvider,
         >,
         NotificationService,
         CustomerService<CustomerRepository, AuditLogService<AuditLogRepository>>,
@@ -113,13 +115,13 @@ impl PaymentProcessingServiceTrait
         self.notification_service
             .dispatch_message(DispatchMessageCommand {
                 bot_id: customer.last_seen_with_bot,
-                message: DispatchMessage::GenericMessage(GenericMessage {
+                message: DispatchMessage::GenericMessage {
                     image_id: None,
                     message: format!(
                         "✅ Баланс пополнен на {} RUB",
                         payment_invoice.original_amount.trunc_with_scale(2)
                     ),
-                }),
+                },
                 telegram_id: customer.telegram_id,
             })
             .await?;

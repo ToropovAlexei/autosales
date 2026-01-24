@@ -25,6 +25,10 @@ pub struct Config {
     #[cfg(feature = "mock-payments-provider")]
     pub mock_payments_provider_url: String,
     pub payment_notification_minutes: u64,
+    pub platform_payment_system_base_url: String,
+    pub platform_payment_system_login: String,
+    pub platform_payment_system_password: String,
+    pub platform_payment_system_2fa_key: String,
 }
 
 impl Config {

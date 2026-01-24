@@ -102,6 +102,12 @@ pub enum BotStep {
     Product {
         id: i64,
     },
+    ReceiptRequested {
+        invoice_id: i64,
+    },
+    ReceiptSubmitted {
+        invoice_id: i64,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -601,28 +607,40 @@ async fn handle_msg(
     }
 
     let (msg, img, keyboard) = match payload.message {
-        DispatchMessage::GenericMessage(msg) => (
-            msg.message,
-            msg.image_id.map(MessageImage::Uuid),
+        DispatchMessage::GenericMessage { image_id, message } => (
+            message,
+            image_id.map(MessageImage::Uuid),
             back_to_main_menu_inline_keyboard(),
         ),
-        DispatchMessage::InvoiceTroublesNotification(msg) => (
+        DispatchMessage::InvoiceTroublesNotification { amount, invoice_id } => (
             format!(
-                "Вы недавно пытались пополнить баланс на {} ₽. Возникли ли у вас какие-либо проблемы с оплатой?",
-                msg.amount
+                "Вы недавно пытались пополнить баланс на {amount} ₽. Возникли ли у вас какие-либо проблемы с оплатой?"
             ),
             None,
             InlineKeyboardMarkup::new(vec![
                 vec![InlineKeyboardButton::callback(
                     "Я все оплатил",
-                    CallbackData::ConfirmPayment { id: msg.invoice_id },
+                    CallbackData::ConfirmPayment { id: invoice_id },
                 )],
                 vec![InlineKeyboardButton::callback(
                     "Отменить платеж",
-                    CallbackData::CancelPayment { id: msg.invoice_id },
+                    CallbackData::CancelPayment { id: invoice_id },
                 )],
             ]),
         ),
+        DispatchMessage::RequestReceiptNotification { invoice_id } => {
+            dialogue
+                .update(BotState {
+                    step: BotStep::ReceiptRequested { invoice_id },
+                    ..state
+                })
+                .await?;
+            (
+            "Не видим Ваш платеж. Пожалуйста, загрузите чек (в формате jpg или pdf) на сайт https://dropmefiles.com/ и отправьте нам полученную ссылку.".to_string(),
+            None,
+            back_to_main_menu_inline_keyboard(),
+            )
+        }
     };
 
     send_msg(&api_client, &dialogue, &bot, &msg, img, keyboard).await?;

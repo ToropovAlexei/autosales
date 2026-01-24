@@ -55,7 +55,6 @@ pub struct CreateImage {
     pub context: String,
     pub file: Bytes,
     pub filename: String,
-    pub content_type: String,
     pub created_by: i64,
 }
 

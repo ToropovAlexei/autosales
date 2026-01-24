@@ -5,6 +5,8 @@ use axum::{
     extract::{Path, State},
     routing::{get, post},
 };
+use axum_extra::extract::Multipart;
+use bytes::Bytes;
 use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
 
@@ -20,8 +22,10 @@ use crate::{
     },
     services::{
         customer::CustomerServiceTrait,
+        image::{CreateImage, ImageServiceTrait},
         payment_invoice::{
-            CreatePaymentInvoiceCommand, PaymentInvoiceServiceTrait, UpdatePaymentInvoiceCommand,
+            CreatePaymentInvoiceCommand, PaymentInvoiceServiceTrait, SendInvoiceReceiptCommand,
+            UpdatePaymentInvoiceCommand,
         },
     },
     state::AppState,
@@ -33,6 +37,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/{id}", get(get_invoice).patch(update_invoice))
         .route("/{id}/confirm", post(confirm_invoice))
         .route("/{id}/cancel", post(cancel_invoice))
+        .route("/{id}/send-receipt", post(send_invoice_receipt))
 }
 
 async fn list_invoices(
@@ -115,4 +120,51 @@ async fn cancel_invoice(
 ) -> ApiResult<Json<PaymentInvoiceResponse>> {
     let invoice = state.payment_invoice_service.cancel_invoice(id).await?;
     Ok(Json(PaymentInvoiceResponse::from(invoice)))
+}
+
+async fn send_invoice_receipt(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<i64>,
+    _bot: AuthBot,
+    mut multipart: Multipart,
+) -> ApiResult<Json<PaymentInvoiceResponse>> {
+    let (file, filename) = get_receipt_from_form(&mut multipart)
+        .await
+        .map_err(ApiError::BadRequest)?;
+    let _image = state
+        .image_service
+        .create(CreateImage {
+            context: "invoice_receipt".to_string(),
+            file,
+            filename,
+            created_by: 1, // System
+        })
+        .await?;
+
+    let invoice = state
+        .payment_invoice_service
+        .send_invoice_receipt(SendInvoiceReceiptCommand {
+            id,
+            receipt_url: "https://dropmefiles.com/PwjmT".to_string(), // TODO TO BE IMPLEMENTED
+        })
+        .await?;
+    Ok(Json(PaymentInvoiceResponse::from(invoice)))
+}
+
+async fn get_receipt_from_form(multipart: &mut Multipart) -> Result<(Bytes, String), String> {
+    let mut file: Option<Bytes> = None;
+    let mut filename: Option<String> = None;
+
+    while let Some(field) = multipart.next_field().await.map_err(|e| e.to_string())? {
+        let name = field.name().ok_or("Field name missing")?.to_string();
+        if name.as_str() == "file" {
+            filename = field.file_name().map(|s| s.to_string());
+            let data = field.bytes().await.map_err(|e| e.to_string())?;
+            file = Some(data);
+        }
+    }
+
+    let file = file.ok_or("Missing 'file' field")?;
+
+    Ok((file, filename.ok_or("Missing 'filename' field")?))
 }

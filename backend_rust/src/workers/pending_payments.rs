@@ -7,12 +7,11 @@ use std::{
 use tokio::time::{Duration, interval};
 
 use crate::{
+    infrastructure::external::payment::autosales_platform::dto::AutosalesPlatformOrderStatusType,
+    models::payment_invoice::InvoiceStatus,
     services::{
         customer::CustomerServiceTrait,
-        notification_service::{
-            DispatchMessage, DispatchMessageCommand, InvoiceTroublesNotification,
-            NotificationServiceTrait,
-        },
+        notification_service::{DispatchMessage, DispatchMessageCommand, NotificationServiceTrait},
         payment_invoice::PaymentInvoiceServiceTrait,
     },
     state::AppState,
@@ -90,12 +89,10 @@ pub async fn pending_payments_task(app_state: Arc<AppState>) {
             match app_state
                 .notification_service
                 .dispatch_message(DispatchMessageCommand {
-                    message: DispatchMessage::InvoiceTroublesNotification(
-                        InvoiceTroublesNotification {
-                            invoice_id: invoice.id,
-                            amount: invoice.original_amount.to_f64().unwrap_or_default(),
-                        },
-                    ),
+                    message: DispatchMessage::InvoiceTroublesNotification {
+                        invoice_id: invoice.id,
+                        amount: invoice.original_amount.to_f64().unwrap_or_default(),
+                    },
                     telegram_id: customer.telegram_id,
                     bot_id: customer.last_seen_with_bot,
                 })
@@ -130,5 +127,28 @@ pub async fn pending_payments_task(app_state: Arc<AppState>) {
             }
         }
         tracing::info!("[Pending payments task]: Finished");
+    }
+}
+
+impl From<AutosalesPlatformOrderStatusType> for InvoiceStatus {
+    fn from(status: AutosalesPlatformOrderStatusType) -> Self {
+        match status {
+            AutosalesPlatformOrderStatusType::TraderSuccess
+            | AutosalesPlatformOrderStatusType::MerchSuccess
+            | AutosalesPlatformOrderStatusType::SystemTimerEndMerchProcessSuccess
+            | AutosalesPlatformOrderStatusType::SystemTimerEndMerchCheckDownSuccess
+            | AutosalesPlatformOrderStatusType::AdminAppealSuccess => InvoiceStatus::Completed,
+            AutosalesPlatformOrderStatusType::TraderCheckQuery => InvoiceStatus::AwaitingReceipt,
+            AutosalesPlatformOrderStatusType::TraderAppeal => InvoiceStatus::Disputed,
+            AutosalesPlatformOrderStatusType::SystemTimerEndMerchInitializedCancel => {
+                InvoiceStatus::Cancelled
+            }
+            AutosalesPlatformOrderStatusType::OrderCancel => InvoiceStatus::Cancelled,
+            AutosalesPlatformOrderStatusType::MerchCancel => InvoiceStatus::Cancelled,
+            AutosalesPlatformOrderStatusType::SystemTimerEndTraderCheckQueryCancel => {
+                InvoiceStatus::Cancelled
+            }
+            AutosalesPlatformOrderStatusType::AdminAppealCancel => InvoiceStatus::Failed,
+        }
     }
 }

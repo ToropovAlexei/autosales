@@ -10,8 +10,18 @@ use uuid::Uuid;
 use crate::{
     errors::api::{ApiError, ApiResult},
     infrastructure::{
-        external::payment::mock::{
-            MockPaymentsProvider, MockPaymentsProviderTrait, dto::MockProviderCreateInvoiceRequest,
+        external::payment::{
+            autosales_platform::{
+                AutosalesPlatformPaymentsProvider, AutosalesPlatformPaymentsProviderTrait,
+                dto::{
+                    AutosalesPlatformInitializeOrderRequest, AutosalesPlatformPaymentMethod,
+                    AutosalesPlatformSendReceiptRequest,
+                },
+            },
+            mock::{
+                MockPaymentsProvider, MockPaymentsProviderTrait,
+                dto::MockProviderCreateInvoiceRequest,
+            },
         },
         repositories::{
             audit_log::AuditLogRepository,
@@ -45,6 +55,11 @@ pub struct UpdatePaymentInvoiceCommand {
     pub notification_sent_at: Option<Option<DateTime<Utc>>>,
 }
 
+pub struct SendInvoiceReceiptCommand {
+    pub id: i64,
+    pub receipt_url: String,
+}
+
 #[async_trait]
 pub trait PaymentInvoiceServiceTrait: Send + Sync {
     async fn get_list(
@@ -64,34 +79,42 @@ pub trait PaymentInvoiceServiceTrait: Send + Sync {
     async fn mark_invoices_notified(&self, ids: &[i64]) -> ApiResult<u64>;
     async fn confirm_invoice(&self, id: i64) -> ApiResult<PaymentInvoiceRow>;
     async fn cancel_invoice(&self, id: i64) -> ApiResult<PaymentInvoiceRow>;
+    async fn send_invoice_receipt(
+        &self,
+        command: SendInvoiceReceiptCommand,
+    ) -> ApiResult<PaymentInvoiceRow>;
 }
 
-pub struct PaymentInvoiceService<R, A, M, S> {
+pub struct PaymentInvoiceService<R, A, M, S, P> {
     repo: Arc<R>,
     settings_repo: Arc<S>,
     mock_payments_provider: Arc<M>,
+    platform_payments_provider: Arc<P>,
     #[allow(dead_code)]
     audit_log_service: Arc<A>,
 }
 
-impl<R, A, M, S> PaymentInvoiceService<R, A, M, S>
+impl<R, A, M, S, P> PaymentInvoiceService<R, A, M, S, P>
 where
     R: PaymentInvoiceRepositoryTrait + Send + Sync,
     A: AuditLogServiceTrait + Send + Sync,
     M: MockPaymentsProviderTrait + Send + Sync,
     S: SettingsRepositoryTrait + Send + Sync,
+    P: AutosalesPlatformPaymentsProviderTrait + Send + Sync,
 {
     pub fn new(
         repo: Arc<R>,
         settings_repo: Arc<S>,
         mock_payments_provider: Arc<M>,
         audit_log_service: Arc<A>,
+        platform_payments_provider: Arc<P>,
     ) -> Self {
         Self {
             repo,
             settings_repo,
             mock_payments_provider,
             audit_log_service,
+            platform_payments_provider,
         }
     }
 }
@@ -103,6 +126,7 @@ impl PaymentInvoiceServiceTrait
         AuditLogService<AuditLogRepository>,
         MockPaymentsProvider,
         SettingsRepository,
+        AutosalesPlatformPaymentsProvider,
     >
 {
     async fn get_list(
@@ -135,11 +159,26 @@ impl PaymentInvoiceServiceTrait
                 .await
                 .map(|r| (r.invoice_id.to_string(), json!({"pay_url": r.pay_url})))
                 .map_err(ApiError::InternalServerError)?,
-            PaymentSystem::PlatformCard => {
-                return Err(ApiError::InternalServerError("Not implemented".to_string()));
-            }
-            PaymentSystem::PlatformSBP => {
-                return Err(ApiError::InternalServerError("Not implemented".to_string()));
+            PaymentSystem::PlatformCard | PaymentSystem::PlatformSBP => {
+                let id_pay_method = match command.gateway {
+                    PaymentSystem::PlatformCard => AutosalesPlatformPaymentMethod::Card,
+                    PaymentSystem::PlatformSBP => AutosalesPlatformPaymentMethod::SBP,
+                    _ => unreachable!(),
+                };
+                let invoice = self
+                    .platform_payments_provider
+                    .init_order(AutosalesPlatformInitializeOrderRequest {
+                        amount: amount_parsed as i64,
+                        id_pay_method,
+                    })
+                    .await
+                    .map_err(ApiError::InternalServerError)?;
+
+                (
+                    invoice.object_token.clone(),
+                    serde_json::to_value(invoice)
+                        .map_err(|e| ApiError::InternalServerError(e.to_string()))?,
+                )
             }
         };
         let created = self
@@ -210,34 +249,110 @@ impl PaymentInvoiceServiceTrait
     }
 
     async fn confirm_invoice(&self, id: i64) -> ApiResult<PaymentInvoiceRow> {
-        // TODO External providers
-        let res = self
-            .repo
-            .update(
-                id,
-                UpdatePaymentInvoice {
-                    status: Some(InvoiceStatus::Completed),
-                    notification_sent_at: None,
-                },
-            )
-            .await?;
+        let invoice = self.get_by_id(id).await?;
+        match invoice.gateway {
+            PaymentSystem::PlatformCard | PaymentSystem::PlatformSBP => {
+                self.platform_payments_provider
+                    .process_order(invoice.gateway_invoice_id)
+                    .await
+                    .map_err(ApiError::InternalServerError)?;
+                let res = self
+                    .repo
+                    .update(
+                        id,
+                        UpdatePaymentInvoice {
+                            status: Some(InvoiceStatus::Processing),
+                            notification_sent_at: None,
+                        },
+                    )
+                    .await?;
 
-        Ok(res)
+                Ok(res)
+            }
+            PaymentSystem::Mock => {
+                let res = self
+                    .repo
+                    .update(
+                        id,
+                        UpdatePaymentInvoice {
+                            status: Some(InvoiceStatus::Completed),
+                            notification_sent_at: None,
+                        },
+                    )
+                    .await?;
+
+                Ok(res)
+            }
+        }
     }
 
     async fn cancel_invoice(&self, id: i64) -> ApiResult<PaymentInvoiceRow> {
-        // TODO External providers
-        let res = self
-            .repo
-            .update(
-                id,
-                UpdatePaymentInvoice {
-                    status: Some(InvoiceStatus::Failed),
-                    notification_sent_at: None,
-                },
-            )
-            .await?;
+        let invoice = self.get_by_id(id).await?;
+        match invoice.gateway {
+            PaymentSystem::PlatformCard | PaymentSystem::PlatformSBP => {
+                self.platform_payments_provider
+                    .cancel_order(invoice.gateway_invoice_id)
+                    .await
+                    .map_err(ApiError::InternalServerError)?;
+                let res = self
+                    .repo
+                    .update(
+                        id,
+                        UpdatePaymentInvoice {
+                            status: Some(InvoiceStatus::Cancelled),
+                            notification_sent_at: None,
+                        },
+                    )
+                    .await?;
 
-        Ok(res)
+                Ok(res)
+            }
+            PaymentSystem::Mock => {
+                let res = self
+                    .repo
+                    .update(
+                        id,
+                        UpdatePaymentInvoice {
+                            status: Some(InvoiceStatus::Cancelled),
+                            notification_sent_at: None,
+                        },
+                    )
+                    .await?;
+
+                Ok(res)
+            }
+        }
+    }
+
+    async fn send_invoice_receipt(
+        &self,
+        command: SendInvoiceReceiptCommand,
+    ) -> ApiResult<PaymentInvoiceRow> {
+        let invoice = self.get_by_id(command.id).await?;
+        match invoice.gateway {
+            PaymentSystem::Mock => Ok(invoice),
+            PaymentSystem::PlatformCard | PaymentSystem::PlatformSBP => {
+                self.platform_payments_provider
+                    .send_receipt(AutosalesPlatformSendReceiptRequest {
+                        object_token: invoice.gateway_invoice_id,
+                        url_file: command.receipt_url,
+                    })
+                    .await
+                    .map_err(ApiError::InternalServerError)?;
+
+                let res = self
+                    .repo
+                    .update(
+                        command.id,
+                        UpdatePaymentInvoice {
+                            status: Some(InvoiceStatus::ReceiptSubmitted),
+                            notification_sent_at: None,
+                        },
+                    )
+                    .await?;
+
+                Ok(res)
+            }
+        }
     }
 }

@@ -19,9 +19,14 @@ pub struct PaymentGateway {
 #[serde(rename_all = "snake_case")]
 pub enum InvoiceStatus {
     Pending,
+    Processing,
+    AwaitingReceipt,
+    ReceiptSubmitted,
+    Disputed,
     Completed,
     Failed,
     Expired,
+    Cancelled,
     Refunded,
 }
 

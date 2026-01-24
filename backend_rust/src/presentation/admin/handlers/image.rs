@@ -117,7 +117,6 @@ async fn parse_image_form(
     let mut context: Option<String> = None;
     let mut file: Option<Bytes> = None;
     let mut filename: Option<String> = None;
-    let mut content_type: Option<String> = None;
 
     while let Some(field) = multipart.next_field().await? {
         let name = field.name().ok_or("Field name missing")?.to_string();
@@ -128,7 +127,6 @@ async fn parse_image_form(
             }
             "file" => {
                 filename = field.file_name().map(|s| s.to_string());
-                content_type = field.content_type().map(|s| s.to_string());
                 let data = field.bytes().await?;
                 file = Some(data);
             }
@@ -140,7 +138,6 @@ async fn parse_image_form(
         context: context.ok_or("Missing 'context' field")?,
         file: file.ok_or("Missing 'file' field")?,
         filename: filename.ok_or("Missing 'filename' field")?,
-        content_type: content_type.ok_or("Missing 'content_type' field")?,
         created_by,
     })
 }

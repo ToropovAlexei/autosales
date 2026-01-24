@@ -13,9 +13,14 @@ use crate::{define_list_query, models::payment::PaymentSystem};
 #[ts(export, export_to = "invoice.ts")]
 pub enum InvoiceStatus {
     Pending,
+    Processing,
+    AwaitingReceipt,
+    ReceiptSubmitted,
+    Disputed,
     Completed,
     Failed,
     Expired,
+    Cancelled,
     Refunded,
 }
 

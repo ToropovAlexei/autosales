@@ -10,9 +10,7 @@ use crate::{
     services::{
         broadcast::{BroadcastServiceTrait, UpdateBroadcastCommand},
         customer::CustomerServiceTrait,
-        notification_service::{
-            DispatchMessage, DispatchMessageCommand, GenericMessage, NotificationServiceTrait,
-        },
+        notification_service::{DispatchMessage, DispatchMessageCommand, NotificationServiceTrait},
     },
     state::AppState,
 };
@@ -102,10 +100,10 @@ pub async fn broadcasts_task(app_state: Arc<AppState>) {
                         // TODO Last seen with bot may be old if we created new bot
                         bot_id: customer.last_seen_with_bot,
                         telegram_id: customer.telegram_id,
-                        message: DispatchMessage::GenericMessage(GenericMessage {
+                        message: DispatchMessage::GenericMessage {
                             message: broadcast.content_text.clone().unwrap_or_default(),
                             image_id: broadcast.content_image_id,
-                        }),
+                        },
                     })
                     .await
                 {

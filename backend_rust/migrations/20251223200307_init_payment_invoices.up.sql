@@ -5,11 +5,27 @@ CREATE TABLE payment_invoices (
     original_amount NUMERIC(12,2) NOT NULL CHECK (original_amount > 0),
     amount NUMERIC(12,2) NOT NULL CHECK (amount <= original_amount),
 
-    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'failed', 'expired', 'refunded')),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN (
+                                                    'pending',
+                                                    'processing',
+                                                    'awaiting_receipt',
+                                                    'receipt_submitted',
+                                                    'disputed',
+                                                    'completed',
+                                                    'failed',
+                                                    'expired',
+                                                    'cancelled',
+                                                    'refunded'
+                                                )),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     expires_at TIMESTAMPTZ NOT NULL,
     deleted_at TIMESTAMPTZ,
+    processing_started_at TIMESTAMPTZ,
+    receipt_requested_at TIMESTAMPTZ,
+    receipt_submitted_at TIMESTAMPTZ,
+    dispute_opened_at TIMESTAMPTZ,
+    finished_at TIMESTAMPTZ,
 
     gateway TEXT NOT NULL
         CHECK (gateway ~ '^[a-z][a-z0-9_]{2,31}$'),
@@ -17,12 +33,15 @@ CREATE TABLE payment_invoices (
     order_id UUID NOT NULL DEFAULT gen_random_uuid(),
 
     payment_details JSONB,
+    receipt_image_id UUID,
 
     bot_message_id BIGINT,
     notification_sent_at TIMESTAMPTZ,
 
     CONSTRAINT fk_payment_invoices_bot_user
-        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT,
+    CONSTRAINT fk_payment_invoices_receipt_image
+        FOREIGN KEY (receipt_image_id) REFERENCES images(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_payment_invoices_customer_id ON payment_invoices (customer_id);

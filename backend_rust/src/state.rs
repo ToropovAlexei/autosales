@@ -11,18 +11,21 @@ use crate::infrastructure::external::products::contms::ContmsProductsProvider;
 use crate::{
     config::{self, Config},
     db,
-    infrastructure::repositories::{
-        active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
-        audit_log::AuditLogRepository, bot::BotRepository, broadcast::BroadcastRepository,
-        category::CategoryRepository, customer::CustomerRepository,
-        effective_permission::EffectivePermissionRepository, image::ImageRepository,
-        order::OrderRepository, order_item::OrderItemRepository,
-        payment_invoice::PaymentInvoiceRepository, permission::PermissionRepository,
-        products::ProductRepository, role::RoleRepository,
-        role_permission::RolePermissionRepository, settings::SettingsRepository,
-        stock_movement::StockMovementRepository, temporary_token::TemporaryTokenRepository,
-        transaction::TransactionRepository, user_permission::UserPermissionRepository,
-        user_role::UserRoleRepository, user_subscription::UserSubscriptionRepository,
+    infrastructure::{
+        external::payment::autosales_platform::AutosalesPlatformPaymentsProvider,
+        repositories::{
+            active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
+            audit_log::AuditLogRepository, bot::BotRepository, broadcast::BroadcastRepository,
+            category::CategoryRepository, customer::CustomerRepository,
+            effective_permission::EffectivePermissionRepository, image::ImageRepository,
+            order::OrderRepository, order_item::OrderItemRepository,
+            payment_invoice::PaymentInvoiceRepository, permission::PermissionRepository,
+            products::ProductRepository, role::RoleRepository,
+            role_permission::RolePermissionRepository, settings::SettingsRepository,
+            stock_movement::StockMovementRepository, temporary_token::TemporaryTokenRepository,
+            transaction::TransactionRepository, user_permission::UserPermissionRepository,
+            user_role::UserRoleRepository, user_subscription::UserSubscriptionRepository,
+        },
     },
     services::{
         admin_user::AdminUserService,
@@ -73,6 +76,7 @@ type PaymentInvoiceShortType = PaymentInvoiceService<
     AuditLogShortType,
     MockPaymentsProvider,
     SettingsRepository,
+    AutosalesPlatformPaymentsProvider,
 >;
 
 type OrderItemServiceShortType = OrderItemService<OrderItemRepository, StockMovementRepository>;
@@ -137,6 +141,7 @@ pub struct AppState {
     pub contms_products_provider: Arc<ContmsProductsProvider>,
     #[cfg(feature = "mock-payments-provider")]
     pub mock_payments_provider: Arc<MockPaymentsProvider>,
+    pub platform_payments_provider: Arc<AutosalesPlatformPaymentsProvider>,
 }
 
 impl AppState {
@@ -249,11 +254,19 @@ impl AppState {
             client.clone(),
             config.mock_payments_provider_url.clone(),
         ));
+        let platform_payments_provider = Arc::new(AutosalesPlatformPaymentsProvider::new(
+            client.clone(),
+            config.platform_payment_system_base_url.clone(),
+            config.platform_payment_system_login.clone(),
+            config.platform_payment_system_password.clone(),
+            config.platform_payment_system_2fa_key.clone(),
+        ));
         let payment_invoice_service = Arc::new(PaymentInvoiceService::new(
             Arc::new(PaymentInvoiceRepository::new(db_pool.clone())),
             settings_repo.clone(),
             mock_payments_provider.clone(),
             audit_logs_service.clone(),
+            platform_payments_provider.clone(),
         ));
         #[cfg(feature = "contms-provider")]
         let contms_products_provider = Arc::new(ContmsProductsProvider::new(
@@ -327,6 +340,7 @@ impl AppState {
             contms_products_provider,
             #[cfg(feature = "mock-payments-provider")]
             mock_payments_provider,
+            platform_payments_provider,
         }
     }
 }
