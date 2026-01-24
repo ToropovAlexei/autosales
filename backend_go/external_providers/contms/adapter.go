@@ -141,7 +141,7 @@ func (a *ContMSProxyAdapter) GetProducts() ([]external_providers.ProviderProduct
 		products = append(products, external_providers.ProviderProduct{
 			ExternalID:  p.Name,
 			Name:        fmt.Sprintf("Proxy %s (%s)", p.Name, p.Type),
-			Price:       0, // Price is not in the API, so we assume a fixed price.
+			Price:       200, // Price is not in the API, so we assume a fixed price.
 			Description: fmt.Sprintf("A %s proxy server at %s:%d", p.Type, p.Host, p.Port),
 			Type:        "subscription",
 			Category:    []string{"PROXY", p.Type},
