@@ -48,7 +48,7 @@ pub struct CreatePaymentInvoiceCommand {
     pub gateway: PaymentSystem,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct UpdatePaymentInvoiceCommand {
     pub id: i64,
     pub status: Option<InvoiceStatus>,
