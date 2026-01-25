@@ -285,7 +285,7 @@ func (s *paymentService) processCompletedInvoice(tx *gorm.DB, orderID string) er
 	const serviceUSDRate = 1.0
 	const autosaleCommissionPercent = 1.0
 	const cryptoProviderCommissionPercent = 0.05
-	const paymentProviderCommissionPercent = 0.2
+	const paymentProviderCommissionPercent = 20.0
 	const platformOnlyCommissionPercent = 1.0
 
 	amountUSD := invoice.Amount / serviceUSDRate
