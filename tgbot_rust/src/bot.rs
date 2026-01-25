@@ -37,7 +37,7 @@ use crate::{
             support::support_handler,
         },
         keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard,
-        utils::{MessageImage, send_msg},
+        utils::{MessageImage, MsgBy, edit_msg, send_msg},
     },
     errors::{AppError, AppResult},
     models::{
@@ -268,6 +268,22 @@ pub async fn run_bot(
             api_client
                 .update_customer_last_seen(telegram_id.0 as i64)
                 .await?;
+
+            let user = api_client.ensure_user(telegram_id.0 as i64).await?;
+
+            if user.is_blocked {
+                edit_msg(
+                    &api_client,
+                    &dialogue,
+                    &bot,
+                    &MsgBy::CallbackQuery(&q),
+                    "Ваш аккаунт заблокирован",
+                    None,
+                    InlineKeyboardMarkup::default(),
+                )
+                .await?;
+                return Ok(());
+            }
 
             match data {
                 CallbackData::AnswerCaptcha { .. } => {
