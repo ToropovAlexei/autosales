@@ -93,7 +93,6 @@ where
             pagination: raw_query.pagination,
             order_by,
             order_dir: raw_query.order_dir,
-            _phantom: std::marker::PhantomData,
         })
     }
 }

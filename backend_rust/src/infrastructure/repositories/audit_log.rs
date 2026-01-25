@@ -120,10 +120,7 @@ impl AuditLogRepositoryTrait for AuditLogRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{
-        audit_log::{AuditAction, AuditLogListQuery, AuditStatus},
-        common::{OrderDir, Pagination},
-    };
+    use crate::models::audit_log::{AuditAction, AuditLogListQuery, AuditStatus};
     use sqlx::PgPool;
     use std::net::IpAddr;
     use std::str::FromStr;
@@ -153,16 +150,7 @@ mod tests {
         assert_eq!(created_log.action, AuditAction::UserLogin);
 
         // Get the list of logs
-        let query = AuditLogListQuery {
-            filters: vec![],
-            pagination: Pagination {
-                page: 1,
-                page_size: 10,
-            },
-            order_by: None,
-            order_dir: OrderDir::default(),
-            _phantom: std::marker::PhantomData,
-        };
+        let query = AuditLogListQuery::default();
         let logs = repo.get_list(query).await.unwrap();
         assert!(!logs.items.is_empty());
         assert_eq!(logs.items[0].id, created_log.id);

@@ -255,13 +255,9 @@ impl ProductRepositoryTrait for ProductRepository {
 
 #[cfg(test)]
 mod tests {
-    use std::marker::PhantomData;
 
     use super::*;
-    use crate::models::{
-        common::{OrderDir, Pagination},
-        product::ProductType,
-    };
+    use crate::models::{common::Pagination, product::ProductType};
     use rand::Rng;
     use rust_decimal::Decimal;
     use sqlx::PgPool;
@@ -575,14 +571,11 @@ mod tests {
         create_test_product(&pool, "Product C", 30.0, category_id).await;
 
         let query = ProductListQuery {
-            filters: vec![],
             pagination: Pagination {
                 page: 1,
                 page_size: 2,
             },
-            order_by: None,
-            order_dir: OrderDir::default(),
-            _phantom: PhantomData,
+            ..Default::default()
         };
 
         let result = repo.get_list(query).await.unwrap();

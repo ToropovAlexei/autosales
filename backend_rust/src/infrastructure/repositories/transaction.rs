@@ -112,11 +112,153 @@ impl TransactionRepositoryTrait for TransactionRepository {
 
 #[cfg(test)]
 mod tests {
+    use crate::models::common::{Filter, FilterValue, Operator, Pagination, ScalarValue};
+    use crate::models::{
+        payment::PaymentSystem, transaction::TransactionFilterFields, transaction::TransactionType,
+    };
     use rust_decimal::Decimal;
 
-    use crate::models::{payment::PaymentSystem, transaction::TransactionType};
-
     use super::*;
+
+    async fn create_test_customer(pool: &PgPool, telegram_id: i64) -> i64 {
+        sqlx::query!(
+            r#"INSERT INTO customers (telegram_id, registered_with_bot, last_seen_with_bot) VALUES ($1, $2, $3) RETURNING id"#,
+            telegram_id,
+            1,
+            1
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+        .id
+    }
+
+    #[sqlx::test]
+    async fn test_get_last_transaction(pool: PgPool) {
+        let repo = TransactionRepository::new(Arc::new(pool.clone()));
+        let customer_id = create_test_customer(&pool, 54321).await;
+
+        let tx1 = NewTransaction {
+            customer_id: Some(customer_id),
+            order_id: None,
+            r#type: TransactionType::Deposit,
+            amount: Decimal::from(100),
+            store_balance_delta: Decimal::ZERO,
+            platform_commission: Decimal::ZERO,
+            gateway_commission: Decimal::ZERO,
+            description: None,
+            payment_gateway: None,
+            details: None,
+        };
+        repo.create(tx1).await.unwrap();
+
+        let tx2 = NewTransaction {
+            customer_id: Some(customer_id),
+            order_id: None,
+            r#type: TransactionType::Purchase,
+            amount: Decimal::from(-50),
+            store_balance_delta: Decimal::ZERO,
+            platform_commission: Decimal::ZERO,
+            gateway_commission: Decimal::ZERO,
+            description: None,
+            payment_gateway: None,
+            details: None,
+        };
+        let last_tx_created = repo.create(tx2).await.unwrap();
+
+        let last_tx_fetched = repo.get_last().await.unwrap();
+
+        assert_eq!(last_tx_fetched.id, last_tx_created.id);
+        assert_eq!(last_tx_fetched.r#type, TransactionType::Purchase);
+    }
+
+    #[sqlx::test]
+    async fn test_get_list(pool: PgPool) {
+        let repo = TransactionRepository::new(Arc::new(pool.clone()));
+        let customer_id1 = create_test_customer(&pool, 111).await;
+        let customer_id2 = create_test_customer(&pool, 222).await;
+
+        // Create transactions for customer 1
+        repo.create(NewTransaction {
+            customer_id: Some(customer_id1),
+            order_id: None,
+            r#type: TransactionType::Deposit,
+            amount: Decimal::from(100),
+            store_balance_delta: Decimal::ZERO,
+            platform_commission: Decimal::ZERO,
+            gateway_commission: Decimal::ZERO,
+            description: None,
+            payment_gateway: None,
+            details: None,
+        })
+        .await
+        .unwrap();
+        repo.create(NewTransaction {
+            customer_id: Some(customer_id1),
+            order_id: None,
+            r#type: TransactionType::Purchase,
+            amount: Decimal::from(-20),
+            store_balance_delta: Decimal::ZERO,
+            platform_commission: Decimal::ZERO,
+            gateway_commission: Decimal::ZERO,
+            description: None,
+            payment_gateway: None,
+            details: None,
+        })
+        .await
+        .unwrap();
+
+        // Create transaction for customer 2
+        repo.create(NewTransaction {
+            customer_id: Some(customer_id2),
+            order_id: None,
+            r#type: TransactionType::Deposit,
+            amount: Decimal::from(200),
+            store_balance_delta: Decimal::ZERO,
+            platform_commission: Decimal::ZERO,
+            gateway_commission: Decimal::ZERO,
+            description: None,
+            payment_gateway: None,
+            details: None,
+        })
+        .await
+        .unwrap();
+
+        // Test fetching all transactions (no filter)
+        let all_txs = repo
+            .get_list(TransactionListQuery {
+                ..Default::default()
+            })
+            .await
+            .unwrap();
+        assert_eq!(all_txs.total, 3);
+        assert_eq!(all_txs.items.len(), 3);
+
+        // Test filtering by customer_id
+        let customer1_txs_query = TransactionListQuery {
+            filters: vec![Filter {
+                field: TransactionFilterFields::CustomerId,
+                op: Operator::Eq,
+                value: FilterValue::Scalar(ScalarValue::Int(customer_id1)),
+            }],
+            ..Default::default()
+        };
+        let customer1_txs = repo.get_list(customer1_txs_query).await.unwrap();
+        assert_eq!(customer1_txs.total, 2);
+        assert_eq!(customer1_txs.items.len(), 2);
+
+        // Test pagination
+        let paginated_txs_query = TransactionListQuery {
+            pagination: Pagination {
+                page: 2,
+                page_size: 1,
+            },
+            ..Default::default()
+        };
+        let paginated_txs = repo.get_list(paginated_txs_query).await.unwrap();
+        assert_eq!(paginated_txs.total, 3);
+        assert_eq!(paginated_txs.items.len(), 1);
+    }
 
     #[sqlx::test]
     async fn test_balance_calculation_triggers(pool: PgPool) {

@@ -4,7 +4,6 @@ use serde::{Deserialize, Serialize};
 use serde_with::DisplayFromStr;
 use serde_with::serde_as;
 use std::fmt::Debug;
-use std::marker::PhantomData;
 use uuid::Uuid;
 
 pub trait AllowedField:
@@ -40,7 +39,7 @@ pub enum OrderDir {
 }
 
 #[serde_as]
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Pagination {
     #[serde_as(as = "DisplayFromStr")]
     #[serde(default = "default_page")]
@@ -48,6 +47,15 @@ pub struct Pagination {
     #[serde_as(as = "DisplayFromStr")]
     #[serde(default = "default_page_size")]
     pub page_size: u32,
+}
+
+impl Default for Pagination {
+    fn default() -> Self {
+        Self {
+            page: 1,
+            page_size: 10,
+        }
+    }
 }
 
 fn default_page() -> u32 {
@@ -81,14 +89,23 @@ pub struct Filter<F: AllowedField> {
     pub value: FilterValue,
 }
 
-#[derive(Debug, Clone, Serialize, Default)]
+#[derive(Debug, Clone, Serialize)]
 pub struct ListQuery<F: AllowedField, O: AllowedField> {
     pub filters: Vec<Filter<F>>,
     pub pagination: Pagination,
     pub order_by: Option<O>,
     pub order_dir: OrderDir,
-    #[serde(skip)]
-    pub _phantom: PhantomData<(F, O)>,
+}
+
+impl<F: AllowedField, O: AllowedField> Default for ListQuery<F, O> {
+    fn default() -> Self {
+        Self {
+            filters: Vec::new(),
+            pagination: Pagination::default(),
+            order_by: None,
+            order_dir: OrderDir::default(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -192,5 +209,40 @@ impl<'de> Deserialize<'de> for ScalarValue {
         }
 
         Ok(ScalarValue::Text(s))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_pagination() {
+        let pagination = Pagination::default();
+        assert_eq!(pagination.page, 1);
+        assert_eq!(pagination.page_size, 10);
+    }
+
+    #[test]
+    fn test_pagination_deserialize_with_defaults() {
+        let json = r#"{}"#;
+        let pagination: Pagination = serde_json::from_str(json).unwrap();
+        assert_eq!(pagination.page, 1);
+        assert_eq!(pagination.page_size, 10);
+
+        let json = r#"{"page": "3"}"#;
+        let pagination: Pagination = serde_json::from_str(json).unwrap();
+        assert_eq!(pagination.page, 3);
+        assert_eq!(pagination.page_size, 10);
+
+        let json = r#"{"page_size": "25"}"#;
+        let pagination: Pagination = serde_json::from_str(json).unwrap();
+        assert_eq!(pagination.page, 1);
+        assert_eq!(pagination.page_size, 25);
+
+        let json = r#"{"page": "5", "page_size": "50"}"#;
+        let pagination: Pagination = serde_json::from_str(json).unwrap();
+        assert_eq!(pagination.page, 5);
+        assert_eq!(pagination.page_size, 50);
     }
 }

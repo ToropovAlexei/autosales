@@ -307,7 +307,6 @@ mod tests {
             },
             order_by: None,
             order_dir: OrderDir::Desc,
-            _phantom: std::marker::PhantomData,
         };
         let result = repo.get_list(list_query).await.unwrap();
         assert_eq!(result.total, 1);

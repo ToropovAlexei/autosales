@@ -1,5 +1,4 @@
 use std::{
-    marker::PhantomData,
     net::{IpAddr, Ipv4Addr},
     sync::Arc,
 };
@@ -227,7 +226,6 @@ pub async fn seed_products(
             filters: vec![],
             order_by: None,
             order_dir: OrderDir::Desc,
-            _phantom: PhantomData,
         })
         .await
         .unwrap();

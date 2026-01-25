@@ -149,10 +149,7 @@ impl CustomerRepositoryTrait for CustomerRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{
-        common::{OrderDir, Pagination},
-        customer::CustomerListQuery,
-    };
+    use crate::models::customer::CustomerListQuery;
     use chrono::Utc;
     use sqlx::PgPool;
 
@@ -249,16 +246,7 @@ mod tests {
         create_test_customer(&pool, 1001, 1).await;
 
         // Get the list of customers
-        let query = CustomerListQuery {
-            filters: vec![],
-            pagination: Pagination {
-                page: 1,
-                page_size: 10,
-            },
-            order_by: None,
-            order_dir: OrderDir::default(),
-            _phantom: std::marker::PhantomData,
-        };
+        let query = CustomerListQuery::default();
         let customers = repo.get_list(query).await.unwrap();
         assert!(!customers.items.is_empty());
         assert!(customers.total >= 2);

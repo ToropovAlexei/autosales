@@ -203,7 +203,7 @@ mod tests {
     use crate::models::admin_user::AdminUserRow;
     use crate::models::{
         broadcast::{BroadcastListQuery, BroadcastStatus, NewBroadcast, UpdateBroadcast},
-        common::{Filter, OrderDir, Pagination, ScalarValue},
+        common::{Filter, ScalarValue},
     };
     use chrono::{Duration, Utc};
     use serde_json::json;
@@ -327,16 +327,7 @@ mod tests {
         create_test_broadcast(&pool, admin_user.id, BroadcastStatus::Completed, None).await;
         create_test_broadcast(&pool, admin_user.id, BroadcastStatus::Completed, None).await;
 
-        let mut query = BroadcastListQuery {
-            filters: vec![],
-            pagination: Pagination {
-                page: 1,
-                page_size: 10,
-            },
-            order_by: None,
-            order_dir: OrderDir::default(),
-            _phantom: std::marker::PhantomData,
-        };
+        let mut query = BroadcastListQuery::default();
 
         let all_broadcasts = repo.get_list(query.clone()).await.unwrap();
         assert!(all_broadcasts.total >= 3);

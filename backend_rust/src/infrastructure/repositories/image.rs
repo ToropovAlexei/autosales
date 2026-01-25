@@ -97,7 +97,6 @@ impl ImageRepositoryTrait for ImageRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::common::{OrderDir, Pagination};
     use sqlx::PgPool;
 
     async fn create_test_image(pool: &PgPool, original_filename: &str) -> ImageRow {
@@ -171,16 +170,7 @@ mod tests {
         create_test_image(&pool, "image2.png").await;
 
         // Get the list of images
-        let query = ImageListQuery {
-            filters: vec![],
-            pagination: Pagination {
-                page: 1,
-                page_size: 10,
-            },
-            order_by: None,
-            order_dir: OrderDir::default(),
-            _phantom: std::marker::PhantomData,
-        };
+        let query = ImageListQuery::default();
         let images = repo.get_list(&query).await.unwrap();
         assert!(!images.items.is_empty());
         assert!(images.total >= 2);

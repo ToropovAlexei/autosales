@@ -109,7 +109,6 @@ impl OrderRepositoryTrait for OrderRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::common::{OrderDir, Pagination};
     use rust_decimal::Decimal;
     use sqlx::PgPool;
 
@@ -192,16 +191,7 @@ mod tests {
         .unwrap();
 
         // Get the list of orders
-        let query = OrderListQuery {
-            filters: vec![],
-            pagination: Pagination {
-                page: 1,
-                page_size: 10,
-            },
-            order_by: None,
-            order_dir: OrderDir::default(),
-            _phantom: std::marker::PhantomData,
-        };
+        let query = OrderListQuery::default();
         let orders = repo.get_list(query).await.unwrap();
         assert!(!orders.items.is_empty());
         assert!(orders.total >= 2);

@@ -247,10 +247,7 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{
-        common::{OrderDir, Pagination},
-        payment::PaymentSystem,
-    };
+    use crate::models::payment::PaymentSystem;
     use chrono::{Duration, Utc};
     use rust_decimal::Decimal;
     use sqlx::PgPool;
@@ -323,16 +320,7 @@ mod tests {
         assert!(updated_invoice.notification_sent_at.is_some());
 
         // Get the list of invoices
-        let query = PaymentInvoiceListQuery {
-            filters: vec![],
-            pagination: Pagination {
-                page: 1,
-                page_size: 10,
-            },
-            order_by: None,
-            order_dir: OrderDir::default(),
-            _phantom: std::marker::PhantomData,
-        };
+        let query = PaymentInvoiceListQuery::default();
         let invoices = repo.get_list(query).await.unwrap();
         assert!(!invoices.items.is_empty());
     }

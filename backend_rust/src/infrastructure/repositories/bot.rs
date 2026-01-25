@@ -190,10 +190,7 @@ impl BotRepositoryTrait for BotRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{
-        bot::BotType,
-        common::{OrderDir, Pagination},
-    };
+    use crate::models::bot::BotType;
     use rust_decimal::Decimal;
     use sqlx::PgPool;
     use std::str::FromStr;
@@ -294,16 +291,7 @@ mod tests {
         create_test_bot(&pool, "list_token_2", "list_bot_2").await;
 
         // Get the list of bots
-        let query = BotListQuery {
-            filters: vec![],
-            pagination: Pagination {
-                page: 1,
-                page_size: 10,
-            },
-            order_by: None,
-            order_dir: OrderDir::default(),
-            _phantom: std::marker::PhantomData,
-        };
+        let query = BotListQuery::default();
         let bots = repo.get_list(query).await.unwrap();
         assert!(!bots.items.is_empty());
         assert!(bots.total >= 2);

@@ -84,7 +84,6 @@ impl CustomerListQuery {
             pagination: Default::default(),
             order_by: None,
             order_dir: Default::default(),
-            _phantom: std::marker::PhantomData,
         })
     }
 }
