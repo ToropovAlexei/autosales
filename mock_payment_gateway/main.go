@@ -15,7 +15,7 @@ import (
 )
 
 var (
-	mainBackendWebhookURL = getEnv("MAIN_BACKEND_WEBHOOK_URL", "http://localhost:8000/api/webhooks/mock_provider")
+	mainBackendWebhookURL = getEnv("MAIN_BACKEND_WEBHOOK_URL", "http://localhost:8000/api/webhook/payment/mock-provider")
 	port                  = getEnv("PORT", "8078")
 	publicURL             = getEnv("MOCK_GATEWAY_PUBLIC_URL", "http://localhost:8078")
 )
