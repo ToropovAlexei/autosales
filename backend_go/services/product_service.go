@@ -44,7 +44,17 @@ type ProductService interface {
 	DeleteProduct(ctx *gin.Context, id uint) error
 	CreateStockMovement(ctx *gin.Context, productID uint, movementType models.StockMovementType, quantity int, description string, orderID *uint) (*models.StockMovement, error)
 	UploadProductsCSV(ctx *gin.Context, file io.Reader) (map[string]interface{}, error)
+	CalculateProductPrice(product *models.Product, gateway string) (float64, error)
 }
+
+func (s *productService) CalculateProductPrice(product *models.Product, gateway string) (float64, error) {
+	settings, err := s.settingService.GetSettings()
+	if err != nil {
+		return 0, apperrors.New(500, "failed to get settings", err)
+	}
+	return s.calculatePrice(product.Price, gateway, settings), nil
+}
+
 
 type productService struct {
 	productRepo      repositories.ProductRepository
