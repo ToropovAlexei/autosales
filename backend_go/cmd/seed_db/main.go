@@ -256,10 +256,10 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 		CommissionBPS int
 	}{
 		{"mock_provider", 500}, // 5%
-		{"platform_card", 300}, // 3%
-		{"platform_sbp", 200},  // 2%
+		{"platform_card", 2000}, // 20%
+		{"platform_sbp", 2000},  // 20%
 	}
-	platformCommissionBPS := 150 // 1.5%
+	platformCommissionBPS := 100 // 1%
 
 	fmt.Println("Phase 1: Creating initial deposits for all users.")
 	for _, user := range users {
@@ -315,16 +315,12 @@ func createOrdersAndTransactions(db *gorm.DB, users []models.BotUser, products [
 			}
 			db.Create(&order)
 
-			purchaseStoreBalanceDelta := product.Price
-			totalStoreBalanceDelta += purchaseStoreBalanceDelta
-
 			allPurchaseTransactions = append(allPurchaseTransactions, models.Transaction{
 				UserID:            user.ID,
 				Type:              models.Purchase,
 				Amount:            -product.Price,
 				Description:       fmt.Sprintf("Purchase of %s", product.Name),
 				CreatedAt:         createdAt,
-				StoreBalanceDelta: purchaseStoreBalanceDelta,
 			})
 
 			allStockMovements = append(allStockMovements, models.StockMovement{
