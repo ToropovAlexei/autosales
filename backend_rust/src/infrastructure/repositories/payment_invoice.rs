@@ -324,4 +324,33 @@ mod tests {
         let invoices = repo.get_list(query).await.unwrap();
         assert!(!invoices.items.is_empty());
     }
+
+    #[sqlx::test]
+    async fn test_get_by_id(pool: PgPool) {
+        let repo = PaymentInvoiceRepository::new(Arc::new(pool.clone()));
+        let customer_id = create_test_customer(&pool, 456).await;
+        let expires_at = Utc::now() + Duration::days(1);
+
+        let new_invoice = NewPaymentInvoice {
+            customer_id,
+            order_id: Uuid::new_v4(),
+            original_amount: Decimal::from(120),
+            amount: Decimal::from(120),
+            status: InvoiceStatus::Pending,
+            expires_at,
+            gateway: PaymentSystem::Mock,
+            gateway_invoice_id: "test_get_by_id_invoice".to_string(),
+            payment_details: None,
+            bot_message_id: None,
+        };
+        let created_invoice = repo.create(new_invoice).await.unwrap();
+
+        let fetched_invoice = repo.get_by_id(created_invoice.id).await.unwrap();
+
+        assert_eq!(fetched_invoice.id, created_invoice.id);
+        assert_eq!(
+            fetched_invoice.gateway_invoice_id,
+            "test_get_by_id_invoice".to_string()
+        );
+    }
 }

@@ -296,4 +296,33 @@ mod tests {
         assert!(!bots.items.is_empty());
         assert!(bots.total >= 2);
     }
+
+    #[sqlx::test]
+    async fn test_set_and_get_primary_bot(pool: PgPool) {
+        let repo = BotRepository::new(Arc::new(pool.clone()));
+
+        // Create some bots for the same owner
+        let bot1 = create_test_bot(&pool, "primary_token_1", "primary_bot_1").await;
+        let bot2 = create_test_bot(&pool, "primary_token_2", "primary_bot_2").await;
+
+        // Set bot1 as primary
+        repo.set_primary_bot_for_owner(bot1.id, bot1.owner_id)
+            .await
+            .unwrap();
+
+        // Check if bot1 is the primary
+        let primary_bots = repo.get_primary_bots().await.unwrap();
+        assert_eq!(primary_bots.len(), 1);
+        assert_eq!(primary_bots[0].id, bot1.id);
+
+        // Set bot2 as primary
+        repo.set_primary_bot_for_owner(bot2.id, bot2.owner_id)
+            .await
+            .unwrap();
+
+        // Check if bot2 is the new primary
+        let primary_bots_after_change = repo.get_primary_bots().await.unwrap();
+        assert_eq!(primary_bots_after_change.len(), 1);
+        assert_eq!(primary_bots_after_change[0].id, bot2.id);
+    }
 }

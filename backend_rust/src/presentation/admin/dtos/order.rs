@@ -38,3 +38,41 @@ impl From<OrderRow> for OrderResponse {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rust_decimal::Decimal;
+
+    #[test]
+    fn test_order_response_from_order_row() {
+        let now = Utc::now();
+        let order_row = OrderRow {
+            id: 1,
+            customer_id: 10,
+            amount: Decimal::new(12345, 2), // 123.45
+            currency: "USD".to_string(),
+            status: OrderStatus::Paid,
+            bot_id: 100,
+            created_at: now,
+            updated_at: now,
+            paid_at: Some(now),
+            fulfilled_at: Some(now),
+            cancelled_at: None,
+        };
+
+        let order_response: OrderResponse = order_row.into();
+
+        assert_eq!(order_response.id, 1);
+        assert_eq!(order_response.customer_id, 10);
+        assert_eq!(order_response.amount, 123.45);
+        assert_eq!(order_response.currency, "USD");
+        assert_eq!(order_response.status, OrderStatus::Paid);
+        assert_eq!(order_response.bot_id, 100);
+        assert_eq!(order_response.created_at, now);
+        assert_eq!(order_response.updated_at, now);
+        assert_eq!(order_response.paid_at, Some(now));
+        assert_eq!(order_response.fulfilled_at, Some(now));
+        assert_eq!(order_response.cancelled_at, None);
+    }
+}

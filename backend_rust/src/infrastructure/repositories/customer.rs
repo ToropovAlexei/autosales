@@ -251,4 +251,21 @@ mod tests {
         assert!(!customers.items.is_empty());
         assert!(customers.total >= 2);
     }
+
+    #[sqlx::test]
+    async fn test_get_list_by_ids(pool: PgPool) {
+        let repo = CustomerRepository::new(Arc::new(pool.clone()));
+
+        // Create some customers
+        let customer1 = create_test_customer(&pool, 2001, 1).await;
+        let customer2 = create_test_customer(&pool, 2002, 1).await;
+        create_test_customer(&pool, 2003, 1).await; // This one shouldn't be fetched
+
+        let ids_to_fetch = vec![customer1.id, customer2.id];
+        let customers = repo.get_list_by_ids(&ids_to_fetch).await.unwrap();
+
+        assert_eq!(customers.len(), 2);
+        assert!(customers.iter().any(|c| c.id == customer1.id));
+        assert!(customers.iter().any(|c| c.id == customer2.id));
+    }
 }

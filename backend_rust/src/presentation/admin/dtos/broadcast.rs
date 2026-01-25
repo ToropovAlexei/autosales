@@ -161,6 +161,8 @@ mod tests {
     use super::*;
     use crate::models::common::{FilterValue, Operator, ScalarValue};
     use chrono::Timelike;
+    use serde_json::json;
+    use validator::Validate;
 
     #[test]
     fn test_json_raw_list_query_deserialization_scalar_int() {
@@ -385,5 +387,187 @@ mod tests {
             }]
         });
         assert_eq!(serialized, expected_json.to_string());
+    }
+
+    #[test]
+    fn test_new_broadcast_request_validation() {
+        // Valid: only content_text
+        let req = NewBroadcastRequest {
+            content_text: Some("short text".to_string()),
+            content_image_id: None,
+            filters: None,
+            scheduled_for: None,
+        };
+        assert!(req.validate().is_ok());
+
+        // Valid: only content_image_id
+        let req = NewBroadcastRequest {
+            content_text: None,
+            content_image_id: Some(Uuid::new_v4()),
+            filters: None,
+            scheduled_for: None,
+        };
+        assert!(req.validate().is_ok());
+
+        // Valid: both content_text and content_image_id
+        let req = NewBroadcastRequest {
+            content_text: Some("short text".to_string()),
+            content_image_id: Some(Uuid::new_v4()),
+            filters: None,
+            scheduled_for: None,
+        };
+        assert!(req.validate().is_ok());
+
+        // Invalid: content_text too long
+        let req = NewBroadcastRequest {
+            content_text: Some("a".repeat(1025)),
+            content_image_id: None,
+            filters: None,
+            scheduled_for: None,
+        };
+        assert!(req.validate().is_err());
+
+        // Valid: with filters
+        let req = NewBroadcastRequest {
+            content_text: Some("short text".to_string()),
+            content_image_id: None,
+            filters: Some(JsonRawListQuery { filters: vec![] }),
+            scheduled_for: None,
+        };
+        assert!(req.validate().is_ok());
+    }
+
+    #[test]
+    fn test_update_broadcast_request_validation() {
+        // Valid: only content_text
+        let req = UpdateBroadcastRequest {
+            content_text: Some(Some("short text".to_string())),
+            content_image_id: None,
+            filters: None,
+            scheduled_for: None,
+        };
+        assert!(req.validate().is_ok());
+
+        // Valid: content_text set to None
+        let req = UpdateBroadcastRequest {
+            content_text: Some(None),
+            content_image_id: None,
+            filters: None,
+            scheduled_for: None,
+        };
+        assert!(req.validate().is_ok());
+
+        // Valid: content_image_id
+        let req = UpdateBroadcastRequest {
+            content_text: None,
+            content_image_id: Some(Some(Uuid::new_v4())),
+            filters: None,
+            scheduled_for: None,
+        };
+        assert!(req.validate().is_ok());
+
+        // Valid: content_image_id set to None
+        let req = UpdateBroadcastRequest {
+            content_text: None,
+            content_image_id: Some(None),
+            filters: None,
+            scheduled_for: None,
+        };
+        assert!(req.validate().is_ok());
+
+        // Invalid: content_text too long
+        let req = UpdateBroadcastRequest {
+            content_text: Some(Some("a".repeat(1025))),
+            content_image_id: None,
+            filters: None,
+            scheduled_for: None,
+        };
+        assert!(req.validate().is_err());
+
+        // Valid: with filters
+        let req = UpdateBroadcastRequest {
+            content_text: Some(Some("short text".to_string())),
+            content_image_id: None,
+            filters: Some(JsonRawListQuery { filters: vec![] }),
+            scheduled_for: None,
+        };
+        assert!(req.validate().is_ok());
+    }
+
+    #[test]
+    fn test_broadcast_response_from_broadcast_row_full() {
+        let now = Utc::now();
+        let row = BroadcastRow {
+            id: 1,
+            status: BroadcastStatus::Scheduled,
+            content_text: Some("test broadcast content".to_string()),
+            content_image_id: Some(Uuid::new_v4()),
+            filters: Some(json!({"filter_key": "filter_value"})),
+            statistics: Some(json!({"stats_key": "stats_value"})),
+            created_by: 101,
+            scheduled_for: Some(now + chrono::Duration::hours(1)),
+            started_at: Some(now),
+            finished_at: Some(now + chrono::Duration::minutes(5)),
+            created_at: now,
+            updated_at: now,
+        };
+
+        let response: BroadcastResponse = row.into();
+
+        assert_eq!(response.id, 1);
+        assert_eq!(response.status, BroadcastStatus::Scheduled);
+        assert_eq!(
+            response.content_text,
+            Some("test broadcast content".to_string())
+        );
+        assert!(response.content_image_id.is_some());
+        assert_eq!(
+            response.filters,
+            Some(json!({"filter_key": "filter_value"}))
+        );
+        assert_eq!(
+            response.statistics,
+            Some(json!({"stats_key": "stats_value"}))
+        );
+        assert_eq!(response.created_by, 101);
+        assert!(response.scheduled_for.is_some());
+        assert!(response.started_at.is_some());
+        assert!(response.finished_at.is_some());
+        assert_eq!(response.created_at, now);
+        assert_eq!(response.updated_at, now);
+    }
+
+    #[test]
+    fn test_broadcast_response_from_broadcast_row_minimal() {
+        let now = Utc::now();
+        let row = BroadcastRow {
+            id: 2,
+            status: BroadcastStatus::Pending,
+            content_text: None,
+            content_image_id: None,
+            filters: None,
+            statistics: None,
+            created_by: 102,
+            scheduled_for: None,
+            started_at: None,
+            finished_at: None,
+            created_at: now,
+            updated_at: now,
+        };
+
+        let response: BroadcastResponse = row.into();
+
+        assert_eq!(response.id, 2);
+        assert_eq!(response.status, BroadcastStatus::Pending);
+        assert_eq!(response.content_text, None);
+        assert_eq!(response.content_image_id, None);
+        assert_eq!(response.filters, None);
+        assert_eq!(response.statistics, None);
+        assert_eq!(response.created_by, 102);
+        assert_eq!(response.scheduled_for, None);
+        assert_eq!(response.started_at, None);
+        assert_eq!(response.finished_at, None);
+        assert_eq!(response.created_at, now);
+        assert_eq!(response.updated_at, now);
     }
 }

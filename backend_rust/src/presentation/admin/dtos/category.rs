@@ -69,3 +69,141 @@ pub struct UpdateCategoryRequest {
     #[ts(optional)]
     pub position: Option<i16>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use validator::Validate;
+
+    #[test]
+    fn test_category_response_from_category_row() {
+        let now = Utc::now();
+        let uuid = Uuid::new_v4();
+        let category_row = CategoryRow {
+            id: 1,
+            name: "Test Category".to_string(),
+            parent_id: Some(10),
+            image_id: Some(uuid),
+            position: 1,
+            is_active: true,
+            created_by: 100,
+            created_at: now,
+            updated_at: now,
+        };
+
+        let category_response: CategoryResponse = category_row.into();
+
+        assert_eq!(category_response.id, 1);
+        assert_eq!(category_response.name, "Test Category");
+        assert_eq!(category_response.parent_id, Some(10));
+        assert_eq!(category_response.image_id, Some(uuid));
+        assert_eq!(category_response.position, 1);
+        assert!(category_response.is_active);
+        assert_eq!(category_response.created_by, 100);
+        assert_eq!(category_response.created_at, now);
+        assert_eq!(category_response.updated_at, now);
+    }
+
+    #[test]
+    fn test_category_response_from_category_row_minimal() {
+        let now = Utc::now();
+        let category_row = CategoryRow {
+            id: 1,
+            name: "Test Category".to_string(),
+            parent_id: None,
+            image_id: None,
+            position: 1,
+            is_active: true,
+            created_by: 100,
+            created_at: now,
+            updated_at: now,
+        };
+
+        let category_response: CategoryResponse = category_row.into();
+
+        assert_eq!(category_response.id, 1);
+        assert_eq!(category_response.name, "Test Category");
+        assert_eq!(category_response.parent_id, None);
+        assert_eq!(category_response.image_id, None);
+        assert_eq!(category_response.position, 1);
+        assert!(category_response.is_active);
+        assert_eq!(category_response.created_by, 100);
+        assert_eq!(category_response.created_at, now);
+        assert_eq!(category_response.updated_at, now);
+    }
+
+    #[test]
+    fn test_new_category_request_validation() {
+        // Valid data
+        let req = NewCategoryRequest {
+            name: "Valid Name".to_string(),
+            parent_id: Some(1),
+            image_id: Some(Uuid::new_v4()),
+        };
+        assert!(req.validate().is_ok());
+
+        // Name too short
+        let req = NewCategoryRequest {
+            name: "a".to_string(),
+            parent_id: None,
+            image_id: None,
+        };
+        assert!(req.validate().is_err());
+
+        // Name too long
+        let req = NewCategoryRequest {
+            name: "a".repeat(256),
+            parent_id: None,
+            image_id: None,
+        };
+        assert!(req.validate().is_err());
+    }
+
+    #[test]
+    fn test_update_category_request_validation() {
+        // Valid: All optional fields are None
+        let req = UpdateCategoryRequest {
+            name: None,
+            parent_id: None,
+            image_id: None,
+            position: None,
+        };
+        assert!(req.validate().is_ok());
+
+        // Valid: All fields provided and correct
+        let req = UpdateCategoryRequest {
+            name: Some("New Name".to_string()),
+            parent_id: Some(Some(2)),
+            image_id: Some(Some(Uuid::new_v4())),
+            position: Some(5),
+        };
+        assert!(req.validate().is_ok());
+
+        // Valid: Setting optional fields to None
+        let req = UpdateCategoryRequest {
+            name: None,
+            parent_id: Some(None),
+            image_id: Some(None),
+            position: Some(5),
+        };
+        assert!(req.validate().is_ok());
+
+        // Name too short
+        let req = UpdateCategoryRequest {
+            name: Some("a".to_string()),
+            parent_id: None,
+            image_id: None,
+            position: None,
+        };
+        assert!(req.validate().is_err());
+
+        // Name too long
+        let req = UpdateCategoryRequest {
+            name: Some("a".repeat(256)),
+            parent_id: None,
+            image_id: None,
+            position: None,
+        };
+        assert!(req.validate().is_err());
+    }
+}

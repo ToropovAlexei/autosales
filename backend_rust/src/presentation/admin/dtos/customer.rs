@@ -47,3 +47,61 @@ pub struct UpdateCustomerRequest {
     #[ts(optional)]
     pub is_blocked: Option<bool>,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rust_decimal::Decimal;
+    use validator::Validate;
+
+    #[test]
+    fn test_customer_response_from_customer_row() {
+        let now = Utc::now();
+        let customer_row = CustomerRow {
+            id: 1,
+            telegram_id: 12345,
+            balance: Decimal::new(10050, 2), // 100.50
+            is_blocked: false,
+            bot_is_blocked_by_user: false,
+            has_passed_captcha: true,
+            registered_with_bot: 1,
+            last_seen_with_bot: 1,
+            last_seen_at: now,
+            created_at: now,
+            updated_at: now,
+        };
+
+        let customer_response: CustomerResponse = customer_row.into();
+
+        assert_eq!(customer_response.id, 1);
+        assert_eq!(customer_response.telegram_id, 12345);
+        assert_eq!(customer_response.balance, 100.50);
+        assert!(!customer_response.is_blocked);
+        assert!(!customer_response.bot_is_blocked_by_user);
+        assert!(customer_response.has_passed_captcha);
+        assert_eq!(customer_response.registered_with_bot, 1);
+        assert_eq!(customer_response.last_seen_with_bot, 1);
+        assert_eq!(customer_response.last_seen_at, now);
+        assert_eq!(customer_response.created_at, now);
+        assert_eq!(customer_response.updated_at, now);
+    }
+
+    #[test]
+    fn test_update_customer_request_validation() {
+        // Valid: is_blocked is Some(true)
+        let req = UpdateCustomerRequest {
+            is_blocked: Some(true),
+        };
+        assert!(req.validate().is_ok());
+
+        // Valid: is_blocked is Some(false)
+        let req = UpdateCustomerRequest {
+            is_blocked: Some(false),
+        };
+        assert!(req.validate().is_ok());
+
+        // Valid: is_blocked is None
+        let req = UpdateCustomerRequest { is_blocked: None };
+        assert!(req.validate().is_ok());
+    }
+}
