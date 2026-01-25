@@ -167,7 +167,7 @@ func NewContainer(appSettings *config.Config) (*Container, error) {
 	stockService := services.NewStockService(stockRepo)
 	adminService := services.NewAdminService(adminRepo, botUserRepo)
 	webhookService := services.NewWebhookService(appSettings)
-	orderService := services.NewOrderService(db, orderRepo, productRepo, botUserRepo, transactionRepo, userSubscriptionRepo, categoryRepo, referralService, botService, providerRegistry, webhookService)
+	orderService := services.NewOrderService(db, orderRepo, productRepo, productService, botUserRepo, transactionRepo, userSubscriptionRepo, categoryRepo, referralService, botService, providerRegistry, webhookService)
 	storeBalanceService := services.NewStoreBalanceService(storeBalanceRepo)
 	botStatusService := services.NewBotStatusService(storeBalanceService)
 	paymentService := services.NewPaymentService(db, paymentGatewayRegistry, paymentInvoiceRepo, transactionRepo, botUserRepo, webhookService, settingService, appSettings, storeBalanceService)

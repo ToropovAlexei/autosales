@@ -53,11 +53,12 @@ type orderService struct {
 	categoryRepo         repositories.CategoryRepository
 	referralService      ReferralService
 	botService           BotService
+	productService       ProductService
 	providerRegistry     *external_providers.ProviderRegistry
 	webhookService       WebhookService
 }
 
-func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, productRepo repositories.ProductRepository, botUserRepo repositories.BotUserRepository, transactionRepo repositories.TransactionRepository, userSubscriptionRepo repositories.UserSubscriptionRepository, categoryRepo repositories.CategoryRepository, referralService ReferralService, botService BotService, providerRegistry *external_providers.ProviderRegistry, webhookService WebhookService) OrderService {
+func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, productRepo repositories.ProductRepository, productService ProductService, botUserRepo repositories.BotUserRepository, transactionRepo repositories.TransactionRepository, userSubscriptionRepo repositories.UserSubscriptionRepository, categoryRepo repositories.CategoryRepository, referralService ReferralService, botService BotService, providerRegistry *external_providers.ProviderRegistry, webhookService WebhookService) OrderService {
 	return &orderService{
 		db:                   db,
 		orderRepo:            orderRepo,
@@ -68,6 +69,7 @@ func NewOrderService(db *gorm.DB, orderRepo repositories.OrderRepository, produc
 		categoryRepo:         categoryRepo,
 		referralService:      referralService,
 		botService:           botService,
+		productService:       productService,
 		providerRegistry:     providerRegistry,
 		webhookService:       webhookService,
 	}
@@ -137,12 +139,17 @@ func (s *orderService) BuyFromBalance(req BuyRequest) (*BuyResponse, error) {
 			}
 		}
 
+		productPrice, err := s.productService.CalculateProductPrice(product, "")
+		if err != nil {
+			return err
+		}
+
 		balance, err := s.botUserRepo.WithTx(tx).GetUserBalance(user.ID)
 		if err != nil {
 			return apperrors.New(500, "Failed to get user balance", err)
 		}
 
-		orderAmount := product.Price * float64(req.Quantity)
+		orderAmount := productPrice * float64(req.Quantity)
 		if balance < orderAmount {
 			return apperrors.ErrInsufficientBalance
 		}
@@ -245,7 +252,7 @@ func (s *orderService) BuyFromBalance(req BuyRequest) (*BuyResponse, error) {
 				CreatedAt: order.CreatedAt,
 			},
 			ProductName:       product.Name,
-			ProductPrice:      product.Price,
+			ProductPrice:      productPrice,
 			Balance:           newBalance,
 			FulfilledContent:  order.FulfilledContent,
 			ImageURL:          imageURL,
