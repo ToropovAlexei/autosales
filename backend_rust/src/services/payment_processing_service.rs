@@ -91,14 +91,22 @@ impl PaymentProcessingServiceTrait
             .customer_service
             .get_by_id(payment_invoice.customer_id)
             .await?;
+
+        let gateway_commission_percent = dec!(0.2); // TODO get from settings
+        let platform_commission_percent = dec!(0.01); // TODO get from settings
+        let platform_commission = payment_invoice.original_amount * platform_commission_percent;
+        let gateway_commission = payment_invoice.original_amount * gateway_commission_percent;
+        let store_balance_delta = payment_invoice.original_amount
+            * (dec!(1) - platform_commission_percent - gateway_commission_percent);
+
         self.transactions_service
             .create(NewTransaction {
                 amount: payment_invoice.original_amount,
                 customer_id: Some(payment_invoice.customer_id),
                 r#type: TransactionType::Deposit,
-                store_balance_delta: dec!(0), // TODO
-                platform_commission: dec!(0), // TODO
-                gateway_commission: dec!(0),  // TODO
+                store_balance_delta,
+                platform_commission,
+                gateway_commission,
                 description: None,
                 payment_gateway: Some(payment_invoice.gateway),
                 details: Some(payment_invoice.payment_details),

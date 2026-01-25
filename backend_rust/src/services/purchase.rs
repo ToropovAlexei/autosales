@@ -173,9 +173,9 @@ impl PurchaseServiceTrait
                 customer_id: Some(customer.id),
                 order_id: Some(order.id),
                 r#type: TransactionType::Purchase,
-                store_balance_delta: dec!(0), // TODO
-                platform_commission: dec!(0), // TODO
-                gateway_commission: dec!(0),  // TODO
+                store_balance_delta: dec!(0), // There is no comission for purchase
+                platform_commission: dec!(0), // There is no comission for purchase
+                gateway_commission: dec!(0),  // There is no comission for purchase
                 description: None,
                 payment_gateway: None,
                 details: None,
