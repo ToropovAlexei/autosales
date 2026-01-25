@@ -5,7 +5,7 @@ use axum::{extract::FromRequestParts, http::request::Parts};
 use crate::{
     errors::{api::ApiError, auth::AuthError},
     models::permission::Permission,
-    services::auth::AuthUser,
+    services::auth::{AuthServiceTrait, AuthUser},
     state::AppState,
 };
 

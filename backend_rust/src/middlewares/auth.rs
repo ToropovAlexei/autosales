@@ -3,7 +3,11 @@ use std::{str::FromStr, sync::Arc};
 use axum::{extract::FromRequestParts, http::request::Parts};
 use uuid::Uuid;
 
-use crate::{errors::api::ApiError, services::auth::AuthUser, state::AppState};
+use crate::{
+    errors::api::ApiError,
+    services::auth::{AuthServiceTrait, AuthUser},
+    state::AppState,
+};
 
 impl FromRequestParts<Arc<AppState>> for AuthUser {
     type Rejection = ApiError;

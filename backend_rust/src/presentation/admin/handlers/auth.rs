@@ -9,7 +9,10 @@ use crate::{
     presentation::admin::dtos::auth::{
         LoginStep1Request, LoginStep1Response, LoginStep2Request, LoginStep2Response,
     },
-    services::{audit_log::AuditLogServiceTrait, auth::AuthUser},
+    services::{
+        audit_log::AuditLogServiceTrait,
+        auth::{AuthServiceTrait, AuthUser},
+    },
     state::AppState,
 };
 

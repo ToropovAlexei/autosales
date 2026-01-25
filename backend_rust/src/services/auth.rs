@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use chrono::Duration;
 use serde::Deserialize;
 use uuid::Uuid;
@@ -30,6 +31,23 @@ pub struct Claims {
     pub jti: Uuid,
     pub token_type: TokenType,
     pub exp: usize,
+}
+
+#[async_trait]
+pub trait AuthServiceTrait: Send + Sync {
+    async fn login_step1(&self, login: &str, password: &str) -> AuthResult<TemporaryTokenRow>;
+    async fn login_step2(&self, temp_token: &Uuid, code: &str)
+    -> Result<ActiveTokenRow, AuthError>;
+    async fn logout(&self, token: Uuid) -> Result<(), AuthError>;
+    async fn authenticate(&self, token: Uuid) -> AuthResult<AuthUser>;
+    async fn has_permission(
+        &self,
+        admin_user_id: i64,
+        permission: Permission,
+    ) -> Result<bool, AuthError>;
+    async fn get_user_permissions(&self, admin_user_id: i64) -> Result<Vec<String>, AuthError>;
+    fn verify_password(&self, plain: &str, hash: &str) -> AuthResult<bool>;
+    fn verify_totp_code(&self, secret: &str, code: &str) -> AuthResult<bool>;
 }
 
 pub struct AuthService<S, T, R, E> {
@@ -77,7 +95,17 @@ where
             config,
         }
     }
-    pub async fn authenticate(&self, token: Uuid) -> AuthResult<AuthUser> {
+}
+
+#[async_trait]
+impl<S, T, R, E> AuthServiceTrait for AuthService<S, T, R, E>
+where
+    S: ActiveTokenRepositoryTrait + Send + Sync,
+    T: TemporaryTokenRepositoryTrait + Send + Sync,
+    R: AdminUserRepositoryTrait + Send + Sync,
+    E: EffectivePermissionRepositoryTrait + Send + Sync,
+{
+    async fn authenticate(&self, token: Uuid) -> AuthResult<AuthUser> {
         let token = self
             .tokens
             .get_active_token(token, TokenType::Access)
@@ -90,11 +118,11 @@ where
         })
     }
 
-    pub fn verify_password(&self, plain: &str, hash: &str) -> AuthResult<bool> {
+    fn verify_password(&self, plain: &str, hash: &str) -> AuthResult<bool> {
         bcrypt::verify(plain, hash).map_err(|_| AuthError::InvalidToken)
     }
 
-    pub fn verify_totp_code(&self, secret: &str, code: &str) -> AuthResult<bool> {
+    fn verify_totp_code(&self, secret: &str, code: &str) -> AuthResult<bool> {
         let totp = totp_rs::TOTP::new(
             self.config.totp_algorithm,
             self.config.totp_digits,
@@ -111,7 +139,7 @@ where
         Ok(totp.check_current(code).unwrap_or_default())
     }
 
-    pub async fn login_step1(
+    async fn login_step1(
         &self,
         login: &str,
         password: &str,
@@ -138,7 +166,7 @@ where
         Ok(temp_token)
     }
 
-    pub async fn login_step2(
+    async fn login_step2(
         &self,
         temp_token: &Uuid,
         code: &str,
@@ -173,14 +201,14 @@ where
             .map_err(AuthError::from)
     }
 
-    pub async fn get_user_permissions(&self, admin_user_id: i64) -> Result<Vec<String>, AuthError> {
+    async fn get_user_permissions(&self, admin_user_id: i64) -> Result<Vec<String>, AuthError> {
         self.effective_permission_repo
             .get_for_user(admin_user_id)
             .await
             .map_err(AuthError::from)
     }
 
-    pub async fn has_permission(
+    async fn has_permission(
         &self,
         admin_user_id: i64,
         permission: Permission,
@@ -191,7 +219,7 @@ where
             .map_err(AuthError::from)
     }
 
-    pub async fn logout(&self, token: Uuid) -> Result<(), AuthError> {
+    async fn logout(&self, token: Uuid) -> Result<(), AuthError> {
         self.tokens
             .revoke_token(token)
             .await

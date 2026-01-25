@@ -5,7 +5,10 @@ use axum::{Json, Router, debug_handler, extract::State, routing::get};
 use crate::{
     errors::api::ApiResult,
     presentation::admin::dtos::{admin_user::AdminUserResponse, list_response::ListResponse},
-    services::{admin_user::AdminUserServiceTrait, auth::AuthUser},
+    services::{
+        admin_user::AdminUserServiceTrait,
+        auth::{AuthServiceTrait, AuthUser},
+    },
     state::AppState,
 };
 
