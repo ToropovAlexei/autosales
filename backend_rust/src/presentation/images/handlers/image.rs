@@ -24,6 +24,16 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new().route("/{id}", get(get_image))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/images/{id}",
+    tag = "Images",
+    responses(
+        (status = 200, description = "Image file"),
+        (status = 404, description = "Image not found", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn get_image(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,

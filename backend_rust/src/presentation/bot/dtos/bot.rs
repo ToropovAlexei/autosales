@@ -6,6 +6,7 @@ use crate::models::bot::BotRow;
 use rust_decimal::prelude::ToPrimitive;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, ToResponse)]
+#[schema(as = bot::BotResponse)]
 pub struct BotResponse {
     pub id: i64,
     pub token: String,
@@ -31,6 +32,7 @@ impl From<BotRow> for BotResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema, ToResponse)]
+#[schema(as = bot::NewBotRequest)]
 pub struct NewBotRequest {
     #[validate(length(min = 44, max = 48, message = "Length must be between 44 and 48"))]
     pub token: String,
@@ -38,6 +40,7 @@ pub struct NewBotRequest {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema, ToResponse)]
+#[schema(as = bot::UpdateBotRequest)]
 pub struct UpdateBotRequest {
     pub is_active: Option<bool>,
     pub is_primary: Option<bool>,

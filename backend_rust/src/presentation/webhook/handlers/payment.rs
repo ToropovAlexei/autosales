@@ -23,6 +23,17 @@ pub fn router() -> Router<Arc<AppState>> {
 }
 
 #[cfg(feature = "mock-payments-provider")]
+#[utoipa::path(
+    post,
+    path = "/api/webhook/payment/mock-provider",
+    tag = "Webhook",
+    request_body = MockProviderInvoiceWebhookPayload,
+    responses(
+        (status = 200, description = "Webhook accepted", body = Uuid),
+        (status = 400, description = "Bad request", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn mock_payments_provider_webhook(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<MockProviderInvoiceWebhookPayload>,

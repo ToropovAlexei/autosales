@@ -6,6 +6,7 @@ use validator::Validate;
 use crate::models::customer::CustomerRow;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, ToResponse)]
+#[schema(as = bot::CustomerResponse)]
 pub struct CustomerResponse {
     pub id: i64,
     pub telegram_id: i64,
@@ -29,11 +30,13 @@ impl From<CustomerRow> for CustomerResponse {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema, ToResponse)]
+#[schema(as = bot::NewCustomerRequest)]
 pub struct NewCustomerRequest {
     pub telegram_id: i64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema, ToResponse)]
+#[schema(as = bot::UpdateCustomerRequest)]
 pub struct UpdateCustomerRequest {
     pub bot_is_blocked_by_user: Option<bool>,
     pub has_passed_captcha: Option<bool>,

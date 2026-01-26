@@ -40,6 +40,17 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/{id}/send-receipt", post(send_invoice_receipt))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/bot/invoices",
+    tag = "Invoices",
+    responses(
+        (status = 200, description = "List of invoices", body = ListResponse<PaymentInvoiceResponse>),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn list_invoices(
     State(state): State<Arc<AppState>>,
     _bot: AuthBot,
@@ -56,6 +67,18 @@ async fn list_invoices(
     }))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/bot/invoices/{id}",
+    tag = "Invoices",
+    responses(
+        (status = 200, description = "Invoice details", body = PaymentInvoiceResponse),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 404, description = "Not found", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn get_invoice(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
@@ -65,6 +88,18 @@ async fn get_invoice(
     Ok(Json(PaymentInvoiceResponse::from(payment_invoice)))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/bot/invoices",
+    tag = "Invoices",
+    request_body = NewPaymentInvoiceRequest,
+    responses(
+        (status = 200, description = "Invoice created", body = PaymentInvoiceResponse),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn create_invoice(
     State(state): State<Arc<AppState>>,
     _bot: AuthBot,
@@ -87,6 +122,19 @@ async fn create_invoice(
     Ok(Json(PaymentInvoiceResponse::from(payment_invoice)))
 }
 
+#[utoipa::path(
+    patch,
+    path = "/api/bot/invoices/{id}",
+    tag = "Invoices",
+    request_body = UpdatePaymentInvoiceRequest,
+    responses(
+        (status = 200, description = "Invoice updated", body = PaymentInvoiceResponse),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 404, description = "Not found", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn update_invoice(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
@@ -104,6 +152,18 @@ async fn update_invoice(
     Ok(Json(PaymentInvoiceResponse::from(invoice)))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/bot/invoices/{id}/confirm",
+    tag = "Invoices",
+    responses(
+        (status = 200, description = "Invoice confirmed", body = PaymentInvoiceResponse),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 404, description = "Not found", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn confirm_invoice(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
@@ -113,6 +173,18 @@ async fn confirm_invoice(
     Ok(Json(PaymentInvoiceResponse::from(invoice)))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/bot/invoices/{id}/cancel",
+    tag = "Invoices",
+    responses(
+        (status = 200, description = "Invoice cancelled", body = PaymentInvoiceResponse),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 404, description = "Not found", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn cancel_invoice(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
@@ -122,6 +194,18 @@ async fn cancel_invoice(
     Ok(Json(PaymentInvoiceResponse::from(invoice)))
 }
 
+#[utoipa::path(
+    post,
+    path = "/api/bot/invoices/{id}/send-receipt",
+    tag = "Invoices",
+    responses(
+        (status = 200, description = "Receipt submitted", body = PaymentInvoiceResponse),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 404, description = "Not found", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
 async fn send_invoice_receipt(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,

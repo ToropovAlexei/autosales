@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Clone, Deserialize, Serialize, PartialEq, ToSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum MockProviderInvoiceStatus {
     Failed,
@@ -23,12 +24,12 @@ pub struct MockProviderCreateInvoiceResponse {
     pub pay_url: String,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct MockProviderInvoiceStatusResponse {
     pub status: MockProviderInvoiceStatus,
 }
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize, ToSchema)]
 pub struct MockProviderInvoiceWebhookPayload {
     pub event: String,
     pub order_id: Uuid,
