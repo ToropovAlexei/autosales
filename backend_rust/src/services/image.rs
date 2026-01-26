@@ -171,3 +171,49 @@ pub async fn save_image_to_disk(
 
     Ok(file_path)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use image::{ColorType, ImageBuffer, ImageEncoder};
+
+    fn make_png_bytes(width: u32, height: u32) -> Vec<u8> {
+        let img: ImageBuffer<image::Rgb<u8>, Vec<u8>> =
+            ImageBuffer::from_pixel(width, height, image::Rgb([10, 20, 30]));
+        let mut buf = Vec::new();
+        let encoder = image::codecs::png::PngEncoder::new(&mut buf);
+        encoder
+            .write_image(&img, width, height, ColorType::Rgb8.into())
+            .expect("encode png");
+        buf
+    }
+
+    #[test]
+    fn test_extract_image_metadata_png() {
+        let data = make_png_bytes(2, 3);
+        let meta = extract_image_metadata(&data, Some("test.png")).expect("meta");
+        assert_eq!(meta.mime_type, "image/png");
+        assert_eq!(meta.width, 2);
+        assert_eq!(meta.height, 3);
+        assert_eq!(meta.original_filename.as_deref(), Some("test.png"));
+        assert_eq!(meta.file_size, data.len() as u64);
+        assert_eq!(meta.hash.len(), 64);
+    }
+
+    #[test]
+    fn test_extract_image_metadata_unsupported() {
+        let data = b"not-an-image".to_vec();
+        let err = extract_image_metadata(&data, None).unwrap_err();
+        assert!(err.to_string().contains("Unknown image format"));
+    }
+
+    #[test]
+    fn test_get_image_paths() {
+        let hash = "abcdef1234567890";
+        let root = Path::new("/tmp/uploads");
+        let dir = get_image_dir(hash, root);
+        let file = get_image_path(hash, root);
+        assert!(dir.ends_with("ab"));
+        assert!(file.ends_with("ab/abcdef1234567890"));
+    }
+}
