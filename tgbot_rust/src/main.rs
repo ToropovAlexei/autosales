@@ -5,6 +5,7 @@ use tgbot_rust::bot_manager::BotManager;
 use tgbot_rust::config::Config;
 use tgbot_rust::webhook::create_webhook_service;
 use tgbot_rust::{AppState, create_redis_pool, init_logging};
+use tokio::signal;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -20,18 +21,47 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("Failed to bind TCP listener")?;
 
-    let bot_manager = Arc::new(tokio::sync::Mutex::new(BotManager::new(app_state)));
-    bot_manager.lock().await.start_bots().await?;
+    let bot_manager = Arc::new(BotManager::new(Arc::new(app_state.clone())));
 
-    let server = axum::serve(listener, webhook_service);
+    let server =
+        axum::serve(listener, webhook_service).with_graceful_shutdown(shutdown_signal(app_state));
 
-    let mut bot_manager_guard = bot_manager.lock().await;
-    tokio::select! {
-        _ = bot_manager_guard.wait_for_all() => {
-            tracing::info!("All bots have exited.");
-        },
-        _ = server => {},
+    tokio::spawn({
+        let bot_manager = bot_manager.clone();
+        async move { bot_manager.run().await }
+    });
+
+    if let Err(e) = server.await {
+        tracing::error!(error = %e, "Axum server error");
     }
 
     Ok(())
+}
+
+async fn shutdown_signal(_state: AppState) {
+    let ctrl_c = async {
+        signal::ctrl_c()
+            .await
+            .expect("failed to install CTRL+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        signal::unix::signal(signal::unix::SignalKind::terminate())
+            .expect("failed to install signal handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            tracing::info!("received CTRL+C, shutting down...");
+        }
+        _ = terminate => {
+            tracing::info!("received terminate signal, shutting down...");
+        }
+    };
 }
