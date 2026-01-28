@@ -30,21 +30,41 @@ services:
 
   backend:
     build:
-      context: ./backend_rust
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend_rust/Dockerfile
     container_name: autosales_backend_rs
 
     environment:
-      BACKEND_PORT: 8000
+      BACKEND_PORT: ${BACKEND_PORT}
       DATABASE_HOST: db
       DATABASE_PORT: 5432
       DATABASE_USER: ${POSTGRES_USER}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
       DATABASE_NAME: ${POSTGRES_NAME}
+      REDIS_HOST: redis
+      REDIS_PORT: ${REDIS_PORT}
       CORS_ORIGINS: ${CORS_ORIGINS}
+      JWT_SECRET: ${JWT_SECRET}
+      TOTP_ENCODE_SECRET: ${TOTP_ENCODE_SECRET}
+      TWO_FA_TOKEN_TTL_MINUTES: ${TWO_FA_TOKEN_TTL_MINUTES}
+      ACCESS_TOKEN_TTL_MINUTES: ${ACCESS_TOKEN_TTL_MINUTES}
+      REFRESH_TOKEN_TTL_MINUTES: ${REFRESH_TOKEN_TTL_MINUTES}
+      IMAGE_UPLOAD_PATH: /app/uploads/images
+      SERVICE_API_KEY: ${SERVICE_API_KEY}
+      CAPTCHA_API_URL: http://captcha_service:9091/captcha
+      CONTMS_API_URL: ${CONTMS_API_URL}
+      MOCK_PAYMENTS_PROVIDER_URL: ${MOCK_PAYMENTS_PROVIDER_URL}
+      PAYMENT_NOTIFICATION_MINUTES: ${PAYMENT_NOTIFICATION_MINUTES}
+      PLATFORM_PAYMENT_SYSTEM_BASE_URL: ${PLATFORM_PAYMENT_SYSTEM_BASE_URL}
+      PLATFORM_PAYMENT_SYSTEM_LOGIN: ${PLATFORM_PAYMENT_SYSTEM_LOGIN}
+      PLATFORM_PAYMENT_SYSTEM_PASSWORD: ${PLATFORM_PAYMENT_SYSTEM_PASSWORD}
+      PLATFORM_PAYMENT_SYSTEM_2FA_KEY: ${PLATFORM_PAYMENT_SYSTEM_2FA_KEY}
+      SEED_DB: ${SEED_DB}
 
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+    volumes:
+      - backend-uploads:/app/uploads
 
     depends_on:
       db:
@@ -65,8 +85,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        NEXT_PUBLIC_API_URL: http://backend:${BACKEND_PORT}/api/admin
-        NEXT_PUBLIC_IMAGES_URL: http://backend:${BACKEND_PORT}/api/images
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_IMAGES_URL: ${NEXT_PUBLIC_IMAGES_URL}
     container_name: autosales_frontend
 
     ports:
@@ -78,19 +98,22 @@ services:
 
   bot:
     build:
-      context: ./tgbot_rust
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: tgbot_rust/Dockerfile
     container_name: autosales_bot
 
     environment:
-      API_ID: ${API_ID}
-      API_HASH: ${API_HASH}
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
       REDIS_HOST: redis
       REDIS_PORT: ${REDIS_PORT}
-      API_URL: http://backend:${BACKEND_PORT}/api
+      BACKEND_API_URL: http://backend:${BACKEND_PORT}/api/
+      WEBHOOK_HOST: ${WEBHOOK_HOST}
+      WEBHOOK_PORT: ${WEBHOOK_PORT}
+      CAPTCHA_API_URL: http://captcha_service:9091/captcha
       SUPPORT_URL: ${SUPPORT_URL}
       PAYMENT_INSTRUCTIONS_URL: ${PAYMENT_INSTRUCTIONS_URL}
-      SERVICE_TOKEN: ${SERVICE_API_KEY}
+      SERVICE_API_KEY: ${SERVICE_API_KEY}
 
     depends_on:
       - backend
@@ -104,15 +127,26 @@ services:
       dockerfile: Dockerfile
     container_name: autosales_mock_gateway
     environment:
-      MAIN_BACKEND_WEBHOOK_URL: http://localhost:8000/api/webhook/payment/mock-provider
+      MAIN_BACKEND_WEBHOOK_URL: http://backend:${BACKEND_PORT}/api/webhook/payment/mock-provider
       MOCK_GATEWAY_PUBLIC_URL: ${MOCK_GATEWAY_PUBLIC_URL}
     ports:
       - "8078:8078"
     networks:
       - default_network
 
+  captcha_service:
+    build:
+      context: ./captcha_service
+      dockerfile: Dockerfile
+    container_name: autosales_captcha
+    ports:
+      - "9091:9091"
+    networks:
+      - default_network
+
 volumes:
   db-data:
+  backend-uploads:
 
 networks:
   default_network:

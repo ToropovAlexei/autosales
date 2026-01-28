@@ -4,7 +4,7 @@ use std::sync::Arc;
 use axum::{Json, Router, extract::State, routing::get};
 
 use crate::{
-    errors::api::ApiResult,
+    errors::api::{ApiError, ApiResult},
     middlewares::require_permission::{RequirePermission, StoreBalanceRead},
     presentation::admin::dtos::store_balance::StoreBalanceResponse,
     services::{auth::AuthUser, transaction::TransactionServiceTrait},
@@ -32,12 +32,20 @@ async fn get_store_balance(
     _user: AuthUser,
     _perm: RequirePermission<StoreBalanceRead>,
 ) -> ApiResult<Json<StoreBalanceResponse>> {
-    let last_transaction = state.transaction_service.get_last().await?;
+    let last_transaction = state.transaction_service.get_last().await;
 
-    Ok(Json(StoreBalanceResponse {
-        balance: last_transaction
-            .store_balance_after
-            .to_f64()
-            .unwrap_or_default(),
-    }))
+    match last_transaction {
+        Err(e) => {
+            if matches!(e, ApiError::NotFound(_)) {
+                return Ok(Json(StoreBalanceResponse { balance: 0.0 }));
+            }
+            Err(e)
+        }
+        Ok(last_transaction) => Ok(Json(StoreBalanceResponse {
+            balance: last_transaction
+                .store_balance_after
+                .to_f64()
+                .unwrap_or_default(),
+        })),
+    }
 }

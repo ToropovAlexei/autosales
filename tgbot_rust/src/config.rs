@@ -20,7 +20,7 @@ pub struct Config {
 
 impl Config {
     pub fn from_env() -> Self {
-        dotenv().expect("Failed to load .env file");
+        dotenv().ok();
         let config = envy::from_env::<Config>().expect("Invalid env config");
         config.validate().expect("Invalid config values");
         config
