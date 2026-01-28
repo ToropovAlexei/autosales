@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+pub use shared_dtos::InvoiceStatus;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -13,21 +14,6 @@ pub enum PaymentSystem {
 pub struct PaymentGateway {
     pub name: PaymentSystem,
     pub display_name: String,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum InvoiceStatus {
-    Pending,
-    Processing,
-    AwaitingReceipt,
-    ReceiptSubmitted,
-    Disputed,
-    Completed,
-    Failed,
-    Expired,
-    Cancelled,
-    Refunded,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

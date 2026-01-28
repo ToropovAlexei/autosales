@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use shared_dtos::InvoiceStatus;
 use uuid::Uuid;
 
 use crate::{
     errors::api::ApiResult,
-    models::{
-        payment_invoice::InvoiceStatus,
-        transaction::{NewTransaction, TransactionType},
-    },
+    models::transaction::{NewTransaction, TransactionType},
     services::{
         customer::CustomerServiceTrait,
         notification_service::{DispatchMessage, DispatchMessageCommand, NotificationServiceTrait},
@@ -130,7 +128,7 @@ mod tests {
         models::{
             customer::CustomerRow,
             payment::PaymentSystem,
-            payment_invoice::{InvoiceStatus, PaymentInvoiceRow},
+            payment_invoice::PaymentInvoiceRow,
             transaction::{TransactionRow, TransactionType},
         },
         services::{

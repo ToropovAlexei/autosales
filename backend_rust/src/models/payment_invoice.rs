@@ -2,27 +2,10 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use sqlx::prelude::FromRow;
-use ts_rs::TS;
 use utoipa::ToSchema;
 
 use crate::{define_list_query, models::payment::PaymentSystem};
-
-#[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS, ToSchema)]
-#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-#[ts(export, export_to = "invoice.ts")]
-pub enum InvoiceStatus {
-    Pending,
-    Processing,
-    AwaitingReceipt,
-    ReceiptSubmitted,
-    Disputed,
-    Completed,
-    Failed,
-    Expired,
-    Cancelled,
-    Refunded,
-}
+use shared_dtos::InvoiceStatus;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub enum PaymentDetails {

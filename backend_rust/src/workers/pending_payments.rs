@@ -1,5 +1,6 @@
 use chrono::Utc;
 use rust_decimal::prelude::ToPrimitive;
+use shared_dtos::InvoiceStatus;
 use std::{
     collections::{HashMap, HashSet},
     sync::Arc,
@@ -10,10 +11,7 @@ use crate::{
     infrastructure::external::payment::autosales_platform::{
         AutosalesPlatformPaymentsProviderTrait, dto::AutosalesPlatformOrderStatusType,
     },
-    models::{
-        customer::CustomerRow,
-        payment_invoice::{InvoiceStatus, PaymentInvoiceRow},
-    },
+    models::{customer::CustomerRow, payment_invoice::PaymentInvoiceRow},
     services::{
         customer::CustomerServiceTrait,
         notification_service::{DispatchMessage, DispatchMessageCommand, NotificationServiceTrait},

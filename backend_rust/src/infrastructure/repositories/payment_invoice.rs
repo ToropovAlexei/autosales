@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use shared_dtos::InvoiceStatus;
 use sqlx::{PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 
@@ -11,8 +12,7 @@ use crate::{
     models::{
         common::PaginatedResult,
         payment_invoice::{
-            InvoiceStatus, NewPaymentInvoice, PaymentInvoiceListQuery, PaymentInvoiceRow,
-            UpdatePaymentInvoice,
+            NewPaymentInvoice, PaymentInvoiceListQuery, PaymentInvoiceRow, UpdatePaymentInvoice,
         },
     },
 };

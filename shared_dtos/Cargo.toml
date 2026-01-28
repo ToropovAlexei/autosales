@@ -1,0 +1,22 @@
+[package]
+name = "shared_dtos"
+version = "0.1.0"
+edition = "2024"
+
+[features]
+default = []
+sqlx = ["dep:sqlx"]
+ts = ["dep:ts-rs"]
+openapi = ["dep:utoipa"]
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+sqlx = { version = "0.8.6", optional = true, default-features = false, features = [
+    "postgres",
+    "uuid",
+    "chrono",
+    "rust_decimal",
+    "macros",
+] }
+ts-rs = { version = "11", optional = true }
+utoipa = { version = "5", optional = true }

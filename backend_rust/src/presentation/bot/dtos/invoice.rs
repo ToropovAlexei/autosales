@@ -1,12 +1,13 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
+use shared_dtos::InvoiceStatus;
 use utoipa::ToSchema;
 use validator::Validate;
 
 use crate::models::{
     payment::PaymentSystem,
-    payment_invoice::{InvoiceStatus, PaymentDetails, PaymentInvoiceRow},
+    payment_invoice::{PaymentDetails, PaymentInvoiceRow},
 };
 
 #[derive(Debug, Clone, Serialize, ToSchema)]
