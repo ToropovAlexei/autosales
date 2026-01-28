@@ -14,9 +14,10 @@ pub fn payment_gateways_menu(
 ) -> InlineKeyboardMarkup {
     let mut buttons = Vec::new();
     // TODO Instructions must be in settings
-    if let Ok(url) = reqwest::Url::parse("https://telegra.ph/your-payment-instructions-here") {
-        buttons.push([InlineKeyboardButton::url("ℹ️ Как пополнить баланс?", url)]);
-    }
+    // TODO Temporary disabled
+    // if let Ok(url) = reqwest::Url::parse("https://telegra.ph/your-payment-instructions-here") {
+    //     buttons.push([InlineKeyboardButton::url("ℹ️ Как пополнить баланс?", url)]);
+    // }
 
     let mut gateways_with_bonuses: Vec<(PaymentSystem, String, f64)> = Vec::new();
 

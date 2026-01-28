@@ -29,22 +29,22 @@ async fn get_gateways(
     State(_state): State<Arc<AppState>>,
     _service: VerifiedService,
 ) -> ApiResult<Json<ListResponse<GatewayResponse>>> {
-    let mut items = vec![
+    let items = vec![
         GatewayResponse {
             name: PaymentSystem::PlatformCard,
-            display_name: "Платформа (карта)".to_string(),
+            display_name: "Платформа (Карта)".to_string(),
         },
-        GatewayResponse {
-            name: PaymentSystem::PlatformSBP,
-            display_name: "Платформа (СБП)".to_string(),
-        },
+        // GatewayResponse {
+        //     name: PaymentSystem::PlatformSBP,
+        //     display_name: "Платформа (СБП)".to_string(),
+        // },
     ];
 
-    #[cfg(feature = "mock-payments-provider")]
-    items.push(GatewayResponse {
-        name: PaymentSystem::Mock,
-        display_name: "Криптоплатежи (мок-провайдер)".to_string(),
-    });
+    // #[cfg(feature = "mock-payments-provider")]
+    // items.push(GatewayResponse {
+    //     name: PaymentSystem::Mock,
+    //     display_name: "Криптоплатежи (мок-провайдер)".to_string(),
+    // });
 
     Ok(Json(ListResponse {
         total: items.len() as i64,
