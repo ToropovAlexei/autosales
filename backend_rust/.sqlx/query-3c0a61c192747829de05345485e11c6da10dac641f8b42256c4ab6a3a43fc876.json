@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                sm.id,\n                sm.order_id,\n                sm.product_id,\n                sm.type as \"type: _\",\n                sm.quantity,\n                sm.created_by,\n                sm.description,\n                sm.reference_id,\n                sm.balance_after,\n                sm.created_at,\n                p.name AS product_name\n            FROM stock_movements sm\n            LEFT JOIN products p ON sm.product_id = p.id\n            WHERE sm.id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "order_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "product_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "type: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "quantity",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_by",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "reference_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "balance_after",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "product_name",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "3c0a61c192747829de05345485e11c6da10dac641f8b42256c4ab6a3a43fc876"
+}

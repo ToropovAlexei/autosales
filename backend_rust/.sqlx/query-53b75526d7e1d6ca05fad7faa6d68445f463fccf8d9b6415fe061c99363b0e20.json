@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            DELETE FROM user_permissions\n            WHERE user_id = $1 AND permission_id = ANY($2)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "53b75526d7e1d6ca05fad7faa6d68445f463fccf8d9b6415fe061c99363b0e20"
+}

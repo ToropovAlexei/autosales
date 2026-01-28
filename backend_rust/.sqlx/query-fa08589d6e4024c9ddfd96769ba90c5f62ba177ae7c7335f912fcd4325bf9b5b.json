@@ -1,0 +1,12 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM temporary_tokens WHERE expires_at <= NOW() AT TIME ZONE 'UTC'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": []
+  },
+  "hash": "fa08589d6e4024c9ddfd96769ba90c5f62ba177ae7c7335f912fcd4325bf9b5b"
+}

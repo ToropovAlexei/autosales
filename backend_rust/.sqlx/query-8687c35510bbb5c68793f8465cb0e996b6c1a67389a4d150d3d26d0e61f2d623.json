@@ -1,0 +1,55 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO user_permissions (user_id, permission_id, effect, created_by)\n                VALUES ($1, $2, $3, $4) \n                RETURNING user_id, permission_id, effect as \"effect: _\", created_at, updated_at, created_by",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "permission_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "effect: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_by",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "8687c35510bbb5c68793f8465cb0e996b6c1a67389a4d150d3d26d0e61f2d623"
+}

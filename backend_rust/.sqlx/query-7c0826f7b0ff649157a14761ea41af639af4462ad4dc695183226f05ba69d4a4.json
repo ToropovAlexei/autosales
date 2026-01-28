@@ -1,0 +1,106 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT \n                id, customer_id, original_amount, amount, status as \"status: _\", created_at, updated_at,\n                expires_at, deleted_at, gateway as \"gateway: _\", gateway_invoice_id, order_id, payment_details,\n                bot_message_id, notification_sent_at\n            FROM payment_invoices WHERE customer_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "customer_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "original_amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "status: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "gateway: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "gateway_invoice_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "order_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 12,
+        "name": "payment_details",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 13,
+        "name": "bot_message_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "notification_sent_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "7c0826f7b0ff649157a14761ea41af639af4462ad4dc695183226f05ba69d4a4"
+}

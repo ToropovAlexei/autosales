@@ -1,0 +1,98 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                id, customer_id, order_id, type as \"type: _\", amount, store_balance_delta,\n                platform_commission, gateway_commission, description, payment_gateway as \"payment_gateway: _\",\n                details, created_at, store_balance_after, user_balance_after\n            FROM transactions\n            ORDER BY id DESC\n            LIMIT 1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "customer_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "order_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "type: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "store_balance_delta",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "platform_commission",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 7,
+        "name": "gateway_commission",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 8,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "payment_gateway: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "details",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "store_balance_after",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 13,
+        "name": "user_balance_after",
+        "type_info": "Numeric"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true
+    ]
+  },
+  "hash": "db090a8e31ca497ad0a976eeaee3d69d7f7155b11d9f4b8fd69e536cc0656225"
+}

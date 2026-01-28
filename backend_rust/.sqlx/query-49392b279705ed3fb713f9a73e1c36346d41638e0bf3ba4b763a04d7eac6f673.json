@@ -1,0 +1,118 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT\n                id, name, base_price, category_id, image_id, type as \"type: _\",\n                subscription_period_days, details, fulfillment_text, fulfillment_image_id,\n                provider_name, external_id, created_by, created_at, updated_at, deleted_at,\n                stock\n            FROM products WHERE id = $1 AND deleted_at IS NULL",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "base_price",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "category_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "image_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 5,
+        "name": "type: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "subscription_period_days",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 7,
+        "name": "details",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "fulfillment_text",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "fulfillment_image_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 10,
+        "name": "provider_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "external_id",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_by",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "deleted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "stock",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "49392b279705ed3fb713f9a73e1c36346d41638e0bf3ba4b763a04d7eac6f673"
+}

@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE user_permissions SET effect = COALESCE($1, effect) WHERE user_id = $2 AND permission_id = $3\n             RETURNING user_id, permission_id, effect as \"effect: _\", created_at, updated_at, created_by",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "permission_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "effect: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 4,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 5,
+        "name": "created_by",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "99370111769d78b7628b4de0b5bc18fdac64af5ea6d2759cbe0bfb84017d81b8"
+}

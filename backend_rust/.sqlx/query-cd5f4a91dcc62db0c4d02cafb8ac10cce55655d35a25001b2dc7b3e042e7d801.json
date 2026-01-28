@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE bots SET is_primary = false WHERE owner_id IS NOT DISTINCT FROM $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cd5f4a91dcc62db0c4d02cafb8ac10cce55655d35a25001b2dc7b3e042e7d801"
+}

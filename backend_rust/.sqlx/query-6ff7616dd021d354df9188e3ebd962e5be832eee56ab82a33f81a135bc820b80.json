@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM order_items WHERE order_id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "order_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "product_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "name_at_purchase",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "price_at_purchase",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "quantity",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 6,
+        "name": "fulfillment_type",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "fulfillment_content",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "fulfillment_image_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 9,
+        "name": "details",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "6ff7616dd021d354df9188e3ebd962e5be832eee56ab82a33f81a135bc820b80"
+}

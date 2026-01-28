@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE temporary_tokens\n            SET used_at = NOW() AT TIME ZONE 'UTC'\n            WHERE token = $1\n              AND used_at IS NULL\n              AND expires_at > NOW() AT TIME ZONE 'UTC'\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "67bdc03cf147701767ea585b504340b78877293715e20487edb61875d035091b"
+}

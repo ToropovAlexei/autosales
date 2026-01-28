@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO user_roles (user_id, role_id, created_by)\n            SELECT $1, p.id, $2\n            FROM unnest($3::BIGINT[]) AS p(id)\n            ON CONFLICT (user_id, role_id) DO NOTHING\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a6698d8c10bd08f92ddf104c972c95bfe6d231950a1a93fad69de2063b9fdacc"
+}

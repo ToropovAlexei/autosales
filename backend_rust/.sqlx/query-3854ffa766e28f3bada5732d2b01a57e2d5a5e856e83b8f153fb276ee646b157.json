@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n                    INSERT INTO user_permissions (user_id, permission_id, effect, created_by)\n                    SELECT $1, p.id, p.effect, $2\n                    FROM unnest($3::BIGINT[], $4::TEXT[]) AS p(id, effect)\n                    ON CONFLICT (user_id, permission_id) \n                    DO UPDATE SET \n                        effect = EXCLUDED.effect\n                ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8Array",
+        "TextArray"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3854ffa766e28f3bada5732d2b01a57e2d5a5e856e83b8f153fb276ee646b157"
+}

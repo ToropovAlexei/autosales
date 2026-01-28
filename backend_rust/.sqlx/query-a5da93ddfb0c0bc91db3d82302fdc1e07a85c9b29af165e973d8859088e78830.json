@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE payment_invoices SET notification_sent_at = NOW() WHERE id = ANY($1)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "a5da93ddfb0c0bc91db3d82302fdc1e07a85c9b29af165e973d8859088e78830"
+}

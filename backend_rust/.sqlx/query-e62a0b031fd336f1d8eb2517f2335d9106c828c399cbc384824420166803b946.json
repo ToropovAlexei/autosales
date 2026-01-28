@@ -1,0 +1,84 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO customers (telegram_id, registered_with_bot, last_seen_with_bot)\n            VALUES ($1, $2, $3)\n            RETURNING *\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "telegram_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "balance",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "is_blocked",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "bot_is_blocked_by_user",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 5,
+        "name": "has_passed_captcha",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 6,
+        "name": "registered_with_bot",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "last_seen_with_bot",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "last_seen_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Int8",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "e62a0b031fd336f1d8eb2517f2335d9106c828c399cbc384824420166803b946"
+}

@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n    SELECT \n        NOT EXISTS (\n            SELECT 1 FROM user_permissions up\n            JOIN permissions p ON up.permission_id = p.id\n            WHERE up.user_id = $1 AND p.name = $2 AND up.effect = 'deny'\n        )\n        AND (\n            EXISTS (\n                SELECT 1 FROM user_permissions up\n                JOIN permissions p ON up.permission_id = p.id\n                WHERE up.user_id = $1 AND p.name = $2 AND up.effect = 'allow'\n            )\n            OR EXISTS (\n                SELECT 1 FROM user_roles ur\n                JOIN role_permissions rp ON ur.role_id = rp.role_id\n                JOIN permissions p ON rp.permission_id = p.id\n                WHERE ur.user_id = $1 AND p.name = $2\n            )\n        )\n    ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "?column?",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "d9da64db09545e1248981432a1a0576f58a5540d5000eabbdc8f65540966f7c5"
+}
