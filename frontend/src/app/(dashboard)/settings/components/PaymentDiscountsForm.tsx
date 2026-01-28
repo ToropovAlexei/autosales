@@ -17,19 +17,20 @@ interface PaymentDiscountsFormProps {
   refetchSettings: () => void;
 }
 
+// TODO Temporary disabled
 const GATEWAYS: { name: keyof PricingSettings; display_name: string }[] = [
-  {
-    name: "pricing_gateway_bonus_mock_provider",
-    display_name: "Криптоплатежи (мок-провайдер)",
-  },
+  // {
+  //   name: "pricing_gateway_bonus_mock_provider",
+  //   display_name: "Криптоплатежи (мок-провайдер)",
+  // },
   {
     name: "pricing_gateway_bonus_platform_card",
-    display_name: "Платформа (карта)",
+    display_name: "Платформа (Карта)",
   },
-  {
-    name: "pricing_gateway_bonus_platform_sbp",
-    display_name: "Платформа (СБП)",
-  },
+  // {
+  //   name: "pricing_gateway_bonus_platform_sbp",
+  //   display_name: "Платформа (СБП)",
+  // },
 ];
 
 export const PaymentDiscountsForm = ({
