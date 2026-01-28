@@ -47,7 +47,7 @@ export const ProductsTable = ({
 }: ProductsTableProps) => {
   const [isStockHistoryModalOpen, setIsStockHistoryModalOpen] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(
-    null
+    null,
   );
 
   const getCategoryName = (categoryId: number) => {
@@ -55,7 +55,7 @@ export const ProductsTable = ({
     return categories.find((c) => c.id === categoryId)?.name || "N/A";
   };
 
-  const columns: GridColDef[] = [
+  const columns: GridColDef<Product>[] = [
     {
       field: "id",
       headerName: "Id",
@@ -90,11 +90,11 @@ export const ProductsTable = ({
       width: 200,
       sortable: false,
       valueGetter: (value, row) => {
-        return row.provider
-          ? `Внешний (${row.provider})`
+        return row.provider_name !== "internal"
+          ? `Внешний (${row.provider_name})`
           : row.type === "subscription"
-          ? `Подписка (${row.subscription_period_days} дн.)`
-          : "Товар";
+            ? `Подписка (${row.subscription_period_days} дн.)`
+            : "Товар";
       },
       flex: 1,
       type: "singleSelect",
@@ -140,7 +140,7 @@ export const ProductsTable = ({
             icon={<EditIcon />}
             label="Edit"
             onClick={() => onEdit(row)}
-            disabled={!!row.provider}
+            disabled={!!row.external_id}
           />,
           <GridActionsCellItem
             key="stockHistory"
