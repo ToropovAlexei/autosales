@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::{Decimal, prelude::FromPrimitive};
 use rust_decimal_macros::dec;
 use serde::Serialize;
-use shared_dtos::product::ProductType;
+use shared_dtos::product::{ProductDetails, ProductType};
 use uuid::Uuid;
 
 use crate::{
@@ -43,7 +43,7 @@ pub struct Product {
     pub image_id: Option<Uuid>,
     pub r#type: ProductType,
     pub subscription_period_days: i16,
-    pub details: Option<serde_json::Value>,
+    pub details: Option<ProductDetails>,
     pub deleted_at: Option<DateTime<Utc>>,
     pub fulfillment_text: Option<String>,
     pub fulfillment_image_id: Option<Uuid>,
@@ -62,7 +62,7 @@ pub struct CreateProductCommand {
     pub image_id: Option<Uuid>,
     pub r#type: ProductType,
     pub subscription_period_days: Option<i16>,
-    pub details: Option<serde_json::Value>,
+    pub details: Option<ProductDetails>,
     pub fulfillment_text: Option<String>,
     pub fulfillment_image_id: Option<Uuid>,
     pub provider_name: String,
@@ -81,7 +81,7 @@ pub struct UpdateProductCommand {
     pub image_id: Option<Option<Uuid>>,
     pub r#type: Option<ProductType>,
     pub subscription_period_days: Option<i16>,
-    pub details: Option<Option<serde_json::Value>>,
+    pub details: Option<Option<ProductDetails>>,
     pub fulfillment_text: Option<Option<String>>,
     pub fulfillment_image_id: Option<Option<Uuid>>,
     pub external_id: Option<Option<String>>,
@@ -191,7 +191,13 @@ impl ProductServiceTrait
             .create(NewProduct {
                 category_id: command.category_id,
                 created_by: command.created_by,
-                details: command.details,
+                details: command
+                    .details
+                    .map(serde_json::to_value)
+                    .transpose()
+                    .map_err(|e| {
+                        ApiError::BadRequest(format!("Failed to serialize details: {}", e))
+                    })?,
                 external_id: command.external_id,
                 fulfillment_image_id: command.fulfillment_image_id,
                 fulfillment_text: command.fulfillment_text,
@@ -275,7 +281,14 @@ impl ProductServiceTrait
                 command.id,
                 UpdateProduct {
                     category_id: command.category_id,
-                    details: command.details,
+                    details: command
+                        .details
+                        .map(|inner| {
+                            inner.map(serde_json::to_value).transpose().map_err(|e| {
+                                ApiError::BadRequest(format!("Failed to serialize details: {}", e))
+                            })
+                        })
+                        .transpose()?,
                     external_id: command.external_id,
                     fulfillment_image_id: command.fulfillment_image_id,
                     fulfillment_text: command.fulfillment_text,
@@ -475,7 +488,7 @@ fn from_product_row(res: ProductRow, settings: &Settings) -> Product {
         r#type: res.r#type,
         stock: res.stock,
         subscription_period_days: res.subscription_period_days,
-        details: res.details,
+        details: res.details.and_then(|f| serde_json::from_value(f).ok()),
         fulfillment_text: res.fulfillment_text,
         fulfillment_image_id: res.fulfillment_image_id,
         base_price: res.base_price,

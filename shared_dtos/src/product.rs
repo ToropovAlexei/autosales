@@ -23,7 +23,16 @@ pub struct ProductBotResponse {
     pub image_id: Option<Uuid>,
     pub r#type: ProductType,
     pub subscription_period_days: i16,
-    pub details: Option<serde_json::Value>,
+    pub details: Option<ProductDetails>,
     pub fulfillment_text: Option<String>,
     pub fulfillment_image_id: Option<Uuid>,
+}
+
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "product.ts"))]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ProductDetails {
+    ContMs { host: String, port: u16 },
 }

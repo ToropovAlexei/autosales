@@ -72,7 +72,7 @@ async fn create_product(
         .create(CreateProductCommand {
             category_id: payload.category_id,
             created_by: user.id,
-            details: payload.details,
+            details: None,
             external_id: None,
             fulfillment_image_id: payload.fulfillment_image_id,
             fulfillment_text: payload.fulfillment_text,
@@ -215,7 +215,7 @@ async fn update_product(
             UpdateProductCommand {
                 id,
                 category_id: payload.category_id,
-                details: payload.details,
+                details: None,
                 external_id: payload.external_id,
                 fulfillment_image_id: payload.fulfillment_image_id,
                 fulfillment_text: payload.fulfillment_text,

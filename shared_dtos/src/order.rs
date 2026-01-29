@@ -2,6 +2,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::{product::ProductDetails, user_subscription::UserSubscriptionDetails};
+
 #[cfg_attr(feature = "sqlx", derive(sqlx::Type))]
 #[cfg_attr(feature = "sqlx", sqlx(type_name = "TEXT", rename_all = "snake_case"))]
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -22,7 +24,7 @@ pub enum OrderStatus {
 pub struct PurchaseBotResponse {
     pub product_name: String,
     pub balance: f64,
-    pub details: Option<serde_json::Value>,
+    pub details: Option<PurchaseDetails>,
     pub fulfilled_text: Option<String>,
     pub fulfilled_image_id: Option<Uuid>,
     pub price: f64,
@@ -61,4 +63,12 @@ pub struct EnrichedOrderBotResponse {
     pub status: OrderStatus,
     pub created_at: DateTime<Utc>,
     pub order_items: Vec<OrderItemBotResponse>,
+}
+
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum PurchaseDetails {
+    ProductDetails(ProductDetails),
+    UserSubscriptionDetails(UserSubscriptionDetails),
 }

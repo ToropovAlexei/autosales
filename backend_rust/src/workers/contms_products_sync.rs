@@ -1,4 +1,5 @@
 use rust_decimal_macros::dec;
+use shared_dtos::product::ProductDetails;
 use shared_dtos::product::ProductType;
 use std::sync::Arc;
 #[cfg(feature = "contms-provider")]
@@ -162,7 +163,7 @@ pub async fn add_products_to_repo(
             .create(CreateProductCommand {
                 base_price: dec!(100), // TODO
                 category_id,
-                fulfillment_text: Some(format!("Host: {}\nPort: {}", product.host, product.port)),
+                fulfillment_text: None,
                 external_id: Some(product.name.clone()),
                 name: product.name.clone(),
                 r#type: ProductType::Subscription,
@@ -170,7 +171,10 @@ pub async fn add_products_to_repo(
                 provider_name: "contms".to_string(),
                 subscription_period_days: Some(30), // TODO 1 month?
                 fulfillment_image_id: None,
-                details: None,
+                details: Some(ProductDetails::ContMs {
+                    host: product.host.clone(),
+                    port: product.port,
+                }),
                 image_id: None,
                 created_by: 1, // System
                 ctx: None,

@@ -10,6 +10,7 @@ use shared_dtos::{
     invoice::PaymentInvoiceBotResponse,
     list_response::ListResponse,
     order::EnrichedOrderBotResponse,
+    user_subscription::UserSubscriptionBotResponse,
 };
 
 use crate::{
@@ -20,6 +21,7 @@ use crate::{
         customer::{CustomerServiceTrait, UpdateCustomerCommand},
         order::OrderServiceTrait,
         payment_invoice::PaymentInvoiceServiceTrait,
+        user_subscription::UserSubscriptionServiceTrait,
     },
     state::AppState,
 };
@@ -30,6 +32,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/{telegram_id}", get(get_customer).patch(update_customer))
         .route("/{telegram_id}/invoices", get(get_customer_invoices))
         .route("/{telegram_id}/orders", get(get_customer_orders))
+        .route(
+            "/{telegram_id}/subscriptions",
+            get(get_customer_subscriptions),
+        )
         .route(
             "/{telegram_id}/update-last-seen",
             post(update_customer_last_seen),
@@ -209,4 +215,37 @@ async fn update_customer_last_seen(
         .await?;
 
     Ok(Json(()))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/bot/customers/{telegram_id}/subscriptions",
+    tag = "Customers",
+    responses(
+        (status = 200, description = "Get customer subscriptions", body = ListResponse<UserSubscriptionBotResponse>),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
+async fn get_customer_subscriptions(
+    State(state): State<Arc<AppState>>,
+    Path(telegram_id): Path<i64>,
+    _bot: AuthBot,
+) -> ApiResult<Json<ListResponse<UserSubscriptionBotResponse>>> {
+    let customer_id = state
+        .customer_service
+        .get_by_telegram_id(telegram_id)
+        .await?;
+    let subscriptions = state
+        .user_subscription_service
+        .get_for_customer(customer_id.id)
+        .await?;
+
+    Ok(Json(ListResponse {
+        total: subscriptions.len() as i64,
+        items: subscriptions
+            .into_iter()
+            .map(UserSubscriptionBotResponse::from)
+            .collect(),
+    }))
 }

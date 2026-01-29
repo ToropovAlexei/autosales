@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
-use shared_dtos::product::ProductType;
+use shared_dtos::product::{ProductDetails, ProductType};
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
 use uuid::Uuid;
@@ -21,7 +21,7 @@ pub struct ProductResponse {
     pub image_id: Option<Uuid>,
     pub r#type: ProductType,
     pub subscription_period_days: i16,
-    pub details: Option<serde_json::Value>,
+    pub details: Option<ProductDetails>,
     pub deleted_at: Option<DateTime<Utc>>,
     pub fulfillment_text: Option<String>,
     pub fulfillment_image_id: Option<Uuid>,
@@ -160,7 +160,7 @@ mod tests {
             image_id: Some(Uuid::new_v4()),
             r#type: ProductType::Item,
             subscription_period_days: 30,
-            details: Some(json!({"color": "red"})),
+            details: None,
             deleted_at: None,
             fulfillment_text: Some("Here is your digital product".to_string()),
             fulfillment_image_id: Some(Uuid::new_v4()),
@@ -186,7 +186,7 @@ mod tests {
         assert!(response.image_id.is_some());
         assert_eq!(response.r#type, ProductType::Item);
         assert_eq!(response.subscription_period_days, 30);
-        assert_eq!(response.details, Some(json!({"color": "red"})));
+        assert_eq!(response.details, None);
         assert_eq!(response.deleted_at, None);
         assert_eq!(
             response.fulfillment_text,

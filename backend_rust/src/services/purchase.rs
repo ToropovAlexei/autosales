@@ -5,8 +5,11 @@ use chrono::{DateTime, Duration, Utc};
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use rust_decimal_macros::dec;
 use serde::Deserialize;
-use serde_json::json;
-use shared_dtos::{order::OrderStatus, product::ProductType};
+use shared_dtos::{
+    order::{OrderStatus, PurchaseDetails},
+    product::{ProductDetails, ProductType},
+    user_subscription::UserSubscriptionDetails,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -61,7 +64,7 @@ pub struct PurchaseProductCommand {
 pub struct PurchaseResult {
     pub product_name: String,
     pub balance: f64,
-    pub details: Option<serde_json::Value>,
+    pub details: Option<PurchaseDetails>,
     pub fulfilled_text: Option<String>,
     pub fulfilled_image_id: Option<Uuid>,
     pub price: f64,
@@ -128,7 +131,11 @@ impl PurchaseServiceTrait
     async fn purchase_product(&self, command: PurchaseProductCommand) -> ApiResult<PurchaseResult> {
         // TODO Refactor this function
         let product = self.product_service.get_by_id(command.product_id).await?;
-        if product.stock < command.amount as i32 {
+        // We should check if there is enough stock only for internal products
+        if product.stock < command.amount as i32
+            && product.r#type != ProductType::Subscription
+            && product.external_id.is_none()
+        {
             return Err(ApiError::BadRequest("Not enough stock".to_string()));
         }
         let customer = self
@@ -136,7 +143,7 @@ impl PurchaseServiceTrait
             .get_by_telegram_id(command.telegram_id)
             .await?;
         let is_subscription = product.r#type == ProductType::Subscription;
-        let amount = if is_subscription { 0 } else { command.amount };
+        let amount = if is_subscription { 1 } else { command.amount };
         let total_price = product.price * Decimal::from(amount);
         if customer.balance < total_price {
             return Err(ApiError::BadRequest("Not enough balance".to_string()));
@@ -157,7 +164,14 @@ impl PurchaseServiceTrait
             .create(NewOrderItem {
                 order_id: order.id,
                 product_id: product.id,
-                details: product.details.clone(),
+                details: product
+                    .details
+                    .clone()
+                    .map(serde_json::to_value)
+                    .transpose()
+                    .map_err(|e| {
+                        ApiError::InternalServerError(format!("Failed to serialize details: {}", e))
+                    })?,
                 name_at_purchase: product.name.clone(),
                 price_at_purchase: product.price,
                 fulfillment_content: product.fulfillment_text.clone(),
@@ -193,31 +207,48 @@ impl PurchaseServiceTrait
                 )
                 .await
                 .map_err(ApiError::InternalServerError)?;
-            // TODO Ensure secs or millis
-            let expiration_date = DateTime::from_timestamp_secs(proxy.expires).ok_or(
+            let expiration_date = DateTime::from_timestamp_millis(proxy.expires).ok_or(
                 ApiError::InternalServerError("Failed to parse proxy expires".to_string()),
             )?;
-            let subscription = self
-                    .user_subscription_service
-                    .create(NewUserSubscription {
-                        customer_id: customer.id,
-                        details: Some(json!({ "username": proxy.name, "password": proxy.pass, "details": product.details })),
-                        expires_at: expiration_date,
-                        next_charge_at: Some(expiration_date),
-                        order_id: order.id,
-                        period_days: product.subscription_period_days,
-                        price_at_subscription: product.price,
-                        product_id: Some(product.id),
-                        started_at: Utc::now(),
-                    })
-                    .await?;
+            let (host, port) = match product.details {
+                Some(value) => match value {
+                    ProductDetails::ContMs { host, port } => (host, port),
+                },
+                None => {
+                    return Err(ApiError::BadRequest("Invalid product details".to_string()));
+                }
+            };
+            let subscription_details = UserSubscriptionDetails::ContMs {
+                host,
+                port,
+                username: proxy.name,
+                password: proxy.pass,
+            };
+            self.user_subscription_service
+                .create(NewUserSubscription {
+                    customer_id: customer.id,
+                    details: Some(serde_json::to_value(subscription_details.clone()).map_err(
+                        |e| ApiError::BadRequest(format!("Failed to serialize details: {}", e)),
+                    )?),
+                    expires_at: expiration_date,
+                    next_charge_at: Some(expiration_date),
+                    order_id: order.id,
+                    period_days: product.subscription_period_days,
+                    price_at_subscription: product.price,
+                    product_id: Some(product.id),
+                    started_at: Utc::now(),
+                })
+                .await?;
+
             return Ok(PurchaseResult {
                 balance: transaction
                     .user_balance_after
                     .unwrap_or_default()
                     .to_f64()
                     .unwrap_or_default(),
-                details: subscription.details,
+                details: Some(PurchaseDetails::UserSubscriptionDetails(
+                    subscription_details,
+                )),
                 fulfilled_image_id: product.fulfillment_image_id,
                 fulfilled_text: product.fulfillment_text,
                 product_name: product.name,
@@ -231,7 +262,7 @@ impl PurchaseServiceTrait
                 .unwrap_or_default()
                 .to_f64()
                 .unwrap_or_default(),
-            details: product.details,
+            details: product.details.map(PurchaseDetails::ProductDetails),
             fulfilled_image_id: product.fulfillment_image_id,
             fulfilled_text: product.fulfillment_text,
             product_name: product.name,

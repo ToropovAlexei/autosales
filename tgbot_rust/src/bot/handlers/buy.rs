@@ -1,7 +1,14 @@
 use std::sync::Arc;
 
+use shared_dtos::order::PurchaseDetails;
+use shared_dtos::product::ProductDetails;
+use shared_dtos::user_subscription::UserSubscriptionDetails;
 use teloxide::dispatching::dialogue::GetChatId;
-use teloxide::{Bot, types::CallbackQuery};
+use teloxide::{
+    Bot,
+    types::CallbackQuery,
+    utils::html::{bold, code_block},
+};
 
 use crate::api::api_errors::ApiClientError;
 use crate::bot::MyDialogue;
@@ -27,19 +34,51 @@ pub async fn buy_handler(
 
     let (msg, img) = match buy_result {
         Ok(response) => {
+            let price = format!("{:.2}", response.price);
+            let balance = format!("{:.2}", response.balance);
             let mut success_message = format!(
-                "✅ Поздравляем! Вы успешно купили товар <b>{}</b> за <b>{} ₽</b>.\n\n💳 Ваш новый баланс: <b>{} ₽</b>",
-                response.product_name, response.price, response.balance
+                "{}\n\n{} {}\n{} {} ₽\n{} {} ₽",
+                bold("✅ Покупка успешна"),
+                bold("Товар:"),
+                response.product_name,
+                bold("Цена:"),
+                price,
+                bold("Баланс:"),
+                balance,
             );
 
             if let Some(fulfilled_content) = response.fulfilled_text {
                 success_message.push_str(&format!(
-                    "\n\n<b>Ваш товар:</b>\n<pre>{}</pre>",
-                    fulfilled_content
+                    "\n\n{}{}\n{}",
+                    bold("📦 Ваш товар"),
+                    ":",
+                    code_block(&fulfilled_content)
                 ));
             }
             if let Some(details) = response.details {
-                success_message.push_str(&format!("\n\n<b>Подробности:</b>\n{}", details));
+                match details {
+                    PurchaseDetails::ProductDetails(details) => match details {
+                        ProductDetails::ContMs { host: _, port: _ } => {}
+                    },
+                    PurchaseDetails::UserSubscriptionDetails(details) => match details {
+                        UserSubscriptionDetails::ContMs {
+                            host,
+                            port,
+                            username,
+                            password,
+                        } => {
+                            let address = format!("{}:{}", host, port);
+                            let access =
+                                format!("{}\nlogin: {}\npassword: {}", address, username, password);
+                            success_message.push_str(&format!(
+                                "\n\n{}{}\n{}",
+                                bold("🔐 Доступ"),
+                                ":",
+                                code_block(&access)
+                            ));
+                        }
+                    },
+                }
             }
             (
                 success_message,
@@ -49,12 +88,12 @@ pub async fn buy_handler(
         Err(e) => {
             let msg = match e {
                 ApiClientError::Unsuccessful(msg) => {
-                    if msg.contains("Insufficient Balance") {
+                    if msg.contains("Not enough balance") {
                         "😔 Недостаточно средств на балансе для совершения покупки. Пожалуйста, пополните баланс.".to_string()
-                    } else if msg.contains("Product out of stock") {
+                    } else if msg.contains("Not enough stock") {
                         "😔 К сожалению, этот товар закончился.".to_string()
                     } else {
-                        format!("Произошла непредвиденная ошибка: {msg}")
+                        "Произошла непредвиденная ошибка. Попробуйте позже".to_string()
                     }
                 }
                 _ => "Произошла непредвиденная ошибка. Попробуйте позже.".to_string(),

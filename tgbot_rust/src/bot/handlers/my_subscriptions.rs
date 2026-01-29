@@ -1,19 +1,20 @@
+use crate::bot::utils::{MsgBy, edit_msg};
 use crate::{
     api::backend_api::BackendApi, bot::MyDialogue,
     bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard, errors::AppResult,
 };
+use shared_dtos::user_subscription::UserSubscriptionDetails;
 use std::sync::Arc;
-use teloxide::payloads::EditMessageTextSetters;
 use teloxide::{
     dispatching::dialogue::GetChatId,
-    prelude::{Bot, Request, Requester},
-    types::{CallbackQuery, MaybeInaccessibleMessage, ParseMode},
+    prelude::Bot,
+    types::CallbackQuery,
     utils::html::{bold, code_block, italic},
 };
 
 pub async fn my_subscriptions_handler(
     bot: Bot,
-    _dialogue: MyDialogue,
+    dialogue: MyDialogue,
     q: CallbackQuery,
     api_client: Arc<BackendApi>,
 ) -> AppResult<()> {
@@ -21,72 +22,87 @@ pub async fn my_subscriptions_handler(
         Some(chat_id) => chat_id,
         None => return Ok(()),
     };
-    let message_id = match &q.message {
-        Some(MaybeInaccessibleMessage::Regular(msg)) => msg.id,
-        Some(MaybeInaccessibleMessage::Inaccessible(_)) => return Ok(()),
-        None => return Ok(()),
-    };
 
-    match api_client.get_user_subscriptions(chat_id.0).await {
+    let msg = match api_client.get_user_subscriptions(chat_id.0).await {
         Ok(subscriptions) => {
             if subscriptions.items.is_empty() {
-                bot.edit_message_text(chat_id, message_id, "У вас пока нет активных подписок.")
-                    .reply_markup(back_to_main_menu_inline_keyboard())
-                    .send()
-                    .await?;
-                return Ok(());
-            }
+                "У вас пока нет активных подписок.".to_string()
+            } else {
+                let mut response_text = format!("{}\n\n", bold("🧾 Ваши подписки:"));
 
-            let mut response_text = format!("{}\n\n", bold("🧾 Ваши подписки:"));
+                for sub in subscriptions.items {
+                    let product_name = sub
+                        .product_name
+                        .unwrap_or_else(|| format!("Подписка #{}", sub.id));
+                    let started = sub.started_at.format("%d.%m.%Y %H:%M").to_string();
+                    let expires = sub.expires_at.format("%d.%m.%Y %H:%M").to_string();
+                    let next_charge = sub
+                        .next_charge_at
+                        .map(|v| v.format("%d.%m.%Y %H:%M").to_string());
 
-            for sub in subscriptions.items {
-                let product_name = sub.product_name;
-                let expires_formatted = sub.expires_at.format("%d.%m.%Y %H:%M").to_string();
-                let status = if sub.expires_at > chrono::Utc::now() {
-                    "✅ Активна до"
-                } else {
-                    "❌ Неактивна"
-                };
+                    let status = if sub.cancelled_at.is_some() {
+                        "🚫 Отменена"
+                    } else if sub.expires_at > chrono::Utc::now() {
+                        "✅ Активна"
+                    } else {
+                        "⏳ Истекла"
+                    };
 
-                response_text.push_str(&format!("🔹 {}\n", bold(&product_name)));
-                response_text.push_str(&format!("   {} {}\n", status, italic(&expires_formatted)));
-
-                if let Some(details) = sub.details
-                    && let Some(details_map) = details.as_object()
-                {
-                    response_text.push_str(&format!("   {}\n", bold("Данные для доступа:")));
-                    if let Some(username) = details_map.get("username").and_then(|v| v.as_str()) {
-                        response_text
-                            .push_str(&format!("     - Логин: {}\n", code_block(username)));
+                    response_text.push_str(&format!("🔹 {}\n", bold(&product_name)));
+                    response_text.push_str(&format!("   {} до {}\n", status, italic(&expires)));
+                    response_text.push_str(&format!("   Старт: {}\n", italic(&started)));
+                    response_text.push_str(&format!(
+                        "   Период: {} дней • Цена: {:.2}\n",
+                        sub.period_days, sub.price_at_subscription
+                    ));
+                    if let Some(next_charge) = next_charge {
+                        response_text.push_str(&format!(
+                            "   Следующее списание: {}\n",
+                            italic(&next_charge)
+                        ));
                     }
-                    if let Some(password) = details_map.get("password").and_then(|v| v.as_str()) {
-                        response_text
-                            .push_str(&format!("     - Пароль: {}\n", code_block(password)));
+
+                    if let Some(details) = sub.details {
+                        match details {
+                            UserSubscriptionDetails::ContMs {
+                                host,
+                                port,
+                                username,
+                                password,
+                            } => {
+                                response_text.push_str(&format!("   {}\n", bold("🔐 Доступ:")));
+                                let address = format!("{}:{}", host, port);
+                                let access = format!(
+                                    "{}\nlogin: {}\npassword: {}",
+                                    address, username, password
+                                );
+                                response_text.push_str(&format!("{}\n", code_block(&access)));
+                            }
+                        }
                     }
+
+                    response_text.push('\n');
                 }
 
-                response_text.push('\n');
+                response_text
             }
-
-            bot.edit_message_text(chat_id, message_id, response_text)
-                .parse_mode(ParseMode::Html)
-                .reply_markup(back_to_main_menu_inline_keyboard())
-                .send()
-                .await?;
         }
         Err(err) => {
             tracing::error!("Error getting user subscriptions: {err}");
-            bot.edit_message_text(
-                chat_id,
-                message_id,
-                "Произошла ошибка при получении подписок. Попробуйте позже.",
-            )
-            .parse_mode(ParseMode::Html)
-            .reply_markup(back_to_main_menu_inline_keyboard())
-            .send()
-            .await?;
+            "Произошла ошибка при получении подписок. Попробуйте позже.".to_string()
         }
-    }
+    };
+
+    edit_msg(
+        &api_client,
+        &dialogue,
+        &bot,
+        &MsgBy::CallbackQuery(&q),
+        &msg,
+        None,
+        back_to_main_menu_inline_keyboard(),
+    )
+    .await?;
 
     Ok(())
 }
