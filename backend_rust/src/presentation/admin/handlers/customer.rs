@@ -1,4 +1,5 @@
 use axum::routing::patch;
+use shared_dtos::list_response::ListResponse;
 use std::sync::Arc;
 
 use axum::{
@@ -15,10 +16,7 @@ use crate::{
         validator::ValidatedJson,
     },
     models::customer::CustomerListQuery,
-    presentation::admin::dtos::{
-        customer::{CustomerResponse, UpdateCustomerRequest},
-        list_response::ListResponse,
-    },
+    presentation::admin::dtos::customer::{CustomerResponse, UpdateCustomerRequest},
     services::{
         auth::AuthUser,
         customer::{CustomerServiceTrait, UpdateCustomerCommand},

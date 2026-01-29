@@ -2,6 +2,7 @@ use axum::http::StatusCode;
 use axum_extra::extract::Multipart;
 use bytes::Bytes;
 use rust_decimal::{Decimal, prelude::FromPrimitive};
+use shared_dtos::list_response::ListResponse;
 use std::sync::Arc;
 
 use axum::{
@@ -20,12 +21,9 @@ use crate::{
         validator::ValidatedJson,
     },
     models::product::ProductListQuery,
-    presentation::admin::dtos::{
-        list_response::ListResponse,
-        product::{
-            NewProductRequest, ProductResponse, ProductsUploadResponse, UpdateProductRequest,
-            UploadedProductCSV,
-        },
+    presentation::admin::dtos::product::{
+        NewProductRequest, ProductResponse, ProductsUploadResponse, UpdateProductRequest,
+        UploadedProductCSV,
     },
     services::{
         auth::AuthUser,

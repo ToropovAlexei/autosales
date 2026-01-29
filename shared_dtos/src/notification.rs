@@ -1,5 +1,3 @@
-pub mod customer;
-
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -23,10 +21,4 @@ pub struct DispatchMessagePayload {
     pub bot_id: i64,
     pub telegram_id: i64,
     pub message: DispatchMessage,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ListResponse<T> {
-    pub items: Vec<T>,
-    pub total: i64,
 }

@@ -2,6 +2,7 @@ use axum::{
     http::StatusCode,
     routing::{get, patch},
 };
+use shared_dtos::list_response::ListResponse;
 use std::sync::Arc;
 
 use axum::{
@@ -21,7 +22,6 @@ use crate::{
         role_permission::UpdateRolePermissions,
     },
     presentation::admin::dtos::{
-        list_response::ListResponse,
         permission::PermissionResponse,
         role::{NewRoleRequest, RoleResponse, UpdateRoleRequest},
         role_permission::UpdateRolePermissionsRequest,

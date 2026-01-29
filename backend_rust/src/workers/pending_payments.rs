@@ -1,6 +1,9 @@
 use chrono::Utc;
 use rust_decimal::prelude::ToPrimitive;
-use shared_dtos::invoice::InvoiceStatus;
+use shared_dtos::{
+    invoice::InvoiceStatus,
+    notification::{DispatchMessage, DispatchMessagePayload},
+};
 use std::{
     collections::{HashMap, HashSet},
     sync::Arc,
@@ -14,7 +17,7 @@ use crate::{
     models::{customer::CustomerRow, payment_invoice::PaymentInvoiceRow},
     services::{
         customer::CustomerServiceTrait,
-        notification_service::{DispatchMessage, DispatchMessageCommand, NotificationServiceTrait},
+        notification_service::NotificationServiceTrait,
         payment_invoice::{PaymentInvoiceServiceTrait, UpdatePaymentInvoiceCommand},
         payment_processing_service::PaymentProcessingServiceTrait,
     },
@@ -201,7 +204,7 @@ async fn notify_pending_payments(
         };
         match app_state
             .notification_service
-            .dispatch_message(DispatchMessageCommand {
+            .dispatch_message(DispatchMessagePayload {
                 message: DispatchMessage::InvoiceTroublesNotification {
                     invoice_id: invoice.id,
                     amount: invoice.original_amount.to_f64().unwrap_or_default(),
@@ -266,7 +269,7 @@ async fn request_receipts(
         };
         match app_state
             .notification_service
-            .dispatch_message(DispatchMessageCommand {
+            .dispatch_message(DispatchMessagePayload {
                 message: DispatchMessage::RequestReceiptNotification {
                     invoice_id: invoice.id,
                 },
@@ -328,7 +331,7 @@ async fn notify_contact_with_support(
         };
         match app_state
             .notification_service
-            .dispatch_message(DispatchMessageCommand {
+            .dispatch_message(DispatchMessagePayload {
                 message: DispatchMessage::GenericMessage {
                     // TODO replace @operator_contact_placeholder
                     message: "Мы не смогли увидеть Ваш платеж. Пожалуйста свяжитесь с оператором: @operator_contact_placeholder".to_string(),

@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
+use shared_dtos::list_response::ListResponse;
 
 use crate::{
     errors::api::ApiResult,
     middlewares::require_permission::{AuditLogRead, RequirePermission},
     models::audit_log::AuditLogListQuery,
-    presentation::admin::dtos::{audit_log::AuditLogResponse, list_response::ListResponse},
+    presentation::admin::dtos::audit_log::AuditLogResponse,
     services::{audit_log::AuditLogServiceTrait, auth::AuthUser},
     state::AppState,
 };

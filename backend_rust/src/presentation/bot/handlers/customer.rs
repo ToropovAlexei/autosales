@@ -8,6 +8,7 @@ use axum::{
 use shared_dtos::{
     customer::{CustomerBotResponse, NewCustomerBotRequest, UpdateCustomerBotRequest},
     invoice::PaymentInvoiceBotResponse,
+    list_response::ListResponse,
     order::EnrichedOrderBotResponse,
 };
 
@@ -15,7 +16,6 @@ use crate::{
     errors::api::ApiResult,
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson},
     models::customer::NewCustomer,
-    presentation::admin::dtos::list_response::ListResponse,
     services::{
         customer::{CustomerServiceTrait, UpdateCustomerCommand},
         order::OrderServiceTrait,

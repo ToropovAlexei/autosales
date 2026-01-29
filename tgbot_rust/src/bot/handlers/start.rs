@@ -4,8 +4,8 @@ use crate::bot::keyboards::captcha::captcha_keyboard_inline;
 use crate::bot::keyboards::main_menu::main_menu_inline_keyboard;
 use crate::bot::utils::{MessageImage, MsgBy, edit_msg};
 use crate::bot::{BotState, BotStep, generate_captcha_and_options};
-use crate::models::customer::UpdateCustomerRequest;
 use crate::{api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult};
+use shared_dtos::customer::UpdateCustomerBotRequest;
 use teloxide::Bot;
 use teloxide::types::{InlineKeyboardMarkup, Message};
 
@@ -54,7 +54,7 @@ pub async fn start_handler(
         api_client
             .update_customer(
                 user.telegram_id,
-                &UpdateCustomerRequest {
+                &UpdateCustomerBotRequest {
                     bot_is_blocked_by_user: Some(false),
                     ..Default::default()
                 },

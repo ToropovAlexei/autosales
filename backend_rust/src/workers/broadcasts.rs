@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use serde_json::json;
+use shared_dtos::notification::{DispatchMessage, DispatchMessagePayload};
 use tokio::time::{Duration, interval};
 
 use crate::{
@@ -10,7 +11,7 @@ use crate::{
     services::{
         broadcast::{BroadcastServiceTrait, UpdateBroadcastCommand},
         customer::CustomerServiceTrait,
-        notification_service::{DispatchMessage, DispatchMessageCommand, NotificationServiceTrait},
+        notification_service::NotificationServiceTrait,
     },
     state::AppState,
 };
@@ -99,7 +100,7 @@ pub async fn broadcasts_task(app_state: Arc<AppState>) {
             for customer in customers.items {
                 match app_state
                     .notification_service
-                    .dispatch_message(DispatchMessageCommand {
+                    .dispatch_message(DispatchMessagePayload {
                         // TODO Last seen with bot may be old if we created new bot
                         bot_id: customer.last_seen_with_bot,
                         telegram_id: customer.telegram_id,

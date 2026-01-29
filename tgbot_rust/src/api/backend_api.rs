@@ -6,8 +6,9 @@ use shared_dtos::{
     bot::BotBotResponse,
     captcha::CaptchaBotResponse,
     category::CategoryBotResponse,
-    customer::CustomerBotResponse,
+    customer::{CustomerBotResponse, UpdateCustomerBotRequest},
     invoice::{GatewayBotResponse, PaymentInvoiceBotResponse, PaymentSystem},
+    list_response::ListResponse,
     order::{EnrichedOrderBotResponse, PurchaseBotResponse},
     product::ProductBotResponse,
     settings::SettingsBotResponse,
@@ -15,10 +16,7 @@ use shared_dtos::{
 };
 use uuid::Uuid;
 
-use crate::{
-    api::{api_client::ApiClient, api_errors::ApiClientResult},
-    models::{ListResponse, customer::UpdateCustomerRequest},
-};
+use crate::api::{api_client::ApiClient, api_errors::ApiClientResult};
 
 pub struct BackendApi {
     api_client: ApiClient,
@@ -297,7 +295,7 @@ impl BackendApi {
     pub async fn update_customer(
         &self,
         telegram_id: i64,
-        update: &UpdateCustomerRequest,
+        update: &UpdateCustomerBotRequest,
     ) -> ApiClientResult<CustomerBotResponse> {
         self.api_client
             .patch_with_body::<CustomerBotResponse, _>(

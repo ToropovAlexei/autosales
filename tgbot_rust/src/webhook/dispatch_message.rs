@@ -1,13 +1,12 @@
 use axum::{Json, extract::State, http::HeaderMap, response::IntoResponse};
 use deadpool_redis::redis::AsyncCommands;
+use shared_dtos::notification::DispatchMessagePayload;
 
 use crate::{
     AppState,
     errors::{AppError, AppResult},
-    models::DispatchMessagePayload,
 };
 
-#[axum::debug_handler]
 pub async fn dispatch_message(
     State(state): State<AppState>,
     headers: HeaderMap,

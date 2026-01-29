@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
+use shared_dtos::list_response::ListResponse;
 
 use crate::{
-    errors::api::ApiResult,
-    middlewares::bot_auth::AuthBot,
-    presentation::admin::dtos::{category::CategoryResponse, list_response::ListResponse},
-    services::category::CategoryServiceTrait,
-    state::AppState,
+    errors::api::ApiResult, middlewares::bot_auth::AuthBot,
+    presentation::admin::dtos::category::CategoryResponse,
+    services::category::CategoryServiceTrait, state::AppState,
 };
 
 pub fn router() -> Router<Arc<AppState>> {

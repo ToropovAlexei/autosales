@@ -1,4 +1,5 @@
 use axum::http::StatusCode;
+use shared_dtos::list_response::ListResponse;
 use std::sync::Arc;
 
 use axum::{
@@ -16,9 +17,8 @@ use crate::{
         },
         validator::ValidatedJson,
     },
-    presentation::admin::dtos::{
-        category::{CategoryResponse, NewCategoryRequest, UpdateCategoryRequest},
-        list_response::ListResponse,
+    presentation::admin::dtos::category::{
+        CategoryResponse, NewCategoryRequest, UpdateCategoryRequest,
     },
     services::{
         auth::AuthUser,

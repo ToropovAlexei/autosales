@@ -5,13 +5,15 @@ use axum::{
     extract::{Path, State},
     routing::{get, patch, post},
 };
-use shared_dtos::bot::{BotBotResponse, NewBotBotRequest, UpdateBotBotRequest};
+use shared_dtos::{
+    bot::{BotBotResponse, NewBotBotRequest, UpdateBotBotRequest},
+    list_response::ListResponse,
+};
 
 use crate::{
     errors::api::ApiResult,
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson, verified_service::VerifiedService},
     models::bot::{BotListQuery, BotType},
-    presentation::admin::dtos::list_response::ListResponse,
     services::bot::{BotServiceTrait, CreateBotCommand, UpdateBotCommand},
     state::AppState,
 };

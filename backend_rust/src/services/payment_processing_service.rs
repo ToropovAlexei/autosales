@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use shared_dtos::invoice::InvoiceStatus;
+use shared_dtos::{
+    invoice::InvoiceStatus,
+    notification::{DispatchMessage, DispatchMessagePayload},
+};
 use uuid::Uuid;
 
 use crate::{
@@ -9,7 +12,7 @@ use crate::{
     models::transaction::{NewTransaction, TransactionType},
     services::{
         customer::CustomerServiceTrait,
-        notification_service::{DispatchMessage, DispatchMessageCommand, NotificationServiceTrait},
+        notification_service::NotificationServiceTrait,
         payment_invoice::{PaymentInvoiceServiceTrait, UpdatePaymentInvoiceCommand},
         transaction::TransactionServiceTrait,
     },
@@ -97,7 +100,7 @@ where
             })
             .await?;
         self.notification_service
-            .dispatch_message(DispatchMessageCommand {
+            .dispatch_message(DispatchMessagePayload {
                 bot_id: customer.last_seen_with_bot,
                 message: DispatchMessage::GenericMessage {
                     image_id: None,
@@ -133,7 +136,6 @@ mod tests {
         },
         services::{
             customer::UpdateCustomerCommand,
-            notification_service::{DispatchMessage, DispatchMessageCommand},
             payment_invoice::{CreatePaymentInvoiceCommand, SendInvoiceReceiptCommand},
         },
     };
@@ -250,12 +252,12 @@ mod tests {
     }
 
     struct FakeNotificationService {
-        last: Mutex<Option<DispatchMessageCommand>>,
+        last: Mutex<Option<DispatchMessagePayload>>,
     }
 
     #[async_trait]
     impl NotificationServiceTrait for FakeNotificationService {
-        async fn dispatch_message(&self, payload: DispatchMessageCommand) -> ApiResult<()> {
+        async fn dispatch_message(&self, payload: DispatchMessagePayload) -> ApiResult<()> {
             *self.last.lock().unwrap() = Some(payload);
             Ok(())
         }

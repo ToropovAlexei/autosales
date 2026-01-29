@@ -6,7 +6,6 @@ pub mod broadcast;
 pub mod category;
 pub mod customer;
 pub mod image;
-pub mod list_response;
 pub mod order;
 pub mod permission;
 pub mod product;

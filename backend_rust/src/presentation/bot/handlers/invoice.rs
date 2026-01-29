@@ -9,16 +9,13 @@ use axum_extra::extract::Multipart;
 use bytes::Bytes;
 use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
-use shared_dtos::invoice::PaymentInvoiceBotResponse;
+use shared_dtos::{invoice::PaymentInvoiceBotResponse, list_response::ListResponse};
 
 use crate::{
     errors::api::{ApiError, ApiResult},
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson},
     models::payment_invoice::PaymentInvoiceListQuery,
-    presentation::{
-        admin::dtos::list_response::ListResponse,
-        bot::dtos::invoice::{NewPaymentInvoiceRequest, UpdatePaymentInvoiceRequest},
-    },
+    presentation::bot::dtos::invoice::{NewPaymentInvoiceRequest, UpdatePaymentInvoiceRequest},
     services::{
         customer::CustomerServiceTrait,
         image::{CreateImage, ImageServiceTrait},

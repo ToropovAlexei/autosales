@@ -1,4 +1,5 @@
 use axum::http::StatusCode;
+use shared_dtos::list_response::ListResponse;
 use std::sync::Arc;
 
 use axum::{
@@ -23,7 +24,6 @@ use crate::{
             AdminUserResponse, AdminUserWithRolesResponse, NewAdminUserRequest,
             NewAdminUserResponse, UpdateAdminUserRequest,
         },
-        list_response::ListResponse,
         permission::PermissionResponse,
         user_permission::{UpdateUserPermissionsRequest, UserPermissionResponse},
     },

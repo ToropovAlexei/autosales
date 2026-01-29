@@ -1,11 +1,13 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
-use shared_dtos::invoice::{GatewayBotResponse, PaymentSystem};
+use shared_dtos::{
+    invoice::{GatewayBotResponse, PaymentSystem},
+    list_response::ListResponse,
+};
 
 use crate::{
-    errors::api::ApiResult, middlewares::verified_service::VerifiedService,
-    presentation::admin::dtos::list_response::ListResponse, state::AppState,
+    errors::api::ApiResult, middlewares::verified_service::VerifiedService, state::AppState,
 };
 
 pub fn router() -> Router<Arc<AppState>> {

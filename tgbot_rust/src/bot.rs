@@ -3,7 +3,11 @@ use std::{result::Result::Ok, sync::Arc, time::Duration};
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
-use shared_dtos::invoice::{PaymentDetails, PaymentSystem};
+use shared_dtos::{
+    customer::UpdateCustomerBotRequest,
+    invoice::{PaymentDetails, PaymentSystem},
+    notification::{DispatchMessage, DispatchMessagePayload},
+};
 use teloxide::{
     ApiError, Bot, RequestError,
     dispatching::{
@@ -41,7 +45,6 @@ use crate::{
         utils::{MessageImage, MsgBy, edit_msg, send_msg},
     },
     errors::{AppError, AppResult},
-    models::{DispatchMessage, DispatchMessagePayload, customer::UpdateCustomerRequest},
 };
 
 pub mod handlers;
@@ -665,7 +668,7 @@ async fn handle_msg(
         api_client
             .update_customer(
                 payload.telegram_id,
-                &UpdateCustomerRequest {
+                &UpdateCustomerBotRequest {
                     bot_is_blocked_by_user: Some(true),
                     ..Default::default()
                 },

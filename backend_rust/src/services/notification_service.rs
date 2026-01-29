@@ -1,37 +1,14 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
+use shared_dtos::notification::DispatchMessagePayload;
 
 use crate::errors::api::{ApiError, ApiResult};
 use deadpool_redis::redis::AsyncTypedCommands;
 
-#[derive(Debug, Deserialize, Serialize)]
-pub enum DispatchMessage {
-    GenericMessage {
-        message: String,
-        image_id: Option<Uuid>,
-    },
-    InvoiceTroublesNotification {
-        invoice_id: i64,
-        amount: f64,
-    },
-    RequestReceiptNotification {
-        invoice_id: i64,
-    },
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct DispatchMessageCommand {
-    pub bot_id: i64,
-    pub telegram_id: i64,
-    pub message: DispatchMessage,
-}
-
 #[async_trait]
 pub trait NotificationServiceTrait: Send + Sync {
-    async fn dispatch_message(&self, payload: DispatchMessageCommand) -> ApiResult<()>;
+    async fn dispatch_message(&self, payload: DispatchMessagePayload) -> ApiResult<()>;
 }
 
 pub struct NotificationService {
@@ -46,7 +23,7 @@ impl NotificationService {
 
 #[async_trait]
 impl NotificationServiceTrait for NotificationService {
-    async fn dispatch_message(&self, payload: DispatchMessageCommand) -> ApiResult<()> {
+    async fn dispatch_message(&self, payload: DispatchMessagePayload) -> ApiResult<()> {
         let channel = format!("bot-notifications:{}", payload.bot_id);
         let message_json = serde_json::to_string(&payload)
             .map_err(|err| ApiError::InternalServerError(err.to_string()))?;

@@ -1,11 +1,18 @@
-use serde::Serialize;
-use utoipa::{ToResponse, ToSchema};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, ToSchema, ToResponse, Serialize)]
+#[cfg(feature = "openapi")]
+#[derive(Debug, Serialize, Deserialize, utoipa::ToSchema)]
 pub struct ListResponse<T>
 where
-    T: ToSchema,
+    T: utoipa::ToSchema,
 {
+    pub items: Vec<T>,
+    pub total: i64,
+}
+
+#[cfg(not(feature = "openapi"))]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ListResponse<T> {
     pub items: Vec<T>,
     pub total: i64,
 }
@@ -16,7 +23,8 @@ mod tests {
     use serde::Deserialize;
 
     // A dummy struct to use with ListResponse for testing
-    #[derive(Debug, Serialize, Deserialize, ToSchema)]
+    #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+    #[derive(Debug, Serialize, Deserialize)]
     struct DummyItem {
         id: i32,
         name: String,

@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
+use shared_dtos::list_response::ListResponse;
 
 use crate::{
     errors::api::ApiResult,
     middlewares::require_permission::{RbacManage, RequirePermission},
-    presentation::admin::dtos::{list_response::ListResponse, permission::PermissionResponse},
+    presentation::admin::dtos::permission::PermissionResponse,
     services::{auth::AuthUser, permission::PermissionServiceTrait},
     state::AppState,
 };

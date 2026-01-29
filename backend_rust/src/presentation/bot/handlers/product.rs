@@ -5,13 +5,11 @@ use axum::{
     extract::{Path, State},
     routing::get,
 };
+use shared_dtos::list_response::ListResponse;
 
 use crate::{
-    errors::api::ApiResult,
-    middlewares::bot_auth::AuthBot,
-    models::product::ProductListQuery,
-    presentation::admin::dtos::{list_response::ListResponse, product::ProductResponse},
-    services::product::ProductServiceTrait,
+    errors::api::ApiResult, middlewares::bot_auth::AuthBot, models::product::ProductListQuery,
+    presentation::admin::dtos::product::ProductResponse, services::product::ProductServiceTrait,
     state::AppState,
 };
 

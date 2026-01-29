@@ -6,6 +6,7 @@ use axum::{
 };
 use axum_extra::extract::Multipart;
 use bytes::Bytes;
+use shared_dtos::list_response::ListResponse;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -13,7 +14,7 @@ use crate::{
     errors::api::{ApiError, ApiResult},
     middlewares::require_permission::{ImagesCreate, ImagesDelete, ImagesRead, RequirePermission},
     models::image::ImageListQuery,
-    presentation::admin::dtos::{image::ImageResponse, list_response::ListResponse},
+    presentation::admin::dtos::image::ImageResponse,
     services::{
         auth::AuthUser,
         image::{CreateImage, ImageServiceTrait},
