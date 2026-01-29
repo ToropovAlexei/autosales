@@ -74,3 +74,28 @@ pub struct PaymentInvoiceBotResponse {
     pub status: InvoiceStatus,
     pub created_at: DateTime<Utc>,
 }
+
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "validate", derive(validator::Validate))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewPaymentInvoiceBotRequest {
+    pub telegram_id: i64,
+    #[cfg_attr(
+        feature = "validate",
+        validate(range(
+            min = 0.0,
+            max = 1000000.0,
+            message = "Amount must be between 0 and 1000000"
+        ))
+    )]
+    pub amount: f64,
+    pub gateway: PaymentSystem,
+}
+
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "validate", derive(validator::Validate))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdatePaymentInvoiceBotRequest {
+    pub status: Option<InvoiceStatus>,
+    pub notification_sent_at: Option<Option<DateTime<Utc>>>,
+}

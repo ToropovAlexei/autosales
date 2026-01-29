@@ -1,9 +1,5 @@
-use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
-use serde::{Deserialize, Serialize};
-use shared_dtos::invoice::{InvoiceStatus, PaymentInvoiceBotResponse, PaymentSystem};
-use utoipa::ToSchema;
-use validator::Validate;
+use shared_dtos::invoice::PaymentInvoiceBotResponse;
 
 use crate::models::payment_invoice::PaymentInvoiceRow;
 
@@ -21,22 +17,4 @@ impl From<PaymentInvoiceRow> for PaymentInvoiceBotResponse {
             gateway: r.gateway,
         }
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Validate)]
-pub struct NewPaymentInvoiceRequest {
-    pub telegram_id: i64,
-    #[validate(range(
-        min = 0.0,
-        max = 1000000.0,
-        message = "Amount must be between 0 and 1000000"
-    ))]
-    pub amount: f64,
-    pub gateway: PaymentSystem,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Validate)]
-pub struct UpdatePaymentInvoiceRequest {
-    pub status: Option<InvoiceStatus>,
-    pub notification_sent_at: Option<Option<DateTime<Utc>>>,
 }

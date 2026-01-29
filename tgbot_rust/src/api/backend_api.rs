@@ -6,10 +6,12 @@ use shared_dtos::{
     bot::BotBotResponse,
     captcha::CaptchaBotResponse,
     category::CategoryBotResponse,
-    customer::{CustomerBotResponse, UpdateCustomerBotRequest},
-    invoice::{GatewayBotResponse, PaymentInvoiceBotResponse, PaymentSystem},
+    customer::{CustomerBotResponse, NewCustomerBotRequest, UpdateCustomerBotRequest},
+    invoice::{
+        GatewayBotResponse, NewPaymentInvoiceBotRequest, PaymentInvoiceBotResponse, PaymentSystem,
+    },
     list_response::ListResponse,
-    order::{EnrichedOrderBotResponse, PurchaseBotResponse},
+    order::{EnrichedOrderBotResponse, PurchaseBotRequest, PurchaseBotResponse},
     product::ProductBotResponse,
     settings::SettingsBotResponse,
     user_subscription::UserSubscriptionBotResponse,
@@ -41,7 +43,7 @@ impl BackendApi {
         self.api_client
             .post_with_body::<CustomerBotResponse, _>(
                 "bot/customers",
-                &json!({"telegram_id": telegram_id}),
+                &NewCustomerBotRequest { telegram_id },
             )
             .await
     }
@@ -68,7 +70,10 @@ impl BackendApi {
         self.api_client
             .patch_with_body::<CustomerBotResponse, _>(
                 &format!("bot/customers/{telegram_id}"),
-                &json!({"has_passed_captcha": true}),
+                &UpdateCustomerBotRequest {
+                    has_passed_captcha: Some(true),
+                    ..Default::default()
+                },
             )
             .await
     }
@@ -153,7 +158,11 @@ impl BackendApi {
         self.api_client
             .post_with_body::<PaymentInvoiceBotResponse, _>(
                 "bot/invoices",
-                &json!({"telegram_id": telegram_id, "gateway": gateway, "amount": amount}),
+                &NewPaymentInvoiceBotRequest {
+                    gateway: *gateway,
+                    amount,
+                    telegram_id,
+                },
             )
             .await
     }
@@ -226,10 +235,10 @@ impl BackendApi {
         self.api_client
             .post_with_body::<PurchaseBotResponse, _>(
                 "bot/orders",
-                &json!({
-                    "telegram_id": telegram_id,
-                    "product_id": product_id,
-                }),
+                &PurchaseBotRequest {
+                    telegram_id,
+                    product_id,
+                },
             )
             .await
     }

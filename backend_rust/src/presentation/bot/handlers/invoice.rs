@@ -9,13 +9,17 @@ use axum_extra::extract::Multipart;
 use bytes::Bytes;
 use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
-use shared_dtos::{invoice::PaymentInvoiceBotResponse, list_response::ListResponse};
+use shared_dtos::{
+    invoice::{
+        NewPaymentInvoiceBotRequest, PaymentInvoiceBotResponse, UpdatePaymentInvoiceBotRequest,
+    },
+    list_response::ListResponse,
+};
 
 use crate::{
     errors::api::{ApiError, ApiResult},
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson},
     models::payment_invoice::PaymentInvoiceListQuery,
-    presentation::bot::dtos::invoice::{NewPaymentInvoiceRequest, UpdatePaymentInvoiceRequest},
     services::{
         customer::CustomerServiceTrait,
         image::{CreateImage, ImageServiceTrait},
@@ -88,7 +92,7 @@ async fn get_invoice(
     post,
     path = "/api/bot/invoices",
     tag = "Invoices",
-    request_body = NewPaymentInvoiceRequest,
+    request_body = NewPaymentInvoiceBotRequest,
     responses(
         (status = 200, description = "Invoice created", body = PaymentInvoiceBotResponse),
         (status = 400, description = "Bad request", body = String),
@@ -99,7 +103,7 @@ async fn get_invoice(
 async fn create_invoice(
     State(state): State<Arc<AppState>>,
     _bot: AuthBot,
-    ValidatedJson(payload): ValidatedJson<NewPaymentInvoiceRequest>,
+    ValidatedJson(payload): ValidatedJson<NewPaymentInvoiceBotRequest>,
 ) -> ApiResult<Json<PaymentInvoiceBotResponse>> {
     let customer_id = state
         .customer_service
@@ -122,7 +126,7 @@ async fn create_invoice(
     patch,
     path = "/api/bot/invoices/{id}",
     tag = "Invoices",
-    request_body = UpdatePaymentInvoiceRequest,
+    request_body = UpdatePaymentInvoiceBotRequest,
     responses(
         (status = 200, description = "Invoice updated", body = PaymentInvoiceBotResponse),
         (status = 400, description = "Bad request", body = String),
@@ -135,7 +139,7 @@ async fn update_invoice(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
     _bot: AuthBot,
-    ValidatedJson(payload): ValidatedJson<UpdatePaymentInvoiceRequest>,
+    ValidatedJson(payload): ValidatedJson<UpdatePaymentInvoiceBotRequest>,
 ) -> ApiResult<Json<PaymentInvoiceBotResponse>> {
     let invoice = state
         .payment_invoice_service
