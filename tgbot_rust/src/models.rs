@@ -1,8 +1,5 @@
 pub mod bot;
 pub mod customer;
-pub mod payment;
-pub mod purchase;
-pub mod user_subscription;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

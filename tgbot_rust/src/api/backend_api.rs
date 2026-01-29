@@ -3,21 +3,20 @@ use bytes::Bytes;
 use reqwest::{header, multipart};
 use serde_json::json;
 use shared_dtos::{
-    captcha::CaptchaBotResponse, category::CategoryBotResponse, order::EnrichedOrderBotResponse,
-    product::ProductBotResponse, settings::SettingsBotResponse,
+    captcha::CaptchaBotResponse,
+    category::CategoryBotResponse,
+    customer::CustomerBotResponse,
+    invoice::{GatewayBotResponse, PaymentInvoiceBotResponse, PaymentSystem},
+    order::{EnrichedOrderBotResponse, PurchaseBotResponse},
+    product::ProductBotResponse,
+    settings::SettingsBotResponse,
+    user_subscription::UserSubscriptionBotResponse,
 };
 use uuid::Uuid;
 
 use crate::{
     api::{api_client::ApiClient, api_errors::ApiClientResult},
-    models::{
-        ListResponse,
-        bot::Bot,
-        customer::{Customer, UpdateCustomerRequest},
-        payment::{PaymentGateway, PaymentInvoiceResponse, PaymentSystem},
-        purchase::PurchaseResponse,
-        user_subscription::UserSubscription,
-    },
+    models::{ListResponse, bot::Bot, customer::UpdateCustomerRequest},
 };
 
 pub struct BackendApi {
@@ -39,19 +38,22 @@ impl BackendApi {
         Ok(Self { api_client })
     }
 
-    pub async fn register_user(&self, telegram_id: i64) -> ApiClientResult<Customer> {
+    pub async fn register_user(&self, telegram_id: i64) -> ApiClientResult<CustomerBotResponse> {
         self.api_client
-            .post_with_body::<Customer, _>("bot/customers", &json!({"telegram_id": telegram_id}))
+            .post_with_body::<CustomerBotResponse, _>(
+                "bot/customers",
+                &json!({"telegram_id": telegram_id}),
+            )
             .await
     }
 
-    pub async fn get_user(&self, telegram_id: i64) -> ApiClientResult<Customer> {
+    pub async fn get_user(&self, telegram_id: i64) -> ApiClientResult<CustomerBotResponse> {
         self.api_client
-            .get::<Customer>(&format!("bot/customers/{telegram_id}"))
+            .get::<CustomerBotResponse>(&format!("bot/customers/{telegram_id}"))
             .await
     }
 
-    pub async fn ensure_user(&self, telegram_id: i64) -> ApiClientResult<Customer> {
+    pub async fn ensure_user(&self, telegram_id: i64) -> ApiClientResult<CustomerBotResponse> {
         let user = self.get_user(telegram_id).await;
         if user.is_err() {
             self.register_user(telegram_id).await
@@ -60,9 +62,12 @@ impl BackendApi {
         }
     }
 
-    pub async fn confirm_user_captcha(&self, telegram_id: i64) -> ApiClientResult<Customer> {
+    pub async fn confirm_user_captcha(
+        &self,
+        telegram_id: i64,
+    ) -> ApiClientResult<CustomerBotResponse> {
         self.api_client
-            .patch_with_body::<Customer, _>(
+            .patch_with_body::<CustomerBotResponse, _>(
                 &format!("bot/customers/{telegram_id}"),
                 &json!({"has_passed_captcha": true}),
             )
@@ -105,38 +110,38 @@ impl BackendApi {
             .map(|settings| settings.bot_messages_returning_user_welcome)
     }
 
-    pub async fn get_payment_gateways(&self) -> ApiClientResult<ListResponse<PaymentGateway>> {
+    pub async fn get_payment_gateways(&self) -> ApiClientResult<ListResponse<GatewayBotResponse>> {
         self.api_client
-            .get::<ListResponse<PaymentGateway>>("bot/gateways")
+            .get::<ListResponse<GatewayBotResponse>>("bot/gateways")
             .await
     }
 
     pub async fn get_customer_invoices(
         &self,
         telegram_id: i64,
-    ) -> ApiClientResult<ListResponse<PaymentInvoiceResponse>> {
+    ) -> ApiClientResult<ListResponse<PaymentInvoiceBotResponse>> {
         self.api_client
-            .get::<ListResponse<PaymentInvoiceResponse>>(&format!(
+            .get::<ListResponse<PaymentInvoiceBotResponse>>(&format!(
                 "bot/customers/{telegram_id}/invoices"
             ))
             .await
     }
 
-    pub async fn get_invoice(&self, id: i64) -> ApiClientResult<PaymentInvoiceResponse> {
+    pub async fn get_invoice(&self, id: i64) -> ApiClientResult<PaymentInvoiceBotResponse> {
         self.api_client
-            .get::<PaymentInvoiceResponse>(&format!("bot/invoices/{id}"))
+            .get::<PaymentInvoiceBotResponse>(&format!("bot/invoices/{id}"))
             .await
     }
 
-    pub async fn cancel_invoice(&self, id: i64) -> ApiClientResult<PaymentInvoiceResponse> {
+    pub async fn cancel_invoice(&self, id: i64) -> ApiClientResult<PaymentInvoiceBotResponse> {
         self.api_client
-            .post::<PaymentInvoiceResponse>(&format!("bot/invoices/{id}/cancel"))
+            .post::<PaymentInvoiceBotResponse>(&format!("bot/invoices/{id}/cancel"))
             .await
     }
 
-    pub async fn confirm_invoice(&self, id: i64) -> ApiClientResult<PaymentInvoiceResponse> {
+    pub async fn confirm_invoice(&self, id: i64) -> ApiClientResult<PaymentInvoiceBotResponse> {
         self.api_client
-            .post::<PaymentInvoiceResponse>(&format!("bot/invoices/{id}/confirm"))
+            .post::<PaymentInvoiceBotResponse>(&format!("bot/invoices/{id}/confirm"))
             .await
     }
 
@@ -145,9 +150,9 @@ impl BackendApi {
         gateway: &PaymentSystem,
         amount: f64,
         telegram_id: i64,
-    ) -> ApiClientResult<PaymentInvoiceResponse> {
+    ) -> ApiClientResult<PaymentInvoiceBotResponse> {
         self.api_client
-            .post_with_body::<PaymentInvoiceResponse, _>(
+            .post_with_body::<PaymentInvoiceBotResponse, _>(
                 "bot/invoices",
                 &json!({"telegram_id": telegram_id, "gateway": gateway, "amount": amount}),
             )
@@ -174,9 +179,9 @@ impl BackendApi {
     pub async fn get_user_subscriptions(
         &self,
         telegram_id: i64,
-    ) -> ApiClientResult<ListResponse<UserSubscription>> {
+    ) -> ApiClientResult<ListResponse<UserSubscriptionBotResponse>> {
         self.api_client
-            .get::<ListResponse<UserSubscription>>(&format!(
+            .get::<ListResponse<UserSubscriptionBotResponse>>(&format!(
                 "bot/customers/{telegram_id}/subscriptions"
             ))
             .await
@@ -218,9 +223,9 @@ impl BackendApi {
         &self,
         telegram_id: i64,
         product_id: i64,
-    ) -> ApiClientResult<PurchaseResponse> {
+    ) -> ApiClientResult<PurchaseBotResponse> {
         self.api_client
-            .post_with_body::<PurchaseResponse, _>(
+            .post_with_body::<PurchaseBotResponse, _>(
                 "bot/orders",
                 &json!({
                     "telegram_id": telegram_id,
@@ -274,10 +279,10 @@ impl BackendApi {
         &self,
         invoice_id: i64,
         file_bytes: Bytes,
-    ) -> ApiClientResult<PaymentInvoiceResponse> {
+    ) -> ApiClientResult<PaymentInvoiceBotResponse> {
         let form = multipart::Form::new().part("file", multipart::Part::bytes(file_bytes.to_vec()));
         self.api_client
-            .post_with_multipart::<PaymentInvoiceResponse>(
+            .post_with_multipart::<PaymentInvoiceBotResponse>(
                 &format!("bot/invoices/{invoice_id}/send-receipt"),
                 form,
             )
@@ -288,9 +293,12 @@ impl BackendApi {
         &self,
         telegram_id: i64,
         update: &UpdateCustomerRequest,
-    ) -> ApiClientResult<Customer> {
+    ) -> ApiClientResult<CustomerBotResponse> {
         self.api_client
-            .patch_with_body::<Customer, _>(&format!("bot/customers/{telegram_id}"), update)
+            .patch_with_body::<CustomerBotResponse, _>(
+                &format!("bot/customers/{telegram_id}"),
+                update,
+            )
             .await
     }
 }

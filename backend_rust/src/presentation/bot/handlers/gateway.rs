@@ -1,13 +1,11 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
+use shared_dtos::invoice::{GatewayBotResponse, PaymentSystem};
 
 use crate::{
-    errors::api::ApiResult,
-    middlewares::verified_service::VerifiedService,
-    models::payment::PaymentSystem,
-    presentation::{admin::dtos::list_response::ListResponse, bot::dtos::gateway::GatewayResponse},
-    state::AppState,
+    errors::api::ApiResult, middlewares::verified_service::VerifiedService,
+    presentation::admin::dtos::list_response::ListResponse, state::AppState,
 };
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -19,7 +17,7 @@ pub fn router() -> Router<Arc<AppState>> {
     path = "/api/bot/gateways",
     tag = "Bots",
     responses(
-        (status = 200, description = "Gateways", body = ListResponse<GatewayResponse>),
+        (status = 200, description = "Gateways", body = ListResponse<GatewayBotResponse>),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String),
@@ -28,9 +26,9 @@ pub fn router() -> Router<Arc<AppState>> {
 async fn get_gateways(
     State(_state): State<Arc<AppState>>,
     _service: VerifiedService,
-) -> ApiResult<Json<ListResponse<GatewayResponse>>> {
+) -> ApiResult<Json<ListResponse<GatewayBotResponse>>> {
     let items = vec![
-        GatewayResponse {
+        GatewayBotResponse {
             name: PaymentSystem::PlatformCard,
             display_name: "Платформа (Карта)".to_string(),
         },

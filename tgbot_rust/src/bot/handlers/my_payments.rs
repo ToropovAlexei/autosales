@@ -9,9 +9,8 @@ use crate::{
         utils::{MsgBy, edit_msg},
     },
     errors::AppResult,
-    models::payment::PaymentInvoiceResponse,
 };
-use shared_dtos::invoice::InvoiceStatus;
+use shared_dtos::invoice::{InvoiceStatus, PaymentInvoiceBotResponse};
 use std::sync::Arc;
 use teloxide::{
     prelude::Bot,
@@ -83,7 +82,7 @@ pub async fn my_payments_handler(
     Ok(())
 }
 
-fn format_payment_info(payment: &PaymentInvoiceResponse) -> String {
+fn format_payment_info(payment: &PaymentInvoiceBotResponse) -> String {
     format!(
         "Платеж #{} на {} RUB от {}",
         payment.id,

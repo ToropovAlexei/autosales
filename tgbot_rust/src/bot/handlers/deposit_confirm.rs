@@ -5,7 +5,7 @@ use crate::bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard;
 use crate::bot::utils::{MsgBy, edit_msg};
 use crate::bot::{BotState, BotStep, CallbackData, InvoiceData, MyDialogue};
 use crate::errors::AppResult;
-use crate::models::payment::PaymentDetails;
+use shared_dtos::invoice::PaymentDetails;
 use teloxide::prelude::*;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 use url::Url;
@@ -64,7 +64,7 @@ pub async fn deposit_confirm_handler(
     dialogue
         .update(BotState {
             step: BotStep::DepositConfirm {
-                gateway: gateway.clone(),
+                gateway,
                 amount,
                 invoice: Some(invoice_data.clone()),
             },

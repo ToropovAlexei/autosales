@@ -9,6 +9,7 @@ use axum_extra::extract::Multipart;
 use bytes::Bytes;
 use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
+use shared_dtos::invoice::PaymentInvoiceBotResponse;
 
 use crate::{
     errors::api::{ApiError, ApiResult},
@@ -16,9 +17,7 @@ use crate::{
     models::payment_invoice::PaymentInvoiceListQuery,
     presentation::{
         admin::dtos::list_response::ListResponse,
-        bot::dtos::invoice::{
-            NewPaymentInvoiceRequest, PaymentInvoiceResponse, UpdatePaymentInvoiceRequest,
-        },
+        bot::dtos::invoice::{NewPaymentInvoiceRequest, UpdatePaymentInvoiceRequest},
     },
     services::{
         customer::CustomerServiceTrait,
@@ -45,7 +44,7 @@ pub fn router() -> Router<Arc<AppState>> {
     path = "/api/bot/invoices",
     tag = "Invoices",
     responses(
-        (status = 200, description = "List of invoices", body = ListResponse<PaymentInvoiceResponse>),
+        (status = 200, description = "List of invoices", body = ListResponse<PaymentInvoiceBotResponse>),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String),
@@ -55,14 +54,14 @@ async fn list_invoices(
     State(state): State<Arc<AppState>>,
     _bot: AuthBot,
     query: PaymentInvoiceListQuery,
-) -> ApiResult<Json<ListResponse<PaymentInvoiceResponse>>> {
+) -> ApiResult<Json<ListResponse<PaymentInvoiceBotResponse>>> {
     let payment_invoices = state.payment_invoice_service.get_list(query).await?;
     Ok(Json(ListResponse {
         total: payment_invoices.total,
         items: payment_invoices
             .items
             .into_iter()
-            .map(PaymentInvoiceResponse::from)
+            .map(PaymentInvoiceBotResponse::from)
             .collect(),
     }))
 }
@@ -72,7 +71,7 @@ async fn list_invoices(
     path = "/api/bot/invoices/{id}",
     tag = "Invoices",
     responses(
-        (status = 200, description = "Invoice details", body = PaymentInvoiceResponse),
+        (status = 200, description = "Invoice details", body = PaymentInvoiceBotResponse),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
         (status = 404, description = "Not found", body = String),
@@ -83,9 +82,9 @@ async fn get_invoice(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
     _bot: AuthBot,
-) -> ApiResult<Json<PaymentInvoiceResponse>> {
+) -> ApiResult<Json<PaymentInvoiceBotResponse>> {
     let payment_invoice = state.payment_invoice_service.get_by_id(id).await?;
-    Ok(Json(PaymentInvoiceResponse::from(payment_invoice)))
+    Ok(Json(PaymentInvoiceBotResponse::from(payment_invoice)))
 }
 
 #[utoipa::path(
@@ -94,7 +93,7 @@ async fn get_invoice(
     tag = "Invoices",
     request_body = NewPaymentInvoiceRequest,
     responses(
-        (status = 200, description = "Invoice created", body = PaymentInvoiceResponse),
+        (status = 200, description = "Invoice created", body = PaymentInvoiceBotResponse),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String),
@@ -104,7 +103,7 @@ async fn create_invoice(
     State(state): State<Arc<AppState>>,
     _bot: AuthBot,
     ValidatedJson(payload): ValidatedJson<NewPaymentInvoiceRequest>,
-) -> ApiResult<Json<PaymentInvoiceResponse>> {
+) -> ApiResult<Json<PaymentInvoiceBotResponse>> {
     let customer_id = state
         .customer_service
         .get_by_telegram_id(payload.telegram_id)
@@ -119,7 +118,7 @@ async fn create_invoice(
             gateway: payload.gateway,
         })
         .await?;
-    Ok(Json(PaymentInvoiceResponse::from(payment_invoice)))
+    Ok(Json(PaymentInvoiceBotResponse::from(payment_invoice)))
 }
 
 #[utoipa::path(
@@ -128,7 +127,7 @@ async fn create_invoice(
     tag = "Invoices",
     request_body = UpdatePaymentInvoiceRequest,
     responses(
-        (status = 200, description = "Invoice updated", body = PaymentInvoiceResponse),
+        (status = 200, description = "Invoice updated", body = PaymentInvoiceBotResponse),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
         (status = 404, description = "Not found", body = String),
@@ -140,7 +139,7 @@ async fn update_invoice(
     Path(id): Path<i64>,
     _bot: AuthBot,
     ValidatedJson(payload): ValidatedJson<UpdatePaymentInvoiceRequest>,
-) -> ApiResult<Json<PaymentInvoiceResponse>> {
+) -> ApiResult<Json<PaymentInvoiceBotResponse>> {
     let invoice = state
         .payment_invoice_service
         .update(UpdatePaymentInvoiceCommand {
@@ -149,7 +148,7 @@ async fn update_invoice(
             status: payload.status,
         })
         .await?;
-    Ok(Json(PaymentInvoiceResponse::from(invoice)))
+    Ok(Json(PaymentInvoiceBotResponse::from(invoice)))
 }
 
 #[utoipa::path(
@@ -157,7 +156,7 @@ async fn update_invoice(
     path = "/api/bot/invoices/{id}/confirm",
     tag = "Invoices",
     responses(
-        (status = 200, description = "Invoice confirmed", body = PaymentInvoiceResponse),
+        (status = 200, description = "Invoice confirmed", body = PaymentInvoiceBotResponse),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
         (status = 404, description = "Not found", body = String),
@@ -168,9 +167,9 @@ async fn confirm_invoice(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
     _bot: AuthBot,
-) -> ApiResult<Json<PaymentInvoiceResponse>> {
+) -> ApiResult<Json<PaymentInvoiceBotResponse>> {
     let invoice = state.payment_invoice_service.confirm_invoice(id).await?;
-    Ok(Json(PaymentInvoiceResponse::from(invoice)))
+    Ok(Json(PaymentInvoiceBotResponse::from(invoice)))
 }
 
 #[utoipa::path(
@@ -178,7 +177,7 @@ async fn confirm_invoice(
     path = "/api/bot/invoices/{id}/cancel",
     tag = "Invoices",
     responses(
-        (status = 200, description = "Invoice cancelled", body = PaymentInvoiceResponse),
+        (status = 200, description = "Invoice cancelled", body = PaymentInvoiceBotResponse),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
         (status = 404, description = "Not found", body = String),
@@ -189,9 +188,9 @@ async fn cancel_invoice(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
     _bot: AuthBot,
-) -> ApiResult<Json<PaymentInvoiceResponse>> {
+) -> ApiResult<Json<PaymentInvoiceBotResponse>> {
     let invoice = state.payment_invoice_service.cancel_invoice(id).await?;
-    Ok(Json(PaymentInvoiceResponse::from(invoice)))
+    Ok(Json(PaymentInvoiceBotResponse::from(invoice)))
 }
 
 #[utoipa::path(
@@ -199,7 +198,7 @@ async fn cancel_invoice(
     path = "/api/bot/invoices/{id}/send-receipt",
     tag = "Invoices",
     responses(
-        (status = 200, description = "Receipt submitted", body = PaymentInvoiceResponse),
+        (status = 200, description = "Receipt submitted", body = PaymentInvoiceBotResponse),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
         (status = 404, description = "Not found", body = String),
@@ -211,7 +210,7 @@ async fn send_invoice_receipt(
     Path(id): Path<i64>,
     _bot: AuthBot,
     mut multipart: Multipart,
-) -> ApiResult<Json<PaymentInvoiceResponse>> {
+) -> ApiResult<Json<PaymentInvoiceBotResponse>> {
     let file = get_receipt_from_form(&mut multipart)
         .await
         .map_err(ApiError::BadRequest)?;
@@ -232,7 +231,7 @@ async fn send_invoice_receipt(
             receipt_url: "https://dropmefiles.com/PwjmT".to_string(), // TODO TO BE IMPLEMENTED
         })
         .await?;
-    Ok(Json(PaymentInvoiceResponse::from(invoice)))
+    Ok(Json(PaymentInvoiceBotResponse::from(invoice)))
 }
 
 async fn get_receipt_from_form(multipart: &mut Multipart) -> Result<Bytes, String> {

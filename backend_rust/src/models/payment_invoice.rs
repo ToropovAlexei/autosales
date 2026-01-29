@@ -1,30 +1,10 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
-use shared_dtos::invoice::InvoiceStatus;
+use shared_dtos::invoice::{InvoiceStatus, PaymentDetails, PaymentSystem};
 use sqlx::prelude::FromRow;
-use utoipa::ToSchema;
 
-use crate::{define_list_query, models::payment::PaymentSystem};
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
-pub enum PaymentDetails {
-    Mock {
-        pay_url: String,
-    },
-    PlatformCard {
-        bank_name: String,
-        account_name: String,
-        card_number: String,
-        amount: f64,
-    },
-    PlatformSBP {
-        bank_name: String,
-        account_name: String,
-        sbp_number: String,
-        amount: f64,
-    },
-}
+use crate::define_list_query;
 
 #[derive(FromRow, Debug, Clone, Serialize)]
 pub struct PaymentInvoiceRow {

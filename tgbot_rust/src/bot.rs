@@ -3,6 +3,7 @@ use std::{result::Result::Ok, sync::Arc, time::Duration};
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use bytes::Bytes;
 use serde::{Deserialize, Serialize};
+use shared_dtos::invoice::{PaymentDetails, PaymentSystem};
 use teloxide::{
     ApiError, Bot, RequestError,
     dispatching::{
@@ -40,11 +41,7 @@ use crate::{
         utils::{MessageImage, MsgBy, edit_msg, send_msg},
     },
     errors::{AppError, AppResult},
-    models::{
-        DispatchMessage, DispatchMessagePayload,
-        customer::UpdateCustomerRequest,
-        payment::{PaymentDetails, PaymentSystem},
-    },
+    models::{DispatchMessage, DispatchMessagePayload, customer::UpdateCustomerRequest},
 };
 
 pub mod handlers;
@@ -69,11 +66,6 @@ pub enum PaymentAction {
 pub struct InvoiceData {
     pub id: i64,
     pub details: Option<PaymentDetails>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-pub struct MockDetails {
-    pub pay_url: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -301,12 +293,12 @@ pub async fn run_bot(
                 }
                 CallbackData::SelectAmount { amount } => {
                     let gateway = match &bot_state.step {
-                        BotStep::DepositSelectAmount { gateway } => gateway.clone(),
+                        BotStep::DepositSelectAmount { gateway } => gateway,
                         _ => return Ok(()),
                     };
                     let new_state = BotState {
                         step: BotStep::DepositConfirm {
-                            gateway,
+                            gateway: *gateway,
                             amount,
                             invoice: None,
                         },

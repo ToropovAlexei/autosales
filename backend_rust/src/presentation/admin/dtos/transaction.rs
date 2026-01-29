@@ -1,13 +1,11 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
+use shared_dtos::invoice::PaymentSystem;
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
 
-use crate::models::{
-    payment::PaymentSystem,
-    transaction::{TransactionRow, TransactionType},
-};
+use crate::models::transaction::{TransactionRow, TransactionType};
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, ToResponse, TS)]
 #[ts(export, export_to = "transaction.ts", rename = "Transaction")]
@@ -46,10 +44,7 @@ impl From<TransactionRow> for TransactionResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{
-        payment::PaymentSystem,
-        transaction::{TransactionRow, TransactionType},
-    };
+    use crate::models::transaction::{TransactionRow, TransactionType};
     use rust_decimal::Decimal;
     use rust_decimal::prelude::FromPrimitive;
     use rust_decimal_macros::dec;

@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal_macros::dec;
-use shared_dtos::invoice::InvoiceStatus;
+use shared_dtos::invoice::{InvoiceStatus, PaymentDetails, PaymentSystem};
 use uuid::Uuid;
 
 use crate::{
@@ -27,10 +27,8 @@ use crate::{
     },
     models::{
         common::PaginatedResult,
-        payment::PaymentSystem,
         payment_invoice::{
-            NewPaymentInvoice, PaymentDetails, PaymentInvoiceListQuery, PaymentInvoiceRow,
-            UpdatePaymentInvoice,
+            NewPaymentInvoice, PaymentInvoiceListQuery, PaymentInvoiceRow, UpdatePaymentInvoice,
         },
     },
     services::audit_log::AuditLogServiceTrait,
@@ -402,10 +400,7 @@ mod tests {
             },
             repositories::settings::SettingsRepositoryTrait,
         },
-        models::{
-            common::PaginatedResult, payment::PaymentSystem, payment_invoice::PaymentDetails,
-            settings::Settings,
-        },
+        models::{common::PaginatedResult, settings::Settings},
         services::audit_log::AuditLogServiceTrait,
     };
 

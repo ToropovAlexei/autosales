@@ -48,8 +48,7 @@ pub async fn my_subscriptions_handler(
                     "❌ Неактивна"
                 };
 
-                response_text
-                    .push_str(&format!("🔹 {}\n", bold(&product_name.unwrap_or_default())));
+                response_text.push_str(&format!("🔹 {}\n", bold(&product_name)));
                 response_text.push_str(&format!("   {} {}\n", status, italic(&expires_formatted)));
 
                 if let Some(details) = sub.details

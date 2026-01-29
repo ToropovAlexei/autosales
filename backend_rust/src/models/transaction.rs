@@ -1,11 +1,12 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use shared_dtos::invoice::PaymentSystem;
 use sqlx::prelude::FromRow;
 use ts_rs::TS;
 use utoipa::ToSchema;
 
-use crate::{define_list_query, models::payment::PaymentSystem};
+use crate::define_list_query;
 
 #[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]
 #[sqlx(type_name = "TEXT", rename_all = "snake_case")]

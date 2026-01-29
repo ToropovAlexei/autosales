@@ -15,4 +15,5 @@ pub struct UserSubscriptionBotResponse {
     pub price_at_subscription: f64,
     pub period_days: i16,
     pub details: Option<serde_json::Value>,
+    pub product_name: String,
 }

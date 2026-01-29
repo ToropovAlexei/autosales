@@ -1,24 +1,14 @@
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
+use shared_dtos::customer::CustomerBotResponse;
 use utoipa::{ToResponse, ToSchema};
 use validator::Validate;
 
 use crate::models::customer::CustomerRow;
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, ToResponse)]
-#[schema(as = bot::CustomerResponse)]
-pub struct CustomerResponse {
-    pub id: i64,
-    pub telegram_id: i64,
-    pub balance: f64,
-    pub is_blocked: bool,
-    pub bot_is_blocked_by_user: bool,
-    pub has_passed_captcha: bool,
-}
-
-impl From<CustomerRow> for CustomerResponse {
+impl From<CustomerRow> for CustomerBotResponse {
     fn from(r: CustomerRow) -> Self {
-        CustomerResponse {
+        CustomerBotResponse {
             id: r.id,
             telegram_id: r.telegram_id,
             balance: r.balance.to_f64().unwrap_or_default(),

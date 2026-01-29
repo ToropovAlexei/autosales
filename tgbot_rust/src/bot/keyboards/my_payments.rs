@@ -1,9 +1,10 @@
+use shared_dtos::invoice::PaymentInvoiceBotResponse;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
-use crate::{bot::CallbackData, models::payment::PaymentInvoiceResponse};
+use crate::bot::CallbackData;
 
 pub fn my_payments_inline_keyboard(
-    pending_payments: &Vec<&PaymentInvoiceResponse>,
+    pending_payments: &Vec<&PaymentInvoiceBotResponse>,
 ) -> InlineKeyboardMarkup {
     let mut buttons = pending_payments
         .iter()

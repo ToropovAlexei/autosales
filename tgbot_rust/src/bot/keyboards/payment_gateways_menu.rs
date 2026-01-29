@@ -1,13 +1,13 @@
-use shared_dtos::settings::SettingsBotResponse;
+use shared_dtos::{
+    invoice::{GatewayBotResponse, PaymentSystem},
+    settings::SettingsBotResponse,
+};
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
-use crate::{
-    bot::CallbackData,
-    models::payment::{PaymentGateway, PaymentSystem},
-};
+use crate::bot::CallbackData;
 
 pub fn payment_gateways_menu(
-    gateways: Vec<PaymentGateway>,
+    gateways: Vec<GatewayBotResponse>,
     public_settings: &SettingsBotResponse,
 ) -> InlineKeyboardMarkup {
     let mut buttons = Vec::new();
@@ -45,9 +45,7 @@ pub fn payment_gateways_menu(
         }
         buttons.push([InlineKeyboardButton::callback(
             display_name,
-            CallbackData::SelectGateway {
-                gateway: gateway.clone(),
-            },
+            CallbackData::SelectGateway { gateway: *gateway },
         )]);
     }
 

@@ -1,29 +1,13 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
-use shared_dtos::invoice::InvoiceStatus;
+use shared_dtos::invoice::{InvoiceStatus, PaymentInvoiceBotResponse, PaymentSystem};
 use utoipa::ToSchema;
 use validator::Validate;
 
-use crate::models::{
-    payment::PaymentSystem,
-    payment_invoice::{PaymentDetails, PaymentInvoiceRow},
-};
+use crate::models::payment_invoice::PaymentInvoiceRow;
 
-#[derive(Debug, Clone, Serialize, ToSchema)]
-pub struct PaymentInvoiceResponse {
-    pub id: i64,
-    pub customer_id: i64,
-    pub original_amount: f64,
-    pub amount: f64,
-    pub order_id: uuid::Uuid,
-    pub payment_details: Option<PaymentDetails>,
-    pub gateway: PaymentSystem,
-    pub status: InvoiceStatus,
-    pub created_at: DateTime<Utc>,
-}
-
-impl From<PaymentInvoiceRow> for PaymentInvoiceResponse {
+impl From<PaymentInvoiceRow> for PaymentInvoiceBotResponse {
     fn from(r: PaymentInvoiceRow) -> Self {
         Self {
             id: r.id,

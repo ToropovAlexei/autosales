@@ -5,7 +5,10 @@ use axum::{
     extract::{Path, State},
     routing::{get, post},
 };
-use shared_dtos::order::EnrichedOrderBotResponse;
+use shared_dtos::{
+    customer::CustomerBotResponse, invoice::PaymentInvoiceBotResponse,
+    order::EnrichedOrderBotResponse,
+};
 
 use crate::{
     errors::api::ApiResult,
@@ -13,10 +16,7 @@ use crate::{
     models::customer::NewCustomer,
     presentation::{
         admin::dtos::list_response::ListResponse,
-        bot::dtos::{
-            customer::{CustomerResponse, NewCustomerRequest, UpdateCustomerRequest},
-            invoice::PaymentInvoiceResponse,
-        },
+        bot::dtos::customer::{NewCustomerRequest, UpdateCustomerRequest},
     },
     services::{
         customer::{CustomerServiceTrait, UpdateCustomerCommand},
@@ -43,7 +43,7 @@ pub fn router() -> Router<Arc<AppState>> {
     path = "/api/bot/customers/{telegram_id}",
     tag = "Customers",
     responses(
-        (status = 200, description = "Get customer", body = CustomerResponse),
+        (status = 200, description = "Get customer", body = CustomerBotResponse),
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String),
     )
@@ -52,12 +52,12 @@ async fn get_customer(
     State(state): State<Arc<AppState>>,
     Path(telegram_id): Path<i64>,
     _bot: AuthBot,
-) -> ApiResult<Json<CustomerResponse>> {
+) -> ApiResult<Json<CustomerBotResponse>> {
     let customer = state
         .customer_service
         .get_by_telegram_id(telegram_id)
         .await?;
-    Ok(Json(CustomerResponse::from(customer)))
+    Ok(Json(CustomerBotResponse::from(customer)))
 }
 
 #[utoipa::path(
@@ -65,7 +65,7 @@ async fn get_customer(
     path = "/api/bot/customers",
     tag = "Customers",
     responses(
-        (status = 200, description = "Create customer", body = CustomerResponse),
+        (status = 200, description = "Create customer", body = CustomerBotResponse),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String),
@@ -75,7 +75,7 @@ async fn create_customer(
     State(state): State<Arc<AppState>>,
     bot: AuthBot,
     ValidatedJson(payload): ValidatedJson<NewCustomerRequest>,
-) -> ApiResult<Json<CustomerResponse>> {
+) -> ApiResult<Json<CustomerBotResponse>> {
     let customer = state
         .customer_service
         .create(NewCustomer {
@@ -83,7 +83,7 @@ async fn create_customer(
             registered_with_bot: bot.bot_id,
         })
         .await?;
-    Ok(Json(CustomerResponse::from(customer)))
+    Ok(Json(CustomerBotResponse::from(customer)))
 }
 
 #[utoipa::path(
@@ -91,7 +91,7 @@ async fn create_customer(
     path = "/api/bot/customers/{telegram_id}",
     tag = "Customers",
     responses(
-        (status = 200, description = "Update customer", body = CustomerResponse),
+        (status = 200, description = "Update customer", body = CustomerBotResponse),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String),
@@ -102,7 +102,7 @@ async fn update_customer(
     Path(telegram_id): Path<i64>,
     _bot: AuthBot,
     ValidatedJson(payload): ValidatedJson<UpdateCustomerRequest>,
-) -> ApiResult<Json<CustomerResponse>> {
+) -> ApiResult<Json<CustomerBotResponse>> {
     let prev = state
         .customer_service
         .get_by_telegram_id(telegram_id)
@@ -120,7 +120,7 @@ async fn update_customer(
             ctx: None,
         })
         .await?;
-    Ok(Json(CustomerResponse::from(customer)))
+    Ok(Json(CustomerBotResponse::from(customer)))
 }
 
 #[utoipa::path(
@@ -128,7 +128,7 @@ async fn update_customer(
     path = "/api/bot/customers/{telegram_id}/invoices",
     tag = "Customers",
     responses(
-        (status = 200, description = "Get customer invoices", body = ListResponse<PaymentInvoiceResponse>),
+        (status = 200, description = "Get customer invoices", body = ListResponse<PaymentInvoiceBotResponse>),
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String),
     )
@@ -137,7 +137,7 @@ async fn get_customer_invoices(
     State(state): State<Arc<AppState>>,
     Path(telegram_id): Path<i64>,
     _bot: AuthBot,
-) -> ApiResult<Json<ListResponse<PaymentInvoiceResponse>>> {
+) -> ApiResult<Json<ListResponse<PaymentInvoiceBotResponse>>> {
     let customer_id = state
         .customer_service
         .get_by_telegram_id(telegram_id)
@@ -151,7 +151,7 @@ async fn get_customer_invoices(
         total: invoices.len() as i64,
         items: invoices
             .into_iter()
-            .map(PaymentInvoiceResponse::from)
+            .map(PaymentInvoiceBotResponse::from)
             .collect(),
     }))
 }

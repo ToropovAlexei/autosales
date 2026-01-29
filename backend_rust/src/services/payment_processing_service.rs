@@ -121,13 +121,13 @@ mod tests {
     use chrono::Utc;
     use rust_decimal_macros::dec;
     use serde_json::json;
+    use shared_dtos::invoice::PaymentSystem;
     use std::sync::Mutex;
 
     use crate::{
         errors::api::{ApiError, ApiResult},
         models::{
             customer::CustomerRow,
-            payment::PaymentSystem,
             payment_invoice::PaymentInvoiceRow,
             transaction::{TransactionRow, TransactionType},
         },

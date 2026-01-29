@@ -247,9 +247,9 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::payment::PaymentSystem;
     use chrono::{Duration, Utc};
     use rust_decimal::Decimal;
+    use shared_dtos::invoice::PaymentSystem;
     use sqlx::PgPool;
     use uuid::Uuid;
 

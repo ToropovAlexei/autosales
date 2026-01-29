@@ -2,7 +2,6 @@ pub mod bot;
 pub mod can_operate;
 pub mod category;
 pub mod customer;
-pub mod gateway;
 pub mod invoice;
 pub mod order;
 pub mod product;
