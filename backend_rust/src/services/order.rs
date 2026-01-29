@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::Serialize;
+use shared_dtos::order::OrderStatus;
 
 use crate::{
     errors::api::{ApiError, ApiResult},
@@ -13,7 +14,7 @@ use crate::{
     },
     models::{
         common::PaginatedResult,
-        order::{NewOrder, OrderListQuery, OrderRow, OrderStatus},
+        order::{NewOrder, OrderListQuery, OrderRow},
         order_item::OrderItemRow,
     },
 };

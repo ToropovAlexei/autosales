@@ -10,7 +10,12 @@ contms-provider = []
 mock-payments-provider = []
 
 [dependencies]
-shared_dtos = { path = "../shared_dtos", features = ["sqlx", "ts", "openapi"] }
+shared_dtos = { path = "../shared_dtos", features = [
+    "sqlx",
+    "ts",
+    "openapi",
+    "validate",
+] }
 aes-gcm = "0.10"
 anyhow = "1.0"
 async-trait = "0.1"

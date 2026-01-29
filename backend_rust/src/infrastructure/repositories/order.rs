@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use shared_dtos::order::OrderStatus;
 use sqlx::{PgPool, Postgres, QueryBuilder};
 
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
     infrastructure::lib::query::{apply_filters, apply_list_query},
     models::{
         common::PaginatedResult,
-        order::{NewOrder, OrderListQuery, OrderRow, OrderStatus},
+        order::{NewOrder, OrderListQuery, OrderRow},
     },
 };
 

@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Category {
+pub struct CategoryBotResponse {
     pub id: i64,
     pub name: String,
     pub parent_id: Option<i64>,

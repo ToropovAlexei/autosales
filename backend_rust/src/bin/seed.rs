@@ -25,7 +25,7 @@ use backend_rust::{
     models::{
         category::NewCategory,
         common::{OrderDir, Pagination},
-        product::{ProductListQuery, ProductType},
+        product::ProductListQuery,
     },
     run_migrations,
     services::{
@@ -37,6 +37,7 @@ use backend_rust::{
     state::AppState,
 };
 use rust_decimal::{Decimal, prelude::FromPrimitive};
+use shared_dtos::product::ProductType;
 use uuid::Uuid;
 
 type CategoryServiceShortType =

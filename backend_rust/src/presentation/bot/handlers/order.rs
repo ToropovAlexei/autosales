@@ -5,11 +5,11 @@ use axum::{
     extract::{Path, State},
     routing::{get, post},
 };
+use shared_dtos::order::{EnrichedOrderBotResponse, PurchaseBotRequest, PurchaseBotResponse};
 
 use crate::{
     errors::api::ApiResult,
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson},
-    presentation::bot::dtos::order::{EnrichedOrderResponse, PurchaseRequest, PurchaseResponse},
     services::{
         order::OrderServiceTrait,
         purchase::{PurchaseProductCommand, PurchaseServiceTrait},
@@ -28,7 +28,7 @@ pub fn router() -> Router<Arc<AppState>> {
     path = "/api/bot/orders",
     tag = "Orders",
     responses(
-        (status = 200, description = "Create order", body = PurchaseResponse),
+        (status = 200, description = "Create order", body = PurchaseBotResponse),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String),
@@ -37,8 +37,8 @@ pub fn router() -> Router<Arc<AppState>> {
 async fn purchase(
     State(state): State<Arc<AppState>>,
     bot: AuthBot,
-    ValidatedJson(payload): ValidatedJson<PurchaseRequest>,
-) -> ApiResult<Json<PurchaseResponse>> {
+    ValidatedJson(payload): ValidatedJson<PurchaseBotRequest>,
+) -> ApiResult<Json<PurchaseBotResponse>> {
     let result = state
         .purchase_service
         .purchase_product(PurchaseProductCommand {
@@ -49,7 +49,7 @@ async fn purchase(
         })
         .await?;
 
-    Ok(Json(PurchaseResponse {
+    Ok(Json(PurchaseBotResponse {
         product_name: result.product_name,
         balance: result.balance,
         details: result.details,
@@ -64,7 +64,7 @@ async fn purchase(
     path = "/api/bot/orders/{id}",
     tag = "Orders",
     responses(
-        (status = 200, description = "Get order", body = EnrichedOrderResponse),
+        (status = 200, description = "Get order", body = EnrichedOrderBotResponse),
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String),
@@ -74,8 +74,8 @@ async fn get_order(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
     _bot: AuthBot,
-) -> ApiResult<Json<EnrichedOrderResponse>> {
+) -> ApiResult<Json<EnrichedOrderBotResponse>> {
     let order = state.order_service.get_by_id(id).await?;
 
-    Ok(Json(EnrichedOrderResponse::from(order)))
+    Ok(Json(EnrichedOrderBotResponse::from(order)))
 }

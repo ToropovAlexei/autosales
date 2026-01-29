@@ -1,4 +1,9 @@
-use shared_dtos::settings::SettingsBotResponse;
+use shared_dtos::{
+    captcha::CaptchaBotResponse,
+    order::{EnrichedOrderBotResponse, OrderItemBotResponse, PurchaseBotResponse},
+    product::ProductType,
+    settings::SettingsBotResponse,
+};
 use std::sync::Arc;
 use tokio::signal;
 use utoipa::OpenApi;
@@ -11,7 +16,6 @@ use backend_rust::{
     create_app,
     db::Database,
     init_tracing,
-    models::product::ProductType,
     presentation::{
         admin::{
             dtos::{
@@ -52,7 +56,6 @@ use backend_rust::{
                     UpdateBotRequest as BotUpdateBotRequest,
                 },
                 can_operate::CanOperateResponse,
-                captcha::CaptchaResponse,
                 customer::{
                     CustomerResponse as BotCustomerResponse,
                     NewCustomerRequest as BotNewCustomerRequest,
@@ -62,7 +65,6 @@ use backend_rust::{
                 invoice::{
                     NewPaymentInvoiceRequest, PaymentInvoiceResponse, UpdatePaymentInvoiceRequest,
                 },
-                order::{EnrichedOrderResponse, OrderItemResponse, PurchaseResponse},
             },
             handlers as bot_handlers,
         },
@@ -180,7 +182,7 @@ use backend_rust::{
         ListResponse<BotBotResponse>,
         ListResponse<GatewayResponse>,
         ListResponse<PaymentInvoiceResponse>,
-        ListResponse<EnrichedOrderResponse>,
+        ListResponse<EnrichedOrderBotResponse>,
         CustomerResponse,
         AdminUserWithRolesResponse,
         AdminBotResponse,
@@ -214,14 +216,14 @@ use backend_rust::{
         BotNewCustomerRequest,
         BotUpdateCustomerRequest,
         CanOperateResponse,
-        CaptchaResponse,
+        CaptchaBotResponse,
         GatewayResponse,
         PaymentInvoiceResponse,
         NewPaymentInvoiceRequest,
         UpdatePaymentInvoiceRequest,
-        EnrichedOrderResponse,
-        OrderItemResponse,
-        PurchaseResponse,
+        EnrichedOrderBotResponse,
+        OrderItemBotResponse,
+        PurchaseBotResponse,
         SettingsBotResponse,
     ))
 )]

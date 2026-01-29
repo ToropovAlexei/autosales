@@ -1,12 +1,13 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
+use shared_dtos::product::ProductType;
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
 use uuid::Uuid;
 use validator::Validate;
 
-use crate::{models::product::ProductType, services::product::Product};
+use crate::services::product::Product;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "product.ts", rename = "Product")]

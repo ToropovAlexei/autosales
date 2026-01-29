@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use shared_dtos::category::CategoryBotResponse;
 use teloxide::{Bot, types::CallbackQuery};
 
 use crate::{
@@ -10,7 +11,6 @@ use crate::{
         utils::{MessageImage, MsgBy, edit_msg},
     },
     errors::AppResult,
-    models::category::Category,
 };
 
 pub async fn catalog_handler(
@@ -35,7 +35,7 @@ pub async fn catalog_handler(
             None => c.parent_id.is_none(),
         })
         .cloned()
-        .collect::<Vec<Category>>();
+        .collect::<Vec<CategoryBotResponse>>();
 
     let image_bytes = match category {
         Some(category) => match &category.image_id {

@@ -1,8 +1,9 @@
+use shared_dtos::order::EnrichedOrderBotResponse;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
-use crate::{bot::CallbackData, models::order::OrderResponse};
+use crate::bot::CallbackData;
 
-pub fn my_orders_inline_keyboard(orders: &[OrderResponse]) -> InlineKeyboardMarkup {
+pub fn my_orders_inline_keyboard(orders: &[EnrichedOrderBotResponse]) -> InlineKeyboardMarkup {
     let mut buttons = orders
         .iter()
         .map(|order| {

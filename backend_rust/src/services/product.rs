@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::{Decimal, prelude::FromPrimitive};
 use rust_decimal_macros::dec;
 use serde::Serialize;
+use shared_dtos::product::ProductType;
 use uuid::Uuid;
 
 use crate::{
@@ -20,7 +21,7 @@ use crate::{
     models::{
         audit_log::{AuditAction, AuditStatus, NewAuditLog},
         common::PaginatedResult,
-        product::{NewProduct, ProductListQuery, ProductRow, ProductType, UpdateProduct},
+        product::{NewProduct, ProductListQuery, ProductRow, UpdateProduct},
         settings::Settings,
         stock_movement::{NewStockMovement, StockMovementType},
     },

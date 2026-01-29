@@ -5,6 +5,7 @@ use axum::{
     extract::{Path, State},
     routing::{get, post},
 };
+use shared_dtos::order::EnrichedOrderBotResponse;
 
 use crate::{
     errors::api::ApiResult,
@@ -15,7 +16,6 @@ use crate::{
         bot::dtos::{
             customer::{CustomerResponse, NewCustomerRequest, UpdateCustomerRequest},
             invoice::PaymentInvoiceResponse,
-            order::EnrichedOrderResponse,
         },
     },
     services::{
@@ -161,7 +161,7 @@ async fn get_customer_invoices(
     path = "/api/bot/customers/{telegram_id}/orders",
     tag = "Customers",
     responses(
-        (status = 200, description = "Get customer orders", body = ListResponse<EnrichedOrderResponse>),
+        (status = 200, description = "Get customer orders", body = ListResponse<EnrichedOrderBotResponse>),
         (status = 401, description = "Unauthorized", body = String),
         (status = 500, description = "Internal server error", body = String),
     )
@@ -170,7 +170,7 @@ async fn get_customer_orders(
     State(state): State<Arc<AppState>>,
     Path(telegram_id): Path<i64>,
     _bot: AuthBot,
-) -> ApiResult<Json<ListResponse<EnrichedOrderResponse>>> {
+) -> ApiResult<Json<ListResponse<EnrichedOrderBotResponse>>> {
     let customer_id = state
         .customer_service
         .get_by_telegram_id(telegram_id)
@@ -181,7 +181,7 @@ async fn get_customer_orders(
         total: orders.len() as i64,
         items: orders
             .into_iter()
-            .map(EnrichedOrderResponse::from)
+            .map(EnrichedOrderBotResponse::from)
             .collect(),
     }))
 }

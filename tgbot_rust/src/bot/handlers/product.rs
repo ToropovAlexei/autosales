@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
+use shared_dtos::product::ProductBotResponse;
 use teloxide::{Bot, types::CallbackQuery};
 
 use crate::bot::MyDialogue;
 use crate::bot::utils::{MessageImage, MsgBy, edit_msg};
-use crate::models::product::Product;
 use crate::{
     api::backend_api::BackendApi,
     bot::keyboards::{
@@ -50,7 +50,7 @@ async fn display_product(
     dialogue: MyDialogue,
     q: CallbackQuery,
     api_client: Arc<BackendApi>,
-    product: &Product,
+    product: &ProductBotResponse,
 ) -> AppResult<()> {
     let caption = format!(
         "<b>{}</b>

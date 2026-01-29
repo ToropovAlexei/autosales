@@ -1,21 +1,11 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use shared_dtos::product::ProductType;
 use sqlx::prelude::FromRow;
-use ts_rs::TS;
-use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::define_list_query;
-
-#[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Serialize, Deserialize, TS, ToSchema)]
-#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-#[ts(export, export_to = "product.ts")]
-pub enum ProductType {
-    Item,
-    Subscription,
-}
 
 #[derive(FromRow, Debug, Clone, Serialize)]
 pub struct ProductRow {

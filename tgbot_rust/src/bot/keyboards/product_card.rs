@@ -1,8 +1,9 @@
+use shared_dtos::product::ProductBotResponse;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
-use crate::{bot::CallbackData, models::product::Product};
+use crate::bot::CallbackData;
 
-pub fn product_card_inline_keyboard(product: &Product) -> InlineKeyboardMarkup {
+pub fn product_card_inline_keyboard(product: &ProductBotResponse) -> InlineKeyboardMarkup {
     let buy_button =
         InlineKeyboardButton::callback("✅ Купить", CallbackData::Buy { id: product.id });
 

@@ -1,13 +1,11 @@
+use shared_dtos::{category::CategoryBotResponse, product::ProductBotResponse};
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
-use crate::{
-    bot::CallbackData,
-    models::{category::Category, product::Product},
-};
+use crate::bot::CallbackData;
 
 pub fn catalog_menu_inline_keyboard(
-    categories: &[Category],
-    products: &[Product],
+    categories: &[CategoryBotResponse],
+    products: &[ProductBotResponse],
     category_id: Option<i64>,
     parent_category_id: Option<i64>,
 ) -> InlineKeyboardMarkup {

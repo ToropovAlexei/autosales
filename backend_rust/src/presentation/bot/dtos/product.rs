@@ -1,27 +1,11 @@
 use rust_decimal::prelude::ToPrimitive;
-use serde::{Deserialize, Serialize};
-use utoipa::{ToResponse, ToSchema};
-use uuid::Uuid;
+use shared_dtos::product::ProductBotResponse;
 
-use crate::{models::product::ProductType, services::product::Product};
+use crate::services::product::Product;
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, ToResponse)]
-pub struct ProductResponse {
-    pub id: i64,
-    pub name: String,
-    pub price: f64,
-    pub category_id: Option<i64>,
-    pub image_id: Option<Uuid>,
-    pub r#type: ProductType,
-    pub subscription_period_days: i16,
-    pub details: Option<serde_json::Value>,
-    pub fulfillment_text: Option<String>,
-    pub fulfillment_image_id: Option<Uuid>,
-}
-
-impl From<Product> for ProductResponse {
+impl From<Product> for ProductBotResponse {
     fn from(r: Product) -> Self {
-        ProductResponse {
+        ProductBotResponse {
             id: r.id,
             name: r.name,
             price: r.price.to_f64().unwrap_or_default(),

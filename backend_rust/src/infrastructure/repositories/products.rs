@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use shared_dtos::product::ProductType;
 use sqlx::{PgPool, Postgres, QueryBuilder};
 
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
     infrastructure::lib::query::{apply_filters, apply_list_query},
     models::{
         common::PaginatedResult,
-        product::{NewProduct, ProductListQuery, ProductRow, ProductType, UpdateProduct},
+        product::{NewProduct, ProductListQuery, ProductRow, UpdateProduct},
     },
 };
 
@@ -257,7 +258,7 @@ impl ProductRepositoryTrait for ProductRepository {
 mod tests {
 
     use super::*;
-    use crate::models::{common::Pagination, product::ProductType};
+    use crate::models::common::Pagination;
     use rand::Rng;
     use rust_decimal::Decimal;
     use sqlx::PgPool;

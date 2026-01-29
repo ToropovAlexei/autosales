@@ -2,7 +2,10 @@ use axum::http::{HeaderMap, HeaderValue};
 use bytes::Bytes;
 use reqwest::{header, multipart};
 use serde_json::json;
-use shared_dtos::settings::SettingsBotResponse;
+use shared_dtos::{
+    captcha::CaptchaBotResponse, category::CategoryBotResponse, order::EnrichedOrderBotResponse,
+    product::ProductBotResponse, settings::SettingsBotResponse,
+};
 use uuid::Uuid;
 
 use crate::{
@@ -10,12 +13,8 @@ use crate::{
     models::{
         ListResponse,
         bot::Bot,
-        category::Category,
-        common::CaptchaResponse,
         customer::{Customer, UpdateCustomerRequest},
-        order::OrderResponse,
         payment::{PaymentGateway, PaymentInvoiceResponse, PaymentSystem},
-        product::Product,
         purchase::PurchaseResponse,
         user_subscription::UserSubscription,
     },
@@ -158,15 +157,17 @@ impl BackendApi {
     pub async fn get_user_orders(
         &self,
         telegram_id: i64,
-    ) -> ApiClientResult<ListResponse<OrderResponse>> {
+    ) -> ApiClientResult<ListResponse<EnrichedOrderBotResponse>> {
         self.api_client
-            .get::<ListResponse<OrderResponse>>(&format!("bot/customers/{telegram_id}/orders"))
+            .get::<ListResponse<EnrichedOrderBotResponse>>(&format!(
+                "bot/customers/{telegram_id}/orders"
+            ))
             .await
     }
 
-    pub async fn get_order(&self, id: i64) -> ApiClientResult<OrderResponse> {
+    pub async fn get_order(&self, id: i64) -> ApiClientResult<EnrichedOrderBotResponse> {
         self.api_client
-            .get::<OrderResponse>(&format!("bot/orders/{id}"))
+            .get::<EnrichedOrderBotResponse>(&format!("bot/orders/{id}"))
             .await
     }
 
@@ -181,15 +182,18 @@ impl BackendApi {
             .await
     }
 
-    pub async fn get_categories(&self) -> ApiClientResult<ListResponse<Category>> {
+    pub async fn get_categories(&self) -> ApiClientResult<ListResponse<CategoryBotResponse>> {
         self.api_client
-            .get::<ListResponse<Category>>("bot/categories")
+            .get::<ListResponse<CategoryBotResponse>>("bot/categories")
             .await
     }
 
-    pub async fn get_products(&self, category_id: i64) -> ApiClientResult<ListResponse<Product>> {
+    pub async fn get_products(
+        &self,
+        category_id: i64,
+    ) -> ApiClientResult<ListResponse<ProductBotResponse>> {
         self.api_client
-            .get_with_qs::<ListResponse<Product>>(
+            .get_with_qs::<ListResponse<ProductBotResponse>>(
                 "bot/products",
                 &[
                     ("filters[0][op]", "eq"),
@@ -200,9 +204,9 @@ impl BackendApi {
             .await
     }
 
-    pub async fn get_product(&self, product_id: i64) -> ApiClientResult<Product> {
+    pub async fn get_product(&self, product_id: i64) -> ApiClientResult<ProductBotResponse> {
         self.api_client
-            .get::<Product>(&format!("bot/products/{product_id}"))
+            .get::<ProductBotResponse>(&format!("bot/products/{product_id}"))
             .await
     }
 
@@ -254,8 +258,10 @@ impl BackendApi {
             .await
     }
 
-    pub async fn get_captcha(&self) -> ApiClientResult<CaptchaResponse> {
-        self.api_client.get::<CaptchaResponse>("bot/captcha").await
+    pub async fn get_captcha(&self) -> ApiClientResult<CaptchaBotResponse> {
+        self.api_client
+            .get::<CaptchaBotResponse>("bot/captcha")
+            .await
     }
 
     pub async fn update_customer_last_seen(&self, telegram_id: i64) -> ApiClientResult<()> {

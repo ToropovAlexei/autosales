@@ -6,6 +6,7 @@ use rust_decimal::{Decimal, prelude::ToPrimitive};
 use rust_decimal_macros::dec;
 use serde::Deserialize;
 use serde_json::json;
+use shared_dtos::{order::OrderStatus, product::ProductType};
 use uuid::Uuid;
 
 use crate::{
@@ -21,9 +22,8 @@ use crate::{
         },
     },
     models::{
-        order::{NewOrder, OrderStatus},
+        order::NewOrder,
         order_item::NewOrderItem,
-        product::ProductType,
         transaction::{NewTransaction, TransactionType},
         user_subscription::NewUserSubscription,
     },

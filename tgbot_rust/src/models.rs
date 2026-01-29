@@ -1,10 +1,6 @@
 pub mod bot;
-pub mod category;
-pub mod common;
 pub mod customer;
-pub mod order;
 pub mod payment;
-pub mod product;
 pub mod purchase;
 pub mod user_subscription;
 

@@ -1,4 +1,5 @@
 use rust_decimal_macros::dec;
+use shared_dtos::product::ProductType;
 use std::sync::Arc;
 #[cfg(feature = "contms-provider")]
 use tokio::time::{Duration, interval};
@@ -6,7 +7,6 @@ use tokio::time::{Duration, interval};
 #[cfg(feature = "contms-provider")]
 use crate::infrastructure::external::products::contms::ContmsProductsProviderTrait;
 use crate::infrastructure::external::products::contms::dto::ContmsProxyResponse;
-use crate::models::product::ProductType;
 use crate::services::category::CategoryServiceTrait;
 use crate::services::category::CreateCategoryCommand;
 use crate::services::product::CreateProductCommand;

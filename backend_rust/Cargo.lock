@@ -2935,6 +2935,7 @@ dependencies = [
  "ts-rs",
  "utoipa",
  "uuid",
+ "validator",
 ]
 
 [[package]]

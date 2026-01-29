@@ -1,7 +1,8 @@
-use crate::models::order::{OrderRow, OrderStatus};
+use crate::models::order::OrderRow;
 use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
+use shared_dtos::order::OrderStatus;
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
 
