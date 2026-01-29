@@ -1,25 +1,11 @@
-use serde::{Deserialize, Serialize};
-use utoipa::{ToResponse, ToSchema};
-use validator::Validate;
+use shared_dtos::bot::BotBotResponse;
 
 use crate::models::bot::BotRow;
 use rust_decimal::prelude::ToPrimitive;
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, ToResponse)]
-#[schema(as = bot::BotResponse)]
-pub struct BotResponse {
-    pub id: i64,
-    pub token: String,
-    pub username: String,
-    pub is_active: bool,
-    pub is_primary: bool,
-    pub referral_percentage: f64,
-    pub owner_id: Option<i64>,
-}
-
-impl From<BotRow> for BotResponse {
+impl From<BotRow> for BotBotResponse {
     fn from(r: BotRow) -> Self {
-        BotResponse {
+        BotBotResponse {
             id: r.id,
             token: r.token,
             username: r.username,
@@ -29,19 +15,4 @@ impl From<BotRow> for BotResponse {
             owner_id: r.owner_id,
         }
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema, ToResponse)]
-#[schema(as = bot::NewBotRequest)]
-pub struct NewBotRequest {
-    #[validate(length(min = 44, max = 48, message = "Length must be between 44 and 48"))]
-    pub token: String,
-    pub owner_id: i64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema, ToResponse)]
-#[schema(as = bot::UpdateBotRequest)]
-pub struct UpdateBotRequest {
-    pub is_active: Option<bool>,
-    pub is_primary: Option<bool>,
 }

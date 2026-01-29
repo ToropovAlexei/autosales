@@ -1,4 +1,3 @@
-pub mod bot;
 pub mod customer;
 
 use serde::{Deserialize, Serialize};

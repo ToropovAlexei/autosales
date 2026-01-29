@@ -3,6 +3,7 @@ use bytes::Bytes;
 use reqwest::{header, multipart};
 use serde_json::json;
 use shared_dtos::{
+    bot::BotBotResponse,
     captcha::CaptchaBotResponse,
     category::CategoryBotResponse,
     customer::CustomerBotResponse,
@@ -16,7 +17,7 @@ use uuid::Uuid;
 
 use crate::{
     api::{api_client::ApiClient, api_errors::ApiClientResult},
-    models::{ListResponse, bot::Bot, customer::UpdateCustomerRequest},
+    models::{ListResponse, customer::UpdateCustomerRequest},
 };
 
 pub struct BackendApi {
@@ -235,31 +236,35 @@ impl BackendApi {
             .await
     }
 
-    pub async fn get_bots(&self) -> ApiClientResult<ListResponse<Bot>> {
+    pub async fn get_bots(&self) -> ApiClientResult<ListResponse<BotBotResponse>> {
         self.api_client
             // TODO Filters
-            .get::<ListResponse<Bot>>("bot/bots")
+            .get::<ListResponse<BotBotResponse>>("bot/bots")
             .await
     }
 
-    pub async fn get_primary_bots(&self) -> ApiClientResult<ListResponse<Bot>> {
+    pub async fn get_primary_bots(&self) -> ApiClientResult<ListResponse<BotBotResponse>> {
         self.api_client
-            .get::<ListResponse<Bot>>("bot/bots/primary")
+            .get::<ListResponse<BotBotResponse>>("bot/bots/primary")
             .await
     }
 
-    pub async fn create_referral_bot(&self, telegram_id: i64, token: &str) -> ApiClientResult<Bot> {
+    pub async fn create_referral_bot(
+        &self,
+        telegram_id: i64,
+        token: &str,
+    ) -> ApiClientResult<BotBotResponse> {
         self.api_client
-            .post_with_body::<Bot, _>(
+            .post_with_body::<BotBotResponse, _>(
                 "bot/bots",
                 &json!({"owner_id": telegram_id, "token": token}),
             )
             .await
     }
 
-    pub async fn create_main_bot(&self, token: &str) -> ApiClientResult<Bot> {
+    pub async fn create_main_bot(&self, token: &str) -> ApiClientResult<BotBotResponse> {
         self.api_client
-            .post_with_body::<Bot, _>("bot/bots", &json!({"token": token}))
+            .post_with_body::<BotBotResponse, _>("bot/bots", &json!({"token": token}))
             .await
     }
 

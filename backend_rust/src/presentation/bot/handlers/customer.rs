@@ -6,7 +6,8 @@ use axum::{
     routing::{get, post},
 };
 use shared_dtos::{
-    customer::CustomerBotResponse, invoice::PaymentInvoiceBotResponse,
+    customer::{CustomerBotResponse, NewCustomerBotRequest, UpdateCustomerBotRequest},
+    invoice::PaymentInvoiceBotResponse,
     order::EnrichedOrderBotResponse,
 };
 
@@ -14,10 +15,7 @@ use crate::{
     errors::api::ApiResult,
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson},
     models::customer::NewCustomer,
-    presentation::{
-        admin::dtos::list_response::ListResponse,
-        bot::dtos::customer::{NewCustomerRequest, UpdateCustomerRequest},
-    },
+    presentation::admin::dtos::list_response::ListResponse,
     services::{
         customer::{CustomerServiceTrait, UpdateCustomerCommand},
         order::OrderServiceTrait,
@@ -74,7 +72,7 @@ async fn get_customer(
 async fn create_customer(
     State(state): State<Arc<AppState>>,
     bot: AuthBot,
-    ValidatedJson(payload): ValidatedJson<NewCustomerRequest>,
+    ValidatedJson(payload): ValidatedJson<NewCustomerBotRequest>,
 ) -> ApiResult<Json<CustomerBotResponse>> {
     let customer = state
         .customer_service
@@ -101,7 +99,7 @@ async fn update_customer(
     State(state): State<Arc<AppState>>,
     Path(telegram_id): Path<i64>,
     _bot: AuthBot,
-    ValidatedJson(payload): ValidatedJson<UpdateCustomerRequest>,
+    ValidatedJson(payload): ValidatedJson<UpdateCustomerBotRequest>,
 ) -> ApiResult<Json<CustomerBotResponse>> {
     let prev = state
         .customer_service
