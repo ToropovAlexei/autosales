@@ -1,0 +1,61 @@
+# Development Setup
+
+## Docker Compose (recommended)
+
+1. Create a root `.env` (Docker Compose reads it automatically). Use `backend_rust/.env` as a starting point and adjust secrets/URLs.
+2. Start services:
+
+```bash
+docker compose up -d db redis captcha_service mock_gateway
+```
+
+3. Start the app stack:
+
+```bash
+docker compose up -d backend frontend bot
+```
+
+Notes:
+- `backend_rust` container runs DB migrations on startup, initializes the admin user/bots, and optionally seeds data when `SEED_DB=1|true`.
+- `frontend` is built with `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_IMAGES_URL` build args.
+- `bot` expects a public `WEBHOOK_HOST`/`WEBHOOK_PORT` and a `BACKEND_API_URL` that ends with `/`.
+
+## Local (without Docker)
+
+### Backend
+
+```bash
+cd backend_rust
+cargo run
+```
+
+- In debug builds, migrations run on startup.
+- `backend_rust/src/bin/init.rs` bootstraps admin user, roles, and bots.
+- `backend_rust/src/bin/seed.rs` seeds demo categories/products and an `admin_dev` user.
+
+### Telegram bot
+
+```bash
+cd tgbot_rust
+cargo run
+```
+
+- Requires Redis and a reachable backend API (`BACKEND_API_URL` must end with `/`).
+- The webhook server listens on `WEBHOOK_HOST:WEBHOOK_PORT` and exposes `/webhook/dispatch-message`.
+
+### Frontend (admin panel)
+
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
+
+## Common environment variables
+
+- Database: `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME`
+- Redis: `REDIS_HOST`, `REDIS_PORT`
+- Backend: `BACKEND_PORT`, `CORS_ORIGINS`, `SERVICE_API_KEY`, `IMAGE_UPLOAD_PATH`
+- Payments: `PLATFORM_PAYMENT_SYSTEM_*`, optional `MOCK_PAYMENTS_PROVIDER_URL`
+- Bot: `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `BACKEND_API_URL`, `WEBHOOK_HOST`, `WEBHOOK_PORT`
+- Frontend: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_IMAGES_URL`
