@@ -11,12 +11,23 @@ openapi = ["dep:utoipa"]
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
-sqlx = { version = "0.8.6", optional = true, default-features = false, features = [
+sqlx = { version = "0.8", optional = true, default-features = false, features = [
     "postgres",
     "uuid",
     "chrono",
     "rust_decimal",
     "macros",
 ] }
-ts-rs = { version = "11", optional = true }
-utoipa = { version = "5", optional = true }
+ts-rs = { version = "11", optional = true, features = [
+    "uuid-impl",
+    "chrono-impl",
+    "serde-json-impl",
+    "bigdecimal-impl",
+] }
+utoipa = { version = "5", optional = true, features = [
+    "uuid",
+    "chrono",
+    "decimal",
+] }
+chrono = { version = "0.4", features = ["serde"] }
+serde_json = "1"

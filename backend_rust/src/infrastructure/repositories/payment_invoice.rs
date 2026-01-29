@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use shared_dtos::InvoiceStatus;
+use shared_dtos::invoice::InvoiceStatus;
 use sqlx::{PgPool, Postgres, QueryBuilder};
 use uuid::Uuid;
 

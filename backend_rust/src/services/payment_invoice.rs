@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal_macros::dec;
-use shared_dtos::InvoiceStatus;
+use shared_dtos::invoice::InvoiceStatus;
 use uuid::Uuid;
 
 use crate::{

@@ -1,11 +1,11 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use shared_dtos::invoice::InvoiceStatus;
 use sqlx::prelude::FromRow;
 use utoipa::ToSchema;
 
 use crate::{define_list_query, models::payment::PaymentSystem};
-use shared_dtos::InvoiceStatus;
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
 pub enum PaymentDetails {

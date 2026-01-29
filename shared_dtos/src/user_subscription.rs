@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 
 #[derive(Debug, Clone, Serialize)]
-pub struct UserSubscriptionResponse {
+pub struct UserSubscriptionBotResponse {
     pub id: i64,
     pub customer_id: i64,
     pub product_id: Option<i64>,

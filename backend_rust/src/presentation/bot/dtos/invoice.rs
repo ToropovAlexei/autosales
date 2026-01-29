@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
-use shared_dtos::InvoiceStatus;
+use shared_dtos::invoice::InvoiceStatus;
 use utoipa::ToSchema;
 use validator::Validate;
 

@@ -1,6 +1,6 @@
 use chrono::Utc;
 use rust_decimal::prelude::ToPrimitive;
-use shared_dtos::InvoiceStatus;
+use shared_dtos::invoice::InvoiceStatus;
 use std::{
     collections::{HashMap, HashSet},
     sync::Arc,

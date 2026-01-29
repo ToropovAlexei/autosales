@@ -9,8 +9,9 @@ use crate::{
         utils::{MsgBy, edit_msg},
     },
     errors::AppResult,
-    models::payment::{InvoiceStatus, PaymentInvoiceResponse},
+    models::payment::PaymentInvoiceResponse,
 };
+use shared_dtos::invoice::InvoiceStatus;
 use std::sync::Arc;
 use teloxide::{
     prelude::Bot,
