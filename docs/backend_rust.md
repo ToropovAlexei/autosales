@@ -25,6 +25,12 @@ OpenAPI is available at `/swagger-ui` and `/openapi.json`.
 - Admin auth is 2-step (login + TOTP) and uses `Authorization: Bearer <uuid>` access tokens stored in DB.
 - Bot auth uses `X-API-KEY` (service key) + `X-BOT-ID`.
 
+## Subscriptions (Contms)
+
+- Subscription products are created/synced by the Contms worker; access details are provider-owned.
+- On purchase, a subscription is created with access credentials and returned to the bot.
+- `order_items.quantity` is required to be `> 0` by DB constraint.
+
 ## Background workers
 
 - Pending payments polling
@@ -36,6 +42,7 @@ OpenAPI is available at `/swagger-ui` and `/openapi.json`.
 Loaded from environment via `Config::from_env()` in `backend_rust/src/config.rs`.
 
 Required:
+
 - `BACKEND_PORT`
 - `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME`
 - `REDIS_HOST`, `REDIS_PORT`
@@ -50,6 +57,7 @@ Required:
 - `PLATFORM_PAYMENT_SYSTEM_BASE_URL`, `PLATFORM_PAYMENT_SYSTEM_LOGIN`, `PLATFORM_PAYMENT_SYSTEM_PASSWORD`, `PLATFORM_PAYMENT_SYSTEM_2FA_KEY`
 
 Feature-gated:
+
 - `CONTMS_API_URL` (`contms-provider` feature)
 - `MOCK_PAYMENTS_PROVIDER_URL` (`mock-payments-provider` feature)
 

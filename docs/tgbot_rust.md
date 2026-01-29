@@ -13,6 +13,7 @@ Telegram bot service that talks to the bot API in `backend_rust`, stores dialogu
 Loaded via `Config::from_env()` in `tgbot_rust/src/config.rs`.
 
 Required:
+
 - `SERVICE_API_KEY` - shared service key (same value as backend)
 - `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`
 - `REDIS_HOST`, `REDIS_PORT`
@@ -27,3 +28,4 @@ Required:
 - The bot starts an Axum server for webhook delivery and runs bot polling logic in a separate task.
 - Notifications are pushed from the backend to `BOT_DISPATCHER_WEBHOOK_URL`.
 - Dialogue state and user flow state are persisted in Redis.
+- Subscription purchases return access details (host/port/login/password) which are rendered in the bot UI.

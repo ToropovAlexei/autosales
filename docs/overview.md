@@ -15,6 +15,12 @@
 3. Payments are created as invoices; background workers track status and trigger notifications.
 4. Notifications are published to Redis; `tgbot_rust` picks them up and sends Telegram messages.
 
+## Subscriptions (Contms)
+
+- Subscription products are provisioned via the Contms provider.
+- Access credentials are returned to the bot and shown to the user after purchase.
+- Product details for subscriptions are provider-owned (not managed in admin UI).
+
 ## Key HTTP surfaces
 
 - `backend_rust`:
