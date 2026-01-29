@@ -1,3 +1,4 @@
+use shared_dtos::settings::SettingsBotResponse;
 use std::sync::Arc;
 use tokio::signal;
 use utoipa::OpenApi;
@@ -62,7 +63,6 @@ use backend_rust::{
                     NewPaymentInvoiceRequest, PaymentInvoiceResponse, UpdatePaymentInvoiceRequest,
                 },
                 order::{EnrichedOrderResponse, OrderItemResponse, PurchaseResponse},
-                settings::SettingsResponse,
             },
             handlers as bot_handlers,
         },
@@ -222,7 +222,7 @@ use backend_rust::{
         EnrichedOrderResponse,
         OrderItemResponse,
         PurchaseResponse,
-        SettingsResponse,
+        SettingsBotResponse,
     ))
 )]
 struct ApiDoc;

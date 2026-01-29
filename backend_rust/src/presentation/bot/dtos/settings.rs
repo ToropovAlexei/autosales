@@ -1,31 +1,10 @@
-use rust_decimal::prelude::ToPrimitive;
-use serde::Serialize;
-use utoipa::ToSchema;
-use uuid::Uuid;
-
 use crate::models::settings::Settings;
+use rust_decimal::prelude::ToPrimitive;
+use shared_dtos::settings::SettingsBotResponse;
 
-#[derive(Debug, Serialize, ToSchema)]
-pub struct SettingsResponse {
-    pub bot_messages_support: String,
-    pub bot_messages_support_image_id: Option<Uuid>,
-    pub bot_messages_new_user_welcome: String,
-    pub bot_messages_new_user_welcome_image_id: Option<Uuid>,
-    pub bot_messages_returning_user_welcome: String,
-    pub bot_messages_returning_user_welcome_image_id: Option<Uuid>,
-    pub pricing_global_markup: f64,
-    pub pricing_platform_commission: f64,
-    pub pricing_gateway_markup: f64,
-    pub pricing_gateway_bonus_mock_provider: f64,
-    pub pricing_gateway_bonus_platform_card: f64,
-    pub pricing_gateway_bonus_platform_sbp: f64,
-    pub referral_program_enabled: bool,
-    pub referral_percentage: f64,
-}
-
-impl From<Settings> for SettingsResponse {
+impl From<Settings> for SettingsBotResponse {
     fn from(r: Settings) -> Self {
-        SettingsResponse {
+        SettingsBotResponse {
             bot_messages_support: r.bot_messages_support,
             bot_messages_support_image_id: r.bot_messages_support_image_id,
             bot_messages_new_user_welcome: r.bot_messages_new_user_welcome,

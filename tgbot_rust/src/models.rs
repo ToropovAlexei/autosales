@@ -6,7 +6,6 @@ pub mod order;
 pub mod payment;
 pub mod product;
 pub mod purchase;
-pub mod settings;
 pub mod user_subscription;
 
 use serde::{Deserialize, Serialize};

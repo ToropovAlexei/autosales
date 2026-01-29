@@ -2,6 +2,7 @@ use axum::http::{HeaderMap, HeaderValue};
 use bytes::Bytes;
 use reqwest::{header, multipart};
 use serde_json::json;
+use shared_dtos::settings::SettingsBotResponse;
 use uuid::Uuid;
 
 use crate::{
@@ -16,7 +17,6 @@ use crate::{
         payment::{PaymentGateway, PaymentInvoiceResponse, PaymentSystem},
         product::Product,
         purchase::PurchaseResponse,
-        settings::Settings,
         user_subscription::UserSubscription,
     },
 };
@@ -70,8 +70,11 @@ impl BackendApi {
             .await
     }
 
-    pub async fn get_settings(&self) -> ApiClientResult<Settings> {
-        let res = self.api_client.get::<Settings>("bot/settings").await?;
+    pub async fn get_settings(&self) -> ApiClientResult<SettingsBotResponse> {
+        let res = self
+            .api_client
+            .get::<SettingsBotResponse>("bot/settings")
+            .await?;
         Ok(res)
     }
 

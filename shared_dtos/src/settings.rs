@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Settings {
+pub struct SettingsBotResponse {
     pub bot_messages_support: String,
     pub bot_messages_support_image_id: Option<Uuid>,
     pub bot_messages_new_user_welcome: String,

@@ -1,16 +1,14 @@
+use shared_dtos::settings::SettingsBotResponse;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
 use crate::{
     bot::CallbackData,
-    models::{
-        payment::{PaymentGateway, PaymentSystem},
-        settings::Settings,
-    },
+    models::payment::{PaymentGateway, PaymentSystem},
 };
 
 pub fn payment_gateways_menu(
     gateways: Vec<PaymentGateway>,
-    public_settings: &Settings,
+    public_settings: &SettingsBotResponse,
 ) -> InlineKeyboardMarkup {
     let mut buttons = Vec::new();
     // TODO Instructions must be in settings
