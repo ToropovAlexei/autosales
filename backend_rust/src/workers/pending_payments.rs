@@ -194,7 +194,16 @@ async fn notify_pending_payments(
     let invoices_to_notify_about_troubles = pending_invoices
         .iter()
         .filter(|i| {
-            i.notification_sent_at.is_none()
+            let last_notification_sent_at = match i.notification_sent_at {
+                None => i.created_at,
+                Some(notification_sent_at) => notification_sent_at,
+            };
+            // TODO Should be configurable. Not just 5 mins
+            let is_notification_required =
+                last_notification_sent_at + Duration::from_mins(5) < Utc::now();
+            let is_pending_expired = i.created_at + Duration::from_mins(30) < Utc::now();
+            is_notification_required
+                && !is_pending_expired
                 && i.status == InvoiceStatus::Pending
                 && polled_statuses
                     .get(&i.id)
@@ -215,6 +224,7 @@ async fn notify_pending_payments(
                 message: DispatchMessage::InvoiceTroublesNotification {
                     invoice_id: invoice.id,
                     amount: invoice.original_amount.to_f64().unwrap_or_default(),
+                    expired_at: invoice.created_at + Duration::from_mins(30), // TODO should be configurable.
                 },
                 telegram_id: customer.telegram_id,
                 bot_id: customer.last_seen_with_bot,

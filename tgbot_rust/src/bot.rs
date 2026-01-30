@@ -2,6 +2,7 @@ use std::{result::Result::Ok, sync::Arc, time::Duration};
 
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use bytes::Bytes;
+use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use shared_dtos::{
     customer::UpdateCustomerBotRequest,
@@ -631,29 +632,37 @@ async fn handle_msg(
             image_id.map(MessageImage::Uuid),
             back_to_main_menu_inline_keyboard(),
         ),
-        DispatchMessage::InvoiceTroublesNotification { amount, invoice_id } => (
-            // TODO Should be notification every 5 minutes
-            format!(
-                "Вы недавно пытались пополнить баланс на {amount} ₽. Возникли ли у вас какие-либо проблемы с оплатой?\n\
-                У вас осталось WIP минут на оплату"
-            ),
-            None,
-            InlineKeyboardMarkup::new(vec![
-                vec![InlineKeyboardButton::callback(
-                    "Оплатил",
-                    CallbackData::ConfirmPayment { id: invoice_id },
-                )],
-                vec![InlineKeyboardButton::callback(
-                    "Отменить платеж",
-                    CallbackData::CancelPayment { id: invoice_id },
-                )],
-                vec![InlineKeyboardButton::url(
-                    "Связаться с поддержкой",
-                    // TODO Should be in config
-                    Url::parse("https://t.me/erttreew")?,
-                )],
-            ]),
-        ),
+        DispatchMessage::InvoiceTroublesNotification {
+            amount,
+            invoice_id,
+            expired_at,
+        } => {
+            let seconds_left = (expired_at - Utc::now()).num_seconds().max(0);
+            let minutes_left = (seconds_left as f64 / 60.0).ceil() as i64;
+            let rounded_up_to_5 = ((minutes_left + 4) / 5) * 5;
+            (
+                format!(
+                    "Вы недавно пытались пополнить баланс на {amount} ₽. Возникли ли у вас какие-либо проблемы с оплатой?\n\
+                У вас осталось {rounded_up_to_5} минут на оплату"
+                ),
+                None,
+                InlineKeyboardMarkup::new(vec![
+                    vec![InlineKeyboardButton::callback(
+                        "Оплатил",
+                        CallbackData::ConfirmPayment { id: invoice_id },
+                    )],
+                    vec![InlineKeyboardButton::callback(
+                        "Отменить платеж",
+                        CallbackData::CancelPayment { id: invoice_id },
+                    )],
+                    vec![InlineKeyboardButton::url(
+                        "Связаться с поддержкой",
+                        // TODO Should be in config
+                        Url::parse("https://t.me/erttreew")?,
+                    )],
+                ]),
+            )
+        }
         DispatchMessage::RequestReceiptNotification { invoice_id } => {
             dialogue
                 .update(BotState {
