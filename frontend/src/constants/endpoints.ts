@@ -29,6 +29,7 @@ export const ENDPOINTS = {
   PRODUCTS_UPLOAD_CSV: "products/upload",
   STORE_BALANCE: "store-balance",
   ORDERS: "orders",
+  DEV_RESET_DATA: "dev/reset-data",
 };
 
 export const ENDPOINT_UPDATE_PUT_EXCEPTIONS = new Set<string>([
