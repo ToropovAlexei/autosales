@@ -90,7 +90,9 @@ pub async fn deposit_confirm_handler(
                  <b>Номер карты:</b> {}\n\
                  <b>Получатель:</b> {}\n\
                  <b>Сумма:</b> {} ₽\n\n\
-                 После оплаты, пожалуйста, подождите. Статус платежа обновится автоматически в течение нескольких минут.",
+                 На оплату дается 30 минут!\n\
+                 В случае, если вы не оплатите в течении 30 минут, платеж не будет зачислен!\n\
+                 После оплаты ОБЯЗАТЕЛЬНО НАЖМИТЕ \"Оплатил\"",
                 bank_name, card_number, account_name, amount
             ),
             PaymentDetails::PlatformSBP {
@@ -104,7 +106,9 @@ pub async fn deposit_confirm_handler(
                  <b>Номер СБП:</b> {}\n\
                  <b>Получатель:</b> {}\n\
                  <b>Сумма:</b> {} ₽\n\n\
-                 После оплаты, пожалуйста, подождите. Статус платежа обновится автоматически в течение нескольких минут.",
+                 На оплату дается 30 минут!\n\
+                 В случае, если вы не оплатите в течении 30 минут, платеж не будет зачислен!\n\
+                 После оплаты ОБЯЗАТЕЛЬНО НАЖМИТЕ \"Оплатил\"",
                 bank_name, sbp_number, account_name, amount
             ),
         },
@@ -121,7 +125,7 @@ pub async fn deposit_confirm_handler(
             }
             PaymentDetails::PlatformCard { .. } | PaymentDetails::PlatformSBP { .. } => {
                 keyboard.push(vec![InlineKeyboardButton::callback(
-                    "Я все оплатил",
+                    "Оплатил",
                     CallbackData::ConfirmPayment {
                         id: invoice_data.id,
                     },

@@ -14,7 +14,9 @@ pub async fn confirm_invoice_handler(
     invoice_id: i64,
 ) -> AppResult<()> {
     let msg = match api_client.confirm_invoice(invoice_id).await {
-        Ok(_) => "Ваш платеж подтверждается, пожалуйста, подождите.",
+        Ok(_) => {
+            "Проверяем поступление платежа, пожалуйста, подождите.\nМаксимальное время ожидания 10 минут"
+        }
         Err(_) => "Не удалось подтвердить платеж. Попробуйте позже.",
     };
 
