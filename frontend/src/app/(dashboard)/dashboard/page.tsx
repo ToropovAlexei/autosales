@@ -15,8 +15,9 @@ import { TopProductsTable } from "./components/TopProductsTable";
 import { SalesByCategoryChart } from "./components/SalesByCategoryChart";
 import classes from "./styles.module.css";
 import clsx from "clsx";
-import { IProduct } from "@/types";
 import { PageLayout } from "@/components/PageLayout";
+import { CardSkeleton } from "./CardSkeleton";
+import { Product } from "@/types";
 
 interface TimeSeriesDataPoint {
   date: string;
@@ -60,7 +61,7 @@ export default function DashboardPage() {
     });
 
   const { data: topProducts, isPending: isTopProductsPending } = useOne<
-    IProduct[]
+    Product[]
   >({
     endpoint: ENDPOINTS.DASHBOARD_TOP_PRODUCTS,
   });
@@ -97,7 +98,7 @@ export default function DashboardPage() {
       <PageLayout title="Дашборд">
         <div className={classes.grid}>
           {isOverviewPending ? (
-            <p>Загрузка...</p>
+            <CardSkeleton />
           ) : (
             <StatCard
               title="Всего пользователей"
@@ -107,13 +108,13 @@ export default function DashboardPage() {
               data={timeSeriesData?.users_chart?.map((d) => d.value) || []}
               xAxisData={
                 timeSeriesData?.users_chart?.map((d) =>
-                  dayjs(d.date).format("DD.MM")
+                  dayjs(d.date).format("DD.MM"),
                 ) || []
               }
             />
           )}
           {isOverviewPending ? (
-            <p>Загрузка...</p>
+            <CardSkeleton />
           ) : (
             <StatCard
               title="Пользователи с покупками"
@@ -122,18 +123,18 @@ export default function DashboardPage() {
               trend="neutral"
               data={
                 timeSeriesData?.users_with_purchases_chart?.map(
-                  (d) => d.value
+                  (d) => d.value,
                 ) || []
               }
               xAxisData={
                 timeSeriesData?.users_with_purchases_chart?.map((d) =>
-                  dayjs(d.date).format("DD.MM")
+                  dayjs(d.date).format("DD.MM"),
                 ) || []
               }
             />
           )}
           {isOverviewPending ? (
-            <p>Загрузка...</p>
+            <CardSkeleton />
           ) : (
             <StatCard
               title="Доступно товаров"
@@ -148,7 +149,7 @@ export default function DashboardPage() {
 
         <div className={classes.grid} style={{ marginTop: "24px" }}>
           {isOverviewPending ? (
-            <p>Загрузка...</p>
+            <CardSkeleton />
           ) : (
             <StatCard
               title="Новые пользователи"
@@ -163,13 +164,13 @@ export default function DashboardPage() {
               data={timeSeriesData?.users_chart?.map((d) => d.value) || []}
               xAxisData={
                 timeSeriesData?.users_chart?.map((d) =>
-                  dayjs(d.date).format("DD.MM")
+                  dayjs(d.date).format("DD.MM"),
                 ) || []
               }
             />
           )}
           {isOverviewPending ? (
-            <p>Загрузка...</p>
+            <CardSkeleton />
           ) : (
             <StatCard
               title="Пользователи с покупками (30 дней)"
@@ -183,22 +184,22 @@ export default function DashboardPage() {
                 .endOf("day")
                 .format("DD.MM.YYYY")}`}
               trend={getTrend(
-                overview?.users_with_purchases_30_days.trend || 0
+                overview?.users_with_purchases_30_days.trend || 0,
               )}
               data={
                 timeSeriesData?.users_with_purchases_chart?.map(
-                  (d) => d.value
+                  (d) => d.value,
                 ) || []
               }
               xAxisData={
                 timeSeriesData?.users_with_purchases_chart?.map((d) =>
-                  dayjs(d.date).format("DD.MM")
+                  dayjs(d.date).format("DD.MM"),
                 ) || []
               }
             />
           )}
           {isOverviewPending ? (
-            <p>Загрузка...</p>
+            <CardSkeleton />
           ) : (
             <StatCard
               title="Продано товаров (30 дней)"
@@ -213,7 +214,7 @@ export default function DashboardPage() {
               data={timeSeriesData?.sales_chart?.map((d) => d.value) || []}
               xAxisData={
                 timeSeriesData?.sales_chart?.map((d) =>
-                  dayjs(d.date).format("DD.MM")
+                  dayjs(d.date).format("DD.MM"),
                 ) || []
               }
             />
@@ -239,13 +240,13 @@ export default function DashboardPage() {
                 title="Продано товаров"
                 value={timeSeriesData.sales.products_sold.toString()}
                 interval={`с ${dayjs(start_date).format(
-                  "DD.MM.YYYY"
+                  "DD.MM.YYYY",
                 )} по ${dayjs(end_date).format("DD.MM.YYYY")}`}
                 trend="neutral"
                 data={timeSeriesData?.sales_chart?.map((d) => d.value) || []}
                 xAxisData={
                   timeSeriesData?.sales_chart?.map((d) =>
-                    dayjs(d.date).format("DD.MM")
+                    dayjs(d.date).format("DD.MM"),
                   ) || []
                 }
               />
@@ -253,13 +254,13 @@ export default function DashboardPage() {
                 title="Общий доход"
                 value={`${timeSeriesData.sales.total_revenue.toFixed(2)} ₽`}
                 interval={`с ${dayjs(start_date).format(
-                  "DD.MM.YYYY"
+                  "DD.MM.YYYY",
                 )} по ${dayjs(end_date).format("DD.MM.YYYY")}`}
                 trend="neutral"
                 data={timeSeriesData?.revenue_chart?.map((d) => d.value) || []}
                 xAxisData={
                   timeSeriesData?.revenue_chart?.map((d) =>
-                    dayjs(d.date).format("DD.MM")
+                    dayjs(d.date).format("DD.MM"),
                   ) || []
                 }
               />
@@ -274,12 +275,12 @@ export default function DashboardPage() {
             <SessionsChart
               title="Продажи"
               subtitle={`за период с ${dayjs(start_date).format(
-                "DD.MM.YYYY"
+                "DD.MM.YYYY",
               )} по ${dayjs(end_date).format("DD.MM.YYYY")}`}
               data={timeSeriesData?.sales_chart?.map((d) => d.value) || []}
               labels={
                 timeSeriesData?.sales_chart?.map((d) =>
-                  dayjs(d.date).format("DD.MM")
+                  dayjs(d.date).format("DD.MM"),
                 ) || []
               }
             />
@@ -290,12 +291,12 @@ export default function DashboardPage() {
             <PageViewsBarChart
               title="Новые пользователи"
               subtitle={`за период с ${dayjs(start_date).format(
-                "DD.MM.YYYY"
+                "DD.MM.YYYY",
               )} по ${dayjs(end_date).format("DD.MM.YYYY")}`}
               data={timeSeriesData?.users_chart?.map((d) => d.value) || []}
               labels={
                 timeSeriesData?.users_chart?.map((d) =>
-                  dayjs(d.date).format("DD.MM")
+                  dayjs(d.date).format("DD.MM"),
                 ) || []
               }
             />

@@ -10,6 +10,8 @@ import { ruRU } from "@mui/x-data-grid/locales";
 import { AuditLog } from "@/types";
 import * as jsondiffpatch from "jsondiffpatch";
 import * as formatters from "jsondiffpatch/formatters/console";
+import { AUDIT_ACTIONS_TRANSLATIONS } from "@/constants/audit_log";
+import { STATUS_TRANSLATIONS } from "./constants";
 
 interface AuditLogTableProps {
   logs: AuditLog[];
@@ -39,6 +41,7 @@ export const AuditLogTable = ({
     {
       field: "action",
       headerName: "Действие",
+      valueFormatter: (value) => AUDIT_ACTIONS_TRANSLATIONS[value] || value,
       width: 200,
       sortable: false,
     },
@@ -59,7 +62,13 @@ export const AuditLogTable = ({
         formatters.format(jsondiffpatch.diff(row.old_values, row.new_values)),
       sortable: false,
     },
-    { field: "status", headerName: "Статус", width: 110, sortable: false },
+    {
+      field: "status",
+      headerName: "Статус",
+      width: 110,
+      sortable: false,
+      valueFormatter: (value) => STATUS_TRANSLATIONS[value] || value,
+    },
     {
       field: "created_at",
       headerName: "Дата",
