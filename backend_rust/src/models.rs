@@ -8,6 +8,7 @@ pub mod broadcast;
 pub mod category;
 pub mod common;
 pub mod customer;
+pub mod dashboard;
 pub mod image;
 pub mod order;
 pub mod order_item;

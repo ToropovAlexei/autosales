@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT DATE(created_at) as \"date!\", COUNT(*)::BIGINT as \"value!\"\n            FROM customers\n            WHERE created_at >= $1 AND created_at <= $2\n            GROUP BY DATE(created_at)\n            ORDER BY DATE(created_at)\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "date!",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 1,
+        "name": "value!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "4d2dc1b930281c2f4946b75841eb89e564aa9056efce45eac4abd2268a67835e"
+}

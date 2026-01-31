@@ -7,6 +7,7 @@ pub mod broadcast;
 pub mod captcha;
 pub mod category;
 pub mod customer;
+pub mod dashboard;
 pub mod image;
 pub mod notification_service;
 pub mod order;

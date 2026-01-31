@@ -5,6 +5,7 @@ pub mod bot;
 pub mod broadcast;
 pub mod category;
 pub mod customer;
+pub mod dashboard;
 pub mod dev;
 pub mod image;
 pub mod me;

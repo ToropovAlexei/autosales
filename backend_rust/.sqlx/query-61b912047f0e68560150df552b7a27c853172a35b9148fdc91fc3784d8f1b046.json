@@ -1,0 +1,29 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT DATE(created_at) as \"date!\", COUNT(DISTINCT customer_id)::BIGINT as \"value!\"\n            FROM orders\n            WHERE created_at >= $1 AND created_at <= $2\n            GROUP BY DATE(created_at)\n            ORDER BY DATE(created_at)\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "date!",
+        "type_info": "Date"
+      },
+      {
+        "ordinal": 1,
+        "name": "value!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": [
+      null,
+      null
+    ]
+  },
+  "hash": "61b912047f0e68560150df552b7a27c853172a35b9148fdc91fc3784d8f1b046"
+}

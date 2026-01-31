@@ -17,8 +17,9 @@ use crate::{
             active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
             analytics::AnalyticsRepository, audit_log::AuditLogRepository, bot::BotRepository,
             broadcast::BroadcastRepository, category::CategoryRepository,
-            customer::CustomerRepository, effective_permission::EffectivePermissionRepository,
-            image::ImageRepository, order::OrderRepository, order_item::OrderItemRepository,
+            customer::CustomerRepository, dashboard::DashboardRepository,
+            effective_permission::EffectivePermissionRepository, image::ImageRepository,
+            order::OrderRepository, order_item::OrderItemRepository,
             payment_invoice::PaymentInvoiceRepository, permission::PermissionRepository,
             products::ProductRepository, role::RoleRepository,
             role_permission::RolePermissionRepository, settings::SettingsRepository,
@@ -37,6 +38,7 @@ use crate::{
         captcha::CaptchaService,
         category::CategoryService,
         customer::CustomerService,
+        dashboard::DashboardService,
         image::ImageService,
         notification_service::NotificationService,
         order::OrderService,
@@ -146,6 +148,7 @@ pub struct AppState {
     pub mock_payments_provider: Arc<MockPaymentsProvider>,
     pub platform_payments_provider: Arc<AutosalesPlatformPaymentsProvider>,
     pub analytics_service: Arc<AnalyticsService<AnalyticsRepository>>,
+    pub dashboard_service: Arc<DashboardService<DashboardRepository>>,
 }
 
 impl AppState {
@@ -315,6 +318,9 @@ impl AppState {
         let analytics_service = Arc::new(AnalyticsService::new(Arc::new(
             AnalyticsRepository::new(db_pool.clone()),
         )));
+        let dashboard_service = Arc::new(DashboardService::new(Arc::new(
+            DashboardRepository::new(db_pool.clone()),
+        )));
 
         Self {
             db,
@@ -350,6 +356,7 @@ impl AppState {
             mock_payments_provider,
             platform_payments_provider,
             analytics_service,
+            dashboard_service,
         }
     }
 }
