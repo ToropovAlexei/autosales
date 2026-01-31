@@ -199,3 +199,136 @@ impl From<CategorySalesRow> for CategorySalesResponse {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infrastructure::repositories::dashboard::DashboardRepository;
+    use chrono::Utc;
+    use rust_decimal::Decimal;
+    use sqlx::PgPool;
+
+    async fn create_customer(pool: &PgPool, telegram_id: i64, created_at: DateTime<Utc>) -> i64 {
+        let id = sqlx::query_scalar!(
+            "INSERT INTO customers (telegram_id, registered_with_bot, last_seen_with_bot) VALUES ($1, 1, 1) RETURNING id",
+            telegram_id
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap();
+
+        sqlx::query!(
+            "UPDATE customers SET created_at = $2 WHERE id = $1",
+            id,
+            created_at
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        id
+    }
+
+    async fn create_bot(pool: &PgPool, token: &str, username: &str) -> i64 {
+        sqlx::query_scalar!(
+            r#"
+            INSERT INTO bots (owner_id, token, username, type, is_active, is_primary, referral_percentage)
+            VALUES (NULL, $1, $2, 'main', true, false, 0.0)
+            RETURNING id
+            "#,
+            token,
+            username
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_product(pool: &PgPool, name: &str) -> i64 {
+        sqlx::query_scalar!(
+            r#"
+            INSERT INTO products (
+                name, base_price, category_id, image_id, stock, type,
+                subscription_period_days, details, fulfillment_text, fulfillment_image_id,
+                provider_name, external_id, created_by
+            )
+            VALUES ($1, 10.0, NULL, NULL, 5, 'item', 0, NULL, NULL, NULL, 'internal', NULL, 1)
+            RETURNING id
+            "#,
+            name
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_order(
+        pool: &PgPool,
+        customer_id: i64,
+        bot_id: i64,
+        created_at: DateTime<Utc>,
+    ) -> i64 {
+        sqlx::query_scalar!(
+            r#"
+            INSERT INTO orders (
+                customer_id, amount, currency, status, bot_id, created_at, updated_at
+            )
+            VALUES ($1, 100.0, 'RUB', 'fulfilled', $2, $3, $3)
+            RETURNING id
+            "#,
+            customer_id,
+            bot_id,
+            created_at
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_order_item(pool: &PgPool, order_id: i64, product_id: i64, qty: i16) {
+        sqlx::query!(
+            r#"
+            INSERT INTO order_items (
+                order_id, product_id, name_at_purchase, price_at_purchase, quantity,
+                fulfillment_type, fulfillment_content, fulfillment_image_id, details
+            )
+            VALUES ($1, $2, $3, $4, $5, 'text', NULL, NULL, NULL)
+            "#,
+            order_id,
+            product_id,
+            "Test Product",
+            Decimal::from(10),
+            qty
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+
+    fn build_service(pool: &PgPool) -> DashboardService<DashboardRepository> {
+        let pool = Arc::new(pool.clone());
+        DashboardService::new(Arc::new(DashboardRepository::new(pool)))
+    }
+
+    #[sqlx::test]
+    async fn test_time_series_fills_missing_dates(pool: PgPool) {
+        let service = build_service(&pool);
+        let now = Utc::now();
+        let start = now - Duration::days(2);
+        let end = now;
+
+        let customer_id = create_customer(&pool, 30001, start).await;
+        let bot_id = create_bot(&pool, "dash_svc_bot", "dash_svc_bot").await;
+        let product_id = create_product(&pool, "dash_svc_product").await;
+
+        let order_id = create_order(&pool, customer_id, bot_id, start + Duration::days(1)).await;
+        create_order_item(&pool, order_id, product_id, 3).await;
+
+        let data = service.get_time_series_data(start, end).await.unwrap();
+        assert_eq!(data.sales.products_sold, 3);
+        assert_eq!(data.sales_chart.len(), 3);
+        assert_eq!(data.users_chart.len(), 3);
+        assert_eq!(data.revenue_chart.len(), 3);
+        assert_eq!(data.users_with_purchases_chart.len(), 3);
+    }
+}

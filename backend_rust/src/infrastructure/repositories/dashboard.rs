@@ -311,3 +311,207 @@ impl DashboardRepositoryTrait for DashboardRepository {
         Ok(rows)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::str::FromStr;
+
+    use super::*;
+    use chrono::{Duration, Utc};
+    use rust_decimal::Decimal;
+    use sqlx::PgPool;
+
+    async fn create_customer(pool: &PgPool, telegram_id: i64, created_at: DateTime<Utc>) -> i64 {
+        let id = sqlx::query_scalar!(
+            "INSERT INTO customers (telegram_id, registered_with_bot, last_seen_with_bot) VALUES ($1, 1, 1) RETURNING id",
+            telegram_id
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap();
+
+        sqlx::query!(
+            "UPDATE customers SET created_at = $2 WHERE id = $1",
+            id,
+            created_at
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+
+        id
+    }
+
+    async fn create_bot(pool: &PgPool, token: &str, username: &str) -> i64 {
+        sqlx::query_scalar!(
+            r#"
+            INSERT INTO bots (owner_id, token, username, type, is_active, is_primary, referral_percentage)
+            VALUES (NULL, $1, $2, 'main', true, false, 0.0)
+            RETURNING id
+            "#,
+            token,
+            username
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_category(pool: &PgPool, name: &str) -> i64 {
+        sqlx::query_scalar!(
+            r#"
+            INSERT INTO categories (name, parent_id, image_id, created_by)
+            VALUES ($1, NULL, NULL, 1)
+            RETURNING id
+            "#,
+            name
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_product(
+        pool: &PgPool,
+        name: &str,
+        category_id: Option<i64>,
+        stock: i32,
+    ) -> i64 {
+        sqlx::query_scalar!(
+            r#"
+            INSERT INTO products (
+                name, base_price, category_id, image_id, stock, type,
+                subscription_period_days, details, fulfillment_text, fulfillment_image_id,
+                provider_name, external_id, created_by
+            )
+            VALUES ($1, 10.0, $2, NULL, $3, 'item', 0, NULL, NULL, NULL, 'internal', NULL, 1)
+            RETURNING id
+            "#,
+            name,
+            category_id,
+            stock
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_order(
+        pool: &PgPool,
+        customer_id: i64,
+        bot_id: i64,
+        created_at: DateTime<Utc>,
+    ) -> i64 {
+        sqlx::query_scalar!(
+            r#"
+            INSERT INTO orders (
+                customer_id, amount, currency, status, bot_id, created_at, updated_at
+            )
+            VALUES ($1, 100.0, 'RUB', 'fulfilled', $2, $3, $3)
+            RETURNING id
+            "#,
+            customer_id,
+            bot_id,
+            created_at
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_order_item(
+        pool: &PgPool,
+        order_id: i64,
+        product_id: i64,
+        price: &str,
+        qty: i16,
+    ) {
+        sqlx::query!(
+            r#"
+            INSERT INTO order_items (
+                order_id, product_id, name_at_purchase, price_at_purchase, quantity,
+                fulfillment_type, fulfillment_content, fulfillment_image_id, details
+            )
+            VALUES ($1, $2, $3, $4, $5, 'text', NULL, NULL, NULL)
+            "#,
+            order_id,
+            product_id,
+            "Test Product",
+            Decimal::from_str(price).unwrap(),
+            qty
+        )
+        .execute(pool)
+        .await
+        .unwrap();
+    }
+
+    #[sqlx::test]
+    async fn test_basic_counts(pool: PgPool) {
+        let repo = DashboardRepository::new(Arc::new(pool.clone()));
+
+        let now = Utc::now();
+        let c1 = create_customer(&pool, 10001, now).await;
+        let _c2 = create_customer(&pool, 10002, now).await;
+        let bot_id = create_bot(&pool, "dash_bot", "dash_bot").await;
+
+        let cat_id = create_category(&pool, "Games").await;
+        let p1 = create_product(&pool, "P1", Some(cat_id), 5).await;
+        let _p2 = create_product(&pool, "P2", None, 0).await;
+
+        let order_id = create_order(&pool, c1, bot_id, now).await;
+        create_order_item(&pool, order_id, p1, "15.00", 2).await;
+
+        assert_eq!(repo.count_total_users().await.unwrap(), 2);
+        assert_eq!(repo.count_users_with_purchases().await.unwrap(), 1);
+        assert_eq!(repo.count_available_products().await.unwrap(), 1);
+        assert_eq!(
+            repo.count_products_sold_for_period(now - Duration::days(1), now + Duration::days(1))
+                .await
+                .unwrap(),
+            2
+        );
+    }
+
+    #[sqlx::test]
+    async fn test_time_series_and_top(pool: PgPool) {
+        let repo = DashboardRepository::new(Arc::new(pool.clone()));
+        let now = Utc::now();
+        let day1 = now - Duration::days(2);
+        let day2 = now - Duration::days(1);
+        let day3 = now;
+
+        let customer_id = create_customer(&pool, 20001, day1).await;
+        let bot_id = create_bot(&pool, "dash_bot2", "dash_bot2").await;
+        let cat_id = create_category(&pool, "Cards").await;
+        let p1 = create_product(&pool, "TopProduct", Some(cat_id), 5).await;
+        let p2 = create_product(&pool, "SecondProduct", None, 5).await;
+
+        let order1 = create_order(&pool, customer_id, bot_id, day2).await;
+        let order2 = create_order(&pool, customer_id, bot_id, day3).await;
+        create_order_item(&pool, order1, p1, "10.00", 1).await;
+        create_order_item(&pool, order2, p1, "10.00", 2).await;
+        create_order_item(&pool, order2, p2, "5.00", 3).await;
+
+        let revenue = repo
+            .get_total_revenue_for_period(day1, day3 + Duration::days(1))
+            .await
+            .unwrap();
+        assert_eq!(revenue, Decimal::from_str("45.00").unwrap());
+
+        let sales = repo
+            .get_sales_over_time(day1, day3 + Duration::days(1))
+            .await
+            .unwrap();
+        assert!(!sales.is_empty());
+
+        let top = repo.get_top_products(2).await.unwrap();
+        assert_eq!(top[0].id, p1);
+
+        let categories = repo.get_sales_by_category().await.unwrap();
+        assert!(
+            categories
+                .iter()
+                .any(|c| c.category_name.as_deref() == Some("Cards"))
+        );
+    }
+}
