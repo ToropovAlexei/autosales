@@ -26,6 +26,7 @@
 
 - `backend_rust`:
   - `/api/admin/*` - Admin panel API
+  - `/api/admin/dashboard/*` - Dashboard analytics (stats, time series, top products, category sales)
   - `/api/bot/*` - Bot-facing API
   - `/api/webhook/*` - Payment provider callbacks
   - `/api/images/*` - Image storage endpoints
