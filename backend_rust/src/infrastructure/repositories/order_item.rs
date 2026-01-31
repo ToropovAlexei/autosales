@@ -96,9 +96,21 @@ mod tests {
         .unwrap()
     }
 
-    async fn create_test_bot(pool: &PgPool, token: &str, username: &str) -> i64 {
+    async fn create_test_bot(
+        pool: &PgPool,
+        owner_id: Option<i64>,
+        token: &str,
+        username: &str,
+    ) -> i64 {
         sqlx::query_scalar!(
-            r#"INSERT INTO bots (owner_id, token, username, type, is_active, is_primary, referral_percentage, created_by) VALUES (1, $1, $2, 'main', true, false, 0.1, 1) RETURNING id"#,
+            r#"
+            INSERT INTO bots (
+                owner_id, token, username, type, is_active, is_primary, referral_percentage, created_by
+            )
+            VALUES ($1, $2, $3, 'main', true, false, 0.1, 1)
+            RETURNING id
+            "#,
+            owner_id,
             token,
             username
         )
@@ -142,7 +154,7 @@ mod tests {
     async fn test_create_and_get_order_item(pool: PgPool) {
         let repo = OrderItemRepository::new(Arc::new(pool.clone()));
         let _user_id = create_test_user(&pool, "order_item_user_1").await;
-        let bot_id = create_test_bot(&pool, "order_item_bot_1", "order_item_bot_1").await;
+        let bot_id = create_test_bot(&pool, None, "order_item_bot_1", "order_item_bot_1").await;
         let customer_id = create_test_customer(&pool, 12345).await;
         let product_id = create_test_product(&pool, "order_item_product_1").await;
         let order_id = create_test_order(&pool, customer_id, bot_id).await;

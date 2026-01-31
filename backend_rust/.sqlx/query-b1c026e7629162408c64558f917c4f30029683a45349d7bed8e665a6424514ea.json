@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT \n            id, customer_id, amount, currency, status as \"status: _\", bot_id,\n            created_at, updated_at, paid_at, fulfilled_at, cancelled_at\n        FROM orders WHERE customer_id = $1",
+  "query": "\n        SELECT\n            id, customer_id, amount, currency, status as \"status: _\", bot_id,\n            created_at, updated_at, paid_at, fulfilled_at, cancelled_at\n        FROM orders WHERE customer_id = $1",
   "describe": {
     "columns": [
       {
@@ -78,5 +78,5 @@
       true
     ]
   },
-  "hash": "857b5fc0a2a2a6a231bf3925a7c5daa93e0ae1d253d2e56709afac89466bd47c"
+  "hash": "b1c026e7629162408c64558f917c4f30029683a45349d7bed8e665a6424514ea"
 }

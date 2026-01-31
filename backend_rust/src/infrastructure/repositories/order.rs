@@ -52,7 +52,7 @@ impl OrderRepositoryTrait for OrderRepository {
         let result = sqlx::query_as!(
             OrderRow,
             r#"
-        SELECT 
+        SELECT
             id, customer_id, amount, currency, status as "status: _", bot_id,
             created_at, updated_at, paid_at, fulfilled_at, cancelled_at
         FROM orders WHERE customer_id = $1"#,
@@ -94,7 +94,7 @@ impl OrderRepositoryTrait for OrderRepository {
         let result = sqlx::query_as!(
             OrderRow,
             r#"
-        SELECT 
+        SELECT
             id, customer_id, amount, currency, status as "status: _", bot_id,
             created_at, updated_at, paid_at, fulfilled_at, cancelled_at
         FROM orders WHERE id = $1"#,
@@ -123,9 +123,21 @@ mod tests {
         .unwrap()
     }
 
-    async fn create_test_bot(pool: &PgPool, token: &str, username: &str) -> i64 {
+    async fn create_test_bot(
+        pool: &PgPool,
+        owner_id: Option<i64>,
+        token: &str,
+        username: &str,
+    ) -> i64 {
         sqlx::query_scalar!(
-            r#"INSERT INTO bots (owner_id, token, username, type, is_active, is_primary, referral_percentage, created_by) VALUES (1, $1, $2, 'main', true, false, 0.1, 1) RETURNING id"#,
+            r#"
+            INSERT INTO bots (
+                owner_id, token, username, type, is_active, is_primary, referral_percentage, created_by
+            )
+            VALUES ($1, $2, $3, 'main', true, false, 0.1, 1)
+            RETURNING id
+            "#,
+            owner_id,
             token,
             username
         )
@@ -138,7 +150,7 @@ mod tests {
     async fn test_create_and_get_order(pool: PgPool) {
         let repo = OrderRepository::new(Arc::new(pool.clone()));
         let customer_id = create_test_customer(&pool, 54321).await;
-        let bot_id = create_test_bot(&pool, "order_bot", "order_bot").await;
+        let bot_id = create_test_bot(&pool, Some(customer_id), "order_bot", "order_bot").await;
 
         let new_order = NewOrder {
             customer_id,
@@ -164,7 +176,7 @@ mod tests {
         let repo = OrderRepository::new(Arc::new(pool.clone()));
         let customer_id1 = create_test_customer(&pool, 11111).await;
         let customer_id2 = create_test_customer(&pool, 22222).await;
-        let bot_id = create_test_bot(&pool, "order_bot_2", "order_bot_2").await;
+        let bot_id = create_test_bot(&pool, Some(customer_id1), "order_bot_2", "order_bot_2").await;
 
         // Create some orders
         repo.create(NewOrder {

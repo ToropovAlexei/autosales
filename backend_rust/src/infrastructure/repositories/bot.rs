@@ -242,9 +242,24 @@ mod tests {
     use sqlx::PgPool;
     use std::str::FromStr;
 
-    async fn create_test_bot(pool: &PgPool, token: &str, username: &str) -> BotRow {
+    async fn create_test_customer(pool: &PgPool, telegram_id: i64) -> i64 {
+        sqlx::query_scalar!(
+            "INSERT INTO customers (telegram_id, registered_with_bot, last_seen_with_bot) VALUES ($1, 1, 1) RETURNING id",
+            telegram_id
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_test_bot(
+        pool: &PgPool,
+        owner_id: Option<i64>,
+        token: &str,
+        username: &str,
+    ) -> BotRow {
         let new_bot = NewBot {
-            owner_id: Some(1),
+            owner_id,
             token: token.to_string(),
             username: username.to_string(),
             r#type: BotType::Main,
@@ -282,9 +297,10 @@ mod tests {
         let repo = BotRepository::new(Arc::new(pool.clone()));
         let token = "test_token_1";
         let username = "test_bot_1";
+        let owner_id = create_test_customer(&pool, 1001).await;
 
         // Create a bot
-        let created_bot = create_test_bot(&pool, token, username).await;
+        let created_bot = create_test_bot(&pool, Some(owner_id), token, username).await;
         assert_eq!(created_bot.token, token);
         assert_eq!(created_bot.username, username);
 
@@ -302,9 +318,10 @@ mod tests {
         let repo = BotRepository::new(Arc::new(pool.clone()));
         let token = "test_token_2";
         let username = "test_bot_2";
+        let owner_id = create_test_customer(&pool, 1002).await;
 
         // Create a bot
-        let bot = create_test_bot(&pool, token, username).await;
+        let bot = create_test_bot(&pool, Some(owner_id), token, username).await;
 
         // Update the bot
         let new_username = "updated_bot_username";
@@ -332,10 +349,11 @@ mod tests {
     #[sqlx::test]
     async fn test_get_list_bots(pool: PgPool) {
         let repo = BotRepository::new(Arc::new(pool.clone()));
+        let owner_id = create_test_customer(&pool, 1003).await;
 
         // Create some bots
-        create_test_bot(&pool, "list_token_1", "list_bot_1").await;
-        create_test_bot(&pool, "list_token_2", "list_bot_2").await;
+        create_test_bot(&pool, Some(owner_id), "list_token_1", "list_bot_1").await;
+        create_test_bot(&pool, Some(owner_id), "list_token_2", "list_bot_2").await;
 
         // Get the list of bots
         let query = BotListQuery::default();
@@ -347,10 +365,11 @@ mod tests {
     #[sqlx::test]
     async fn test_set_and_get_primary_bot(pool: PgPool) {
         let repo = BotRepository::new(Arc::new(pool.clone()));
+        let owner_id = create_test_customer(&pool, 1004).await;
 
         // Create some bots for the same owner
-        let bot1 = create_test_bot(&pool, "primary_token_1", "primary_bot_1").await;
-        let bot2 = create_test_bot(&pool, "primary_token_2", "primary_bot_2").await;
+        let bot1 = create_test_bot(&pool, Some(owner_id), "primary_token_1", "primary_bot_1").await;
+        let bot2 = create_test_bot(&pool, Some(owner_id), "primary_token_2", "primary_bot_2").await;
 
         // Set bot1 as primary
         repo.set_primary_bot_for_owner(bot1.id, bot1.owner_id)
@@ -378,15 +397,17 @@ mod tests {
         let repo = BotRepository::new(Arc::new(pool.clone()));
         let token = "restore_token_1";
         let username = "restore_bot_1";
+        let owner_id = create_test_customer(&pool, 1005).await;
 
-        let bot = create_test_bot(&pool, token, username).await;
+        let bot = create_test_bot(&pool, Some(owner_id), token, username).await;
         sqlx::query!("UPDATE bots SET deleted_at = NOW() WHERE id = $1", bot.id)
             .execute(&pool)
             .await
             .unwrap();
 
+        let updated_owner_id = create_test_customer(&pool, 1006).await;
         let new_bot = NewBot {
-            owner_id: Some(2),
+            owner_id: Some(updated_owner_id),
             token: token.to_string(),
             username: "restore_bot_1_updated".to_string(),
             r#type: BotType::Referral,
@@ -399,7 +420,7 @@ mod tests {
         let restored = repo.create(new_bot).await.unwrap();
 
         assert_eq!(restored.id, bot.id);
-        assert_eq!(restored.owner_id, Some(2));
+        assert_eq!(restored.owner_id, Some(updated_owner_id));
         assert_eq!(restored.username, "restore_bot_1_updated");
         assert_eq!(restored.r#type, BotType::Referral);
         assert!(!restored.is_active);

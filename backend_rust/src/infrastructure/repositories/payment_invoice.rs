@@ -145,7 +145,7 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
         let result = sqlx::query_as!(
             PaymentInvoiceRow,
             r#"
-            SELECT 
+            SELECT
                 id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
                 bot_message_id, notification_sent_at
@@ -162,7 +162,7 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
         let result = sqlx::query_as!(
             PaymentInvoiceRow,
             r#"
-            SELECT 
+            SELECT
                 id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
                 bot_message_id, notification_sent_at
@@ -179,7 +179,7 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
         let result = sqlx::query_as!(
             PaymentInvoiceRow,
             r#"
-            SELECT 
+            SELECT
                 id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
                 bot_message_id, notification_sent_at
@@ -215,12 +215,12 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
         let result = sqlx::query_as!(
             PaymentInvoiceRow,
             r#"
-            SELECT 
+            SELECT
                 id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
                 bot_message_id, notification_sent_at
             FROM payment_invoices
-            WHERE 
+            WHERE
                 status IN ('pending', 'processing', 'awaiting_receipt', 'receipt_submitted', 'disputed') AND
                 created_at < $1 AND
                 deleted_at IS NULL
@@ -263,9 +263,21 @@ mod tests {
         .unwrap()
     }
 
-    async fn create_test_bot(pool: &PgPool, token: &str, username: &str) -> i64 {
+    async fn create_test_bot(
+        pool: &PgPool,
+        owner_id: Option<i64>,
+        token: &str,
+        username: &str,
+    ) -> i64 {
         sqlx::query_scalar!(
-            r#"INSERT INTO bots (owner_id, token, username, type, is_active, is_primary, referral_percentage, created_by) VALUES (1, $1, $2, 'main', true, false, 0.1, 1) RETURNING id"#,
+            r#"
+            INSERT INTO bots (
+                owner_id, token, username, type, is_active, is_primary, referral_percentage, created_by
+            )
+            VALUES ($1, $2, $3, 'main', true, false, 0.1, 1)
+            RETURNING id
+            "#,
+            owner_id,
             token,
             username
         )
@@ -342,7 +354,7 @@ mod tests {
     async fn test_create_and_get_payment_invoice(pool: PgPool) {
         let repo = PaymentInvoiceRepository::new(Arc::new(pool.clone()));
         let customer_id = create_test_customer(&pool, 123).await;
-        let bot_id = create_test_bot(&pool, "invoice_bot_1", "invoice_bot_1").await;
+        let bot_id = create_test_bot(&pool, None, "invoice_bot_1", "invoice_bot_1").await;
         let _order_id = create_test_order(&pool, customer_id, bot_id).await;
         let expires_at = Utc::now() + Duration::days(1);
 

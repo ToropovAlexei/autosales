@@ -7,3 +7,39 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit]
+      - id: cargo-fmt-check
+        name: cargo fmt --check
+        entry: bash -lc 'cd backend_rust && cargo fmt --check --all'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: cargo-clippy
+        name: cargo clippy
+        entry: bash -lc 'cd backend_rust && cargo clippy --all-targets --all-features --no-deps -- -D warnings'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: cargo-test
+        name: cargo test
+        entry: bash -lc 'cd backend_rust && cargo test'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: tgbot-cargo-fmt-check
+        name: tgbot_rust cargo fmt --check
+        entry: bash -lc 'cd tgbot_rust && cargo fmt --check --all'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: tgbot-cargo-clippy
+        name: tgbot_rust cargo clippy
+        entry: bash -lc 'cd tgbot_rust && cargo clippy --all-targets --all-features --no-deps -- -D warnings'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: tgbot-cargo-test
+        name: tgbot_rust cargo test
+        entry: bash -lc 'cd tgbot_rust && cargo test'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]

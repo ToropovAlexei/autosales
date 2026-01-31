@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                id, customer_id, original_amount, amount, status as \"status: _\", created_at, updated_at,\n                expires_at, deleted_at, gateway as \"gateway: _\", gateway_invoice_id, order_id, payment_details,\n                bot_message_id, notification_sent_at\n            FROM payment_invoices WHERE id = $1",
+  "query": "\n            SELECT\n                id, customer_id, original_amount, amount, status as \"status: _\", created_at, updated_at,\n                expires_at, deleted_at, gateway as \"gateway: _\", gateway_invoice_id, order_id, payment_details,\n                bot_message_id, notification_sent_at\n            FROM payment_invoices\n            WHERE\n                status IN ('pending', 'processing', 'awaiting_receipt', 'receipt_submitted', 'disputed') AND\n                created_at < $1 AND\n                deleted_at IS NULL\n            ",
   "describe": {
     "columns": [
       {
@@ -81,7 +81,7 @@
     ],
     "parameters": {
       "Left": [
-        "Int8"
+        "Timestamptz"
       ]
     },
     "nullable": [
@@ -102,5 +102,5 @@
       true
     ]
   },
-  "hash": "df1f262572e8f2a8b3f8770fb65d4758548637c80f19d67519ac90201870776e"
+  "hash": "dd39aec6ac08a6efd4b385f657c8c07567780a4e962ae743aa0efb62559abe46"
 }

@@ -118,6 +118,7 @@ mod tests {
     use rust_decimal::Decimal;
     use shared_dtos::invoice::PaymentSystem;
     use shared_dtos::list_query::{FilterValue, Operator, Pagination, ScalarValue};
+    use std::str::FromStr;
 
     use super::*;
 
@@ -127,6 +128,24 @@ mod tests {
             telegram_id,
             1,
             1
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+        .id
+    }
+
+    async fn create_test_bot(pool: &PgPool, token: &str, username: &str) -> i64 {
+        sqlx::query!(
+            r#"
+            INSERT INTO bots (
+                owner_id, token, username, type, is_active, is_primary, referral_percentage
+            )
+            VALUES (NULL, $1, $2, 'main', true, false, 0.0)
+            RETURNING id
+            "#,
+            token,
+            username
         )
         .fetch_one(pool)
         .await
@@ -342,5 +361,28 @@ mod tests {
         .await
         .unwrap();
         assert_eq!(customer.balance, Decimal::from(850));
+    }
+
+    #[sqlx::test]
+    async fn test_create_with_bot_id(pool: PgPool) {
+        let repo = TransactionRepository::new(Arc::new(pool.clone()));
+        let bot_id = create_test_bot(&pool, "tx_bot_token", "tx_bot_user").await;
+
+        let tx = NewTransaction {
+            customer_id: None,
+            order_id: None,
+            r#type: TransactionType::Deposit,
+            amount: Decimal::from_str("10.00").unwrap(),
+            store_balance_delta: Decimal::from_str("10.00").unwrap(),
+            platform_commission: Decimal::from(0),
+            gateway_commission: Decimal::from(0),
+            description: Some("Test deposit".to_string()),
+            payment_gateway: Some(PaymentSystem::Mock),
+            details: None,
+            bot_id: Some(bot_id),
+        };
+
+        let created = repo.create(tx).await.unwrap();
+        assert_eq!(created.bot_id, Some(bot_id));
     }
 }

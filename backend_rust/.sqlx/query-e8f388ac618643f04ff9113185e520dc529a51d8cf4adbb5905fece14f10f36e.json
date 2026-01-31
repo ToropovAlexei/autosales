@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                id, customer_id, original_amount, amount, status as \"status: _\", created_at, updated_at,\n                expires_at, deleted_at, gateway as \"gateway: _\", gateway_invoice_id, order_id, payment_details,\n                bot_message_id, notification_sent_at\n            FROM payment_invoices WHERE order_id = $1",
+  "query": "\n            SELECT\n                id, customer_id, original_amount, amount, status as \"status: _\", created_at, updated_at,\n                expires_at, deleted_at, gateway as \"gateway: _\", gateway_invoice_id, order_id, payment_details,\n                bot_message_id, notification_sent_at\n            FROM payment_invoices WHERE order_id = $1",
   "describe": {
     "columns": [
       {
@@ -102,5 +102,5 @@
       true
     ]
   },
-  "hash": "d8063e4971fd9e4bbe3574dfa616f3c36e8014d3961aa7ef591b9207f0ace4c9"
+  "hash": "e8f388ac618643f04ff9113185e520dc529a51d8cf4adbb5905fece14f10f36e"
 }
