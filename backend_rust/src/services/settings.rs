@@ -124,3 +124,73 @@ impl SettingsServiceTrait
         Ok(updated)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infrastructure::repositories::{
+        audit_log::AuditLogRepository, settings::SettingsRepository,
+    };
+    use crate::services::audit_log::AuditLogService;
+    use rust_decimal::Decimal;
+    use rust_decimal_macros::dec;
+    use sqlx::PgPool;
+    use std::net::IpAddr;
+    use std::str::FromStr;
+    use std::sync::Arc;
+    use uuid::Uuid;
+
+    fn build_service(
+        pool: &PgPool,
+    ) -> SettingsService<SettingsRepository, AuditLogService<AuditLogRepository>> {
+        let pool = Arc::new(pool.clone());
+        let audit_log_service = Arc::new(AuditLogService::new(Arc::new(AuditLogRepository::new(
+            pool.clone(),
+        ))));
+        SettingsService::new(Arc::new(SettingsRepository::new(pool)), audit_log_service)
+    }
+
+    #[sqlx::test]
+    async fn test_update_writes_audit_log(pool: PgPool) {
+        let service = build_service(&pool);
+        let request_id = Uuid::new_v4();
+
+        let updated = service
+            .update(
+                UpdateSettingsCommand {
+                    updated_by: 1,
+                    pricing_global_markup: Some(dec!(5.0)),
+                    referral_program_enabled: Some(true),
+                    referral_percentage: Some(Decimal::from(12)),
+                    ..Default::default()
+                },
+                RequestContext {
+                    ip_address: Some(IpAddr::from_str("127.0.0.1").unwrap()),
+                    user_agent: Some("test-agent".to_string()),
+                    request_id,
+                },
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(updated.pricing_global_markup, dec!(5.0));
+        assert!(updated.referral_program_enabled);
+        assert_eq!(updated.referral_percentage, Decimal::from(12));
+
+        let audit_row = sqlx::query_scalar!(
+            "SELECT COUNT(*) FROM audit_logs WHERE action = 'system_settings_update'"
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap()
+        .unwrap();
+        assert!(audit_row >= 1);
+    }
+
+    #[sqlx::test]
+    async fn test_load_settings(pool: PgPool) {
+        let service = build_service(&pool);
+        let settings = service.load_settings().await.unwrap();
+        assert_eq!(settings.pricing_global_markup, dec!(0));
+    }
+}

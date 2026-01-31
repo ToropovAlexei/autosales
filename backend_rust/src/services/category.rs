@@ -268,3 +268,149 @@ impl CategoryServiceTrait
         Ok(last_category)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infrastructure::repositories::{
+        audit_log::AuditLogRepository, category::CategoryRepository,
+    };
+    use crate::services::audit_log::AuditLogService;
+    use sqlx::PgPool;
+    use std::net::IpAddr;
+    use std::str::FromStr;
+    use std::sync::Arc;
+    use uuid::Uuid;
+
+    fn build_service(
+        pool: &PgPool,
+    ) -> CategoryService<CategoryRepository, AuditLogService<AuditLogRepository>> {
+        let pool = Arc::new(pool.clone());
+        let audit_log_service = Arc::new(AuditLogService::new(Arc::new(AuditLogRepository::new(
+            pool.clone(),
+        ))));
+        CategoryService::new(Arc::new(CategoryRepository::new(pool)), audit_log_service)
+    }
+
+    fn build_context() -> RequestContext {
+        RequestContext {
+            ip_address: Some(IpAddr::from_str("127.0.0.1").unwrap()),
+            user_agent: Some("test-agent".to_string()),
+            request_id: Uuid::new_v4(),
+        }
+    }
+
+    #[sqlx::test]
+    async fn test_create_with_missing_parent(pool: PgPool) {
+        let service = build_service(&pool);
+
+        let err = service
+            .create(CreateCategoryCommand {
+                name: "Child".to_string(),
+                parent_id: Some(999999),
+                image_id: None,
+                created_by: 1,
+                ctx: Some(build_context()),
+            })
+            .await
+            .unwrap_err();
+
+        assert!(matches!(err, ApiError::BadRequest(_)));
+    }
+
+    #[sqlx::test]
+    async fn test_create_and_update(pool: PgPool) {
+        let service = build_service(&pool);
+
+        let created = service
+            .create(CreateCategoryCommand {
+                name: "Root".to_string(),
+                parent_id: None,
+                image_id: None,
+                created_by: 1,
+                ctx: Some(build_context()),
+            })
+            .await
+            .unwrap();
+
+        let updated = service
+            .update(
+                UpdateCategoryCommand {
+                    id: created.id,
+                    name: Some("Root Updated".to_string()),
+                    parent_id: None,
+                    image_id: None,
+                    position: Some(5),
+                    updated_by: 1,
+                },
+                build_context(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(updated.id, created.id);
+        assert_eq!(updated.name, "Root Updated");
+        assert_eq!(updated.position, 5);
+    }
+
+    #[sqlx::test]
+    async fn test_delete_rejects_parent_with_children(pool: PgPool) {
+        let service = build_service(&pool);
+        let parent = service
+            .create(CreateCategoryCommand {
+                name: "Parent".to_string(),
+                parent_id: None,
+                image_id: None,
+                created_by: 1,
+                ctx: Some(build_context()),
+            })
+            .await
+            .unwrap();
+
+        service
+            .create(CreateCategoryCommand {
+                name: "Child".to_string(),
+                parent_id: Some(parent.id),
+                image_id: None,
+                created_by: 1,
+                ctx: Some(build_context()),
+            })
+            .await
+            .unwrap();
+
+        let err = service
+            .delete(
+                DeleteCategoryCommand {
+                    id: parent.id,
+                    deleted_by: 1,
+                },
+                build_context(),
+            )
+            .await
+            .unwrap_err();
+
+        assert!(matches!(err, ApiError::BadRequest(_)));
+    }
+
+    #[sqlx::test]
+    async fn test_create_category_sequence(pool: PgPool) {
+        let service = build_service(&pool);
+        let created = service
+            .create_category_sequence(CreateCategorySequenceCommand {
+                name: "Root/Sub".to_string(),
+                created_by: 1,
+                ctx: Some(build_context()),
+            })
+            .await
+            .unwrap()
+            .unwrap();
+
+        assert_eq!(created.name, "Sub");
+
+        let root = sqlx::query_scalar!("SELECT id FROM categories WHERE name = 'Root'")
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert_eq!(created.parent_id, Some(root));
+    }
+}
