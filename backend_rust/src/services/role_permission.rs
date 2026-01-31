@@ -57,3 +57,86 @@ impl RolePermissionServiceTrait for RolePermissionService<RolePermissionReposito
         Ok(self.repo.update_role_permissions(permissions).await?)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infrastructure::repositories::role_permission::RolePermissionRepository;
+    use sqlx::PgPool;
+    use std::sync::Arc;
+
+    async fn create_role(pool: &PgPool, name: &str) -> i64 {
+        sqlx::query_scalar!(
+            r#"
+            INSERT INTO roles (name, description, created_by)
+            VALUES ($1, NULL, 1)
+            RETURNING id
+            "#,
+            name
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_permission(pool: &PgPool, name: &str, group: &str) -> i64 {
+        sqlx::query_scalar!(
+            r#"
+            INSERT INTO permissions ("group", name, description)
+            VALUES ($1, $2, 'desc')
+            RETURNING id
+            "#,
+            group,
+            name
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    fn build_service(pool: &PgPool) -> RolePermissionService<RolePermissionRepository> {
+        let pool = Arc::new(pool.clone());
+        RolePermissionService::new(Arc::new(RolePermissionRepository::new(pool)))
+    }
+
+    #[sqlx::test]
+    async fn test_create_and_delete(pool: PgPool) {
+        let service = build_service(&pool);
+        let role_id = create_role(&pool, "rp_role").await;
+        let permission_id = create_permission(&pool, "rp:perm", "rp").await;
+
+        let created = service
+            .create(NewRolePermission {
+                role_id,
+                permission_id,
+                created_by: 1,
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(created.role_id, role_id);
+        assert_eq!(created.permission_id, permission_id);
+
+        service.delete(role_id, permission_id).await.unwrap();
+    }
+
+    #[sqlx::test]
+    async fn test_update_role_permissions(pool: PgPool) {
+        let service = build_service(&pool);
+        let role_id = create_role(&pool, "rp_role_2").await;
+        let permission_id = create_permission(&pool, "rp:perm2", "rp").await;
+
+        service
+            .update_role_permissions(UpdateRolePermissions {
+                role_id,
+                added: vec![permission_id],
+                removed: vec![],
+                created_by: 1,
+            })
+            .await
+            .unwrap();
+
+        let existing = service.get_for_role(role_id).await.unwrap();
+        assert!(existing.iter().any(|p| p.permission_id == permission_id));
+    }
+}

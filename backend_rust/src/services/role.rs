@@ -51,3 +51,47 @@ impl RoleServiceTrait for RoleService<RoleRepository> {
         Ok(self.repo.delete_role(id).await?)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infrastructure::repositories::role::RoleRepository;
+    use sqlx::PgPool;
+    use std::sync::Arc;
+
+    fn build_service(pool: &PgPool) -> RoleService<RoleRepository> {
+        let pool = Arc::new(pool.clone());
+        RoleService::new(Arc::new(RoleRepository::new(pool)))
+    }
+
+    #[sqlx::test]
+    async fn test_create_update_delete_role(pool: PgPool) {
+        let service = build_service(&pool);
+
+        let created = service
+            .create(NewRole {
+                name: "role_test".to_string(),
+                description: Some("desc".to_string()),
+                created_by: 1,
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(created.name, "role_test");
+
+        let updated = service
+            .update(
+                created.id,
+                UpdateRole {
+                    name: Some("role_test_updated".to_string()),
+                    description: Some(Some("new desc".to_string())),
+                },
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(updated.name, "role_test_updated");
+
+        service.delete(created.id).await.unwrap();
+    }
+}

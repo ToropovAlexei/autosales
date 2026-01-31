@@ -48,3 +48,57 @@ impl StockMovementServiceTrait for StockMovementService<StockMovementRepository>
             .map_err(ApiError::from)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infrastructure::repositories::stock_movement::StockMovementRepository;
+    use crate::models::stock_movement::{NewStockMovement, StockMovementType};
+    use sqlx::PgPool;
+    use std::sync::Arc;
+
+    async fn create_product(pool: &PgPool, name: &str) -> i64 {
+        sqlx::query_scalar!(
+            r#"
+            INSERT INTO products (name, base_price, type, created_by, provider_name)
+            VALUES ($1, 10.0, 'item', 1, 'test')
+            RETURNING id
+            "#,
+            name
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    fn build_service(pool: &PgPool) -> StockMovementService<StockMovementRepository> {
+        let pool = Arc::new(pool.clone());
+        StockMovementService::new(Arc::new(StockMovementRepository::new(pool)))
+    }
+
+    #[sqlx::test]
+    async fn test_get_list(pool: PgPool) {
+        let service = build_service(&pool);
+        let repo = StockMovementRepository::new(Arc::new(pool.clone()));
+        let product_id = create_product(&pool, "stock_product").await;
+
+        repo.create(NewStockMovement {
+            order_id: None,
+            product_id,
+            r#type: StockMovementType::Restock,
+            quantity: 10,
+            created_by: 1,
+            description: Some("restock".to_string()),
+            reference_id: None,
+        })
+        .await
+        .unwrap();
+
+        let result = service
+            .get_list(StockMovementListQuery::default())
+            .await
+            .unwrap();
+        assert!(result.total >= 1);
+        assert!(result.items.iter().any(|row| row.product_id == product_id));
+    }
+}

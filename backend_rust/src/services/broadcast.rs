@@ -172,3 +172,132 @@ impl BroadcastServiceTrait
             .map_err(ApiError::from)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infrastructure::repositories::{
+        audit_log::AuditLogRepository, broadcast::BroadcastRepository,
+    };
+    use crate::services::audit_log::AuditLogService;
+    use chrono::Duration;
+    use sqlx::PgPool;
+    use std::net::IpAddr;
+    use std::str::FromStr;
+    use std::sync::Arc;
+
+    fn build_service(
+        pool: &PgPool,
+    ) -> BroadcastService<BroadcastRepository, AuditLogService<AuditLogRepository>> {
+        let pool = Arc::new(pool.clone());
+        let audit_log_service = Arc::new(AuditLogService::new(Arc::new(AuditLogRepository::new(
+            pool.clone(),
+        ))));
+        BroadcastService::new(Arc::new(BroadcastRepository::new(pool)), audit_log_service)
+    }
+
+    fn build_context() -> RequestContext {
+        RequestContext {
+            ip_address: Some(IpAddr::from_str("127.0.0.1").unwrap()),
+            user_agent: Some("test-agent".to_string()),
+            request_id: uuid::Uuid::new_v4(),
+        }
+    }
+
+    async fn create_admin_user(pool: &PgPool, login: &str) -> i64 {
+        sqlx::query_scalar!(
+            r#"
+            INSERT INTO admin_users (login, hashed_password, two_fa_secret, created_by)
+            VALUES ($1, 'password', '', 1)
+            RETURNING id
+            "#,
+            login
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    #[sqlx::test]
+    async fn test_create_and_update_broadcast(pool: PgPool) {
+        let service = build_service(&pool);
+        let admin_id = create_admin_user(&pool, "broadcast_admin_1").await;
+
+        let created = service
+            .create(CreateBroadcastCommand {
+                content_text: Some("Hello".to_string()),
+                content_image_id: None,
+                filters: None,
+                scheduled_for: None,
+                created_by: admin_id,
+                ctx: Some(build_context()),
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(created.status, BroadcastStatus::Pending);
+
+        let updated = service
+            .update(UpdateBroadcastCommand {
+                id: created.id,
+                status: Some(BroadcastStatus::Completed),
+                content_text: Some(Some("Updated".to_string())),
+                content_image_id: None,
+                filters: None,
+                scheduled_for: None,
+                updated_by: Some(admin_id),
+                statistics: None,
+                started_at: None,
+                finished_at: None,
+                ctx: Some(build_context()),
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(updated.id, created.id);
+        assert_eq!(updated.status, BroadcastStatus::Completed);
+        assert_eq!(updated.content_text, Some("Updated".to_string()));
+    }
+
+    #[sqlx::test]
+    async fn test_get_ready_broadcasts(pool: PgPool) {
+        let service = build_service(&pool);
+        let admin_id = create_admin_user(&pool, "broadcast_admin_2").await;
+
+        service
+            .create(CreateBroadcastCommand {
+                content_text: Some("Now".to_string()),
+                content_image_id: None,
+                filters: None,
+                scheduled_for: None,
+                created_by: admin_id,
+                ctx: Some(build_context()),
+            })
+            .await
+            .unwrap();
+
+        service
+            .create(CreateBroadcastCommand {
+                content_text: Some("Later".to_string()),
+                content_image_id: None,
+                filters: None,
+                scheduled_for: Some(Utc::now() + Duration::minutes(10)),
+                created_by: admin_id,
+                ctx: Some(build_context()),
+            })
+            .await
+            .unwrap();
+
+        let ready = service.get_ready_broadcasts().await.unwrap();
+        assert!(
+            ready
+                .iter()
+                .any(|b| b.content_text.as_deref() == Some("Now"))
+        );
+        assert!(
+            !ready
+                .iter()
+                .any(|b| b.content_text.as_deref() == Some("Later"))
+        );
+    }
+}

@@ -286,3 +286,113 @@ impl AdminUserServiceTrait
         Ok(())
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infrastructure::repositories::{
+        admin_user::AdminUserRepository, audit_log::AuditLogRepository,
+        user_role::UserRoleRepository,
+    };
+    use crate::services::audit_log::AuditLogService;
+    use sqlx::PgPool;
+    use std::net::IpAddr;
+    use std::str::FromStr;
+    use std::sync::Arc;
+    use uuid::Uuid;
+
+    fn build_context() -> RequestContext {
+        RequestContext {
+            ip_address: Some(IpAddr::from_str("127.0.0.1").unwrap()),
+            user_agent: Some("test-agent".to_string()),
+            request_id: Uuid::new_v4(),
+        }
+    }
+
+    fn build_service(
+        pool: &PgPool,
+    ) -> AdminUserService<
+        AdminUserRepository,
+        UserRoleRepository,
+        AuditLogService<AuditLogRepository>,
+    > {
+        let pool = Arc::new(pool.clone());
+        let audit_log_service = Arc::new(AuditLogService::new(Arc::new(AuditLogRepository::new(
+            pool.clone(),
+        ))));
+        let totp_encryptor = Arc::new(
+            TotpEncryptor::new("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=")
+                .expect("totp encryptor"),
+        );
+        AdminUserService::new(
+            pool.clone(),
+            Arc::new(AdminUserRepository::new(pool.clone())),
+            Arc::new(UserRoleRepository::new(pool.clone())),
+            totp_encryptor,
+            audit_log_service,
+        )
+    }
+
+    async fn create_role(pool: &PgPool, name: &str) -> i64 {
+        sqlx::query_scalar!(
+            r#"
+            INSERT INTO roles (name, description, created_by)
+            VALUES ($1, NULL, 1)
+            RETURNING id
+            "#,
+            name
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    #[sqlx::test]
+    async fn test_create_update_delete_admin_user(pool: PgPool) {
+        let service = build_service(&pool);
+        let role_id = create_role(&pool, "admin_role").await;
+
+        let created = service
+            .create(
+                CreateAdminUser {
+                    login: "admin_user_test".to_string(),
+                    password: "password".to_string(),
+                    created_by: 1,
+                    roles: vec![role_id],
+                },
+                build_context(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(created.login, "admin_user_test");
+
+        let updated = service
+            .update(
+                created.id,
+                UpdateAdminUserCommand {
+                    login: Some("admin_user_updated".to_string()),
+                    password: None,
+                    telegram_id: None,
+                    roles: None,
+                    updated_by: 1,
+                },
+                build_context(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(updated.login, "admin_user_updated");
+
+        service
+            .delete(
+                DeleteAdminUserCommand {
+                    id: created.id,
+                    deleted_by: 1,
+                },
+                build_context(),
+            )
+            .await
+            .unwrap();
+    }
+}
