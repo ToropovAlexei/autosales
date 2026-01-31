@@ -141,3 +141,283 @@ impl OrderServiceTrait for OrderService<OrderRepository, OrderItemRepository> {
         Ok(res)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infrastructure::repositories::{
+        order::OrderRepository, order_item::OrderItemRepository,
+    };
+    use crate::models::order_item::NewOrderItem;
+    use rust_decimal::Decimal;
+    use sqlx::PgPool;
+    use std::collections::HashMap;
+    use std::sync::Arc;
+
+    async fn create_customer(pool: &PgPool, telegram_id: i64) -> i64 {
+        sqlx::query_scalar!(
+            "INSERT INTO customers (telegram_id, registered_with_bot, last_seen_with_bot) VALUES ($1, 1, 1) RETURNING id",
+            telegram_id
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_bot(pool: &PgPool, owner_id: Option<i64>, token: &str, username: &str) -> i64 {
+        sqlx::query_scalar!(
+            r#"
+            INSERT INTO bots (
+                owner_id, token, username, type, is_active, is_primary, referral_percentage, created_by
+            )
+            VALUES ($1, $2, $3, 'main', true, false, 0.0, 1)
+            RETURNING id
+            "#,
+            owner_id,
+            token,
+            username
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_product(pool: &PgPool, name: &str) -> i64 {
+        sqlx::query_scalar!(
+            r#"
+            INSERT INTO products (name, base_price, type, created_by, provider_name)
+            VALUES ($1, 10.0, 'item', 1, 'test')
+            RETURNING id
+            "#,
+            name
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    fn build_service(pool: &PgPool) -> OrderService<OrderRepository, OrderItemRepository> {
+        let pool = Arc::new(pool.clone());
+        OrderService::new(
+            Arc::new(OrderRepository::new(pool.clone())),
+            Arc::new(OrderItemRepository::new(pool.clone())),
+        )
+    }
+
+    #[sqlx::test]
+    async fn test_get_for_customer_enriches_items(pool: PgPool) {
+        let service = build_service(&pool);
+        let order_repo = OrderRepository::new(Arc::new(pool.clone()));
+        let order_item_repo = OrderItemRepository::new(Arc::new(pool.clone()));
+
+        let customer_id = create_customer(&pool, 10101).await;
+        let other_customer_id = create_customer(&pool, 20202).await;
+        let bot_id = create_bot(&pool, Some(customer_id), "order_svc_bot", "order_svc_bot").await;
+        let product_id = create_product(&pool, "order_svc_product").await;
+
+        let order1 = order_repo
+            .create(NewOrder {
+                customer_id,
+                amount: Decimal::from(100),
+                currency: "USD".to_string(),
+                status: OrderStatus::Created,
+                bot_id,
+                paid_at: None,
+                fulfilled_at: None,
+            })
+            .await
+            .unwrap();
+
+        let order2 = order_repo
+            .create(NewOrder {
+                customer_id,
+                amount: Decimal::from(150),
+                currency: "USD".to_string(),
+                status: OrderStatus::Created,
+                bot_id,
+                paid_at: None,
+                fulfilled_at: None,
+            })
+            .await
+            .unwrap();
+
+        let other_order = order_repo
+            .create(NewOrder {
+                customer_id: other_customer_id,
+                amount: Decimal::from(200),
+                currency: "USD".to_string(),
+                status: OrderStatus::Created,
+                bot_id,
+                paid_at: None,
+                fulfilled_at: None,
+            })
+            .await
+            .unwrap();
+
+        order_item_repo
+            .create(NewOrderItem {
+                order_id: order1.id,
+                product_id,
+                name_at_purchase: "Item A".to_string(),
+                price_at_purchase: Decimal::from(10),
+                quantity: 1,
+                fulfillment_type: "text".to_string(),
+                fulfillment_content: None,
+                fulfillment_image_id: None,
+                details: None,
+            })
+            .await
+            .unwrap();
+
+        order_item_repo
+            .create(NewOrderItem {
+                order_id: order2.id,
+                product_id,
+                name_at_purchase: "Item B".to_string(),
+                price_at_purchase: Decimal::from(20),
+                quantity: 1,
+                fulfillment_type: "text".to_string(),
+                fulfillment_content: None,
+                fulfillment_image_id: None,
+                details: None,
+            })
+            .await
+            .unwrap();
+
+        order_item_repo
+            .create(NewOrderItem {
+                order_id: order2.id,
+                product_id,
+                name_at_purchase: "Item C".to_string(),
+                price_at_purchase: Decimal::from(30),
+                quantity: 2,
+                fulfillment_type: "text".to_string(),
+                fulfillment_content: None,
+                fulfillment_image_id: None,
+                details: None,
+            })
+            .await
+            .unwrap();
+
+        order_item_repo
+            .create(NewOrderItem {
+                order_id: other_order.id,
+                product_id,
+                name_at_purchase: "Item D".to_string(),
+                price_at_purchase: Decimal::from(40),
+                quantity: 1,
+                fulfillment_type: "text".to_string(),
+                fulfillment_content: None,
+                fulfillment_image_id: None,
+                details: None,
+            })
+            .await
+            .unwrap();
+
+        let enriched = service.get_for_customer(customer_id).await.unwrap();
+        assert_eq!(enriched.len(), 2);
+
+        let items_by_order: HashMap<i64, usize> = enriched
+            .iter()
+            .map(|order| (order.id, order.order_items.len()))
+            .collect();
+        assert_eq!(items_by_order.get(&order1.id), Some(&1));
+        assert_eq!(items_by_order.get(&order2.id), Some(&2));
+    }
+
+    #[sqlx::test]
+    async fn test_get_by_id_includes_items(pool: PgPool) {
+        let service = build_service(&pool);
+        let order_repo = OrderRepository::new(Arc::new(pool.clone()));
+        let order_item_repo = OrderItemRepository::new(Arc::new(pool.clone()));
+
+        let customer_id = create_customer(&pool, 30303).await;
+        let bot_id = create_bot(
+            &pool,
+            Some(customer_id),
+            "order_svc_bot_2",
+            "order_svc_bot_2",
+        )
+        .await;
+        let product_id = create_product(&pool, "order_svc_product_2").await;
+
+        let order = order_repo
+            .create(NewOrder {
+                customer_id,
+                amount: Decimal::from(100),
+                currency: "USD".to_string(),
+                status: OrderStatus::Created,
+                bot_id,
+                paid_at: None,
+                fulfilled_at: None,
+            })
+            .await
+            .unwrap();
+
+        order_item_repo
+            .create(NewOrderItem {
+                order_id: order.id,
+                product_id,
+                name_at_purchase: "Item A".to_string(),
+                price_at_purchase: Decimal::from(10),
+                quantity: 1,
+                fulfillment_type: "text".to_string(),
+                fulfillment_content: None,
+                fulfillment_image_id: None,
+                details: None,
+            })
+            .await
+            .unwrap();
+
+        order_item_repo
+            .create(NewOrderItem {
+                order_id: order.id,
+                product_id,
+                name_at_purchase: "Item B".to_string(),
+                price_at_purchase: Decimal::from(20),
+                quantity: 1,
+                fulfillment_type: "text".to_string(),
+                fulfillment_content: None,
+                fulfillment_image_id: None,
+                details: None,
+            })
+            .await
+            .unwrap();
+
+        let enriched = service.get_by_id(order.id).await.unwrap();
+        assert_eq!(enriched.id, order.id);
+        assert_eq!(enriched.order_items.len(), 2);
+    }
+
+    #[sqlx::test]
+    async fn test_create_order(pool: PgPool) {
+        let service = build_service(&pool);
+        let customer_id = create_customer(&pool, 40404).await;
+        let bot_id = create_bot(
+            &pool,
+            Some(customer_id),
+            "order_svc_bot_3",
+            "order_svc_bot_3",
+        )
+        .await;
+
+        let created = service
+            .create(NewOrder {
+                customer_id,
+                amount: Decimal::from(250),
+                currency: "USD".to_string(),
+                status: OrderStatus::Created,
+                bot_id,
+                paid_at: None,
+                fulfilled_at: None,
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(created.customer_id, customer_id);
+        assert_eq!(created.amount, Decimal::from(250));
+        assert_eq!(created.currency, "USD");
+        assert_eq!(created.status, OrderStatus::Created);
+        assert_eq!(created.bot_id, bot_id);
+    }
+}
