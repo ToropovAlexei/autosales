@@ -252,3 +252,157 @@ where
     }
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::infrastructure::repositories::{
+        audit_log::AuditLogRepository, bot::BotRepository, settings::SettingsRepository,
+        transaction::TransactionRepository,
+    };
+    use rust_decimal::Decimal;
+    use sqlx::PgPool;
+    use std::sync::Arc;
+
+    async fn create_customer(pool: &PgPool, telegram_id: i64) -> i64 {
+        sqlx::query_scalar!(
+            "INSERT INTO customers (telegram_id, registered_with_bot, last_seen_with_bot) VALUES ($1, 1, 1) RETURNING id",
+            telegram_id
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    async fn create_bot(
+        pool: &PgPool,
+        owner_id: Option<i64>,
+        token: &str,
+        username: &str,
+    ) -> BotRow {
+        sqlx::query_as!(
+            BotRow,
+            r#"
+            INSERT INTO bots (
+                owner_id, token, username, type, is_active, is_primary, referral_percentage, created_by
+            )
+            VALUES ($1, $2, $3, 'main', true, false, 0.0, NULL)
+            RETURNING
+                id, owner_id, token, username, type as "type: _", is_active,
+                is_primary, referral_percentage, created_at, updated_at, created_by
+            "#,
+            owner_id,
+            token,
+            username
+        )
+        .fetch_one(pool)
+        .await
+        .unwrap()
+    }
+
+    fn build_service(
+        pool: &PgPool,
+    ) -> BotService<
+        BotRepository,
+        SettingsRepository,
+        AuditLogService<AuditLogRepository>,
+        TransactionRepository,
+    > {
+        let pool = Arc::new(pool.clone());
+        let audit_log_service = Arc::new(AuditLogService::new(Arc::new(AuditLogRepository::new(
+            pool.clone(),
+        ))));
+        BotService::new(
+            Arc::new(BotRepository::new(pool.clone())),
+            Arc::new(SettingsRepository::new(pool.clone())),
+            Arc::new(TransactionRepository::new(pool.clone())),
+            audit_log_service,
+            Arc::new(reqwest::Client::new()),
+        )
+    }
+
+    #[sqlx::test]
+    async fn test_update_sets_primary_for_owner(pool: PgPool) {
+        let service = build_service(&pool);
+        let owner_id = create_customer(&pool, 10001).await;
+
+        let bot1 = create_bot(&pool, Some(owner_id), "primary_token_1", "primary_bot_1").await;
+        let bot2 = create_bot(&pool, Some(owner_id), "primary_token_2", "primary_bot_2").await;
+
+        let updated = service
+            .update(UpdateBotCommand {
+                id: bot2.id,
+                updated_by: None,
+                username: None,
+                is_active: None,
+                is_primary: Some(true),
+                referral_percentage: None,
+                ctx: None,
+            })
+            .await
+            .unwrap();
+
+        assert_eq!(updated.id, bot2.id);
+        assert!(updated.is_primary);
+
+        let primary_ids: Vec<i64> = sqlx::query_scalar!(
+            "SELECT id FROM bots WHERE owner_id = $1 AND is_primary = true",
+            owner_id
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+        assert_eq!(primary_ids, vec![bot2.id]);
+
+        let bot1_after = sqlx::query_scalar!("SELECT is_primary FROM bots WHERE id = $1", bot1.id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert!(!bot1_after);
+    }
+
+    #[sqlx::test]
+    async fn test_delete_sets_deleted_at(pool: PgPool) {
+        let service = build_service(&pool);
+        let owner_id = create_customer(&pool, 10002).await;
+        let bot = create_bot(&pool, Some(owner_id), "delete_token", "delete_bot").await;
+
+        service.delete(bot.id).await.unwrap();
+
+        let deleted_at = sqlx::query_scalar!("SELECT deleted_at FROM bots WHERE id = $1", bot.id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert!(deleted_at.is_some());
+    }
+
+    #[sqlx::test]
+    async fn test_can_operate_based_on_store_balance(pool: PgPool) {
+        let service = build_service(&pool);
+
+        let can_operate_empty = service.can_operate().await.unwrap();
+        assert!(!can_operate_empty);
+
+        // create a transaction with store_balance_after > 1000
+        let transaction_repo = TransactionRepository::new(Arc::new(pool.clone()));
+        transaction_repo
+            .create(crate::models::transaction::NewTransaction {
+                customer_id: None,
+                order_id: None,
+                r#type: crate::models::transaction::TransactionType::Deposit,
+                amount: Decimal::from(1200),
+                store_balance_delta: Decimal::from(1200),
+                platform_commission: Decimal::from(0),
+                gateway_commission: Decimal::from(0),
+                description: None,
+                payment_gateway: None,
+                details: None,
+                bot_id: None,
+            })
+            .await
+            .unwrap();
+
+        let can_operate = service.can_operate().await.unwrap();
+        assert!(can_operate);
+    }
+}
