@@ -13,18 +13,19 @@
 }
 
 .dropzone {
-  border: 2px dashed #ccc;
+  border: 2px dashed var(--mui-palette-divider);
   border-radius: 4px;
   padding: 20px;
   text-align: center;
   cursor: pointer;
-  background-color: #fafafa;
-  transition: background-color 0.2s ease-in-out, border-color 0.2s ease-in-out;
+  background-color: var(--mui-palette-background-paper);
+  transition:
+    background-color 0.2s ease-in-out,
+    border-color 0.2s ease-in-out;
 }
 
 .dropzoneActive {
-  background-color: #e0e0e0;
-  border-color: #2196f3;
+  border-color: var(--mui-palette-primary-main);
 }
 
 .img {
