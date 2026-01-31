@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{
     Json, Router,
     extract::{Path, State},
-    routing::{get, patch, post},
+    routing::{get, post},
 };
 use shared_dtos::{
     bot::{BotBotResponse, NewBotBotRequest, UpdateBotBotRequest},
@@ -14,7 +14,10 @@ use crate::{
     errors::api::ApiResult,
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson, verified_service::VerifiedService},
     models::bot::{BotListQuery, BotType},
-    services::bot::{BotServiceTrait, CreateBotCommand, UpdateBotCommand},
+    services::{
+        bot::{BotServiceTrait, CreateBotCommand, UpdateBotCommand},
+        customer::CustomerServiceTrait,
+    },
     state::AppState,
 };
 
@@ -22,7 +25,27 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", post(create_bot).get(list_bots))
         .route("/primary", get(get_primary_bots))
-        .route("/{id}", patch(update_bot))
+        .route("/{id}", get(get_bot).patch(update_bot).delete(delete_bot))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/bot/bots/{id}",
+    tag = "Bots",
+    responses(
+        (status = 200, description = "Bot found", body = BotBotResponse),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
+async fn get_bot(
+    State(state): State<Arc<AppState>>,
+    _bot: AuthBot,
+    Path(id): Path<i64>,
+) -> ApiResult<Json<BotBotResponse>> {
+    let bot = state.bot_service.get_by_id(id).await?;
+    Ok(Json(bot.into()))
 }
 
 #[utoipa::path(
@@ -42,6 +65,10 @@ async fn create_bot(
     _bot: AuthBot,
     ValidatedJson(payload): ValidatedJson<NewBotBotRequest>,
 ) -> ApiResult<Json<BotBotResponse>> {
+    let owner = state
+        .customer_service
+        .get_by_telegram_id(payload.owner_id)
+        .await?;
     let bot = state
         .bot_service
         .create(CreateBotCommand {
@@ -50,7 +77,7 @@ async fn create_bot(
             is_primary: false,
             r#type: BotType::Referral,
             created_by: None,
-            owner_id: None,
+            owner_id: Some(owner.id),
             ctx: None,
         })
         .await?;
@@ -137,4 +164,24 @@ async fn get_primary_bots(
         total: bots.len() as i64,
         items: bots.into_iter().map(BotBotResponse::from).collect(),
     }))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/bot/bots/{id}",
+    tag = "Bots",
+    responses(
+        (status = 200, description = "Bot deleted", body = String),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
+async fn delete_bot(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<i64>,
+    _bot: AuthBot,
+) -> ApiResult<()> {
+    state.bot_service.delete(id).await?;
+    Ok(())
 }

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO transactions (\n                customer_id, order_id, type, amount, store_balance_delta,\n                platform_commission, gateway_commission,\n                description, payment_gateway, details\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n            RETURNING\n                id, customer_id, order_id, type as \"type: _\", amount, store_balance_delta,\n                platform_commission, gateway_commission, description, payment_gateway as \"payment_gateway: _\",\n                details, created_at, store_balance_after, user_balance_after\n            ",
+  "query": "\n            SELECT\n                id, customer_id, order_id, type as \"type: _\", amount, store_balance_delta,\n                platform_commission, gateway_commission, description, payment_gateway as \"payment_gateway: _\",\n                details, created_at, store_balance_after, user_balance_after, bot_id\n            FROM transactions\n            ORDER BY id DESC\n            LIMIT 1\n            ",
   "describe": {
     "columns": [
       {
@@ -72,21 +72,15 @@
         "ordinal": 13,
         "name": "user_balance_after",
         "type_info": "Numeric"
+      },
+      {
+        "ordinal": 14,
+        "name": "bot_id",
+        "type_info": "Int8"
       }
     ],
     "parameters": {
-      "Left": [
-        "Int8",
-        "Int8",
-        "Text",
-        "Numeric",
-        "Numeric",
-        "Numeric",
-        "Numeric",
-        "Text",
-        "Text",
-        "Jsonb"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -102,8 +96,9 @@
       true,
       false,
       false,
+      true,
       true
     ]
   },
-  "hash": "3a8df5affb45f94bc33a1e729106ba1f4d41f92c96519b0af7df4f4fd8a2a44d"
+  "hash": "05d3c091169885aae948544caa485971a725bd8ba83d04688d09d9c63c5ed5c2"
 }

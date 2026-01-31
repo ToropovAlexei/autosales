@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT \n            id, owner_id, token, username, type as \"type: _\", is_active,\n            is_primary, referral_percentage, \n            created_at, updated_at, created_by\n        FROM bots WHERE is_primary = true",
+  "query": "\n        INSERT INTO bots (\n            owner_id, token, username, type, is_active,\n            is_primary, referral_percentage, created_by\n        )\n        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n        RETURNING\n            id, owner_id, token, username, type as \"type: _\", is_active,\n            is_primary, referral_percentage,\n            created_at, updated_at, created_by\n        ",
   "describe": {
     "columns": [
       {
@@ -60,7 +60,16 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Int8",
+        "Text",
+        "Text",
+        "Text",
+        "Bool",
+        "Bool",
+        "Numeric",
+        "Int8"
+      ]
     },
     "nullable": [
       false,
@@ -76,5 +85,5 @@
       true
     ]
   },
-  "hash": "e65288c1be4231b506ceba66a25a23ccb96f689423a821310603680caf4bff9d"
+  "hash": "8f3e37af11b1363db410824a7283bf4ed6a0c73b1cf95e7ba83d0849e82d185d"
 }

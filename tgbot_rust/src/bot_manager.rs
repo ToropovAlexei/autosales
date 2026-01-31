@@ -2,6 +2,7 @@ use crate::AppState;
 use crate::api::backend_api::BackendApi;
 use crate::bot::{BotUsername, run_bot};
 use crate::errors::AppError;
+use shared_dtos::list_query::{Pagination, RawListQuery};
 use std::collections::{HashMap, HashSet};
 use std::ops::Deref;
 use std::sync::Arc;
@@ -30,7 +31,18 @@ impl BotManager {
         let mut interval = interval(Duration::from_mins(1));
         loop {
             interval.tick().await;
-            let all_bots = match self.app_state.api.get_bots().await {
+            let all_bots = match self
+                .app_state
+                .api
+                .get_bots(RawListQuery {
+                    pagination: Pagination {
+                        page: 1,
+                        page_size: 100, // TODO: Make this configurable
+                    },
+                    ..Default::default()
+                })
+                .await
+            {
                 Ok(bots) => bots,
                 Err(e) => {
                     tracing::error!(error = %e, "Failed to get bots");

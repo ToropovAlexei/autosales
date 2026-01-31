@@ -117,15 +117,10 @@ impl UserSubscriptionRepositoryTrait for UserSubscriptionRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{
-        bot::BotRow,
-        common::{OrderDir, Pagination},
-        customer::CustomerRow,
-        order::OrderRow,
-        product::ProductRow,
-    };
+    use crate::models::{bot::BotRow, customer::CustomerRow, order::OrderRow, product::ProductRow};
     use chrono::Utc;
     use rust_decimal::Decimal;
+    use shared_dtos::list_query::{OrderDir, Pagination};
     use sqlx::PgPool;
 
     async fn create_test_customer(pool: &PgPool, telegram_id: i64, bot_id: i64) -> CustomerRow {

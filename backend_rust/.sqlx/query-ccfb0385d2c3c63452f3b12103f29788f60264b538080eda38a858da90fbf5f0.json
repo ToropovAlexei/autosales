@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO bots (\n                owner_id, token, username, type, is_active,\n                is_primary, referral_percentage, created_by\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n            RETURNING\n                id, owner_id, token, username, type as \"type: _\", is_active,\n                is_primary, referral_percentage, \n                created_at, updated_at, created_by\n            ",
+  "query": "\n        UPDATE bots\n        SET\n            owner_id = $1,\n            token = $2,\n            username = $3,\n            type = $4,\n            is_active = $5,\n            is_primary = $6,\n            referral_percentage = $7,\n            created_by = $8,\n            deleted_at = NULL\n        WHERE token = $2 AND deleted_at IS NOT NULL\n        RETURNING\n            id, owner_id, token, username, type as \"type: _\", is_active,\n            is_primary, referral_percentage,\n            created_at, updated_at, created_by\n        ",
   "describe": {
     "columns": [
       {
@@ -85,5 +85,5 @@
       true
     ]
   },
-  "hash": "5b302c8edd2dc4eb0c6dae57ee9dd021e2875054031e1cb4774903203c468a09"
+  "hash": "ccfb0385d2c3c63452f3b12103f29788f60264b538080eda38a858da90fbf5f0"
 }

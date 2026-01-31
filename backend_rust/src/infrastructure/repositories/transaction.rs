@@ -50,7 +50,7 @@ impl TransactionRepositoryTrait for TransactionRepository {
         SELECT
             id, customer_id, order_id, type, amount, store_balance_delta,
             platform_commission, gateway_commission, description, payment_gateway,
-            details, created_at, store_balance_after, user_balance_after
+            details, created_at, store_balance_after, user_balance_after, bot_id
         FROM transactions"#,
         );
         apply_list_query(&mut query_builder, &query);
@@ -66,13 +66,13 @@ impl TransactionRepositoryTrait for TransactionRepository {
             INSERT INTO transactions (
                 customer_id, order_id, type, amount, store_balance_delta,
                 platform_commission, gateway_commission,
-                description, payment_gateway, details
+                description, payment_gateway, details, bot_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING
                 id, customer_id, order_id, type as "type: _", amount, store_balance_delta,
                 platform_commission, gateway_commission, description, payment_gateway as "payment_gateway: _",
-                details, created_at, store_balance_after, user_balance_after
+                details, created_at, store_balance_after, user_balance_after, bot_id
             "#,
             transaction.customer_id,
             transaction.order_id,
@@ -83,7 +83,8 @@ impl TransactionRepositoryTrait for TransactionRepository {
             transaction.gateway_commission,
             transaction.description,
             transaction.payment_gateway as _,
-            transaction.details
+            transaction.details,
+            transaction.bot_id
         )
         .fetch_one(&*self.pool)
         .await?;
@@ -98,7 +99,7 @@ impl TransactionRepositoryTrait for TransactionRepository {
             SELECT
                 id, customer_id, order_id, type as "type: _", amount, store_balance_delta,
                 platform_commission, gateway_commission, description, payment_gateway as "payment_gateway: _",
-                details, created_at, store_balance_after, user_balance_after
+                details, created_at, store_balance_after, user_balance_after, bot_id
             FROM transactions
             ORDER BY id DESC
             LIMIT 1
@@ -112,10 +113,11 @@ impl TransactionRepositoryTrait for TransactionRepository {
 
 #[cfg(test)]
 mod tests {
-    use crate::models::common::{Filter, FilterValue, Operator, Pagination, ScalarValue};
+    use crate::models::common::Filter;
     use crate::models::{transaction::TransactionFilterFields, transaction::TransactionType};
     use rust_decimal::Decimal;
     use shared_dtos::invoice::PaymentSystem;
+    use shared_dtos::list_query::{FilterValue, Operator, Pagination, ScalarValue};
 
     use super::*;
 
@@ -148,6 +150,7 @@ mod tests {
             description: None,
             payment_gateway: None,
             details: None,
+            bot_id: None,
         };
         repo.create(tx1).await.unwrap();
 
@@ -162,6 +165,7 @@ mod tests {
             description: None,
             payment_gateway: None,
             details: None,
+            bot_id: None,
         };
         let last_tx_created = repo.create(tx2).await.unwrap();
 
@@ -189,6 +193,7 @@ mod tests {
             description: None,
             payment_gateway: None,
             details: None,
+            bot_id: None,
         })
         .await
         .unwrap();
@@ -203,6 +208,7 @@ mod tests {
             description: None,
             payment_gateway: None,
             details: None,
+            bot_id: None,
         })
         .await
         .unwrap();
@@ -219,6 +225,7 @@ mod tests {
             description: None,
             payment_gateway: None,
             details: None,
+            bot_id: None,
         })
         .await
         .unwrap();
@@ -286,6 +293,7 @@ mod tests {
             description: Some("Test deposit".to_string()),
             payment_gateway: Some(PaymentSystem::Mock),
             details: None,
+            bot_id: None,
         };
 
         let result1 = repo.create(deposit_tx).await.unwrap();
@@ -316,6 +324,7 @@ mod tests {
             description: Some("Test purchase".to_string()),
             payment_gateway: None,
             details: None,
+            bot_id: None,
         };
 
         let result2 = repo.create(purchase_tx).await.unwrap();

@@ -55,6 +55,11 @@ pnpm dev
 
 See `docs/README.md` for detailed setup and architecture notes.
 
+## Pre-commit (optional)
+
+This repo includes a local `pre-commit` hook that runs `cargo sqlx prepare` in `backend_rust`.
+Install hooks with `pre-commit install` from the repo root after you install `pre-commit`.
+
 ## Legacy (deprecated)
 
 - `backend_go`

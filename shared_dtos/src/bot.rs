@@ -26,7 +26,7 @@ pub struct NewBotBotRequest {
 
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
 #[cfg_attr(feature = "validate", derive(validator::Validate))]
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct UpdateBotBotRequest {
     pub is_active: Option<bool>,
     pub is_primary: Option<bool>,

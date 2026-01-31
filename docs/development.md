@@ -16,6 +16,7 @@ docker compose up -d backend frontend bot
 ```
 
 Notes:
+
 - `backend_rust` container runs DB migrations on startup, initializes the admin user/bots, and optionally seeds data when `SEED_DB=1|true`.
 - `frontend` is built with `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_IMAGES_URL` build args.
 - `bot` expects a public `WEBHOOK_HOST`/`WEBHOOK_PORT` and a `BACKEND_API_URL` that ends with `/`.
@@ -59,3 +60,14 @@ pnpm dev
 - Payments: `PLATFORM_PAYMENT_SYSTEM_*`, optional `MOCK_PAYMENTS_PROVIDER_URL`
 - Bot: `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `BACKEND_API_URL`, `WEBHOOK_HOST`, `WEBHOOK_PORT`
 - Frontend: `NEXT_PUBLIC_API_URL`, `NEXT_PUBLIC_IMAGES_URL`
+
+## Pre-commit (optional)
+
+The repo includes a local `pre-commit` hook that runs `cargo sqlx prepare` in `backend_rust`.
+Install with:
+
+```bash
+pre-commit install
+```
+
+The hook sources `backend_rust/.env` to pick up `DATABASE_URL`.

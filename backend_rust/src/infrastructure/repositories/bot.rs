@@ -25,6 +25,7 @@ pub trait BotRepositoryTrait {
         owner_id: Option<i64>,
     ) -> RepositoryResult<()>;
     async fn get_primary_bots(&self) -> RepositoryResult<Vec<BotRow>>;
+    async fn delete(&self, id: i64) -> RepositoryResult<()>;
 }
 
 #[derive(Clone)]
@@ -55,19 +56,55 @@ impl BotRepositoryTrait for BotRepository {
     }
 
     async fn create(&self, bot: NewBot) -> RepositoryResult<BotRow> {
+        let restored = sqlx::query_as!(
+            BotRow,
+            r#"
+        UPDATE bots
+        SET
+            owner_id = $1,
+            token = $2,
+            username = $3,
+            type = $4,
+            is_active = $5,
+            is_primary = $6,
+            referral_percentage = $7,
+            created_by = $8,
+            deleted_at = NULL
+        WHERE token = $2 AND deleted_at IS NOT NULL
+        RETURNING
+            id, owner_id, token, username, type as "type: _", is_active,
+            is_primary, referral_percentage,
+            created_at, updated_at, created_by
+        "#,
+            bot.owner_id,
+            bot.token,
+            bot.username,
+            bot.r#type as BotType,
+            bot.is_active,
+            bot.is_primary,
+            bot.referral_percentage,
+            bot.created_by
+        )
+        .fetch_optional(&*self.pool)
+        .await?;
+
+        if let Some(result) = restored {
+            return Ok(result);
+        }
+
         let result = sqlx::query_as!(
             BotRow,
             r#"
-            INSERT INTO bots (
-                owner_id, token, username, type, is_active,
-                is_primary, referral_percentage, created_by
-            )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-            RETURNING
-                id, owner_id, token, username, type as "type: _", is_active,
-                is_primary, referral_percentage, 
-                created_at, updated_at, created_by
-            "#,
+        INSERT INTO bots (
+            owner_id, token, username, type, is_active,
+            is_primary, referral_percentage, created_by
+        )
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        RETURNING
+            id, owner_id, token, username, type as "type: _", is_active,
+            is_primary, referral_percentage,
+            created_at, updated_at, created_by
+        "#,
             bot.owner_id,
             bot.token,
             bot.username,
@@ -87,9 +124,9 @@ impl BotRepositoryTrait for BotRepository {
         let result = sqlx::query_as!(
             BotRow,
             r#"
-        SELECT 
+        SELECT
             id, owner_id, token, username, type as "type: _", is_active,
-            is_primary, referral_percentage, 
+            is_primary, referral_percentage,
             created_at, updated_at, created_by
         FROM bots WHERE id = $1"#,
             id
@@ -138,9 +175,9 @@ impl BotRepositoryTrait for BotRepository {
         let result = sqlx::query_as!(
             BotRow,
             r#"
-        SELECT 
+        SELECT
             id, owner_id, token, username, type as "type: _", is_active,
-            is_primary, referral_percentage, 
+            is_primary, referral_percentage,
             created_at, updated_at, created_by
         FROM bots WHERE token = $1"#,
             token
@@ -174,9 +211,9 @@ impl BotRepositoryTrait for BotRepository {
         let result = sqlx::query_as!(
             BotRow,
             r#"
-        SELECT 
+        SELECT
             id, owner_id, token, username, type as "type: _", is_active,
-            is_primary, referral_percentage, 
+            is_primary, referral_percentage,
             created_at, updated_at, created_by
         FROM bots WHERE is_primary = true"#,
         )
@@ -184,6 +221,16 @@ impl BotRepositoryTrait for BotRepository {
         .await?;
 
         Ok(result)
+    }
+
+    async fn delete(&self, id: i64) -> RepositoryResult<()> {
+        sqlx::query!(
+            "UPDATE bots SET deleted_at = NOW() WHERE id = $1 AND deleted_at IS NULL",
+            id
+        )
+        .execute(&*self.pool)
+        .await?;
+        Ok(())
     }
 }
 
@@ -213,7 +260,7 @@ mod tests {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
             RETURNING
                 id, owner_id, token, username, type as "type: _", is_active,
-                is_primary, referral_percentage, 
+                is_primary, referral_percentage,
                 created_at, updated_at, created_by
             "#,
             new_bot.owner_id,
@@ -324,5 +371,48 @@ mod tests {
         let primary_bots_after_change = repo.get_primary_bots().await.unwrap();
         assert_eq!(primary_bots_after_change.len(), 1);
         assert_eq!(primary_bots_after_change[0].id, bot2.id);
+    }
+
+    #[sqlx::test]
+    async fn test_create_restores_deleted_bot(pool: PgPool) {
+        let repo = BotRepository::new(Arc::new(pool.clone()));
+        let token = "restore_token_1";
+        let username = "restore_bot_1";
+
+        let bot = create_test_bot(&pool, token, username).await;
+        sqlx::query!("UPDATE bots SET deleted_at = NOW() WHERE id = $1", bot.id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let new_bot = NewBot {
+            owner_id: Some(2),
+            token: token.to_string(),
+            username: "restore_bot_1_updated".to_string(),
+            r#type: BotType::Referral,
+            is_active: false,
+            is_primary: true,
+            referral_percentage: Decimal::from_str("0.2").unwrap(),
+            created_by: Some(1),
+        };
+
+        let restored = repo.create(new_bot).await.unwrap();
+
+        assert_eq!(restored.id, bot.id);
+        assert_eq!(restored.owner_id, Some(2));
+        assert_eq!(restored.username, "restore_bot_1_updated");
+        assert_eq!(restored.r#type, BotType::Referral);
+        assert!(!restored.is_active);
+        assert!(restored.is_primary);
+        assert_eq!(
+            restored.referral_percentage,
+            Decimal::from_str("0.2").unwrap()
+        );
+
+        let deleted_at = sqlx::query_scalar!("SELECT deleted_at FROM bots WHERE id = $1", bot.id)
+            .fetch_one(&pool)
+            .await
+            .unwrap();
+        assert!(deleted_at.is_none());
     }
 }

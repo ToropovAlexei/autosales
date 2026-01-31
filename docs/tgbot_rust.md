@@ -29,3 +29,4 @@ Required:
 - Notifications are pushed from the backend to `BOT_DISPATCHER_WEBHOOK_URL`.
 - Dialogue state and user flow state are persisted in Redis.
 - Subscription purchases return access details (host/port/login/password) which are rendered in the bot UI.
+- Referral stats are fetched from `/api/bot/customers/{telegram_id}/referral-analytics`.

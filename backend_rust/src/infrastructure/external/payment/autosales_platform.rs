@@ -89,7 +89,7 @@ impl AutosalesPlatformPaymentsProvider {
     {
         let response = self
             .client
-            .post(format!("{}/{endpoint}", self.url))
+            .post(format!("{}{endpoint}", self.url))
             .form(payload)
             .send()
             .await

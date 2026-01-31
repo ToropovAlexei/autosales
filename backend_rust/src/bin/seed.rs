@@ -22,11 +22,7 @@ use backend_rust::{
     },
     init_tracing,
     middlewares::context::RequestContext,
-    models::{
-        category::NewCategory,
-        common::{OrderDir, Pagination},
-        product::ProductListQuery,
-    },
+    models::{category::NewCategory, product::ProductListQuery},
     run_migrations,
     services::{
         audit_log::AuditLogService,
@@ -37,7 +33,10 @@ use backend_rust::{
     state::AppState,
 };
 use rust_decimal::{Decimal, prelude::FromPrimitive};
-use shared_dtos::product::ProductType;
+use shared_dtos::{
+    list_query::{OrderDir, Pagination},
+    product::ProductType,
+};
 use uuid::Uuid;
 
 type CategoryServiceShortType =

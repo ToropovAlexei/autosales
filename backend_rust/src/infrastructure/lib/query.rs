@@ -1,8 +1,7 @@
+use shared_dtos::list_query::{FilterValue, Operator, OrderDir, Pagination, ScalarValue};
 use sqlx::{Postgres, QueryBuilder};
 
-use crate::models::common::{
-    AllowedField, FilterValue, ListQuery, Operator, OrderDir, Pagination, ScalarValue,
-};
+use crate::models::common::{AllowedField, ListQuery};
 
 pub fn apply_list_query<'a, F: AllowedField, O: AllowedField>(
     qb: &mut QueryBuilder<'a, Postgres>,

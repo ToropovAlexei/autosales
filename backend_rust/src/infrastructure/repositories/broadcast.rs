@@ -203,10 +203,11 @@ mod tests {
     use crate::models::admin_user::AdminUserRow;
     use crate::models::{
         broadcast::{BroadcastListQuery, BroadcastStatus, NewBroadcast, UpdateBroadcast},
-        common::{Filter, ScalarValue},
+        common::Filter,
     };
     use chrono::{Duration, Utc};
     use serde_json::json;
+    use shared_dtos::list_query::{FilterValue, Operator, ScalarValue};
     use sqlx::PgPool;
 
     async fn create_test_admin_user(pool: &PgPool, login: &str) -> AdminUserRow {
@@ -335,10 +336,8 @@ mod tests {
         use crate::models::broadcast::BroadcastFilterFields;
         query.filters = vec![Filter {
             field: BroadcastFilterFields::Status,
-            op: crate::models::common::Operator::Eq,
-            value: crate::models::common::FilterValue::Scalar(ScalarValue::Text(
-                "completed".to_string(),
-            )),
+            op: Operator::Eq,
+            value: FilterValue::Scalar(ScalarValue::Text("completed".to_string())),
         }];
 
         let completed_broadcasts = repo.get_list(query).await.unwrap();

@@ -17,7 +17,7 @@ use crate::{
     infrastructure::{
         external::products::contms::{ContmsProductsProvider, ContmsProductsProviderTrait},
         repositories::{
-            audit_log::AuditLogRepository, category::CategoryRepository,
+            audit_log::AuditLogRepository, bot::BotRepository, category::CategoryRepository,
             customer::CustomerRepository, order::OrderRepository, order_item::OrderItemRepository,
             products::ProductRepository, settings::SettingsRepository,
             stock_movement::StockMovementRepository, transaction::TransactionRepository,
@@ -32,6 +32,7 @@ use crate::{
     },
     services::{
         audit_log::AuditLogService,
+        bot::{BotService, BotServiceTrait},
         category::CategoryService,
         customer::{CustomerService, CustomerServiceTrait},
         order::{OrderService, OrderServiceTrait},
@@ -75,7 +76,7 @@ pub trait PurchaseServiceTrait: Send + Sync {
     async fn purchase_product(&self, command: PurchaseProductCommand) -> ApiResult<PurchaseResult>;
 }
 
-pub struct PurchaseService<T, C, OI, O, P, CMS, US> {
+pub struct PurchaseService<T, C, OI, O, P, CMS, US, B> {
     pub transactions_service: Arc<T>,
     pub customer_service: Arc<C>,
     pub order_service: Arc<O>,
@@ -83,9 +84,10 @@ pub struct PurchaseService<T, C, OI, O, P, CMS, US> {
     pub product_service: Arc<P>,
     pub contms_provider: Arc<CMS>,
     pub user_subscription_service: Arc<US>,
+    pub bot_service: Arc<B>,
 }
 
-impl<T, C, OI, O, P, CMS, US> PurchaseService<T, C, OI, O, P, CMS, US>
+impl<T, C, OI, O, P, CMS, US, B> PurchaseService<T, C, OI, O, P, CMS, US, B>
 where
     T: TransactionServiceTrait + Send + Sync,
     C: CustomerServiceTrait + Send + Sync,
@@ -94,7 +96,9 @@ where
     P: ProductServiceTrait + Send + Sync,
     CMS: ContmsProductsProviderTrait + Send + Sync,
     US: UserSubscriptionServiceTrait + Send + Sync,
+    B: BotServiceTrait + Send + Sync,
 {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         transactions_service: Arc<T>,
         customer_service: Arc<C>,
@@ -103,6 +107,7 @@ where
         order_item_service: Arc<OI>,
         contms_provider: Arc<CMS>,
         user_subscription_service: Arc<US>,
+        bot_service: Arc<B>,
     ) -> Self {
         Self {
             transactions_service,
@@ -112,6 +117,7 @@ where
             order_service,
             contms_provider,
             user_subscription_service,
+            bot_service,
         }
     }
 }
@@ -126,9 +132,16 @@ impl PurchaseServiceTrait
         ProductServiceShort,
         ContmsProductsProvider,
         UserSubscriptionService<UserSubscriptionRepository>,
+        BotService<
+            BotRepository,
+            SettingsRepository,
+            AuditLogService<AuditLogRepository>,
+            TransactionRepository,
+        >,
     >
 {
     async fn purchase_product(&self, command: PurchaseProductCommand) -> ApiResult<PurchaseResult> {
+        let bot = self.bot_service.get_by_id(command.bot_id).await?;
         // TODO Refactor this function
         let product = self.product_service.get_by_id(command.product_id).await?;
         // We should check if there is enough stock only for internal products
@@ -193,8 +206,32 @@ impl PurchaseServiceTrait
                 description: None,
                 payment_gateway: None,
                 details: None,
+                bot_id: None,
             })
             .await?;
+
+        // If customer buy from self bot, there is no need to create referral payout
+        if let Some(owner_id) = bot.owner_id
+            && customer.id != owner_id
+        {
+            // Add balance to referral owner
+            self.transactions_service
+                .create(NewTransaction {
+                    amount: total_price * bot.referral_percentage / dec!(100),
+                    customer_id: Some(owner_id),
+                    order_id: Some(order.id),
+                    r#type: TransactionType::ReferralPayout,
+                    store_balance_delta: dec!(0),
+                    platform_commission: dec!(0),
+                    gateway_commission: dec!(0),
+                    description: None,
+                    payment_gateway: None,
+                    details: None,
+                    bot_id: Some(command.bot_id),
+                })
+                .await?;
+        }
+
         if is_subscription
             && product.provider_name == "contms"
             && let Some(external_id) = product.external_id

@@ -157,6 +157,7 @@ async fn create_initial_store_balance(transaction_repo: &Arc<TransactionReposito
                 platform_commission: dec!(0),
                 store_balance_delta: Decimal::from(initial_store_balance),
                 r#type: TransactionType::Deposit,
+                bot_id: None,
             })
             .await
             .expect("Failed to create initial store balance transaction")

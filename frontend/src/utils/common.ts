@@ -24,7 +24,7 @@ export const serializeFilter = (filter: IFilter) => {
   if (filters) {
     const mappedFilters = filters.map((f) => ({
       ...f,
-      op: f.op === "is" ? "=" : f.op,
+      op: MUI_OP_TO_API_OP[f.op] || f.op,
     }));
     mappedFilters.forEach((f, idx) => {
       params.append(`filters[${idx}][field]`, f.field);
@@ -39,3 +39,15 @@ export const serializeFilter = (filter: IFilter) => {
 
   return params.toString();
 };
+
+const MUI_OP_TO_API_OP: Record<string, string> = {
+  "=": "eq",
+  "<": "lt",
+  ">": "gt",
+  "<=": "lte",
+  ">=": "gte",
+  is: "eq",
+  "is not": "ne",
+};
+
+const muiOpToApiOp = (op: string) => {};

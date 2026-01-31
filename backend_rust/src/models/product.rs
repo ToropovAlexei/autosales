@@ -68,6 +68,7 @@ define_list_query! {
             ProviderName => "provider_name",
             ExternalId => "external_id",
             BasePrice => "base_price",
+            Type => "type",
         ]
     },
     order_fields: {
@@ -79,6 +80,7 @@ define_list_query! {
             BasePrice => "base_price",
             ProviderName => "provider_name",
             CreatedAt => "created_at",
+            Type => "type",
         ]
     }
 }

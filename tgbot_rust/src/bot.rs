@@ -5,6 +5,7 @@ use bytes::Bytes;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use shared_dtos::{
+    bot::UpdateBotBotRequest,
     customer::UpdateCustomerBotRequest,
     invoice::{PaymentDetails, PaymentSystem},
     notification::{DispatchMessage, DispatchMessagePayload},
@@ -32,15 +33,19 @@ use crate::{
     api::backend_api::BackendApi,
     bot::{
         handlers::{
-            balance::balance_handler, buy::buy_handler, cancel_invoice::cancel_invoice_handler,
-            captcha_answer::captcha_answer_handler, catalog::catalog_handler,
-            confirm_invoice::confirm_invoice_handler, deposit_amount::deposit_amount_handler,
+            add_bot_handler::add_bot_handler, balance::balance_handler,
+            bot_stats_handler::bot_stats_handler, buy::buy_handler,
+            cancel_invoice::cancel_invoice_handler, captcha_answer::captcha_answer_handler,
+            catalog::catalog_handler, confirm_invoice::confirm_invoice_handler,
+            delete_bot_handler::delete_bot_handler, deposit_amount::deposit_amount_handler,
             deposit_confirm::deposit_confirm_handler, deposit_gateway::deposit_gateway_handler,
             fallback_bot_msg::fallback_bot_msg, main_menu::main_menu_handler,
-            my_bots::my_bots_handler, my_orders::my_orders_handler,
-            my_payments::my_payments_handler, my_subscriptions::my_subscriptions_handler,
-            order_details::order_details_handler, product::product_handler,
-            receipt_submitted_handler::receipt_submitted_handler, start::start_handler,
+            my_orders::my_orders_handler, my_payments::my_payments_handler,
+            my_subscriptions::my_subscriptions_handler, order_details::order_details_handler,
+            product::product_handler, receipt_submitted_handler::receipt_submitted_handler,
+            referral_bot_token_handler::referral_bot_token_handler,
+            referral_program_handler::referral_program_handler,
+            show_bot_info_handler::show_bot_info_handler, start::start_handler,
             support::support_handler,
         },
         keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard,
@@ -110,6 +115,8 @@ pub enum BotStep {
     ReceiptSubmitted {
         invoice_id: i64,
     },
+    #[serde(other)]
+    Unknown,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -165,6 +172,11 @@ pub enum CallbackData {
     Buy { id: i64 },
     ConfirmPayment { id: i64 },
     CancelPayment { id: i64 },
+    AddBot,
+    ShowBotInfo { id: i64 },
+    BotStats,
+    SetBotPrimary { id: i64 },
+    DeleteBot { id: i64 },
 }
 
 impl CallbackData {
@@ -200,7 +212,6 @@ impl From<String> for CallbackData {
 #[command(rename_rule = "lowercase")]
 pub enum Command {
     Start,
-    MyBots,
 }
 
 type MyDialogue = Dialogue<BotState, RedisStorage<Json>>;
@@ -240,7 +251,7 @@ pub async fn run_bot(
         )
         .branch(
             dptree::filter(|state: BotState| state.step == BotStep::WaitingForReferralBotToken)
-                .endpoint(handlers::my_bots::referral_bot_token_handler),
+                .endpoint(referral_bot_token_handler),
         )
         .branch(
             dptree::filter(|state: BotState| {
@@ -383,6 +394,7 @@ pub async fn run_bot(
                         })
                         .await
                         .map_err(AppError::from)?;
+                    referral_program_handler(bot, dialogue, q, api_client).await?;
                 }
                 CallbackData::ToSupport => {
                     dialogue
@@ -444,6 +456,30 @@ pub async fn run_bot(
                 }
                 CallbackData::ConfirmPayment { id } => {
                     confirm_invoice_handler(bot, dialogue, q, api_client, id).await?;
+                }
+                CallbackData::AddBot => {
+                    add_bot_handler(bot, dialogue, q, api_client, bot_state).await?;
+                }
+                CallbackData::BotStats => {
+                    bot_stats_handler(bot, dialogue, q, api_client).await?;
+                }
+                CallbackData::DeleteBot { id } => {
+                    delete_bot_handler(bot, dialogue, q, api_client, bot_state, id).await?;
+                }
+                CallbackData::SetBotPrimary { id } => {
+                    api_client
+                        .update_bot(
+                            id,
+                            UpdateBotBotRequest {
+                                is_primary: Some(true),
+                                ..Default::default()
+                            },
+                        )
+                        .await?;
+                    referral_program_handler(bot, dialogue, q, api_client).await?;
+                }
+                CallbackData::ShowBotInfo { id } => {
+                    show_bot_info_handler(bot, dialogue, q, api_client, id).await?;
                 }
             }
 
@@ -541,7 +577,7 @@ async fn command_handler(
     cmd: Command,
     dialogue: MyDialogue,
     api_client: Arc<BackendApi>,
-    app_state: AppState,
+    _app_state: AppState,
     fallback_bot_username: Option<BotUsername>,
 ) -> AppResult<()> {
     match cmd {
@@ -557,16 +593,6 @@ async fn command_handler(
                 })
                 .await?;
             start_handler(bot, dialogue, msg, api_client).await
-        }
-        Command::MyBots => {
-            dialogue
-                .update(BotState {
-                    step: BotStep::WaitingForReferralBotToken,
-                    // TODO NOT DEFAULT!
-                    ..Default::default()
-                })
-                .await?;
-            my_bots_handler(bot, dialogue, app_state).await
         }
     }
 }

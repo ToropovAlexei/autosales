@@ -17,8 +17,15 @@ Rust backend for admin dashboard, bot-facing API, images, and payment webhooks. 
 - `/api/bot/*`
 - `/api/webhook/*`
 - `/api/images/*`
+- `/api/bot/customers/{telegram_id}/referral-analytics` (referral stats)
 
 OpenAPI is available at `/swagger-ui` and `/openapi.json`.
+
+## Data model notes
+
+- `bots.owner_id` references `customers.id` (the bot API maps from `telegram_id` when creating bots).
+- Referral payouts are tracked as `transactions` with `type = referral_payout` and `bot_id` set.
+- Bot list queries are encoded with `serde_qs` and shared list DTOs from `shared_dtos::list_query`.
 
 ## Auth notes
 

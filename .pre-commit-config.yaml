@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: cargo-sqlx-prepare
+        name: cargo sqlx prepare
+        entry: bash -lc 'cd backend_rust && set -a && [ -f .env ] && . .env && set +a && cargo sqlx prepare'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]

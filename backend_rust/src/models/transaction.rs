@@ -37,6 +37,7 @@ pub struct TransactionRow {
     pub description: Option<String>,
     pub payment_gateway: Option<PaymentSystem>,
     pub details: Option<serde_json::Value>,
+    pub bot_id: Option<i64>,
 }
 
 #[derive(Debug)]
@@ -51,6 +52,7 @@ pub struct NewTransaction {
     pub description: Option<String>,
     pub payment_gateway: Option<PaymentSystem>,
     pub details: Option<serde_json::Value>,
+    pub bot_id: Option<i64>,
 }
 
 define_list_query! {

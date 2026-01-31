@@ -67,6 +67,7 @@ mod tests {
             user_balance_after: None,
             store_balance_after: dec!(0),
             details: None,
+            bot_id: None,
         };
 
         let transaction_response: TransactionResponse = transaction_row.into();
@@ -108,6 +109,7 @@ mod tests {
             user_balance_after: None,
             store_balance_after: dec!(0),
             details: None,
+            bot_id: None,
         };
 
         let transaction_response: TransactionResponse = transaction_row.into();

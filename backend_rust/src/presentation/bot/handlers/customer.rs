@@ -6,6 +6,7 @@ use axum::{
     routing::{get, post},
 };
 use shared_dtos::{
+    analytics::BotAnalyticsBotResponse,
     customer::{CustomerBotResponse, NewCustomerBotRequest, UpdateCustomerBotRequest},
     invoice::PaymentInvoiceBotResponse,
     list_response::ListResponse,
@@ -18,6 +19,7 @@ use crate::{
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson},
     models::customer::NewCustomer,
     services::{
+        analytics::AnalyticsServiceTrait,
         customer::{CustomerServiceTrait, UpdateCustomerCommand},
         order::OrderServiceTrait,
         payment_invoice::PaymentInvoiceServiceTrait,
@@ -39,6 +41,10 @@ pub fn router() -> Router<Arc<AppState>> {
         .route(
             "/{telegram_id}/update-last-seen",
             post(update_customer_last_seen),
+        )
+        .route(
+            "/{telegram_id}/referral-analytics",
+            get(get_customer_referral_analytics),
         )
 }
 
@@ -246,6 +252,28 @@ async fn get_customer_subscriptions(
         items: subscriptions
             .into_iter()
             .map(UserSubscriptionBotResponse::from)
+            .collect(),
+    }))
+}
+
+async fn get_customer_referral_analytics(
+    State(state): State<Arc<AppState>>,
+    Path(telegram_id): Path<i64>,
+    _bot: AuthBot,
+) -> ApiResult<Json<ListResponse<BotAnalyticsBotResponse>>> {
+    let customer = state
+        .customer_service
+        .get_by_telegram_id(telegram_id)
+        .await?;
+    let stats = state
+        .analytics_service
+        .get_referral_stats(customer.id)
+        .await?;
+    Ok(Json(ListResponse {
+        total: stats.len() as i64,
+        items: stats
+            .into_iter()
+            .map(BotAnalyticsBotResponse::from)
             .collect(),
     }))
 }

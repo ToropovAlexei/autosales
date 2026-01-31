@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT \n            id, owner_id, token, username, type as \"type: _\", is_active,\n            is_primary, referral_percentage, \n            created_at, updated_at, created_by\n        FROM bots WHERE token = $1",
+  "query": "\n        SELECT\n            id, owner_id, token, username, type as \"type: _\", is_active,\n            is_primary, referral_percentage,\n            created_at, updated_at, created_by\n        FROM bots WHERE token = $1",
   "describe": {
     "columns": [
       {
@@ -78,5 +78,5 @@
       true
     ]
   },
-  "hash": "888185c8511b854a4a7f0a08fe10c7fa12b646b12d557bd77ed65529a6ab1c33"
+  "hash": "5e160e16373368b532765b4bbf9f8fd5f8630699fb081afe0099ff7a3169df2a"
 }

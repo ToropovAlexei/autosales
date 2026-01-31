@@ -1,0 +1,34 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                t.bot_id as \"bot_id!\",\n                COALESCE(SUM(CASE WHEN t.type = 'referral_payout' THEN t.amount ELSE 0 END), 0) AS \"total_earnings!\",\n                COALESCE(COUNT(DISTINCT t.order_id) FILTER (WHERE t.type = 'referral_payout'), 0) AS \"purchase_count!\"\n            FROM transactions t\n            JOIN bots b ON b.id = t.bot_id\n            WHERE b.owner_id = $1 AND t.bot_id IS NOT NULL\n            GROUP BY t.bot_id\n            ORDER BY t.bot_id\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "bot_id!",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_earnings!",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 2,
+        "name": "purchase_count!",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      true,
+      null,
+      null
+    ]
+  },
+  "hash": "255c6931020850446480930a4a5a113cef8ad830142834f5daded1fde43363f8"
+}

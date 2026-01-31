@@ -1,37 +1,13 @@
 use std::convert::TryFrom;
 
 use axum::extract::{FromRequest, Request};
-use serde::Deserialize;
+use shared_dtos::list_query::RawListQuery;
 use urlencoding::decode;
 
 use crate::{
     errors::api::{ApiError, ApiResult},
-    models::common::{
-        AllowedField, Filter, FilterValue, ListQuery, Operator, OrderDir, Pagination,
-    },
+    models::common::{AllowedField, Filter, ListQuery},
 };
-
-/// A raw version of Filter used for initial deserialization
-#[derive(Debug, Deserialize)]
-pub struct RawFilter {
-    field: String,
-    op: Operator,
-    value: FilterValue,
-}
-
-/// A raw version of ListQuery for initial deserialization from a query string.
-/// Fields that require validation (filters, order_by) are taken as strings.
-#[derive(Debug, Deserialize, Default)]
-pub struct RawListQuery {
-    #[serde(default)]
-    filters: Vec<RawFilter>,
-    #[serde(flatten)]
-    pagination: Pagination,
-    #[serde(default)]
-    order_by: Option<String>,
-    #[serde(default)]
-    order_dir: OrderDir,
-}
 
 impl<S, F, O> FromRequest<S> for ListQuery<F, O>
 where
@@ -100,12 +76,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        define_list_query,
-        models::common::{FilterValue, ScalarValue},
-    };
+    use crate::define_list_query;
     use axum::{body::Body, http::Request};
     use serde::{Deserialize, Serialize};
+    use shared_dtos::list_query::{FilterValue, Operator, OrderDir, ScalarValue};
 
     define_list_query! {
         query_name: TestListQuery,

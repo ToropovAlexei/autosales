@@ -14,6 +14,7 @@
 2. The Telegram bot fetches catalog data and purchases through the bot API.
 3. Payments are created as invoices; background workers track status and trigger notifications.
 4. Notifications are published to Redis; `tgbot_rust` picks them up and sends Telegram messages.
+5. Referral stats are derived from `referral_payout` transactions grouped by bot.
 
 ## Subscriptions (Contms)
 

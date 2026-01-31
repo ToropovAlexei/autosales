@@ -1,3 +1,4 @@
+pub mod analytics;
 pub mod bot;
 pub mod category;
 pub mod customer;

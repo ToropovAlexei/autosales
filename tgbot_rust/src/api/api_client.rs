@@ -97,6 +97,15 @@ impl ApiClient {
         Self::parse_response(response).await
     }
 
+    pub async fn delete<T>(&self, endpoint: &str) -> ApiClientResult<T>
+    where
+        T: DeserializeOwned + Send + 'static,
+    {
+        let url = self.base_url.join(endpoint)?;
+        let response = self.client.delete(url).send().await?;
+        Self::parse_response(response).await
+    }
+
     async fn parse_response<T>(response: Response) -> ApiClientResult<T>
     where
         T: DeserializeOwned,

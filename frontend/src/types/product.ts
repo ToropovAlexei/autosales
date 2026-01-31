@@ -3,7 +3,9 @@ import type { JsonValue } from "./serde_json/JsonValue";
 
 export type NewProduct = { name: string, base_price: number, category_id: bigint, image_id?: string, type: ProductType, subscription_period_days?: number, details?: JsonValue, fulfillment_text?: string, fulfillment_image_id?: string, initial_stock?: bigint, };
 
-export type Product = { id: bigint, name: string, base_price: number, price: number, stock: number, category_id: bigint | null, image_id: string | null, type: ProductType, subscription_period_days: number, details: JsonValue | null, deleted_at: string | null, fulfillment_text: string | null, fulfillment_image_id: string | null, provider_name: string, external_id: string | null, created_at: string, updated_at: string, created_by: bigint, };
+export type Product = { id: bigint, name: string, base_price: number, price: number, stock: number, category_id: bigint | null, image_id: string | null, type: ProductType, subscription_period_days: number, details: ProductDetails | null, deleted_at: string | null, fulfillment_text: string | null, fulfillment_image_id: string | null, provider_name: string, external_id: string | null, created_at: string, updated_at: string, created_by: bigint, };
+
+export type ProductDetails = { "cont_ms": { host: string, port: number, } };
 
 export type ProductType = "item" | "subscription";
 

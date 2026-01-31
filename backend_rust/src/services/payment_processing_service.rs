@@ -90,6 +90,7 @@ where
                 payment_gateway: Some(payment_invoice.gateway),
                 details: Some(payment_invoice.payment_details),
                 order_id: None, // Not invoice order id
+                bot_id: None,
             })
             .await?;
         self.payment_invoice_service
@@ -355,6 +356,7 @@ mod tests {
             description: None,
             payment_gateway: Some(PaymentSystem::PlatformCard),
             details: Some(json!({"ref": "abc"})),
+            bot_id: None,
         };
 
         let service = PaymentProcessingService::new(

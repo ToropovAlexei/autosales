@@ -258,9 +258,9 @@ impl ProductRepositoryTrait for ProductRepository {
 mod tests {
 
     use super::*;
-    use crate::models::common::Pagination;
     use rand::Rng;
     use rust_decimal::Decimal;
+    use shared_dtos::list_query::Pagination;
     use sqlx::PgPool;
     use uuid::Uuid;
 

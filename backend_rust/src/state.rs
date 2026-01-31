@@ -15,10 +15,10 @@ use crate::{
         external::payment::autosales_platform::AutosalesPlatformPaymentsProvider,
         repositories::{
             active_token::ActiveTokenRepository, admin_user::AdminUserRepository,
-            audit_log::AuditLogRepository, bot::BotRepository, broadcast::BroadcastRepository,
-            category::CategoryRepository, customer::CustomerRepository,
-            effective_permission::EffectivePermissionRepository, image::ImageRepository,
-            order::OrderRepository, order_item::OrderItemRepository,
+            analytics::AnalyticsRepository, audit_log::AuditLogRepository, bot::BotRepository,
+            broadcast::BroadcastRepository, category::CategoryRepository,
+            customer::CustomerRepository, effective_permission::EffectivePermissionRepository,
+            image::ImageRepository, order::OrderRepository, order_item::OrderItemRepository,
             payment_invoice::PaymentInvoiceRepository, permission::PermissionRepository,
             products::ProductRepository, role::RoleRepository,
             role_permission::RolePermissionRepository, settings::SettingsRepository,
@@ -29,6 +29,7 @@ use crate::{
     },
     services::{
         admin_user::AdminUserService,
+        analytics::AnalyticsService,
         audit_log::AuditLogService,
         auth::{AuthService, AuthServiceConfig},
         bot::BotService,
@@ -81,6 +82,9 @@ type PaymentInvoiceShortType = PaymentInvoiceService<
 
 type OrderItemServiceShortType = OrderItemService<OrderItemRepository, StockMovementRepository>;
 
+type BotServiceShortType =
+    BotService<BotRepository, SettingsRepository, AuditLogShortType, TransactionRepository>;
+
 type PurchaseServiceShortType = PurchaseService<
     TransactionServiceShortType,
     CustomerServiceShortType,
@@ -89,6 +93,7 @@ type PurchaseServiceShortType = PurchaseService<
     ProductServiceShortType,
     ContmsProductsProvider,
     UserSubscriptionService<UserSubscriptionRepository>,
+    BotServiceShortType,
 >;
 
 #[derive(Clone)]
@@ -117,9 +122,7 @@ pub struct AppState {
     pub customer_service: Arc<CustomerServiceShortType>,
     pub settings_service: Arc<SettingsService<SettingsRepository, AuditLogShortType>>,
     pub audit_logs_service: Arc<AuditLogShortType>,
-    pub bot_service: Arc<
-        BotService<BotRepository, SettingsRepository, AuditLogShortType, TransactionRepository>,
-    >,
+    pub bot_service: Arc<BotServiceShortType>,
     pub order_service: Arc<OrderService<OrderRepository, OrderItemRepository>>,
     pub captcha_service: Arc<CaptchaService>,
     pub payment_invoice_service: Arc<PaymentInvoiceShortType>,
@@ -142,6 +145,7 @@ pub struct AppState {
     #[cfg(feature = "mock-payments-provider")]
     pub mock_payments_provider: Arc<MockPaymentsProvider>,
     pub platform_payments_provider: Arc<AutosalesPlatformPaymentsProvider>,
+    pub analytics_service: Arc<AnalyticsService<AnalyticsRepository>>,
 }
 
 impl AppState {
@@ -302,11 +306,15 @@ impl AppState {
             order_item_service.clone(),
             contms_products_provider.clone(),
             user_subscription_service.clone(),
+            bot_service.clone(),
         ));
         let broadcast_service = Arc::new(BroadcastService::new(
             Arc::new(BroadcastRepository::new(db_pool.clone())),
             audit_logs_service.clone(),
         ));
+        let analytics_service = Arc::new(AnalyticsService::new(Arc::new(
+            AnalyticsRepository::new(db_pool.clone()),
+        )));
 
         Self {
             db,
@@ -341,6 +349,7 @@ impl AppState {
             #[cfg(feature = "mock-payments-provider")]
             mock_payments_provider,
             platform_payments_provider,
+            analytics_service,
         }
     }
 }

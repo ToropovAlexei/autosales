@@ -63,6 +63,7 @@ define_list_query! {
             IsActive => "is_active",
             ReferralPercentage => "referral_percentage",
             CreatedAt => "created_at",
+            OwnerId => "owner_id",
         ]
     },
     order_fields: {
@@ -75,6 +76,7 @@ define_list_query! {
             IsActive => "is_active",
             ReferralPercentage => "referral_percentage",
             CreatedAt => "created_at",
+            OwnerId => "owner_id",
         ]
     }
 }

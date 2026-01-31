@@ -3,13 +3,15 @@ use bytes::Bytes;
 use reqwest::{header, multipart};
 use serde_json::json;
 use shared_dtos::{
-    bot::BotBotResponse,
+    analytics::BotAnalyticsBotResponse,
+    bot::{BotBotResponse, NewBotBotRequest, UpdateBotBotRequest},
     captcha::CaptchaBotResponse,
     category::CategoryBotResponse,
     customer::{CustomerBotResponse, NewCustomerBotRequest, UpdateCustomerBotRequest},
     invoice::{
         GatewayBotResponse, NewPaymentInvoiceBotRequest, PaymentInvoiceBotResponse, PaymentSystem,
     },
+    list_query::{FilterValue, Operator, RawFilter, RawListQuery, ScalarValue},
     list_response::ListResponse,
     order::{EnrichedOrderBotResponse, PurchaseBotRequest, PurchaseBotResponse},
     product::ProductBotResponse,
@@ -18,7 +20,10 @@ use shared_dtos::{
 };
 use uuid::Uuid;
 
-use crate::api::{api_client::ApiClient, api_errors::ApiClientResult};
+use crate::api::{
+    api_client::ApiClient,
+    api_errors::{ApiClientError, ApiClientResult},
+};
 
 pub struct BackendApi {
     api_client: ApiClient,
@@ -243,16 +248,51 @@ impl BackendApi {
             .await
     }
 
-    pub async fn get_bots(&self) -> ApiClientResult<ListResponse<BotBotResponse>> {
+    pub async fn get_bots(
+        &self,
+        query: RawListQuery,
+    ) -> ApiClientResult<ListResponse<BotBotResponse>> {
+        let qs =
+            serde_qs::to_string(&query).map_err(|e| ApiClientError::Unsuccessful(e.to_string()))?;
         self.api_client
-            // TODO Filters
-            .get::<ListResponse<BotBotResponse>>("bot/bots")
+            .get::<ListResponse<BotBotResponse>>(&format!("bot/bots?{qs}"))
             .await
     }
 
-    pub async fn get_primary_bots(&self) -> ApiClientResult<ListResponse<BotBotResponse>> {
+    pub async fn get_customer_bots(
+        &self,
+        telegram_id: i64,
+    ) -> ApiClientResult<ListResponse<BotBotResponse>> {
+        let customer_id = self.ensure_user(telegram_id).await?.id;
+        self.get_bots(RawListQuery {
+            filters: vec![RawFilter {
+                value: FilterValue::Scalar(ScalarValue::Int(customer_id)),
+                field: "owner_id".to_string(),
+                op: Operator::Eq,
+            }],
+            order_by: Some("id".to_string()),
+            ..Default::default()
+        })
+        .await
+    }
+
+    pub async fn get_bot(&self, id: i64) -> ApiClientResult<BotBotResponse> {
+        self.api_client.get(&format!("bot/bots/{id}")).await
+    }
+
+    pub async fn delete_bot(&self, id: i64) -> ApiClientResult<()> {
         self.api_client
-            .get::<ListResponse<BotBotResponse>>("bot/bots/primary")
+            .delete::<()>(&format!("bot/bots/{id}"))
+            .await
+    }
+
+    pub async fn update_bot(
+        &self,
+        id: i64,
+        update: UpdateBotBotRequest,
+    ) -> ApiClientResult<BotBotResponse> {
+        self.api_client
+            .patch_with_body::<BotBotResponse, _>(&format!("bot/bots/{id}"), &update)
             .await
     }
 
@@ -264,7 +304,10 @@ impl BackendApi {
         self.api_client
             .post_with_body::<BotBotResponse, _>(
                 "bot/bots",
-                &json!({"owner_id": telegram_id, "token": token}),
+                &NewBotBotRequest {
+                    owner_id: telegram_id,
+                    token: token.to_string(),
+                },
             )
             .await
     }
@@ -311,6 +354,15 @@ impl BackendApi {
                 &format!("bot/customers/{telegram_id}"),
                 update,
             )
+            .await
+    }
+
+    pub async fn get_referral_stats(
+        &self,
+        telegram_id: i64,
+    ) -> ApiClientResult<ListResponse<BotAnalyticsBotResponse>> {
+        self.api_client
+            .get(&format!("bot/customers/{telegram_id}/referral-analytics"))
             .await
     }
 }

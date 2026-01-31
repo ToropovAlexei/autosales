@@ -1,6 +1,7 @@
 use crate::models::common::Filter;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use shared_dtos::list_query::{FilterValue, Operator, ScalarValue};
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
 use uuid::Uuid;
@@ -8,7 +9,6 @@ use validator::Validate;
 
 use crate::models::{
     broadcast::{BroadcastRow, BroadcastStatus},
-    common::{FilterValue, Operator, ScalarValue},
     customer::{CustomerFilterFields, CustomerListQuery},
 };
 
@@ -159,7 +159,6 @@ impl From<BroadcastRow> for BroadcastResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::common::{FilterValue, Operator, ScalarValue};
     use chrono::Timelike;
     use serde_json::json;
     use validator::Validate;

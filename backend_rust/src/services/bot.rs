@@ -64,6 +64,7 @@ pub trait BotServiceTrait: Send + Sync {
     async fn update(&self, command: UpdateBotCommand) -> ApiResult<BotRow>;
     async fn can_operate(&self) -> ApiResult<bool>;
     async fn get_primary_bots(&self) -> ApiResult<Vec<BotRow>>;
+    async fn delete(&self, id: i64) -> ApiResult<()>;
 }
 
 pub struct BotService<R, S, A, T> {
@@ -218,6 +219,10 @@ impl BotServiceTrait
             .get_primary_bots()
             .await
             .map_err(ApiError::from)
+    }
+
+    async fn delete(&self, id: i64) -> ApiResult<()> {
+        self.bot_repo.delete(id).await.map_err(ApiError::from)
     }
 }
 
