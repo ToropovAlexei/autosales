@@ -475,7 +475,7 @@ impl ProductServiceTrait
                 Err(_) => errors.push(format!("Product '{}' could not be created", row.name)),
             }
         }
-        Ok((Vec::new(), Vec::new()))
+        Ok((created, errors))
     }
 }
 
