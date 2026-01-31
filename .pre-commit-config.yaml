@@ -43,3 +43,21 @@ repos:
         language: system
         pass_filenames: false
         stages: [pre-commit]
+      - id: shared-dtos-cargo-fmt-check
+        name: shared_dtos cargo fmt --check
+        entry: bash -lc 'cd shared_dtos && cargo fmt --check --all'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: shared-dtos-cargo-clippy
+        name: shared_dtos cargo clippy
+        entry: bash -lc 'cd shared_dtos && cargo clippy --all-targets --all-features --no-deps -- -D warnings'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+      - id: shared-dtos-cargo-test
+        name: shared_dtos cargo test
+        entry: bash -lc 'cd shared_dtos && cargo test'
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
