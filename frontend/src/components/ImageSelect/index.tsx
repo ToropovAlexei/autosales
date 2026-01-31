@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Button } from "@mui/material";
 import { SelectImage } from "@/components/SelectImage"; // The detailed modal
-import { IImage } from "@/types";
+import { ImageResponse } from "@/types";
 import { CONFIG } from "../../../config";
 import classes from "./styles.module.css";
 
@@ -18,8 +18,8 @@ export const ImageSelect = ({
 }: ImageSelectProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleImageSelect = (image: IImage) => {
-    onSelectImage(image.ID);
+  const handleImageSelect = (image: ImageResponse) => {
+    onSelectImage(image.id);
     setIsModalOpen(false);
   };
 

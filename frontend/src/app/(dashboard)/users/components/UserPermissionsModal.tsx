@@ -12,10 +12,10 @@ import {
 } from "@mui/material";
 import {
   Role,
-  Permission,
   AdminUserWithRoles,
   UpdateUserPermissions,
   UserPermission,
+  PermissionResponse,
 } from "@/types";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
@@ -45,7 +45,7 @@ export const UserPermissionsModal = ({
 
   const role = user?.roles?.[0];
   const { data: rolePermissions, isLoading: isRolePermissionsLoading } =
-    useList<Permission>({
+    useList<PermissionResponse>({
       endpoint: ENDPOINTS.ROLE_PERMISSIONS,
       meta: { ":id": role?.id },
       enabled: !!role,
@@ -54,7 +54,7 @@ export const UserPermissionsModal = ({
     endpoint: ENDPOINTS.ROLES,
   });
   const { data: allPermissions, isPending: isPermissionsLoading } =
-    useList<Permission>({ endpoint: ENDPOINTS.PERMISSIONS });
+    useList<PermissionResponse>({ endpoint: ENDPOINTS.PERMISSIONS });
 
   // Fetch the specific permissions currently assigned to the user
   const { data: currentUserPermissions, isPending: isUserPermissionsLoading } =
@@ -209,7 +209,7 @@ export const UserPermissionsModal = ({
               value={getUserPermissions(
                 allPermissions?.data || [],
                 new Set(rolePermissions?.data.map((p) => p.id) || []),
-                permissionOverrides
+                permissionOverrides,
               )}
               onChange={handlePermissionToggle}
               onChangeAll={handleChangeAllPermissions}

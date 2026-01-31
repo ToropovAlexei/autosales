@@ -1,9 +1,9 @@
-import { Permission, UserPermission } from "@/types";
+import { PermissionResponse, UserPermission } from "@/types";
 
 export const getUserPermissions = (
-  allPermissions: Permission[],
+  allPermissions: PermissionResponse[],
   rolePermissions: Set<number>,
-  userPermissions: Record<number, UserPermission["effect"]>
+  userPermissions: Record<number, UserPermission["effect"]>,
 ) => {
   const result: number[] = [];
 

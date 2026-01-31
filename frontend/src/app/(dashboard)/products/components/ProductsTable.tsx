@@ -14,7 +14,7 @@ import EditIcon from "@mui/icons-material/Edit";
 import HistoryIcon from "@mui/icons-material/History";
 import { CONFIG } from "../../../../../config";
 import { StockMovementHistoryModal } from "./StockMovementHistoryModal";
-import { Product } from "@/types";
+import { Category, Product } from "@/types";
 
 interface ProductsTableProps {
   products: Product[];
@@ -28,7 +28,7 @@ interface ProductsTableProps {
   onFilterModelChange: (model: GridFilterModel) => void;
   sortModel: GridSortModel;
   onSortModelChange: (model: GridSortModel) => void;
-  categories: { id: number; name: string }[];
+  categories: Category[];
 }
 
 export const ProductsTable = ({
@@ -46,11 +46,11 @@ export const ProductsTable = ({
   categories,
 }: ProductsTableProps) => {
   const [isStockHistoryModalOpen, setIsStockHistoryModalOpen] = useState(false);
-  const [selectedProductId, setSelectedProductId] = useState<number | null>(
+  const [selectedProductId, setSelectedProductId] = useState<bigint | null>(
     null,
   );
 
-  const getCategoryName = (categoryId: number) => {
+  const getCategoryName = (categoryId: bigint) => {
     if (!categoryId) return "N/A";
     return categories.find((c) => c.id === categoryId)?.name || "N/A";
   };
@@ -182,9 +182,6 @@ export const ProductsTable = ({
         onSortModelChange={onSortModelChange}
         paginationMode="server"
         filterMode="server"
-        getRowId={(row) =>
-          row.provider ? `${row.provider}-${row.external_id}` : row.id
-        }
         localeText={ruRU.components.MuiDataGrid.defaultProps.localeText}
         slotProps={{
           filterPanel: {

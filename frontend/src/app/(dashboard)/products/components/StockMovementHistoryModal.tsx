@@ -19,7 +19,7 @@ import { StockMovement } from "@/types";
 interface StockMovementHistoryModalProps {
   open: boolean;
   onClose: () => void;
-  productId: number | null;
+  productId: bigint | null;
 }
 
 export const StockMovementHistoryModal = ({

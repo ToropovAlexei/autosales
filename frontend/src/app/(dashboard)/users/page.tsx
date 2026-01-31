@@ -9,7 +9,6 @@ import {
   NewAdminUser,
   NewAdminUserResponse,
   PermissionName,
-  User,
 } from "@/types";
 import { UserPermissionsModal } from "./components/UserPermissionsModal";
 import { UsersTable } from "./components/UsersTable";
@@ -27,7 +26,7 @@ export default function UsersPage() {
   const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<AdminUserWithRoles | null>(
-    null
+    null,
   );
   const [tfaSecret, setTfaSecret] = useState<string | null>(null);
   const [tfaQrCode, setTfaQrCode] = useState<string | null>(null);
@@ -69,7 +68,7 @@ export default function UsersPage() {
         setTfaQrCode(response.two_fa_qr_code);
       },
       onError: (error) => toast.error(error.message),
-    }
+    },
   );
 
   return (

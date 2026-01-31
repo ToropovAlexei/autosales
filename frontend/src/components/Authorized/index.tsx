@@ -1,11 +1,13 @@
 import { ENDPOINTS } from "@/constants";
 import { useOne } from "@/hooks";
-import { User } from "@/types/common";
+import { AdminUser } from "@/types";
 import { useRouter } from "next/navigation";
 import { PropsWithChildren, useEffect } from "react";
 
 export const Authorized = ({ children }: PropsWithChildren) => {
-  const { data, isPending } = useOne<User>({ endpoint: ENDPOINTS.USERS_ME });
+  const { data, isPending } = useOne<AdminUser>({
+    endpoint: ENDPOINTS.USERS_ME,
+  });
   const router = useRouter();
 
   useEffect(() => {

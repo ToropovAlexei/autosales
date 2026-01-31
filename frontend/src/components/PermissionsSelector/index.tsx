@@ -4,7 +4,6 @@ import {
   translatePermission,
   translatePermissionGroup,
 } from "@/lib/permissions";
-import { Permission } from "@/types";
 import {
   Checkbox,
   FormControlLabel,
@@ -16,10 +15,11 @@ import { PERMISSIONS_COLORS } from "./constants";
 import classes from "./styles.module.css";
 import { range } from "@/utils/array";
 import { Fragment } from "react/jsx-runtime";
+import { PermissionResponse } from "@/types";
 
 interface IProps {
-  value: number[];
-  onChange: (permissionId: number, checked: boolean) => void;
+  value: bigint[];
+  onChange: (permissionId: bigint, checked: boolean) => void;
   onChangeAll: (checked: boolean) => void;
   loading?: boolean;
 }
@@ -30,13 +30,13 @@ export const PermissionsSelector = ({
   value,
   loading,
 }: IProps) => {
-  const { data, isPending } = useList<Permission>({
+  const { data, isPending } = useList<PermissionResponse>({
     endpoint: ENDPOINTS.PERMISSIONS,
   });
 
   const groupedPermissions = Object.groupBy(
     data?.data || [],
-    (permission) => permission.group || "Other"
+    (permission) => permission.group || "Other",
   );
 
   const selectedPermissions = new Set(value);

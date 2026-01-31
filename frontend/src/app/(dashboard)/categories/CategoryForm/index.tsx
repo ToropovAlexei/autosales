@@ -62,7 +62,7 @@ export const CategoryForm = ({
   const { mutate: updateCategory } = useMutation<
     Category,
     Error,
-    { id: number; params: UpdateCategory }
+    { id: Category['id']; params: UpdateCategory }
   >({
     mutationFn: ({ id, params }) =>
       dataLayer.update({

@@ -122,10 +122,10 @@ export const ProductForm = ({
 
   const handleFormSubmit = (data: ProductFormData) => {
     const selectedCategory = allCategories.find(
-      (c) => c.id === data.category_id
+      (c) => c.id === data.category_id,
     );
     const hasSubCategories = allCategories.some(
-      (c) => c.parent_id === data.category_id
+      (c) => c.parent_id === data.category_id,
     );
 
     if (selectedCategory && hasSubCategories) {

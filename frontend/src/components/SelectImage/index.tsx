@@ -23,7 +23,6 @@ import {
 import { ENDPOINTS } from "@/constants";
 import classes from "./styles.module.css";
 import { CONFIG } from "../../../config";
-import { IImage } from "@/types";
 import { queryKeys } from "@/utils/query";
 import { ImageResponse } from "@/types/image";
 
@@ -61,7 +60,7 @@ export const SelectImage = ({ open, onClose, onSelect }: SelectImageProps) => {
       const formData = new FormData();
       formData.append("file", variables.file);
       formData.append("context", variables.context);
-      return dataLayer.create<{ data: IImage }>({
+      return dataLayer.create<{ data: ImageResponse }>({
         url: ENDPOINTS.IMAGES,
         params: formData,
       });
@@ -78,7 +77,7 @@ export const SelectImage = ({ open, onClose, onSelect }: SelectImageProps) => {
   const validateFile = (file: File) => {
     if (!ALLOWED_TYPES.includes(file.type)) {
       setError(
-        `Неверный тип файла. Пожалуйста, загрузите изображение в формате JPEG, PNG, GIF или WEBP.`
+        `Неверный тип файла. Пожалуйста, загрузите изображение в формате JPEG, PNG, GIF или WEBP.`,
       );
       return false;
     }

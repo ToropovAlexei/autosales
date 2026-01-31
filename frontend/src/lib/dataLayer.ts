@@ -1,7 +1,7 @@
 import { api } from "./api";
 import { serializeFilter } from "@/utils";
 import { ENDPOINT_UPDATE_PUT_EXCEPTIONS } from "@/constants";
-import { IFilter } from "@/types/common";
+import { IFilter } from "@/types";
 
 const fillUrlWithMeta = (url: string, meta?: Record<string, unknown>) => {
   for (const key in meta) {
@@ -16,7 +16,7 @@ class DataLayer {
     url: string,
     id?: string | number | bigint,
     filter?: IFilter,
-    meta?: Record<string, unknown>
+    meta?: Record<string, unknown>,
   ) => {
     const fullUrl = [
       fillUrlWithMeta(id ? `${url}/${id}` : url, meta),
@@ -24,26 +24,24 @@ class DataLayer {
     ]
       .filter(Boolean)
       .join("?");
-    const response = await api.get(fullUrl).json<{ data: T }>();
-    // TODO Legacy data
-    return response.data || response;
+    const response = await api.get(fullUrl).json<T>();
+    return response;
   };
 
   public getList = async <T>(
     url: string,
     filter: IFilter | undefined,
-    meta?: Record<string, unknown>
+    meta?: Record<string, unknown>,
   ) => {
     const fullUrl = [fillUrlWithMeta(url, meta), serializeFilter(filter || {})]
       .filter(Boolean)
       .join("?");
     const response = await api
       .get(fullUrl)
-      .json<{ data: { data: T[]; total: number } }>();
-    // TODO Legacy data
+      .json<{ items: T[]; total: number }>();
     return {
-      data: response?.items ?? response.data.data ?? response.data,
-      total: response?.total ?? response.data.total,
+      data: response?.items,
+      total: response?.total,
     };
   };
 
@@ -60,7 +58,7 @@ class DataLayer {
     const response = await api
       .post(
         fillUrlWithMeta(url, meta),
-        isFormData ? { body: params } : { json: params }
+        isFormData ? { body: params } : { json: params },
       )
       .json<{ data: T }>();
     return (response?.data || response) as T;

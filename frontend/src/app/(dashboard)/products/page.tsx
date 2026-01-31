@@ -4,7 +4,6 @@ import { useState, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useDataGrid, useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
-import { flattenCategoriesForSelect } from "@/lib/utils";
 import { Button, Stack } from "@mui/material";
 import { ProductForm } from "./components/ProductForm";
 import { ProductsTable } from "./components/ProductsTable";
@@ -13,6 +12,7 @@ import { dataLayer } from "@/lib/dataLayer";
 import { queryKeys } from "@/utils/query";
 import { PageLayout } from "@/components/PageLayout";
 import { Category, Product } from "@/types";
+import { flattenCategoriesForSelect } from "../categories/utils";
 
 export default function ProductsPage() {
   const queryClient = useQueryClient();
@@ -30,7 +30,7 @@ export default function ProductsPage() {
     sortModel,
     onSortModelChange,
     refetch,
-  } = useDataGrid(ENDPOINTS.PRODUCTS);
+  } = useDataGrid<Product>(ENDPOINTS.PRODUCTS);
 
   const { data: categories, isPending: isLoadingCategories } =
     useList<Category>({
@@ -39,7 +39,7 @@ export default function ProductsPage() {
 
   const flattenedCategories = useMemo(
     () => (categories?.data ? flattenCategoriesForSelect(categories.data) : []),
-    [categories]
+    [categories],
   );
 
   const mutation = useMutation({
@@ -103,7 +103,7 @@ export default function ProductsPage() {
         onFilterModelChange={onFilterModelChange}
         sortModel={sortModel}
         onSortModelChange={onSortModelChange}
-        categories={flattenedCategories}
+        categories={categories?.data || []}
       />
       {isFormOpen && (
         <ProductForm
@@ -114,10 +114,7 @@ export default function ProductsPage() {
           }}
           onConfirm={handleConfirmForm}
           defaultValues={selectedProduct || undefined}
-          categories={flattenedCategories.map((c) => ({
-            value: c.id,
-            label: c.name,
-          }))}
+          categories={flattenedCategories}
           allCategories={categories?.data || []}
         />
       )}
