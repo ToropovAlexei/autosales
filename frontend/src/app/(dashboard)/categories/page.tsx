@@ -10,7 +10,7 @@ import { TreeItem, TreeItemProps } from "@mui/x-tree-view/TreeItem";
 import { categoriesToList } from "./utils";
 import classes from "./styles.module.css";
 import { CategoryForm } from "./CategoryForm";
-import { Button, IconButton } from "@mui/material";
+import { Button, IconButton, Skeleton } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import AddIcon from "@mui/icons-material/Add";
@@ -20,6 +20,7 @@ import { PageLayout } from "@/components/PageLayout";
 import { CONFIG } from "../../../../config";
 import { ConfirmModal } from "@/components";
 import { toast } from "react-toastify";
+import { range } from "@/utils";
 
 export default function CategoriesPage() {
   const queryClient = useQueryClient();
@@ -57,7 +58,7 @@ export default function CategoriesPage() {
 
   const categoriesTree = useMemo(
     () => categoriesToList(categories?.data || []),
-    [categories]
+    [categories],
   );
 
   const handleDelete = (event: React.MouseEvent) => {
@@ -70,7 +71,7 @@ export default function CategoriesPage() {
 
   const CustomTreeItem = React.forwardRef(function CustomTreeItem(
     props: TreeItemProps,
-    ref: React.Ref<HTMLLIElement>
+    ref: React.Ref<HTMLLIElement>,
   ) {
     const { itemId, label, ...other } = props;
     const categoryId = parseInt(itemId, 10);
@@ -134,19 +135,26 @@ export default function CategoriesPage() {
     );
   });
 
-  if (isPending) return <div>Загрузка...</div>;
-
   return (
     <PageLayout title="Категории">
       <Button variant="contained" onClick={() => openDialog()} sx={{ mb: 2 }}>
         Добавить категорию
       </Button>
-      <RichTreeView
-        items={categoriesTree}
-        className={classes.tree}
-        itemChildrenIndentation={24}
-        slots={{ item: CustomTreeItem }}
-      />
+      {isPending && (
+        <div style={{ display: "grid", gap: "0.5rem" }}>
+          {range(5).map((key) => (
+            <Skeleton key={key} variant="rounded" width="100%" height={50} />
+          ))}
+        </div>
+      )}
+      {!isPending && (
+        <RichTreeView
+          items={categoriesTree}
+          className={classes.tree}
+          itemChildrenIndentation={24}
+          slots={{ item: CustomTreeItem }}
+        />
+      )}
       {isDialogOpen && (
         <CategoryForm
           open={isDialogOpen}
