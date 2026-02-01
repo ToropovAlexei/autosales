@@ -1,16 +1,16 @@
-import { DataGrid, GridColDef } from '@mui/x-data-grid';
-import { IProduct } from '@/types';
-import classes from './TopProductsTable.module.css';
+import { DataGrid, GridColDef } from "@mui/x-data-grid";
+import classes from "./TopProductsTable.module.css";
+import { Product } from "@/types";
 
 interface TopProductsTableProps {
-  products: IProduct[];
+  products: Product[];
 }
 
 export const TopProductsTable = ({ products }: TopProductsTableProps) => {
   const columns: GridColDef[] = [
-    { field: 'name', headerName: 'Название', flex: 1 },
-    { field: 'price', headerName: 'Цена', width: 120 },
-    { field: 'total_revenue', headerName: 'Выручка', width: 150 },
+    { field: "name", headerName: "Название", flex: 1 },
+    { field: "price", headerName: "Цена", width: 120 },
+    { field: "total_revenue", headerName: "Выручка", width: 150 },
   ];
 
   return (

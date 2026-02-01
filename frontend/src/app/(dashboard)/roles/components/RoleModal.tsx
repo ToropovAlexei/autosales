@@ -10,7 +10,7 @@ import {
 } from "@mui/material";
 import { useList } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
-import { Permission, Role } from "@/types";
+import { PermissionResponse, Role } from "@/types";
 import { useEffect, useState } from "react";
 import { PermissionsSelector } from "@/components";
 
@@ -20,7 +20,7 @@ interface RoleModalProps {
   onSave: (
     name: string,
     permissions: number[],
-    initialPermissions: number[]
+    initialPermissions: number[],
   ) => void;
   role?: Role | null;
 }
@@ -29,13 +29,13 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
   const [name, setName] = useState(role?.name || "");
   const [selectedPermissions, setSelectedPermissions] = useState<number[]>([]);
 
-  const { data: rolePermissions } = useList<Permission>({
+  const { data: rolePermissions } = useList<PermissionResponse>({
     endpoint: ENDPOINTS.ROLE_PERMISSIONS,
     meta: { ":id": role?.id },
     enabled: !!role,
   });
 
-  const { data: allPermissions } = useList<Permission>({
+  const { data: allPermissions } = useList<PermissionResponse>({
     endpoint: ENDPOINTS.PERMISSIONS,
   });
 
@@ -43,7 +43,7 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
     if (open) {
       setName(role?.name || "");
       setSelectedPermissions(
-        rolePermissions?.data ? rolePermissions.data.map((p) => p.id) : []
+        rolePermissions?.data ? rolePermissions.data.map((p) => p.id) : [],
       );
     }
   }, [open, role, rolePermissions]);
@@ -57,13 +57,13 @@ export const RoleModal = ({ open, onClose, onSave, role }: RoleModalProps) => {
     setSelectedPermissions((prev) =>
       prev.includes(permissionId)
         ? prev.filter((id) => id !== permissionId)
-        : [...prev, permissionId]
+        : [...prev, permissionId],
     );
   };
 
   const handleChangeAll = (checked: boolean) => {
     setSelectedPermissions(
-      checked ? allPermissions?.data.map((p) => p.id) || [] : []
+      checked ? allPermissions?.data.map((p) => p.id) || [] : [],
     );
   };
 

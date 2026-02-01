@@ -46,11 +46,11 @@ export const ProductsTable = ({
   categories,
 }: ProductsTableProps) => {
   const [isStockHistoryModalOpen, setIsStockHistoryModalOpen] = useState(false);
-  const [selectedProductId, setSelectedProductId] = useState<bigint | null>(
-    null,
-  );
+  const [selectedProductId, setSelectedProductId] = useState<
+    Product["id"] | null
+  >(null);
 
-  const getCategoryName = (categoryId: bigint) => {
+  const getCategoryName = (categoryId: Category["id"]) => {
     if (!categoryId) return "N/A";
     return categories.find((c) => c.id === categoryId)?.name || "N/A";
   };

@@ -5,6 +5,7 @@ import { ENDPOINTS } from "@/constants";
 import { StockMovementsTable } from "./components/StockMovementsTable";
 import { PageLayout } from "@/components/PageLayout";
 import { Button, Stack } from "@mui/material";
+import { StockMovement } from "@/types";
 
 export default function StockPage() {
   const {
@@ -18,7 +19,7 @@ export default function StockPage() {
     sortModel,
     onSortModelChange,
     refetch,
-  } = useDataGrid(ENDPOINTS.STOCK_MOVEMENTS);
+  } = useDataGrid<StockMovement>(ENDPOINTS.STOCK_MOVEMENTS);
 
   return (
     <PageLayout title="Движения по складу">

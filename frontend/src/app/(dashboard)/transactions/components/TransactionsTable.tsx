@@ -1,5 +1,6 @@
 "use client";
 
+import { Transaction } from "@/types";
 import {
   DataGrid,
   GridColDef,
@@ -8,20 +9,6 @@ import {
   GridSortModel,
 } from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
-
-interface Transaction {
-  id: number;
-  user_id: number;
-  order_id: number | null;
-  type: string;
-  amount: number;
-  created_at: string;
-  description: string | null;
-  payment_gateway: string | null;
-  gateway_commission: number;
-  platform_commission: number;
-  store_balance_delta: number;
-}
 
 interface TransactionsTableProps {
   transactions: Transaction[];

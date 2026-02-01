@@ -15,11 +15,11 @@ import { PERMISSIONS_COLORS } from "./constants";
 import classes from "./styles.module.css";
 import { range } from "@/utils/array";
 import { Fragment } from "react/jsx-runtime";
-import { PermissionResponse } from "@/types";
+import { PermissionName, PermissionResponse } from "@/types";
 
 interface IProps {
-  value: bigint[];
-  onChange: (permissionId: bigint, checked: boolean) => void;
+  value: PermissionResponse["id"][];
+  onChange: (permissionId: PermissionResponse["id"], checked: boolean) => void;
   onChangeAll: (checked: boolean) => void;
   loading?: boolean;
 }
@@ -85,7 +85,7 @@ export const PermissionsSelector = ({
                     onChange={(_, checked) => onChange(permission.id, checked)}
                   />
                 }
-                label={translatePermission(permission.name)}
+                label={translatePermission(permission.name as PermissionName)}
                 slotProps={{
                   typography: {
                     color: PERMISSIONS_COLORS[permission.name] || "success",

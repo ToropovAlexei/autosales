@@ -39,18 +39,17 @@ export const RolesTable = ({
               icon={<EditIcon />}
               label="Edit"
               onClick={() => onEdit(row)}
-            />
+            />,
           );
         }
         if (canDelete) {
           actions.push(
             <GridActionsCellItem
               key="delete"
-              icon={<DeleteIcon />}
+              icon={<DeleteIcon color="error" />}
               label="Delete"
-              color="error"
               onClick={() => onDelete(row)}
-            />
+            />,
           );
         }
         return actions;

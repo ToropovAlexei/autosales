@@ -5,6 +5,7 @@ import { ENDPOINTS } from "@/constants";
 import { TransactionsTable } from "./components/TransactionsTable";
 import { PageLayout } from "@/components/PageLayout";
 import { Button, Stack } from "@mui/material";
+import { Transaction } from "@/types";
 
 export default function TransactionsPage() {
   const {
@@ -18,7 +19,7 @@ export default function TransactionsPage() {
     sortModel,
     onSortModelChange,
     refetch,
-  } = useDataGrid(ENDPOINTS.TRANSACTIONS);
+  } = useDataGrid<Transaction>(ENDPOINTS.TRANSACTIONS);
 
   return (
     <PageLayout title="Транзакции">

@@ -62,7 +62,7 @@ export const CategoryForm = ({
   const { mutate: updateCategory } = useMutation<
     Category,
     Error,
-    { id: Category['id']; params: UpdateCategory }
+    { id: Category["id"]; params: UpdateCategory }
   >({
     mutationFn: ({ id, params }) =>
       dataLayer.update({
@@ -97,7 +97,7 @@ export const CategoryForm = ({
 
   const flattenedCategories = useMemo(
     () => flattenCategoriesForSelect(categories),
-    [categories]
+    [categories],
   );
 
   return (
@@ -144,8 +144,8 @@ export const CategoryForm = ({
               if (isCreate && form.name) {
                 createCategory({
                   name: form.name,
-                  parent_id: form.parent_id,
-                  image_id: form.image_id,
+                  parent_id: form.parent_id || undefined,
+                  image_id: form.image_id || undefined,
                 });
                 return;
               }

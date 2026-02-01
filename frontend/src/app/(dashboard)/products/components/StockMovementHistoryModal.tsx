@@ -14,12 +14,12 @@ import { ENDPOINTS } from "@/constants";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
 import dayjs from "dayjs";
-import { StockMovement } from "@/types";
+import { Product, StockMovement } from "@/types";
 
 interface StockMovementHistoryModalProps {
   open: boolean;
   onClose: () => void;
-  productId: bigint | null;
+  productId: Product["id"] | null;
 }
 
 export const StockMovementHistoryModal = ({

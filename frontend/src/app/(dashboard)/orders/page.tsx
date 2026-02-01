@@ -5,6 +5,7 @@ import { ENDPOINTS } from "@/constants";
 import { OrdersTable } from "./components/OrdersTable";
 import { PageLayout } from "@/components/PageLayout";
 import { Button, Stack } from "@mui/material";
+import { Order } from "@/types";
 
 export default function OrdersPage() {
   const {
@@ -18,7 +19,7 @@ export default function OrdersPage() {
     sortModel,
     onSortModelChange,
     refetch,
-  } = useDataGrid(ENDPOINTS.ORDERS);
+  } = useDataGrid<Order>(ENDPOINTS.ORDERS);
 
   return (
     <PageLayout title="Покупки">

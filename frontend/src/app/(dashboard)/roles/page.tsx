@@ -136,12 +136,12 @@ export default function RolesPage() {
   const handleSave = (
     name: string,
     permissions: number[],
-    initialPermissions: number[]
+    initialPermissions: number[],
   ) => {
     closeModal();
 
     if (!editingRole) {
-      createMutation.mutate({ role: { name, description: null }, permissions });
+      createMutation.mutate({ role: { name }, permissions });
       return;
     }
 

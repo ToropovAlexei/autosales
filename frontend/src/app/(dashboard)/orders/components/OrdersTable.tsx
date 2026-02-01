@@ -1,3 +1,4 @@
+import { Order } from "@/types";
 import {
   DataGrid,
   GridColDef,
@@ -6,18 +7,6 @@ import {
   GridSortModel,
 } from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
-
-interface Order {
-  id: number;
-  user_id: number;
-  product_id: number;
-  quantity: number;
-  amount: number;
-  status: string;
-  created_at: string;
-  user_telegram_id: number;
-  product_name: string;
-}
 
 interface OrdersTableProps {
   orders: Order[];
