@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogActions,
   Button,
+  Typography,
 } from "@mui/material";
 import { useForm, FormProvider } from "react-hook-form";
 import { InputText } from "@/components";
@@ -35,6 +36,17 @@ export const BotFormModal = ({
           <DialogContent
             sx={{ display: "flex", flexDirection: "column", gap: 2 }}
           >
+            <Typography variant="body2" color="text.secondary">
+              Чтобы получить токен, откройте Telegram и найдите бота BotFather.
+              Напишите ему команду <strong>/newbot</strong>, задайте имя и
+              уникальный username (обычно заканчивается на <strong>_bot</strong>
+              ).
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              BotFather пришлёт токен в ответном сообщении. Скопируйте его и
+              вставьте в поле ниже. Токен — это секретный ключ, не передавайте
+              его третьим лицам.
+            </Typography>
             <InputText
               name="token"
               label="Токен"
