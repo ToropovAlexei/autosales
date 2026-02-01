@@ -130,6 +130,12 @@ Feature-gated:
 - `CONTMS_API_URL` (`contms-provider` feature)
 - `MOCK_PAYMENTS_PROVIDER_URL` (`mock-payments-provider` feature)
 
+## Logging
+
+- Console: pretty human-readable logs to stdout.
+- File: JSON logs at `logs/app.log` (daily rolling).
+- Control verbosity with `RUST_LOG` (for example `info`, `debug`, or `backend_rust=debug,sqlx::query=info`).
+
 ## Migrations
 
 - Dev: migrations run automatically on startup in debug builds.

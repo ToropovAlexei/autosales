@@ -15,9 +15,16 @@ use std::sync::Arc;
 use axum::{Router, http, routing::get};
 use tower_http::{
     cors::CorsLayer,
-    trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, TraceLayer},
+    trace::{DefaultMakeSpan, DefaultOnFailure, TraceLayer},
 };
-use tracing_subscriber::{EnvFilter, layer::SubscriberExt, util::SubscriberInitExt};
+use tracing::Level;
+use tracing_appender::rolling;
+use tracing_subscriber::{
+    EnvFilter,
+    fmt::{self, time::LocalTime},
+    layer::SubscriberExt,
+    util::SubscriberInitExt,
+};
 
 use crate::state::AppState;
 
@@ -58,8 +65,19 @@ pub fn create_app(app_state: Arc<AppState>) -> Router {
         .layer(
             TraceLayer::new_for_http()
                 .make_span_with(DefaultMakeSpan::new())
-                .on_request(DefaultOnRequest::new().level(tracing::Level::INFO))
-                .on_response(DefaultOnResponse::new().level(tracing::Level::INFO)),
+                .on_response(|response: &axum::response::Response, latency: std::time::Duration, span: &tracing::Span| {
+                    let status = response.status();
+                    let latency_ms = latency.as_millis();
+
+                    if status.is_server_error() {
+                        tracing::error!(parent: span, http.status = %status, latency_ms, "request failed");
+                    } else if status.is_client_error() {
+                        tracing::warn!(parent: span, http.status = %status, latency_ms, "request rejected");
+                    } else {
+                        tracing::info!(parent: span, http.status = %status, latency_ms, "request completed");
+                    }
+                })
+                .on_failure(DefaultOnFailure::new().level(Level::ERROR)),
         )
         .with_state(app_state)
 }
@@ -69,8 +87,28 @@ pub fn init_tracing() {
         .add_directive("sqlx::query=info".parse().unwrap())
         .add_directive("tower_http::trace=debug".parse().unwrap());
 
+    let time_format = LocalTime::rfc_3339();
+
+    let console_layer = fmt::layer()
+        .with_timer(time_format.clone())
+        .with_writer(std::io::stdout)
+        .with_target(false)
+        .with_level(true)
+        .pretty();
+
+    let _ = std::fs::create_dir_all("logs");
+    let file_appender = rolling::daily("logs", "app.log");
+    let file_layer = fmt::layer()
+        .json()
+        .with_timer(time_format)
+        .with_writer(file_appender)
+        .with_ansi(false)
+        .with_target(true)
+        .with_level(true);
+
     tracing_subscriber::registry()
-        .with(tracing_subscriber::fmt::layer().with_writer(std::io::stdout))
+        .with(console_layer)
+        .with(file_layer)
         .with(filter)
         .init();
 }

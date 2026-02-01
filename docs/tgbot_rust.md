@@ -23,6 +23,12 @@ Required:
 - `SUPPORT_URL`
 - `PAYMENT_INSTRUCTIONS_URL`
 
+## Logging
+
+- Console: pretty human-readable logs to stdout.
+- File: JSON logs at `logs/app.log` (daily rolling).
+- Control verbosity with `RUST_LOG` (for example `info`, `debug`, or `tgbot_rust=debug`).
+
 ## Runtime notes
 
 - The bot starts an Axum server for webhook delivery and runs bot polling logic in a separate task.

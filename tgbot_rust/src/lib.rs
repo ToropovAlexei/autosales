@@ -52,12 +52,14 @@ pub fn init_logging() {
         .with_level(true)
         .pretty();
 
+    let _ = std::fs::create_dir_all("logs");
     let file_appender = rolling::daily("logs", "app.log");
     let file_layer = fmt::layer()
+        .json()
         .with_timer(time_format)
         .with_writer(file_appender)
         .with_ansi(false)
-        .with_target(false)
+        .with_target(true)
         .with_level(true);
 
     tracing_subscriber::registry()
