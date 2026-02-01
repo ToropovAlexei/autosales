@@ -19,7 +19,7 @@ sqlx = { version = "0.8", optional = true, default-features = false, features = 
     "rust_decimal",
     "macros",
 ] }
-ts-rs = { version = "11", optional = true, features = [
+ts-rs = { version = "12", optional = true, features = [
     "uuid-impl",
     "chrono-impl",
     "serde-json-impl",

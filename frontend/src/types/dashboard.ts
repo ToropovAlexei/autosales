@@ -2,14 +2,14 @@
 
 export type CategorySales = { category_name: string, total_sales: number, };
 
-export type DashboardOverview = { total_users: bigint, users_with_purchases: bigint, available_products: bigint, total_users_30_days: StatWithTrend, users_with_purchases_30_days: StatWithTrend, products_sold_30_days: StatWithTrend, };
+export type DashboardOverview = { total_users: number, users_with_purchases: number, available_products: number, total_users_30_days: StatWithTrend, users_with_purchases_30_days: StatWithTrend, products_sold_30_days: StatWithTrend, };
 
-export type SalesOverTime = { products_sold: bigint, total_revenue: number, };
+export type SalesOverTime = { products_sold: number, total_revenue: number, };
 
-export type StatWithTrend = { value: bigint, trend: number, };
+export type StatWithTrend = { value: number, trend: number, };
 
 export type TimeSeriesDashboardData = { sales: SalesOverTime, sales_chart: Array<TimeSeriesPoint>, users_chart: Array<TimeSeriesPoint>, revenue_chart: Array<TimeSeriesPoint>, users_with_purchases_chart: Array<TimeSeriesPoint>, };
 
-export type TimeSeriesPoint = { date: string, value: bigint, };
+export type TimeSeriesPoint = { date: string, value: number, };
 
-export type TopProduct = { id: bigint, name: string, price: number, total_revenue: number, };
+export type TopProduct = { id: number, name: string, price: number, total_revenue: number, };

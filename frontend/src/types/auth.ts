@@ -12,18 +12,18 @@ export type NewRole = { name: string, description?: string, };
 
 export type PermissionEffect = "allow" | "deny";
 
-export type PermissionResponse = { id: bigint, name: string, group: string, description: string | null, };
+export type PermissionResponse = { id: number, name: string, group: string, description: string | null, };
 
-export type Role = { id: bigint, name: string, description: string | null, created_at: string, updated_at: string, created_by: bigint, };
+export type Role = { id: number, name: string, description: string | null, created_at: string, updated_at: string, created_by: number, };
 
 export type UpdateRole = { name?: string, description?: string | null, };
 
-export type UpdateRolePermissions = { added: Array<bigint>, removed: Array<bigint>, };
+export type UpdateRolePermissions = { added: Array<number>, removed: Array<number>, };
 
-export type UpdateUserPermission = { id: bigint, effect: PermissionEffect | null, };
+export type UpdateUserPermission = { id: number, effect: PermissionEffect | null, };
 
-export type UpdateUserPermissions = { removed: Array<bigint>, upserted: Array<UpsertUserPermission>, };
+export type UpdateUserPermissions = { removed: Array<number>, upserted: Array<UpsertUserPermission>, };
 
-export type UpsertUserPermission = { id: bigint, effect: PermissionEffect, };
+export type UpsertUserPermission = { id: number, effect: PermissionEffect, };
 
-export type UserPermission = { id: bigint, effect: PermissionEffect, };
+export type UserPermission = { id: number, effect: PermissionEffect, };
