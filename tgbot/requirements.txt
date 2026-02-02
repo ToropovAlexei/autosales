@@ -1,8 +1,0 @@
-aiogram
-redis
-aiohttp
-pydantic-settings
-dotenv
-captcha
-requests
-telethon
