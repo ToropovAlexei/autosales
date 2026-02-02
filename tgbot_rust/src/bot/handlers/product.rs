@@ -56,7 +56,8 @@ async fn display_product(
         "<b>{}</b>
 
 <i>Цена:</i> {} ₽",
-        product.name, product.price
+        product.name,
+        product.price.ceil()
     );
 
     let reply_markup = product_card_inline_keyboard(product);
