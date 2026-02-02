@@ -37,7 +37,7 @@ pub struct EnrichedOrder {
 
 #[async_trait]
 pub trait OrderServiceTrait: Send + Sync {
-    async fn get_list(&self, query: OrderListQuery) -> ApiResult<PaginatedResult<OrderRow>>;
+    async fn get_list(&self, query: OrderListQuery) -> ApiResult<PaginatedResult<EnrichedOrder>>;
     async fn get_for_customer(&self, customer_id: i64) -> ApiResult<Vec<EnrichedOrder>>;
     async fn get_by_id(&self, id: i64) -> ApiResult<EnrichedOrder>;
     async fn create(&self, order: NewOrder) -> ApiResult<OrderRow>;
@@ -63,11 +63,52 @@ where
 
 #[async_trait]
 impl OrderServiceTrait for OrderService<OrderRepository, OrderItemRepository> {
-    async fn get_list(&self, query: OrderListQuery) -> ApiResult<PaginatedResult<OrderRow>> {
-        self.order_repo
+    async fn get_list(&self, query: OrderListQuery) -> ApiResult<PaginatedResult<EnrichedOrder>> {
+        let orders = self
+            .order_repo
             .get_list(query)
             .await
-            .map_err(ApiError::from)
+            .map_err(ApiError::from)?;
+
+        let order_items = self
+            .order_item_repo
+            .get_for_orders(orders.items.iter().map(|o| o.id).collect())
+            .await
+            .map_err(ApiError::from)?;
+        let order_items_by_order_id: HashMap<i64, Vec<OrderItemRow>> =
+            order_items
+                .iter()
+                .fold(HashMap::new(), |mut acc, order_item| {
+                    acc.entry(order_item.order_id)
+                        .or_insert_with(Vec::new)
+                        .push(order_item.clone());
+                    acc
+                });
+
+        Ok(PaginatedResult {
+            total: orders.items.len() as i64,
+            items: orders
+                .items
+                .iter()
+                .map(|order| EnrichedOrder {
+                    id: order.id,
+                    customer_id: order.customer_id,
+                    amount: order.amount,
+                    currency: order.currency.clone(),
+                    status: order.status,
+                    bot_id: order.bot_id,
+                    created_at: order.created_at,
+                    updated_at: order.updated_at,
+                    paid_at: order.paid_at,
+                    fulfilled_at: order.fulfilled_at,
+                    cancelled_at: order.cancelled_at,
+                    order_items: order_items_by_order_id
+                        .get(&order.id)
+                        .cloned()
+                        .unwrap_or_default(),
+                })
+                .collect::<Vec<EnrichedOrder>>(),
+        })
     }
 
     async fn get_for_customer(&self, customer_id: i64) -> ApiResult<Vec<EnrichedOrder>> {

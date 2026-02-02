@@ -1,10 +1,21 @@
-use crate::models::order::OrderRow;
+use crate::services::order::EnrichedOrder;
 use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use shared_dtos::order::OrderStatus;
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
+
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, TS)]
+#[ts(export, export_to = "order.ts", rename = "OrderItem")]
+pub struct OrderItemResponse {
+    pub id: i64,
+    pub order_id: i64,
+    pub product_id: i64,
+    pub name_at_purchase: String,
+    pub price_at_purchase: f64,
+    pub quantity: i16,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "order.ts", rename = "Order")]
@@ -14,6 +25,7 @@ pub struct OrderResponse {
     pub amount: f64,
     pub currency: String,
     pub status: OrderStatus,
+    pub order_items: Vec<OrderItemResponse>,
     pub bot_id: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -22,8 +34,8 @@ pub struct OrderResponse {
     pub cancelled_at: Option<DateTime<Utc>>,
 }
 
-impl From<OrderRow> for OrderResponse {
-    fn from(r: OrderRow) -> Self {
+impl From<EnrichedOrder> for OrderResponse {
+    fn from(r: EnrichedOrder) -> Self {
         Self {
             id: r.id,
             customer_id: r.customer_id,
@@ -36,6 +48,18 @@ impl From<OrderRow> for OrderResponse {
             paid_at: r.paid_at,
             fulfilled_at: r.fulfilled_at,
             cancelled_at: r.cancelled_at,
+            order_items: r
+                .order_items
+                .iter()
+                .map(|i| OrderItemResponse {
+                    id: i.id,
+                    name_at_purchase: i.name_at_purchase.clone(),
+                    order_id: i.order_id,
+                    price_at_purchase: i.price_at_purchase.to_f64().unwrap_or_default(),
+                    product_id: i.product_id,
+                    quantity: i.quantity,
+                })
+                .collect(),
         }
     }
 }
@@ -48,7 +72,7 @@ mod tests {
     #[test]
     fn test_order_response_from_order_row() {
         let now = Utc::now();
-        let order_row = OrderRow {
+        let order_row = EnrichedOrder {
             id: 1,
             customer_id: 10,
             amount: Decimal::new(12345, 2), // 123.45
@@ -60,6 +84,7 @@ mod tests {
             paid_at: Some(now),
             fulfilled_at: Some(now),
             cancelled_at: None,
+            order_items: vec![],
         };
 
         let order_response: OrderResponse = order_row.into();
@@ -75,5 +100,6 @@ mod tests {
         assert_eq!(order_response.paid_at, Some(now));
         assert_eq!(order_response.fulfilled_at, Some(now));
         assert_eq!(order_response.cancelled_at, None);
+        assert_eq!(order_response.order_items.len(), 0);
     }
 }

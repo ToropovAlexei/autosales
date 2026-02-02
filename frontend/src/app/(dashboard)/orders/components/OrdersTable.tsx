@@ -7,6 +7,7 @@ import {
   GridSortModel,
 } from "@mui/x-data-grid";
 import { ruRU } from "@mui/x-data-grid/locales";
+import { ORDER_STATUS_TRANSLATIONS } from "./constants";
 
 interface OrdersTableProps {
   orders: Order[];
@@ -31,36 +32,35 @@ export const OrdersTable = ({
   sortModel,
   onSortModelChange,
 }: OrdersTableProps) => {
-  const columns: GridColDef[] = [
+  const columns: GridColDef<Order>[] = [
     {
       field: "id",
-      headerName: "ID",
+      headerName: "Id",
       width: 90,
       sortable: false,
       type: "number",
     },
     {
-      field: "user_id",
-      headerName: "User ID",
+      field: "customer_id",
+      headerName: "Покупатель",
       flex: 1,
       sortable: false,
       type: "number",
     },
     {
-      field: "user_telegram_id",
-      headerName: "Telegram ID",
+      field: "product_name",
+      headerName: "Товар",
       flex: 1,
       sortable: false,
-      filterable: false,
-      type: "number",
+      valueGetter: (value, row) => row.order_items[0]?.name_at_purchase,
     },
-    { field: "product_name", headerName: "Товар", flex: 1, sortable: false },
     {
       field: "quantity",
       headerName: "Количество",
       width: 120,
       sortable: false,
       type: "number",
+      valueGetter: (value, row) => row.order_items[0]?.quantity,
     },
     {
       field: "amount",
@@ -70,7 +70,13 @@ export const OrdersTable = ({
       sortable: false,
       type: "number",
     },
-    { field: "status", headerName: "Статус", flex: 1, sortable: false },
+    {
+      field: "status",
+      headerName: "Статус",
+      flex: 1,
+      sortable: false,
+      valueFormatter: (value) => ORDER_STATUS_TRANSLATIONS[value] || value,
+    },
     {
       field: "created_at",
       headerName: "Дата",
