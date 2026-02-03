@@ -20,8 +20,8 @@ use teloxide::{
     macros::BotCommands,
     prelude::{Dialogue, Dispatcher, Requester},
     types::{
-        CallbackQuery, ChatId, InlineKeyboardButton, InlineKeyboardMarkup, Message, MessageId,
-        Update,
+        BotCommand, CallbackQuery, ChatId, InlineKeyboardButton, InlineKeyboardMarkup, Message,
+        MessageId, Update,
     },
 };
 use tokio::time::interval;
@@ -227,6 +227,8 @@ pub async fn run_bot(
     let me = bot.get_me().await?;
     let username = me.user.username.unwrap_or_default();
     tracing::info!("Starting bot: @{}", username);
+    bot.set_my_commands(vec![BotCommand::new("start", "Начать")])
+        .await?;
     let redis_url = format!(
         "redis://{}:{}",
         app_state.config.redis_host, app_state.config.redis_port
@@ -248,6 +250,10 @@ pub async fn run_bot(
             dptree::entry()
                 .filter_command::<Command>()
                 .endpoint(command_handler),
+        )
+        .branch(
+            dptree::filter(|state: BotState| state.step == BotStep::Initial)
+                .endpoint(start_from_message_handler),
         )
         .branch(
             dptree::filter(|state: BotState| state.step == BotStep::WaitingForReferralBotToken)
@@ -601,20 +607,39 @@ async fn command_handler(
     fallback_bot_username: Option<BotUsername>,
 ) -> AppResult<()> {
     match cmd {
-        Command::Start => {
-            if let Some(fallback_bot_username) = fallback_bot_username {
-                fallback_bot_msg(bot.clone(), msg.chat.id, fallback_bot_username).await?;
-            }
-            dialogue
-                .update(BotState {
-                    step: BotStep::Initial,
-                    // TODO NOT DEFAULT!
-                    ..Default::default()
-                })
-                .await?;
-            start_handler(bot, dialogue, msg, api_client).await
-        }
+        Command::Start => handle_start(bot, msg, dialogue, api_client, fallback_bot_username).await,
     }
+}
+
+async fn start_from_message_handler(
+    bot: Bot,
+    msg: Message,
+    dialogue: MyDialogue,
+    api_client: Arc<BackendApi>,
+    _app_state: AppState,
+    fallback_bot_username: Option<BotUsername>,
+) -> AppResult<()> {
+    handle_start(bot, msg, dialogue, api_client, fallback_bot_username).await
+}
+
+async fn handle_start(
+    bot: Bot,
+    msg: Message,
+    dialogue: MyDialogue,
+    api_client: Arc<BackendApi>,
+    fallback_bot_username: Option<BotUsername>,
+) -> AppResult<()> {
+    if let Some(fallback_bot_username) = fallback_bot_username {
+        fallback_bot_msg(bot.clone(), msg.chat.id, fallback_bot_username).await?;
+    }
+    dialogue
+        .update(BotState {
+            step: BotStep::Initial,
+            // TODO NOT DEFAULT!
+            ..Default::default()
+        })
+        .await?;
+    start_handler(bot, dialogue, msg, api_client).await
 }
 
 async fn start_redis_listener(
