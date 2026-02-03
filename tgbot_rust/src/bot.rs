@@ -14,7 +14,7 @@ use teloxide::{
     ApiError, Bot, RequestError,
     dispatching::{
         HandlerExt, UpdateFilterExt,
-        dialogue::{RedisStorage, serializer::Json},
+        dialogue::{GetChatId, RedisStorage, serializer::Json},
     },
     dptree,
     macros::BotCommands,
@@ -277,7 +277,8 @@ pub async fn run_bot(
                     q: CallbackQuery,
                     bot: Bot,
                     api_client: Arc<BackendApi>,
-                    bot_state: BotState|
+                    bot_state: BotState,
+                    fallback_bot_username: Option<BotUsername>|
                     -> AppResult<()> {
             let data = match CallbackData::from_query(&q) {
                 Some(data) => data,
@@ -303,6 +304,12 @@ pub async fn run_bot(
                 )
                 .await?;
                 return Ok(());
+            }
+
+            if let Some(fallback_bot_username) = fallback_bot_username
+                && let Some(chat_id) = q.chat_id()
+            {
+                fallback_bot_msg(bot.clone(), chat_id, fallback_bot_username).await?;
             }
 
             match data {
