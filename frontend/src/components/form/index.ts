@@ -6,3 +6,4 @@ export * from "./InputSelect";
 export * from "./InputNumber";
 export * from "./InputSwitch";
 export * from "../InputSlider";
+export * from "./InputAutocomplete";

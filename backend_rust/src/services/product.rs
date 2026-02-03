@@ -528,6 +528,7 @@ mod tests {
             pricing_platform_commission: dec!(0),
             referral_percentage: dec!(0),
             referral_program_enabled: false,
+            bot_payment_system_support_operators: vec![],
         }
     }
 

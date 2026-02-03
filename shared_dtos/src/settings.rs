@@ -18,4 +18,5 @@ pub struct SettingsBotResponse {
     pub pricing_gateway_bonus_platform_sbp: f64,
     pub referral_program_enabled: bool,
     pub referral_percentage: f64,
+    pub bot_payment_system_support_operators: Vec<String>,
 }

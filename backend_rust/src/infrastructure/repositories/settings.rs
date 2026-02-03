@@ -88,6 +88,10 @@ impl SettingsRepositoryTrait for SettingsRepository {
 
             referral_program_enabled: get_bool(&map, "referral_program_enabled", false),
             referral_percentage: get_decimal(&map, "referral_percentage", dec!(0)),
+            bot_payment_system_support_operators: get_string_vec(
+                &map,
+                "bot_payment_system_support_operators",
+            ),
         })
     }
 
@@ -141,6 +145,23 @@ impl SettingsRepositoryTrait for SettingsRepository {
         };
     }
 
+        macro_rules! update_vec_setting {
+        ($key:expr, $value:expr) => {
+            if let Some(val) = $value {
+                sqlx::query!(
+                    r#"INSERT INTO settings (key, value) 
+                       VALUES ($1, $2) 
+                       ON CONFLICT (key) DO UPDATE 
+                       SET value = $2"#,
+                    $key,
+                    val.join(",")
+                )
+                .execute(&mut *tx)
+                .await?;
+            }
+        };
+    }
+
         update_setting!("bot_messages_support", update.bot_messages_support);
         update_nullable_setting!(
             "bot_messages_support_image_id",
@@ -182,6 +203,10 @@ impl SettingsRepositoryTrait for SettingsRepository {
         );
         update_setting!("referral_program_enabled", update.referral_program_enabled);
         update_setting!("referral_percentage", update.referral_percentage);
+        update_vec_setting!(
+            "bot_payment_system_support_operators",
+            update.bot_payment_system_support_operators
+        );
 
         tx.commit().await?;
 
@@ -218,6 +243,13 @@ fn get_bool(map: &HashMap<String, Option<String>>, key: &str, default: bool) -> 
             _ => None,
         })
         .unwrap_or(default)
+}
+
+fn get_string_vec(map: &HashMap<String, Option<String>>, key: &str) -> Vec<String> {
+    map.get(key)
+        .and_then(|v| v.as_ref())
+        .map(|s| s.split(',').map(|s| s.to_string()).collect())
+        .unwrap_or_default()
 }
 
 #[cfg(test)]

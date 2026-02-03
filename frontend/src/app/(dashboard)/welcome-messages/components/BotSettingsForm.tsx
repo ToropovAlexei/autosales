@@ -8,7 +8,7 @@ import { ENDPOINTS } from "@/constants";
 import { toast } from "react-toastify";
 import { queryKeys } from "@/utils/query";
 import { useEffect, useState } from "react";
-import { InputText, SelectImage } from "@/components";
+import { InputAutocomplete, InputText, SelectImage } from "@/components";
 import { CONFIG } from "../../../../../config";
 import { BotSettings, UpdateBotSettings } from "@/types/settings";
 import { useOne } from "@/hooks";
@@ -40,9 +40,11 @@ export const BotSettingsForm = () => {
 
   const newUserImageId = watch("bot_messages_new_user_welcome_image_id");
   const returningUserImageId = watch(
-    "bot_messages_returning_user_welcome_image_id"
+    "bot_messages_returning_user_welcome_image_id",
   );
   const supportImageId = watch("bot_messages_support_image_id");
+  const supportOperatorsOptions =
+    settings?.bot_payment_system_support_operators ?? [];
 
   const { mutate, isPending } = useMutation({
     mutationFn: async (params: UpdateBotSettings) =>
@@ -65,7 +67,7 @@ export const BotSettingsForm = () => {
 
   const handleSelectImage = (
     field: keyof UpdateBotSettings,
-    image: ImageResponse
+    image: ImageResponse,
   ) => {
     setValue(field, image.id, { shouldDirty: true });
     setIsNewUserImageSelectorOpen(false);
@@ -162,6 +164,14 @@ export const BotSettingsForm = () => {
                   multiline
                   minRows={2}
                 />
+                <InputAutocomplete
+                  name="bot_payment_system_support_operators"
+                  label="Операторы поддержки платежной системы"
+                  options={supportOperatorsOptions}
+                  multiple
+                  freeSolo
+                  placeholder="Введите логины операторов и нажмите Enter, максимум 3 оператора"
+                />
 
                 <Button
                   type="submit"
@@ -190,7 +200,7 @@ export const BotSettingsForm = () => {
         onSelect={(image) =>
           handleSelectImage(
             "bot_messages_returning_user_welcome_image_id",
-            image
+            image,
           )
         }
       />

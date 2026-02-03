@@ -706,6 +706,7 @@ mod tests {
             pricing_gateway_bonus_platform_sbp: dec!(0),
             referral_program_enabled: false,
             referral_percentage: dec!(0),
+            bot_payment_system_support_operators: vec![],
         }
     }
 

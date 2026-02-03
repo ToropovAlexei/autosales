@@ -17,6 +17,7 @@ pub struct Settings {
     pub pricing_gateway_bonus_platform_sbp: Decimal,
     pub referral_program_enabled: bool,
     pub referral_percentage: Decimal,
+    pub bot_payment_system_support_operators: Vec<String>,
 }
 
 #[derive(Debug, Default)]
@@ -35,4 +36,5 @@ pub struct UpdateSettings {
     pub pricing_gateway_bonus_platform_sbp: Option<Decimal>,
     pub referral_program_enabled: Option<bool>,
     pub referral_percentage: Option<Decimal>,
+    pub bot_payment_system_support_operators: Option<Vec<String>>,
 }

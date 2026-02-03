@@ -646,11 +646,17 @@ async fn handle_msg(
     let chat_id = ChatId(payload.telegram_id);
     let dialogue = MyDialogue::new(storage, chat_id);
     let state = dialogue.get_or_default().await.unwrap_or_default();
+    let support_operators = api_client
+        .get_settings()
+        .await?
+        .bot_payment_system_support_operators;
 
     if let Some(msg_id) = state.last_bot_msg_id {
         // Ignore error is ok
         let _ = bot.delete_message(chat_id, MessageId(msg_id as i32)).await;
     }
+
+    let support_operator_rows = support_operator_buttons(&support_operators);
 
     let (msg, img, keyboard) = match payload.message {
         DispatchMessage::GenericMessage { image_id, message } => (
@@ -672,21 +678,21 @@ async fn handle_msg(
                 У вас осталось {rounded_up_to_5} минут на оплату"
                 ),
                 None,
-                InlineKeyboardMarkup::new(vec![
-                    vec![InlineKeyboardButton::callback(
-                        "Оплатил",
-                        CallbackData::ConfirmPayment { id: invoice_id },
-                    )],
-                    vec![InlineKeyboardButton::callback(
-                        "Отменить платеж",
-                        CallbackData::CancelPayment { id: invoice_id },
-                    )],
-                    vec![InlineKeyboardButton::url(
-                        "Связаться с поддержкой",
-                        // TODO Should be in config
-                        Url::parse("https://t.me/erttreew")?,
-                    )],
-                ]),
+                InlineKeyboardMarkup::new(
+                    [
+                        vec![InlineKeyboardButton::callback(
+                            "Оплатил",
+                            CallbackData::ConfirmPayment { id: invoice_id },
+                        )],
+                        vec![InlineKeyboardButton::callback(
+                            "Отменить платеж",
+                            CallbackData::CancelPayment { id: invoice_id },
+                        )],
+                    ]
+                    .into_iter()
+                    .chain(support_operator_rows.clone().into_iter())
+                    .collect::<Vec<_>>(),
+                ),
             )
         }
         DispatchMessage::RequestReceiptNotification { invoice_id } => {
@@ -713,11 +719,7 @@ async fn handle_msg(
              Если у вас возникли сложности, свяжитесь с поддержкой."
                     .to_string(),
                 None,
-                InlineKeyboardMarkup::new(vec![vec![InlineKeyboardButton::url(
-                    "Оператор поддержки",
-                    // TODO Should be in config
-                    Url::parse("https://t.me/erttreew")?,
-                )]]),
+                InlineKeyboardMarkup::new(support_operator_rows),
             )
         }
     };
@@ -738,6 +740,21 @@ async fn handle_msg(
     };
 
     Ok(())
+}
+
+fn support_operator_buttons(operators: &[String]) -> Vec<Vec<InlineKeyboardButton>> {
+    operators
+        .iter()
+        .filter_map(|operator| {
+            let username = operator.trim().trim_start_matches('@');
+            if username.is_empty() {
+                return None;
+            }
+            let label = format!("Оператор: @{username}");
+            let url = Url::parse(&format!("https://t.me/{username}")).ok()?;
+            Some(vec![InlineKeyboardButton::url(label, url)])
+        })
+        .collect()
 }
 
 pub async fn generate_captcha_and_options(

@@ -35,6 +35,7 @@ pub struct UpdateSettingsCommand {
     pub pricing_gateway_bonus_platform_sbp: Option<Decimal>,
     pub referral_program_enabled: Option<bool>,
     pub referral_percentage: Option<Decimal>,
+    pub bot_payment_system_support_operators: Option<Vec<String>>,
 }
 
 impl From<UpdateSettingsCommand> for UpdateSettings {
@@ -55,6 +56,15 @@ impl From<UpdateSettingsCommand> for UpdateSettings {
             pricing_gateway_bonus_platform_sbp: r.pricing_gateway_bonus_platform_sbp,
             referral_program_enabled: r.referral_program_enabled,
             referral_percentage: r.referral_percentage,
+            bot_payment_system_support_operators: r.bot_payment_system_support_operators.map(
+                |operators| {
+                    operators
+                        .iter()
+                        .map(|s| s.trim().to_string())
+                        .filter(|s| !s.is_empty())
+                        .collect::<Vec<String>>()
+                },
+            ),
         }
     }
 }

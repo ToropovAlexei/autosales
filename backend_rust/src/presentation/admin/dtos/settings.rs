@@ -29,6 +29,7 @@ pub struct BotSettingsResponse {
     pub bot_messages_new_user_welcome_image_id: Option<Uuid>,
     pub bot_messages_returning_user_welcome: String,
     pub bot_messages_returning_user_welcome_image_id: Option<Uuid>,
+    pub bot_payment_system_support_operators: Vec<String>,
 }
 
 impl From<Settings> for PricingSettingsResponse {
@@ -65,6 +66,7 @@ impl From<Settings> for BotSettingsResponse {
             bot_messages_returning_user_welcome: r.bot_messages_returning_user_welcome,
             bot_messages_returning_user_welcome_image_id: r
                 .bot_messages_returning_user_welcome_image_id,
+            bot_payment_system_support_operators: r.bot_payment_system_support_operators,
         }
     }
 }
@@ -115,6 +117,9 @@ pub struct UpdateBotSettingsRequest {
     pub bot_messages_returning_user_welcome: Option<String>,
     #[ts(optional)]
     pub bot_messages_returning_user_welcome_image_id: Option<Option<Uuid>>,
+    #[validate(length(max = 3, message = "length must be less than 3"))]
+    #[ts(optional)]
+    pub bot_payment_system_support_operators: Option<Vec<String>>,
 }
 
 impl From<UpdatePricingSettingsRequest> for UpdateSettingsCommand {
@@ -149,6 +154,7 @@ impl From<UpdateBotSettingsRequest> for UpdateSettingsCommand {
             bot_messages_returning_user_welcome: r.bot_messages_returning_user_welcome,
             bot_messages_returning_user_welcome_image_id: r
                 .bot_messages_returning_user_welcome_image_id,
+            bot_payment_system_support_operators: r.bot_payment_system_support_operators,
             ..UpdateSettingsCommand::default()
         }
     }
@@ -176,6 +182,7 @@ mod tests {
             bot_messages_new_user_welcome_image_id: Some(Uuid::new_v4()),
             bot_messages_returning_user_welcome: "Welcome back".to_string(),
             bot_messages_returning_user_welcome_image_id: None,
+            bot_payment_system_support_operators: vec![],
         }
     }
 
@@ -285,6 +292,7 @@ mod tests {
             bot_messages_new_user_welcome_image_id: Some(None),
             bot_messages_returning_user_welcome: Some("Short returning message".to_string()),
             bot_messages_returning_user_welcome_image_id: Some(Some(Uuid::new_v4())),
+            bot_payment_system_support_operators: Some(vec![]),
         };
         assert!(req.validate().is_ok());
     }
