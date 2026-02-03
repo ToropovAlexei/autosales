@@ -154,10 +154,25 @@ impl std::fmt::Display for BotUsername {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(tag = "t", content = "d")]
 pub enum CallbackData {
-    AnswerCaptcha { answer: String },
-    SelectGateway { gateway: PaymentSystem },
-    SelectAmount { amount: i64 },
-    ToCategory { category_id: Option<i64> },
+    AnswerCaptcha {
+        answer: String,
+    },
+    SelectGateway {
+        gateway: PaymentSystem,
+    },
+    SelectAmount {
+        amount: i64,
+    },
+    #[serde(rename = "sgaa")]
+    SelectGatewayAndAmount {
+        #[serde(rename = "g")]
+        gateway: PaymentSystem,
+        #[serde(rename = "a")]
+        amount: i64,
+    },
+    ToCategory {
+        category_id: Option<i64>,
+    },
     ToMainMenu,
     ToDepositSelectGateway,
     ToBalance,
@@ -166,17 +181,35 @@ pub enum CallbackData {
     ToMyPayments,
     ToReferralProgram,
     ToSupport,
-    ToProduct { id: i64 },
-    ToDepositConfirm { id: i64 },
-    ToOrderDetails { id: i64 },
-    Buy { id: i64 },
-    ConfirmPayment { id: i64 },
-    CancelPayment { id: i64 },
+    ToProduct {
+        id: i64,
+    },
+    ToDepositConfirm {
+        id: i64,
+    },
+    ToOrderDetails {
+        id: i64,
+    },
+    Buy {
+        id: i64,
+    },
+    ConfirmPayment {
+        id: i64,
+    },
+    CancelPayment {
+        id: i64,
+    },
     AddBot,
-    ShowBotInfo { id: i64 },
+    ShowBotInfo {
+        id: i64,
+    },
     BotStats,
-    SetBotPrimary { id: i64 },
-    DeleteBot { id: i64 },
+    SetBotPrimary {
+        id: i64,
+    },
+    DeleteBot {
+        id: i64,
+    },
 }
 
 impl CallbackData {
@@ -334,6 +367,28 @@ pub async fn run_bot(
                     let new_state = BotState {
                         step: BotStep::DepositConfirm {
                             gateway: *gateway,
+                            amount,
+                            invoice: None,
+                        },
+                        ..bot_state
+                    };
+                    dialogue
+                        .update(new_state.clone())
+                        .await
+                        .map_err(AppError::from)?;
+                    deposit_confirm_handler(
+                        bot,
+                        &MsgBy::CallbackQuery(&q),
+                        dialogue,
+                        api_client,
+                        new_state,
+                    )
+                    .await?;
+                }
+                CallbackData::SelectGatewayAndAmount { gateway, amount } => {
+                    let new_state = BotState {
+                        step: BotStep::DepositConfirm {
+                            gateway,
                             amount,
                             invoice: None,
                         },

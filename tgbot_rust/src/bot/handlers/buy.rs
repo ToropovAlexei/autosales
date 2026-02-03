@@ -1,9 +1,11 @@
 use std::sync::Arc;
 
+use shared_dtos::invoice::PaymentSystem;
 use shared_dtos::order::PurchaseDetails;
 use shared_dtos::product::ProductDetails;
 use shared_dtos::user_subscription::UserSubscriptionDetails;
 use teloxide::dispatching::dialogue::GetChatId;
+use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 use teloxide::{
     Bot,
     types::CallbackQuery,
@@ -11,8 +13,8 @@ use teloxide::{
 };
 
 use crate::api::api_errors::ApiClientError;
-use crate::bot::MyDialogue;
 use crate::bot::utils::{MessageImage, MsgBy, edit_msg};
+use crate::bot::{CallbackData, MyDialogue};
 use crate::{
     api::backend_api::BackendApi,
     bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard, errors::AppResult,
@@ -32,7 +34,7 @@ pub async fn buy_handler(
 
     let buy_result = api_client.buy_product(chat_id.0, product_id).await;
 
-    let (msg, img) = match buy_result {
+    let (msg, img, keyboard) = match buy_result {
         Ok(response) => {
             let price = format!("{:.2}", response.price);
             let balance = format!("{:.2}", response.balance);
@@ -83,22 +85,50 @@ pub async fn buy_handler(
             (
                 success_message,
                 response.fulfilled_image_id.map(MessageImage::Uuid),
+                back_to_main_menu_inline_keyboard(),
             )
         }
         Err(e) => {
-            let msg = match e {
+            let (msg, keyboard) = match e {
                 ApiClientError::Unsuccessful(msg) => {
+                    let user_balance = api_client.ensure_user(chat_id.0).await?;
+                    let product = api_client.get_product(product_id).await?;
+                    let to_pay = (product.price - user_balance.balance).ceil() as i64;
                     if msg.contains("Not enough balance") {
-                        "😔 Недостаточно средств на балансе для совершения покупки. Пожалуйста, пополните баланс.".to_string()
+                        let buttons = vec![
+                            [InlineKeyboardButton::callback(
+                                format!("🏧 Пополнить баланс на {to_pay} ₽"),
+                                CallbackData::SelectGatewayAndAmount {
+                                    // TODO For now only platform card supported
+                                    gateway: PaymentSystem::PlatformCard,
+                                    amount: to_pay,
+                                },
+                            )],
+                            [InlineKeyboardButton::callback(
+                                "⬅️ Главное меню",
+                                CallbackData::ToMainMenu,
+                            )],
+                        ];
+
+                        ("😔 Недостаточно средств на балансе для совершения покупки. Пожалуйста, пополните баланс.".to_string(), InlineKeyboardMarkup::new(buttons))
                     } else if msg.contains("Not enough stock") {
-                        "😔 К сожалению, этот товар закончился.".to_string()
+                        (
+                            "😔 К сожалению, этот товар закончился.".to_string(),
+                            back_to_main_menu_inline_keyboard(),
+                        )
                     } else {
-                        "Произошла непредвиденная ошибка. Попробуйте позже".to_string()
+                        (
+                            "Произошла непредвиденная ошибка. Попробуйте позже".to_string(),
+                            back_to_main_menu_inline_keyboard(),
+                        )
                     }
                 }
-                _ => "Произошла непредвиденная ошибка. Попробуйте позже.".to_string(),
+                _ => (
+                    "Произошла непредвиденная ошибка. Попробуйте позже.".to_string(),
+                    back_to_main_menu_inline_keyboard(),
+                ),
             };
-            (msg, None)
+            (msg, None, keyboard)
         }
     };
 
@@ -109,7 +139,7 @@ pub async fn buy_handler(
         &MsgBy::CallbackQuery(&q),
         &msg,
         img,
-        back_to_main_menu_inline_keyboard(),
+        keyboard,
     )
     .await?;
 
