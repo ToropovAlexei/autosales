@@ -112,9 +112,6 @@ services:
       BACKEND_API_URL: http://backend:${BACKEND_PORT}/api/
       WEBHOOK_HOST: ${WEBHOOK_HOST}
       WEBHOOK_PORT: ${WEBHOOK_PORT}
-      CAPTCHA_API_URL: http://captcha_service:9091/captcha
-      SUPPORT_URL: ${SUPPORT_URL}
-      PAYMENT_INSTRUCTIONS_URL: ${PAYMENT_INSTRUCTIONS_URL}
       SERVICE_API_KEY: ${SERVICE_API_KEY}
 
     depends_on:
