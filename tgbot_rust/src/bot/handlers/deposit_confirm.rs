@@ -130,6 +130,12 @@ pub async fn deposit_confirm_handler(
                         id: invoice_data.id,
                     },
                 )]);
+                keyboard.push(vec![InlineKeyboardButton::callback(
+                    "Отменить платеж",
+                    CallbackData::CancelPayment {
+                        id: invoice_data.id,
+                    },
+                )]);
             }
         }
     }
