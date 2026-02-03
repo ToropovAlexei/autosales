@@ -24,7 +24,7 @@ pub async fn deposit_amount_handler(
         &dialogue,
         &bot,
         &MsgBy::CallbackQuery(&q),
-        "Выберите сумму для пополнения:",
+        "Выберите сумму для пополнения или введите ее вручную:",
         None,
         deposit_amount_menu(),
     )

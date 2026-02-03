@@ -1,4 +1,5 @@
 pub mod add_bot_handler;
+pub mod amount_input_handler;
 pub mod balance;
 pub mod bot_stats_handler;
 pub mod buy;

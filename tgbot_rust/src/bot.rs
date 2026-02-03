@@ -33,8 +33,8 @@ use crate::{
     api::backend_api::BackendApi,
     bot::{
         handlers::{
-            add_bot_handler::add_bot_handler, balance::balance_handler,
-            bot_stats_handler::bot_stats_handler, buy::buy_handler,
+            add_bot_handler::add_bot_handler, amount_input_handler::amount_input_handler,
+            balance::balance_handler, bot_stats_handler::bot_stats_handler, buy::buy_handler,
             cancel_invoice::cancel_invoice_handler, captcha_answer::captcha_answer_handler,
             catalog::catalog_handler, confirm_invoice::confirm_invoice_handler,
             delete_bot_handler::delete_bot_handler, deposit_amount::deposit_amount_handler,
@@ -255,6 +255,12 @@ pub async fn run_bot(
         )
         .branch(
             dptree::filter(|state: BotState| {
+                matches!(state.step, BotStep::DepositSelectAmount { .. })
+            })
+            .endpoint(amount_input_handler),
+        )
+        .branch(
+            dptree::filter(|state: BotState| {
                 matches!(state.step, BotStep::ReceiptRequested { .. })
             })
             .endpoint(receipt_submitted_handler),
@@ -324,7 +330,14 @@ pub async fn run_bot(
                         .update(new_state.clone())
                         .await
                         .map_err(AppError::from)?;
-                    deposit_confirm_handler(bot, q, dialogue, api_client, new_state).await?;
+                    deposit_confirm_handler(
+                        bot,
+                        &MsgBy::CallbackQuery(&q),
+                        dialogue,
+                        api_client,
+                        new_state,
+                    )
+                    .await?;
                 }
                 CallbackData::ToMainMenu => {
                     dialogue
@@ -443,7 +456,14 @@ pub async fn run_bot(
                         .update(new_state.clone())
                         .await
                         .map_err(AppError::from)?;
-                    deposit_confirm_handler(bot, q, dialogue, api_client, new_state).await?;
+                    deposit_confirm_handler(
+                        bot,
+                        &MsgBy::CallbackQuery(&q),
+                        dialogue,
+                        api_client,
+                        new_state,
+                    )
+                    .await?;
                 }
                 CallbackData::ToOrderDetails { id } => {
                     order_details_handler(bot, dialogue, q, api_client, id).await?;

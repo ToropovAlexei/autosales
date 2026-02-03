@@ -71,9 +71,25 @@ pub async fn edit_msg(
     image: Option<MessageImage>,
     reply_keyboard: InlineKeyboardMarkup,
 ) -> AppResult<Message> {
-    let (chat_id, msg_id) = get_chat_and_msg_id(msg_by).ok_or(AppError::InternalServerError(
-        "Failed to get chat id".to_string(),
-    ))?;
+    let (chat_id, mut msg_id) = get_chat_and_msg_id(msg_by).ok_or(
+        AppError::InternalServerError("Failed to get chat id".to_string()),
+    )?;
+    let prev_state = dialogue.get_or_default().await.unwrap_or_default();
+    let mut has_photo = has_photo(msg_by);
+    if let MsgBy::Message(msg) = msg_by {
+        // Delete user message for cleanup
+        let _ = bot.delete_message(chat_id, msg.id).await;
+        let bot_msg_id = prev_state.last_bot_msg_id;
+        if let Some(bot_msg_id) = bot_msg_id {
+            // Delete bot message for cleanup
+            let _ = bot
+                .delete_message(chat_id, MessageId(bot_msg_id as i32))
+                .await;
+        }
+        // Set msg_id to none, to prevent from trying to edit
+        msg_id = None;
+        has_photo = false;
+    };
     let image_bytes = match image {
         Some(MessageImage::Uuid(uuid)) => {
             let bytes = api_client.get_image_bytes(&uuid).await?;
@@ -86,13 +102,13 @@ pub async fn edit_msg(
         bot,
         chat_id,
         msg_id,
-        has_photo(msg_by),
+        has_photo,
         text,
         image_bytes,
         reply_keyboard,
     )
     .await?;
-    let prev_state = dialogue.get_or_default().await.unwrap_or_default();
+
     dialogue
         .update(BotState {
             last_bot_msg_id: Some(msg.id.0 as i64),

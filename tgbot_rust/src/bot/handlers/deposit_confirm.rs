@@ -12,7 +12,7 @@ use url::Url;
 
 pub async fn deposit_confirm_handler(
     bot: Bot,
-    q: CallbackQuery,
+    msg_by: &MsgBy<'_>,
     dialogue: MyDialogue,
     api_client: Arc<BackendApi>,
     bot_state: BotState,
@@ -44,7 +44,7 @@ pub async fn deposit_confirm_handler(
                         &api_client,
                         &dialogue,
                         &bot,
-                        &MsgBy::CallbackQuery(&q),
+                        msg_by,
                         "Что-то пошло не так. Попробуйте ещё раз.",
                         None,
                         back_to_main_menu_inline_keyboard(),
@@ -143,7 +143,7 @@ pub async fn deposit_confirm_handler(
         &api_client,
         &dialogue,
         &bot,
-        &MsgBy::CallbackQuery(&q),
+        msg_by,
         &text,
         None,
         InlineKeyboardMarkup::new(keyboard),
