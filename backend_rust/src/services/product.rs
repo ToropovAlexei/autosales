@@ -529,6 +529,8 @@ mod tests {
             referral_percentage: dec!(0),
             referral_program_enabled: false,
             bot_payment_system_support_operators: vec![],
+            bot_about: "".to_string(),
+            bot_description: "".to_string(),
         }
     }
 

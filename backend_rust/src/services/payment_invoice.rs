@@ -707,6 +707,8 @@ mod tests {
             referral_program_enabled: false,
             referral_percentage: dec!(0),
             bot_payment_system_support_operators: vec![],
+            bot_about: "".to_string(),
+            bot_description: "".to_string(),
         }
     }
 

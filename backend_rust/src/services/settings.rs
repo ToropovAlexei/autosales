@@ -36,6 +36,8 @@ pub struct UpdateSettingsCommand {
     pub referral_program_enabled: Option<bool>,
     pub referral_percentage: Option<Decimal>,
     pub bot_payment_system_support_operators: Option<Vec<String>>,
+    pub bot_description: Option<String>,
+    pub bot_about: Option<String>,
 }
 
 impl From<UpdateSettingsCommand> for UpdateSettings {
@@ -65,6 +67,8 @@ impl From<UpdateSettingsCommand> for UpdateSettings {
                         .collect::<Vec<String>>()
                 },
             ),
+            bot_about: r.bot_about,
+            bot_description: r.bot_description,
         }
     }
 }

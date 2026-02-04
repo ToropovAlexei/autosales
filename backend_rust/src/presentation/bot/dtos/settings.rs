@@ -30,6 +30,8 @@ impl From<Settings> for SettingsBotResponse {
             referral_program_enabled: r.referral_program_enabled,
             referral_percentage: r.referral_percentage.to_f64().unwrap_or_default(),
             bot_payment_system_support_operators: r.bot_payment_system_support_operators,
+            bot_about: r.bot_about,
+            bot_description: r.bot_description,
         }
     }
 }

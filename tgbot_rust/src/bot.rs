@@ -10,6 +10,7 @@ use shared_dtos::{
     invoice::{PaymentDetails, PaymentSystem},
     notification::{DispatchMessage, DispatchMessagePayload},
 };
+use teloxide::payloads::{SetMyDescriptionSetters, SetMyShortDescriptionSetters};
 use teloxide::{
     ApiError, Bot, RequestError,
     dispatching::{
@@ -614,6 +615,15 @@ pub async fn run_bot(
             match bot.get_me().await {
                 Ok(_) => {
                     retries = 0;
+                    // Try to update bot description and about(short description)
+                    if let Ok(current_settings) = client.get_settings().await {
+                        let _ = sync_bot_descriptions(
+                            &bot,
+                            current_settings.bot_description,
+                            current_settings.bot_about,
+                        )
+                        .await;
+                    };
                 }
                 Err(e) => {
                     tracing::error!("[Bot][{bot_id}] Health check failed: {}", e);
@@ -847,6 +857,32 @@ async fn handle_msg(
             )
             .await?;
     };
+
+    Ok(())
+}
+
+async fn sync_bot_descriptions(
+    bot: &Bot,
+    description: String,
+    short_description: String,
+) -> AppResult<()> {
+    let description = description.trim().to_string();
+    let short_description = short_description.trim().to_string();
+
+    if let Ok(current_description) = bot.get_my_description().await
+        && current_description.description != description
+    {
+        let _ = bot.set_my_description().description(description).await;
+    }
+
+    if let Ok(current_about) = bot.get_my_short_description().await
+        && current_about.short_description != short_description
+    {
+        let _ = bot
+            .set_my_short_description()
+            .short_description(short_description)
+            .await;
+    }
 
     Ok(())
 }

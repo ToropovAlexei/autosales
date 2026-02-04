@@ -18,6 +18,8 @@ pub struct Settings {
     pub referral_program_enabled: bool,
     pub referral_percentage: Decimal,
     pub bot_payment_system_support_operators: Vec<String>,
+    pub bot_description: String,
+    pub bot_about: String,
 }
 
 #[derive(Debug, Default)]
@@ -37,4 +39,6 @@ pub struct UpdateSettings {
     pub referral_program_enabled: Option<bool>,
     pub referral_percentage: Option<Decimal>,
     pub bot_payment_system_support_operators: Option<Vec<String>>,
+    pub bot_description: Option<String>,
+    pub bot_about: Option<String>,
 }

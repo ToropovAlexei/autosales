@@ -92,6 +92,8 @@ impl SettingsRepositoryTrait for SettingsRepository {
                 &map,
                 "bot_payment_system_support_operators",
             ),
+            bot_about: get_string(&map, "bot_about", ""),
+            bot_description: get_string(&map, "bot_description", ""),
         })
     }
 
@@ -207,6 +209,8 @@ impl SettingsRepositoryTrait for SettingsRepository {
             "bot_payment_system_support_operators",
             update.bot_payment_system_support_operators
         );
+        update_setting!("bot_about", update.bot_about);
+        update_setting!("bot_description", update.bot_description);
 
         tx.commit().await?;
 

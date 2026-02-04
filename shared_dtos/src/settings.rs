@@ -19,4 +19,6 @@ pub struct SettingsBotResponse {
     pub referral_program_enabled: bool,
     pub referral_percentage: f64,
     pub bot_payment_system_support_operators: Vec<String>,
+    pub bot_about: String,
+    pub bot_description: String,
 }

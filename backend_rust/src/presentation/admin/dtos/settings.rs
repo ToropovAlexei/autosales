@@ -31,6 +31,8 @@ pub struct BotSettingsResponse {
     pub bot_messages_returning_user_welcome: String,
     pub bot_messages_returning_user_welcome_image_id: Option<Uuid>,
     pub bot_payment_system_support_operators: Vec<String>,
+    pub bot_description: String,
+    pub bot_about: String,
 }
 
 impl From<Settings> for PricingSettingsResponse {
@@ -68,6 +70,8 @@ impl From<Settings> for BotSettingsResponse {
             bot_messages_returning_user_welcome_image_id: r
                 .bot_messages_returning_user_welcome_image_id,
             bot_payment_system_support_operators: r.bot_payment_system_support_operators,
+            bot_about: r.bot_about,
+            bot_description: r.bot_description,
         }
     }
 }
@@ -127,6 +131,12 @@ pub struct UpdateBotSettingsRequest {
     #[validate(length(max = 3, message = "length must be less than 3"))]
     #[ts(optional)]
     pub bot_payment_system_support_operators: Option<Vec<String>>,
+    #[validate(length(max = 999, message = "length must be less than 999"))]
+    #[ts(optional)]
+    pub bot_description: Option<String>,
+    #[validate(length(max = 999, message = "length must be less than 999"))]
+    #[ts(optional)]
+    pub bot_about: Option<String>,
 }
 
 impl From<UpdatePricingSettingsRequest> for UpdateSettingsCommand {
@@ -162,6 +172,8 @@ impl From<UpdateBotSettingsRequest> for UpdateSettingsCommand {
             bot_messages_returning_user_welcome_image_id: r
                 .bot_messages_returning_user_welcome_image_id,
             bot_payment_system_support_operators: r.bot_payment_system_support_operators,
+            bot_about: r.bot_about,
+            bot_description: r.bot_description,
             ..UpdateSettingsCommand::default()
         }
     }
@@ -190,6 +202,8 @@ mod tests {
             bot_messages_returning_user_welcome: "Welcome back".to_string(),
             bot_messages_returning_user_welcome_image_id: None,
             bot_payment_system_support_operators: vec![],
+            bot_about: "".to_string(),
+            bot_description: "".to_string(),
         }
     }
 
@@ -300,6 +314,8 @@ mod tests {
             bot_messages_returning_user_welcome: Some("Short returning message".to_string()),
             bot_messages_returning_user_welcome_image_id: Some(Some(Uuid::new_v4())),
             bot_payment_system_support_operators: Some(vec![]),
+            bot_about: Some("".to_string()),
+            bot_description: Some("".to_string()),
         };
         assert!(req.validate().is_ok());
     }

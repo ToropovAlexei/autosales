@@ -88,6 +88,18 @@ export const BotSettingsForm = () => {
                   multiline
                   minRows={2}
                 />
+                <InputText
+                  name="bot_description"
+                  label="Описание бота"
+                  multiline
+                  minRows={2}
+                />
+                <InputText
+                  name="bot_about"
+                  label="О боте"
+                  multiline
+                  minRows={2}
+                />
 
                 <Button
                   type="submit"
