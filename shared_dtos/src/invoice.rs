@@ -73,6 +73,7 @@ pub struct PaymentInvoiceBotResponse {
     pub gateway: PaymentSystem,
     pub status: InvoiceStatus,
     pub created_at: DateTime<Utc>,
+    pub gateway_invoice_id: String,
 }
 
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]

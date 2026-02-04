@@ -15,7 +15,7 @@ use std::sync::Arc;
 use teloxide::{
     prelude::Bot,
     types::CallbackQuery,
-    utils::html::{bold, underline},
+    utils::html::{bold, escape, underline},
 };
 
 pub async fn my_payments_handler(
@@ -55,7 +55,7 @@ pub async fn my_payments_handler(
     if !pending_payments.is_empty() {
         text.push_str(&underline("Активные платежи:\n"));
         for payment in &pending_payments {
-            text.push_str(&format!("• {}\n", format_payment_info(payment)));
+            text.push_str(&format!("• {}\n\n", format_payment_info(payment)));
         }
         text.push('\n');
     } else {
@@ -65,7 +65,7 @@ pub async fn my_payments_handler(
     if !completed_payments.is_empty() {
         text.push_str(&underline("История операций:\n"));
         for payment in &completed_payments {
-            text.push_str(&format!("• {}\n", format_payment_info(payment)));
+            text.push_str(&format!("• {}\n\n", format_payment_info(payment)));
         }
     }
 
@@ -83,10 +83,14 @@ pub async fn my_payments_handler(
 }
 
 fn format_payment_info(payment: &PaymentInvoiceBotResponse) -> String {
+    let token = escape(&payment.gateway_invoice_id);
     format!(
-        "Платеж #{} на {} RUB от {}",
+        "<b>Платеж #{}:</b> <code>{}</code> ₽\n\
+         <b>Дата:</b> {}\n\
+         <b>Токен:</b> <code>{}</code>",
         payment.id,
         payment.amount,
-        payment.created_at.format("%d.%m.%Y")
+        payment.created_at.format("%d.%m.%Y"),
+        token
     )
 }

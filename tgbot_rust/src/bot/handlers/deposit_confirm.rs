@@ -8,6 +8,7 @@ use crate::errors::AppResult;
 use shared_dtos::invoice::PaymentDetails;
 use teloxide::prelude::*;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
+use teloxide::utils::html::escape;
 use url::Url;
 
 pub async fn deposit_confirm_handler(
@@ -57,6 +58,7 @@ pub async fn deposit_confirm_handler(
             InvoiceData {
                 id: response.id,
                 details: response.payment_details,
+                gateway_invoice_id: response.gateway_invoice_id,
             }
         }
     };
@@ -84,33 +86,45 @@ pub async fn deposit_confirm_handler(
                 account_name,
                 card_number,
                 amount,
-            } => format!(
-                "Реквизиты для оплаты:\n\n\
-                 <b>Банк:</b> {}\n\
-                 <b>Номер карты:</b> {}\n\
-                 <b>Получатель:</b> {}\n\
-                 <b>Сумма:</b> {} ₽\n\n\
-                 На оплату дается 30 минут!\n\
-                 В случае, если вы не оплатите в течении 30 минут, платеж не будет зачислен!\n\
-                 После оплаты ОБЯЗАТЕЛЬНО НАЖМИТЕ \"Оплатил\"",
-                bank_name, card_number, account_name, amount
-            ),
+            } => {
+                let bank_name = escape(bank_name);
+                let account_name = escape(account_name);
+                let card_number = escape(card_number);
+                let token = escape(&invoice_data.gateway_invoice_id);
+                format!(
+                    "Реквизиты для оплаты:\n\n\
+                     <b>Банк:</b> <code>{bank_name}</code>\n\
+                     <b>Номер карты:</b> <code>{card_number}</code>\n\
+                     <b>Получатель:</b> <code>{account_name}</code>\n\
+                     <b>Сумма:</b> <code>{amount}</code> ₽\n\n\
+                     <b>Токен:</b> <code>{token}</code>\n\n\
+                     На оплату дается 30 минут!\n\
+                     В случае, если вы не оплатите в течении 30 минут, платеж не будет зачислен!\n\
+                     После оплаты ОБЯЗАТЕЛЬНО НАЖМИТЕ \"Оплатил\""
+                )
+            }
             PaymentDetails::PlatformSBP {
                 bank_name,
                 account_name,
                 sbp_number,
                 amount,
-            } => format!(
-                "Реквизиты для оплаты:\n\n\
-                 <b>Банк:</b> {}\n\
-                 <b>Номер СБП:</b> {}\n\
-                 <b>Получатель:</b> {}\n\
-                 <b>Сумма:</b> {} ₽\n\n\
-                 На оплату дается 30 минут!\n\
-                 В случае, если вы не оплатите в течении 30 минут, платеж не будет зачислен!\n\
-                 После оплаты ОБЯЗАТЕЛЬНО НАЖМИТЕ \"Оплатил\"",
-                bank_name, sbp_number, account_name, amount
-            ),
+            } => {
+                let bank_name = escape(bank_name);
+                let account_name = escape(account_name);
+                let sbp_number = escape(sbp_number);
+                let token = escape(&invoice_data.gateway_invoice_id);
+                format!(
+                    "Реквизиты для оплаты:\n\n\
+                     <b>Банк:</b> <code>{bank_name}</code>\n\
+                     <b>Номер СБП:</b> <code>{sbp_number}</code>\n\
+                     <b>Получатель:</b> <code>{account_name}</code>\n\
+                     <b>Сумма:</b> <code>{amount} ₽</code>\n\n\
+                     <b>Токен:</b> <code>{token}</code>\n\n\
+                     На оплату дается 30 минут!\n\
+                     В случае, если вы не оплатите в течении 30 минут, платеж не будет зачислен!\n\
+                     После оплаты ОБЯЗАТЕЛЬНО НАЖМИТЕ \"Оплатил\""
+                )
+            }
         },
     };
 

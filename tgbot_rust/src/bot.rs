@@ -76,6 +76,7 @@ pub enum PaymentAction {
 pub struct InvoiceData {
     pub id: i64,
     pub details: Option<PaymentDetails>,
+    pub gateway_invoice_id: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
@@ -516,6 +517,7 @@ pub async fn run_bot(
                             invoice: Some(InvoiceData {
                                 id,
                                 details: invoice.payment_details,
+                                gateway_invoice_id: invoice.gateway_invoice_id,
                             }),
                         },
                         ..bot_state

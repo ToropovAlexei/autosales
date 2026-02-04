@@ -15,6 +15,7 @@ impl From<PaymentInvoiceRow> for PaymentInvoiceBotResponse {
             status: r.status,
             created_at: r.created_at,
             gateway: r.gateway,
+            gateway_invoice_id: r.gateway_invoice_id,
         }
     }
 }
