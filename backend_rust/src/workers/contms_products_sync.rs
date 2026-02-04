@@ -167,7 +167,7 @@ pub async fn add_products_to_repo(
                 external_id: Some(product.name.clone()),
                 name: product.name.clone(),
                 r#type: ProductType::Subscription,
-                initial_stock: None, // TODO None or infinity?
+                initial_stock: None,
                 provider_name: "contms".to_string(),
                 subscription_period_days: Some(30), // TODO 1 month?
                 fulfillment_image_id: None,

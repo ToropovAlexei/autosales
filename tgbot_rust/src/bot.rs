@@ -696,11 +696,11 @@ async fn handle_start(
     if let Some(fallback_bot_username) = fallback_bot_username {
         fallback_bot_msg(bot.clone(), msg.chat.id, fallback_bot_username).await?;
     }
+    let prev_state = dialogue.get_or_default().await.unwrap_or_default();
     dialogue
         .update(BotState {
             step: BotStep::Initial,
-            // TODO NOT DEFAULT!
-            ..Default::default()
+            ..prev_state
         })
         .await?;
     start_handler(bot, dialogue, msg, api_client).await
