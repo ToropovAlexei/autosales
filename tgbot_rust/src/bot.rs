@@ -262,6 +262,14 @@ pub async fn run_bot(
     let me = bot.get_me().await?;
     let username = me.user.username.unwrap_or_default();
     tracing::info!("Starting bot: @{}", username);
+    if let Ok(current_settings) = client.get_settings().await {
+        let _ = sync_bot_descriptions(
+            &bot,
+            current_settings.bot_description,
+            current_settings.bot_about,
+        )
+        .await;
+    }
     bot.set_my_commands(vec![BotCommand::new("start", "Начать")])
         .await?;
     let redis_url = format!(
@@ -615,15 +623,6 @@ pub async fn run_bot(
             match bot.get_me().await {
                 Ok(_) => {
                     retries = 0;
-                    // Try to update bot description and about(short description)
-                    if let Ok(current_settings) = client.get_settings().await {
-                        let _ = sync_bot_descriptions(
-                            &bot,
-                            current_settings.bot_description,
-                            current_settings.bot_about,
-                        )
-                        .await;
-                    };
                 }
                 Err(e) => {
                     tracing::error!("[Bot][{bot_id}] Health check failed: {}", e);
@@ -794,7 +793,7 @@ async fn handle_msg(
             (
                 format!(
                     "Вы недавно пытались пополнить баланс на {amount} ₽. Возникли ли у вас какие-либо проблемы с оплатой?\n\
-                У вас осталось {rounded_up_to_5} минут на оплату"
+                <u>У вас осталось {rounded_up_to_5} минут на оплату</u>"
                 ),
                 None,
                 InlineKeyboardMarkup::new(

@@ -15,7 +15,7 @@ pub async fn cancel_invoice_handler(
 ) -> AppResult<()> {
     let msg = match api_client.cancel_invoice(invoice_id).await {
         // TODO WIP
-        Ok(_) => "Заявка отменена\nВаш лимит на отмену платежа: WIP/3 раз",
+        Ok(_) => "Заявка отменена\n<u>Ваш лимит на отмену платежа: WIP/3 раз</u>",
         Err(_) => "Не удалось отменить платеж. Попробуйте позже.",
     };
 
