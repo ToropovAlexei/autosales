@@ -150,6 +150,10 @@ pub async fn deposit_confirm_handler(
                         id: invoice_data.id,
                     },
                 )]);
+                keyboard.push(vec![InlineKeyboardButton::callback(
+                    "Связаться с поддержкой",
+                    CallbackData::ToSupport,
+                )]);
             }
         }
     }
