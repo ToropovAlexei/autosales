@@ -93,9 +93,9 @@ pub async fn deposit_confirm_handler(
                 let token = escape(&invoice_data.gateway_invoice_id);
                 format!(
                     "Реквизиты для оплаты:\n\n\
-                     <b>Банк:</b> <code>{bank_name}</code>\n\
+                     <b>Банк:</b> {bank_name}\n\
                      <b>Номер карты:</b> <code>{card_number}</code>\n\
-                     <b>Получатель:</b> <code>{account_name}</code>\n\
+                     <b>Получатель:</b> {account_name}\n\
                      <b>Сумма:</b> <code>{amount}</code> ₽\n\n\
                      <b>Токен:</b> <code>{token}</code>\n\n\
                      <u>На оплату дается 30 минут!</u>\n\
@@ -115,9 +115,9 @@ pub async fn deposit_confirm_handler(
                 let token = escape(&invoice_data.gateway_invoice_id);
                 format!(
                     "Реквизиты для оплаты:\n\n\
-                     <b>Банк:</b> <code>{bank_name}</code>\n\
+                     <b>Банк:</b> {bank_name}\n\
                      <b>Номер СБП:</b> <code>{sbp_number}</code>\n\
-                     <b>Получатель:</b> <code>{account_name}</code>\n\
+                     <b>Получатель:</b> {account_name}\n\
                      <b>Сумма:</b> <code>{amount} ₽</code>\n\n\
                      <b>Токен:</b> <code>{token}</code>\n\n\
                      <u>На оплату дается 30 минут!</u>\n\
