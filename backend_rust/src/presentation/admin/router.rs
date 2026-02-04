@@ -5,7 +5,8 @@ use axum::Router;
 use crate::{
     presentation::admin::handlers::{
         admin_user, audit_log, auth, bot, broadcast, category, customer, dashboard, dev, image, me,
-        order, permission, product, role, settings, stock_movement, store_balance, transaction,
+        order, payment_invoice, permission, product, role, settings, stock_movement, store_balance,
+        transaction,
     },
     state::AppState,
 };
@@ -31,4 +32,5 @@ pub fn router() -> Router<Arc<AppState>> {
         .nest("/broadcasts", broadcast::router())
         .nest("/dashboard", dashboard::router())
         .nest("/dev", dev::router())
+        .nest("/payment-invoices", payment_invoice::router())
 }

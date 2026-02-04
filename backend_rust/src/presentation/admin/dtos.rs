@@ -8,6 +8,7 @@ pub mod customer;
 pub mod dashboard;
 pub mod image;
 pub mod order;
+pub mod payment_invoice;
 pub mod permission;
 pub mod product;
 pub mod role;

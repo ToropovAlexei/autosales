@@ -8,14 +8,17 @@ import {
 
 export const useDataGrid = <T>(
   endpoint: string,
-  options?: { filters?: Record<string, any> }
+  options?: {
+    filters?: Record<string, any>;
+    defaultFilterModel?: GridFilterModel;
+  },
 ) => {
   const [paginationModel, setPaginationModel] = useState({
     page: 0,
     pageSize: 10,
   });
   const [filterModel, setFilterModel] = useState<GridFilterModel>({
-    items: [],
+    items: options?.defaultFilterModel?.items ?? [],
   });
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: "id", sort: "desc" },

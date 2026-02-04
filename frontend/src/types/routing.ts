@@ -16,4 +16,5 @@ export enum AppRoute {
   WelcomeMessages,
   ReferralManagement,
   Broadcasts,
+  Operators,
 }

@@ -10,6 +10,7 @@ pub mod dev;
 pub mod image;
 pub mod me;
 pub mod order;
+pub mod payment_invoice;
 pub mod permission;
 pub mod product;
 pub mod role;

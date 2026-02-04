@@ -51,12 +51,28 @@ define_list_query! {
         PaymentInvoiceFilterFields,
         [
             Id => "id",
+            CustomerId => "customer_id",
+            OrderId => "order_id",
+            Gateway => "gateway",
+            GatewayInvoiceId => "gateway_invoice_id",
+            Status => "status",
+            CreatedAt => "created_at",
+            UpdatedAt => "updated_at",
+            ExpiresAt => "expires_at",
         ]
     },
     order_fields: {
         PaymentInvoiceOrderFields,
         [
             Id => "id",
+            CustomerId => "customer_id",
+            OrderId => "order_id",
+            Gateway => "gateway",
+            GatewayInvoiceId => "gateway_invoice_id",
+            Status => "status",
+            CreatedAt => "created_at",
+            UpdatedAt => "updated_at",
+            ExpiresAt => "expires_at",
         ]
     }
 }

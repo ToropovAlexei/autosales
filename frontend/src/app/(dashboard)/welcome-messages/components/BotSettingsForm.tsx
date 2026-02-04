@@ -164,14 +164,6 @@ export const BotSettingsForm = () => {
                   multiline
                   minRows={2}
                 />
-                <InputAutocomplete
-                  name="bot_payment_system_support_operators"
-                  label="Операторы поддержки платежной системы"
-                  options={supportOperatorsOptions}
-                  multiple
-                  freeSolo
-                  placeholder="Введите логины операторов и нажмите Enter, максимум 3 оператора"
-                />
 
                 <Button
                   type="submit"

@@ -18,4 +18,5 @@ export const ROUTES_ACCESS_MAP: Record<AppRoute, PermissionName> = {
   [AppRoute.WelcomeMessages]: PermissionName.SettingsRead,
   [AppRoute.ReferralManagement]: PermissionName.SettingsRead,
   [AppRoute.Broadcasts]: PermissionName.BroadcastRead,
+  [AppRoute.Operators]: PermissionName.InvoicesRead,
 };

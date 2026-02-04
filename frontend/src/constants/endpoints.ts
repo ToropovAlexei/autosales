@@ -3,9 +3,6 @@ export const ENDPOINTS = {
   ME_PERMISSIONS: "me/permissions",
   PRICING_SETTINGS: "settings/pricing",
   BOT_SETTINGS: "settings/bot",
-  ADMIN_PAYMENT_PROVIDERS: "admin/payment-providers",
-  REFERRALS: "referrals",
-  REFERRAL_BOTS_ADMIN: "referrals/admin-list",
   BOTS: "bots",
   CATEGORIES: "categories",
   PRODUCTS: "products",
@@ -18,7 +15,6 @@ export const ENDPOINTS = {
   CUSTOMERS: "customers",
   BROADCAST: "broadcasts",
   IMAGES: "images",
-  IMAGE_FOLDERS: "admin/image-folders",
   ROLES: "roles",
   PERMISSIONS: "permissions",
   ROLE_PERMISSIONS: "roles/:id/permissions",
@@ -30,6 +26,7 @@ export const ENDPOINTS = {
   STORE_BALANCE: "store-balance",
   ORDERS: "orders",
   DEV_RESET_DATA: "dev/reset-data",
+  PAYMENT_INVOICES: "payment-invoices",
 };
 
 export const ENDPOINT_UPDATE_PUT_EXCEPTIONS = new Set<string>([

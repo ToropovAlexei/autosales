@@ -29,7 +29,13 @@ export const serializeFilter = (filter: IFilter) => {
     mappedFilters.forEach((f, idx) => {
       params.append(`filters[${idx}][field]`, f.field);
       params.append(`filters[${idx}][op]`, f.op);
-      params.append(`filters[${idx}][value]`, String(f.value));
+      if (Array.isArray(f.value)) {
+        f.value.forEach((value) => {
+          params.append(`filters[${idx}][value][]`, String(value));
+        });
+      } else {
+        params.append(`filters[${idx}][value]`, String(f.value));
+      }
     });
   }
 
@@ -48,6 +54,7 @@ const MUI_OP_TO_API_OP: Record<string, string> = {
   ">=": "gte",
   is: "eq",
   "is not": "ne",
+  isAnyOf: "in",
 };
 
 const muiOpToApiOp = (op: string) => {};

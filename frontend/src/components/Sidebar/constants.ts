@@ -13,6 +13,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import PriceCheckIcon from "@mui/icons-material/PriceCheck";
 import CampaignIcon from "@mui/icons-material/Campaign";
+import SupportAgentIcon from "@mui/icons-material/SupportAgent";
 import { AppRoute } from "@/types";
 
 export const MENU_ITEMS = [
@@ -28,6 +29,11 @@ export const MENU_ITEMS = [
   },
   { label: "Транзакции", Icon: ReceiptIcon, route: AppRoute.Transactions },
   { label: "Покупки", Icon: LocalMallIcon, route: AppRoute.Orders },
+  {
+    label: "Для операторов",
+    Icon: SupportAgentIcon,
+    route: AppRoute.Operators,
+  },
   { label: "Склад", Icon: InventoryIcon, route: AppRoute.Stock },
   { label: "Боты", Icon: SmartToyIcon, route: AppRoute.Bots },
   { label: "Роли", Icon: AdminPanelSettingsIcon, route: AppRoute.Roles },

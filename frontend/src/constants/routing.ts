@@ -18,11 +18,12 @@ export const APP_ROUTES: Record<AppRoute, string> = {
   [AppRoute.WelcomeMessages]: "/welcome-messages",
   [AppRoute.ReferralManagement]: "/referral-management",
   [AppRoute.Broadcasts]: "/broadcasts",
+  [AppRoute.Operators]: "/operators",
 };
 
 export const ROUTE_BY_PATHNAME = Object.fromEntries(
   Object.entries(APP_ROUTES).map(([key, value]) => [
     value,
     key as unknown as AppRoute,
-  ])
+  ]),
 );
