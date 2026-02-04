@@ -2,7 +2,11 @@
 
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { CssBaseline, ThemeProvider } from "@mui/material";
+import {
+  CssBaseline,
+  StyledEngineProvider,
+  ThemeProvider,
+} from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { ToastContainer } from "react-toastify";
@@ -27,7 +31,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             refetchInterval: 2 * 60 * 1000,
           },
         },
-      })
+      }),
   );
 
   return (
@@ -37,13 +41,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
         ruRU.components.MuiLocalizationProvider.defaultProps.localeText
       }
     >
-      <ThemeProvider theme={theme}>
-        <CssBaseline enableColorScheme />
-        <ToastContainer />
-        <QueryClientProvider client={queryClient}>
-          {children}
-        </QueryClientProvider>
-      </ThemeProvider>
+      <StyledEngineProvider injectFirst>
+        <ThemeProvider theme={theme}>
+          <CssBaseline enableColorScheme />
+          <ToastContainer />
+          <QueryClientProvider client={queryClient}>
+            {children}
+          </QueryClientProvider>
+        </ThemeProvider>
+      </StyledEngineProvider>
     </LocalizationProvider>
   );
 }

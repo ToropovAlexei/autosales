@@ -1,5 +1,6 @@
 use rust_decimal::prelude::{Decimal, FromPrimitive, ToPrimitive};
 use serde::{Deserialize, Serialize};
+use serde_with::rust::double_option;
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
 use uuid::Uuid;
@@ -106,16 +107,22 @@ pub struct UpdateBotSettingsRequest {
     #[ts(optional)]
     pub bot_messages_support: Option<String>,
     #[ts(optional)]
+    #[ts(type = "string | null")]
+    #[serde(default, with = "double_option")]
     pub bot_messages_support_image_id: Option<Option<Uuid>>,
     #[validate(length(max = 999, message = "length must be less than 999"))]
     #[ts(optional)]
     pub bot_messages_new_user_welcome: Option<String>,
     #[ts(optional)]
+    #[ts(type = "string | null")]
+    #[serde(default, with = "double_option")]
     pub bot_messages_new_user_welcome_image_id: Option<Option<Uuid>>,
     #[validate(length(max = 999, message = "length must be less than 999"))]
     #[ts(optional)]
     pub bot_messages_returning_user_welcome: Option<String>,
     #[ts(optional)]
+    #[ts(type = "string | null")]
+    #[serde(default, with = "double_option")]
     pub bot_messages_returning_user_welcome_image_id: Option<Option<Uuid>>,
     #[validate(length(max = 3, message = "length must be less than 3"))]
     #[ts(optional)]

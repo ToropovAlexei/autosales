@@ -1,4 +1,4 @@
-import { InputSelect, InputText, SelectImage } from "@/components";
+import { InputImage, InputSelect, InputText } from "@/components";
 import { Category, NewCategory, UpdateCategory } from "@/types";
 import {
   Button,
@@ -8,17 +8,14 @@ import {
   DialogTitle,
   Stack,
 } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { FormProvider, useForm } from "react-hook-form";
-import { CONFIG } from "../../../../../config";
-import classes from "./styles.module.css";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ENDPOINTS } from "@/constants";
 import { queryKeys } from "@/utils/query";
 import { dataLayer } from "@/lib/dataLayer";
 import { toast } from "react-toastify";
 import { flattenCategoriesForSelect } from "../utils";
-import { ImageResponse } from "@/types/image";
 
 interface IProps {
   open: boolean;
@@ -81,19 +78,10 @@ export const CategoryForm = ({
   });
 
   const isCreate = !defaultValues?.id;
-  const [isImageSelectorOpen, setIsImageSelectorOpen] = useState(false);
 
   const form = useForm<UpdateCategory>({
     defaultValues,
   });
-
-  const { watch, setValue } = form;
-  const imageId = watch("image_id");
-
-  const handleImageSelect = (image: ImageResponse) => {
-    setValue("image_id", image.id);
-    setIsImageSelectorOpen(false);
-  };
 
   const flattenedCategories = useMemo(
     () => flattenCategoriesForSelect(categories),
@@ -118,22 +106,11 @@ export const CategoryForm = ({
                 withNone
                 displayEmpty
               />
-              <div className={classes.selectImg}>
-                <Button
-                  variant="outlined"
-                  onClick={() => setIsImageSelectorOpen(true)}
-                >
-                  Выбрать изображение
-                </Button>
-                {imageId && (
-                  <img
-                    className={classes.img}
-                    src={`${CONFIG.IMAGES_URL}/${imageId}`}
-                    alt="Preview"
-                    width="30%"
-                  />
-                )}
-              </div>
+              <InputImage
+                name="image_id"
+                buttonLabel="Выбрать изображение"
+                fullWidth
+              />
             </Stack>
           </FormProvider>
         </DialogContent>
@@ -168,11 +145,6 @@ export const CategoryForm = ({
           <Button onClick={onClose}>Закрыть</Button>
         </DialogActions>
       </Dialog>
-      <SelectImage
-        open={isImageSelectorOpen}
-        onClose={() => setIsImageSelectorOpen(false)}
-        onSelect={handleImageSelect}
-      />
     </>
   );
 };

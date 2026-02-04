@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_with::rust::double_option;
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
 use validator::Validate;
@@ -30,6 +31,8 @@ pub struct UpdateRoleRequest {
     #[ts(optional)]
     pub name: Option<String>,
     #[ts(optional)]
+    #[ts(type = "string | null")]
+    #[serde(default, with = "double_option")]
     pub description: Option<Option<String>>,
 }
 

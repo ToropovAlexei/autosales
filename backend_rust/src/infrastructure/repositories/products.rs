@@ -132,7 +132,11 @@ impl ProductRepositoryTrait for ProductRepository {
 
         if let Some(image_id) = product.image_id {
             query_builder.push(", image_id = ");
-            query_builder.push_bind(image_id);
+            if let Some(image_id) = image_id {
+                query_builder.push_bind(image_id);
+            } else {
+                query_builder.push("NULL");
+            }
         }
 
         if let Some(r#type) = product.r#type {
@@ -142,7 +146,11 @@ impl ProductRepositoryTrait for ProductRepository {
 
         if let Some(external_id) = product.external_id {
             query_builder.push(", external_id = ");
-            query_builder.push_bind(external_id);
+            if let Some(external_id) = external_id {
+                query_builder.push_bind(external_id);
+            } else {
+                query_builder.push("NULL");
+            }
         }
 
         if let Some(category_id) = product.category_id {
@@ -152,17 +160,29 @@ impl ProductRepositoryTrait for ProductRepository {
 
         if let Some(details) = product.details {
             query_builder.push(", details = ");
-            query_builder.push_bind(details);
+            if let Some(details) = details {
+                query_builder.push_bind(details);
+            } else {
+                query_builder.push("NULL");
+            }
         }
 
         if let Some(fulfillment_text) = product.fulfillment_text {
             query_builder.push(", fulfillment_text = ");
-            query_builder.push_bind(fulfillment_text);
+            if let Some(fulfillment_text) = fulfillment_text {
+                query_builder.push_bind(fulfillment_text);
+            } else {
+                query_builder.push("NULL");
+            }
         }
 
         if let Some(fulfillment_image_id) = product.fulfillment_image_id {
             query_builder.push(", fulfillment_image_id = ");
-            query_builder.push_bind(fulfillment_image_id);
+            if let Some(fulfillment_image_id) = fulfillment_image_id {
+                query_builder.push_bind(fulfillment_image_id);
+            } else {
+                query_builder.push("NULL");
+            }
         }
 
         if let Some(base_price) = product.base_price {

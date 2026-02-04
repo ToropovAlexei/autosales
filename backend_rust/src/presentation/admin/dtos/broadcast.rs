@@ -1,6 +1,7 @@
 use crate::models::common::Filter;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_with::rust::double_option;
 use shared_dtos::list_query::{FilterValue, Operator, ScalarValue};
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
@@ -109,14 +110,20 @@ pub struct NewBroadcastRequest {
 pub struct UpdateBroadcastRequest {
     #[validate(length(max = 1024, message = "Content text is too long"))]
     #[ts(optional)]
+    #[ts(type = "string | null")]
+    #[serde(default, with = "double_option")]
     pub content_text: Option<Option<String>>,
     #[ts(optional)]
+    #[ts(type = "string | null")]
+    #[serde(default, with = "double_option")]
     pub content_image_id: Option<Option<Uuid>>,
     #[schema(value_type = Object)]
     #[ts(type = "any")]
     #[ts(optional)]
     pub filters: Option<JsonRawListQuery>,
     #[ts(optional)]
+    #[ts(type = "string | null")]
+    #[serde(default, with = "double_option")]
     pub scheduled_for: Option<Option<DateTime<Utc>>>,
 }
 

@@ -82,7 +82,11 @@ impl CategoryRepositoryTrait for CategoryRepository {
 
         if let Some(image_id) = category.image_id {
             query_builder.push(", image_id = ");
-            query_builder.push_bind(image_id);
+            if let Some(image_id) = image_id {
+                query_builder.push_bind(image_id);
+            } else {
+                query_builder.push("NULL");
+            }
         }
 
         if let Some(position) = category.position {

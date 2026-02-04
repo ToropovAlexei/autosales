@@ -14,3 +14,8 @@
   display: grid;
   place-items: center;
 }
+
+.inputMsgContainer {
+  display: grid;
+  gap: 1rem;
+}

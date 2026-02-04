@@ -11,14 +11,11 @@ import {
 import { useState } from "react";
 import {
   ConfirmModal,
-  SelectImage,
+  InputImage,
   InputText,
   InputSelect,
   InputNumber,
 } from "@/components";
-import { CONFIG } from "../../../../../config";
-import classes from "./styles.module.css";
-import { ImageResponse } from "@/types/image";
 import { Category, Product } from "@/types";
 
 interface ProductFormData {
@@ -56,9 +53,6 @@ export const ProductForm = ({
     open: boolean;
     data: ProductFormData | null;
   }>({ open: false, data: null });
-  const [isImageSelectorOpen, setIsImageSelectorOpen] = useState(false);
-  const [isFulfillmentImageSelectorOpen, setIsFulfillmentImageSelectorOpen] =
-    useState(false);
 
   const form = useForm<ProductFormData>({
     defaultValues: {
@@ -74,21 +68,9 @@ export const ProductForm = ({
       fulfillment_image_id: defaultValues?.fulfillment_image_id || "",
     },
   });
-  const { handleSubmit, watch, setValue } = form;
+  const { handleSubmit, watch } = form;
 
   const productType = watch("type");
-  const imageId = watch("image_id");
-  const fulfillmentImageId = watch("fulfillment_image_id");
-
-  const handleImageSelect = (image: ImageResponse) => {
-    setValue("image_id", image.id);
-    setIsImageSelectorOpen(false);
-  };
-
-  const handleFulfillmentImageSelect = (image: ImageResponse) => {
-    setValue("fulfillment_image_id", image.id);
-    setIsFulfillmentImageSelectorOpen(false);
-  };
 
   const proceedToConfirm = (data: ProductFormData) => {
     const payload: Partial<Product> = {
@@ -97,7 +79,7 @@ export const ProductForm = ({
       category_id: Number(data.category_id),
       base_price: Number(data.base_price),
       type: data.type,
-      ...(data.image_id && { image_id: data.image_id }),
+      image_id: data.image_id,
     };
 
     if (data.type === "item") {
@@ -198,38 +180,16 @@ export const ProductForm = ({
                 multiline
                 rows={4}
               />
-              <div className={classes.selectImg}>
-                <Button
-                  variant="outlined"
-                  onClick={() => setIsFulfillmentImageSelectorOpen(true)}
-                >
-                  Выбрать изображение для выдачи
-                </Button>
-                {fulfillmentImageId && (
-                  <img
-                    className={classes.img}
-                    src={`${CONFIG.IMAGES_URL}/${fulfillmentImageId}`}
-                    alt="Fulfillment Preview"
-                    width="30%"
-                  />
-                )}
-              </div>
-              <div className={classes.selectImg}>
-                <Button
-                  variant="outlined"
-                  onClick={() => setIsImageSelectorOpen(true)}
-                >
-                  Выбрать изображение для товара
-                </Button>
-                {imageId && (
-                  <img
-                    className={classes.img}
-                    src={`${CONFIG.IMAGES_URL}/${imageId}`}
-                    alt="Preview"
-                    width="30%"
-                  />
-                )}
-              </div>
+              <InputImage
+                name="fulfillment_image_id"
+                buttonLabel="Выбрать изображение для выдачи"
+                fullWidth
+              />
+              <InputImage
+                name="image_id"
+                buttonLabel="Выбрать изображение для товара"
+                fullWidth
+              />
             </DialogContent>
             <DialogActions>
               <Button onClick={onClose}>Отмена</Button>
@@ -248,16 +208,6 @@ export const ProductForm = ({
         title="Подтверждение"
         contentText="Вы уверены, что хотите разместить товар в категории, у которой есть подкатегории?"
         confirmBtnText="Да, уверен"
-      />
-      <SelectImage
-        open={isImageSelectorOpen}
-        onClose={() => setIsImageSelectorOpen(false)}
-        onSelect={handleImageSelect}
-      />
-      <SelectImage
-        open={isFulfillmentImageSelectorOpen}
-        onClose={() => setIsFulfillmentImageSelectorOpen(false)}
-        onSelect={handleFulfillmentImageSelect}
       />
     </>
   );

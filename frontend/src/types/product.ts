@@ -9,6 +9,6 @@ export type ProductDetails = { "cont_ms": { host: string, port: number, } };
 
 export type ProductType = "item" | "subscription";
 
-export type UpdateProduct = { name?: string, base_price?: number, category_id?: number, image_id?: string | null, type?: ProductType, subscription_period_days?: number, details?: JsonValue | null, fulfillment_text?: string | null, fulfillment_image_id?: string | null, external_id?: string | null, stock?: number, };
+export type UpdateProduct = { name?: string, base_price?: number, category_id?: number, image_id?: string | null, type?: ProductType, subscription_period_days?: number, details?: Record<string, any> | null, fulfillment_text?: string | null, fulfillment_image_id?: string | null, external_id?: string | null, stock?: number, };
 
 export type UploadProductsResponse = { created: number, failed: number, skipped: number, errors: Array<string>, };

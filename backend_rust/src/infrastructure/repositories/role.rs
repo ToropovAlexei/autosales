@@ -67,7 +67,11 @@ impl RoleRepositoryTrait for RoleRepository {
                 query_builder.push(", ");
             }
             query_builder.push(" description = ");
-            query_builder.push_bind(description);
+            if let Some(description) = description {
+                query_builder.push_bind(description);
+            } else {
+                query_builder.push("NULL");
+            }
         }
 
         query_builder.push(" WHERE id = ");

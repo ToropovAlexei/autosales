@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_with::rust::double_option;
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
 use uuid::Uuid;
@@ -63,8 +64,12 @@ pub struct UpdateCategoryRequest {
     #[ts(optional)]
     pub name: Option<String>,
     #[ts(optional)]
+    #[ts(type = "number | null")]
+    #[serde(default, with = "double_option")]
     pub parent_id: Option<Option<i64>>,
     #[ts(optional)]
+    #[ts(type = "string | null")]
+    #[serde(default, with = "double_option")]
     pub image_id: Option<Option<Uuid>>,
     #[ts(optional)]
     pub position: Option<i16>,

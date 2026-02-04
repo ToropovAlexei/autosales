@@ -1,6 +1,5 @@
 .appBar {
   box-shadow: none;
-  background-color: var(--mui-palette-background-paper);
   background-image: none;
   border-bottom: 1px solid;
   border-color: var(--mui-palette-divider);

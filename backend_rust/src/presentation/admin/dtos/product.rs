@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
 use serde::{Deserialize, Serialize};
+use serde_with::rust::double_option;
 use shared_dtos::product::{ProductDetails, ProductType};
 use ts_rs::TS;
 use utoipa::{ToResponse, ToSchema};
@@ -108,18 +109,28 @@ pub struct UpdateProductRequest {
     #[ts(optional)]
     pub category_id: Option<i64>,
     #[ts(optional)]
+    #[ts(type = "string | null")]
+    #[serde(default, with = "double_option")]
     pub image_id: Option<Option<Uuid>>,
     #[ts(optional)]
     pub r#type: Option<ProductType>,
     #[ts(optional)]
     pub subscription_period_days: Option<i16>,
     #[ts(optional)]
+    #[ts(type = "Record<string, any> | null")]
+    #[serde(default, with = "double_option")]
     pub details: Option<Option<serde_json::Value>>,
     #[ts(optional)]
+    #[ts(type = "string | null")]
+    #[serde(default, with = "double_option")]
     pub fulfillment_text: Option<Option<String>>,
     #[ts(optional)]
+    #[ts(type = "string | null")]
+    #[serde(default, with = "double_option")]
     pub fulfillment_image_id: Option<Option<Uuid>>,
     #[ts(optional)]
+    #[ts(type = "string | null")]
+    #[serde(default, with = "double_option")]
     pub external_id: Option<Option<String>>,
     #[ts(optional)]
     pub stock: Option<i64>,
