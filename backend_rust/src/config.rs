@@ -29,6 +29,8 @@ pub struct Config {
     pub platform_payment_system_login: String,
     pub platform_payment_system_password: String,
     pub platform_payment_system_2fa_key: String,
+    pub files_fm_upload_token: String,
+    pub files_fm_folder_hash: String,
 }
 
 impl Config {

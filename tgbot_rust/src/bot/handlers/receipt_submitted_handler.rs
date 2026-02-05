@@ -5,6 +5,7 @@ use crate::bot::utils::{MsgBy, edit_msg};
 use crate::bot::{BotState, BotStep};
 use crate::{api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult};
 use bytes::Bytes;
+use mime;
 use teloxide::Bot;
 use teloxide::net::Download;
 use teloxide::prelude::Requester;
@@ -23,33 +24,24 @@ pub async fn receipt_submitted_handler(
         _ => return Ok(()),
     };
 
-    let file_id = if let Some(document) = msg.document() {
-        document.file.id.clone()
-    } else if let Some(photo) = msg.photo() {
-        match photo.last() {
-            Some(photo) => photo.file.id.clone(),
-            None => {
-                edit_msg(
-                    &api_client,
-                    &dialogue,
-                    &bot,
-                    &MsgBy::Message(&msg),
-                    "Пожалуйста, прикрепите чек в формате JPG, JPEG, PNG или PDF.",
-                    None,
-                    back_to_main_menu_inline_keyboard(),
-                )
-                .await?;
-
-                return Ok(());
-            }
-        }
+    let (file_id, file_name, content_type) = if let Some(document) = msg.document()
+        && let Some(mime_type) = &document.mime_type
+        && matches!(
+            (mime_type.type_(), mime_type.subtype()),
+            (mime::APPLICATION, mime::PDF)
+        ) {
+        (
+            document.file.id.clone(),
+            document.file_name.clone(),
+            document.mime_type.clone().map(|e| e.to_string()),
+        )
     } else {
         edit_msg(
             &api_client,
             &dialogue,
             &bot,
             &MsgBy::Message(&msg),
-            "Пожалуйста, прикрепите чек в формате JPG, JPEG, PNG или PDF.",
+            "Пожалуйста, прикрепите чек в формате PDF.",
             None,
             back_to_main_menu_inline_keyboard(),
         )
@@ -84,7 +76,12 @@ pub async fn receipt_submitted_handler(
     }
 
     api_client
-        .submit_payment_receipt_file(invoice_id, downloaded_bytes)
+        .submit_payment_receipt_file(
+            invoice_id,
+            downloaded_bytes,
+            file_name,
+            content_type.as_deref(),
+        )
         .await?;
 
     edit_msg(

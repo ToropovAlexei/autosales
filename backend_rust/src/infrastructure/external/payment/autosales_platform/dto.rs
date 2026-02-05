@@ -103,6 +103,7 @@ pub enum AutosalesPlatformOrderStatusType {
     MerchCancel,
     SystemTimerEndTraderCheckQueryCancel,
     AdminAppealCancel,
+    MerchCheckDown,
 }
 
 #[derive(Debug, Deserialize)]

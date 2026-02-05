@@ -501,6 +501,7 @@ impl From<AutosalesPlatformOrderStatusType> for InvoiceStatus {
             | AutosalesPlatformOrderStatusType::SystemTimerEndMerchProcessSuccess
             | AutosalesPlatformOrderStatusType::SystemTimerEndMerchCheckDownSuccess
             | AutosalesPlatformOrderStatusType::AdminAppealSuccess => InvoiceStatus::Completed,
+            AutosalesPlatformOrderStatusType::MerchCheckDown => InvoiceStatus::ReceiptSubmitted,
             AutosalesPlatformOrderStatusType::TraderCheckQuery => InvoiceStatus::AwaitingReceipt,
             AutosalesPlatformOrderStatusType::TraderAppeal => InvoiceStatus::Disputed,
             AutosalesPlatformOrderStatusType::SystemTimerEndMerchInitializedCancel => {

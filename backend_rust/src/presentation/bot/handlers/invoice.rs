@@ -7,8 +7,10 @@ use axum::{
 };
 use axum_extra::extract::Multipart;
 use bytes::Bytes;
+use reqwest::multipart;
 use rust_decimal::Decimal;
 use rust_decimal::prelude::FromPrimitive;
+use serde::{Deserialize, Serialize};
 use shared_dtos::{
     invoice::{
         NewPaymentInvoiceBotRequest, PaymentInvoiceBotResponse, UpdatePaymentInvoiceBotRequest,
@@ -22,7 +24,6 @@ use crate::{
     models::payment_invoice::PaymentInvoiceListQuery,
     services::{
         customer::CustomerServiceTrait,
-        image::{CreateImage, ImageServiceTrait},
         payment_invoice::{
             CreatePaymentInvoiceCommand, PaymentInvoiceServiceTrait, SendInvoiceReceiptCommand,
             UpdatePaymentInvoiceCommand,
@@ -215,21 +216,21 @@ async fn send_invoice_receipt(
     let file = get_receipt_from_form(&mut multipart)
         .await
         .map_err(ApiError::BadRequest)?;
-    let _image = state
-        .image_service
-        .create(CreateImage {
-            context: "invoice_receipt".to_string(),
-            file,
-            filename: "receipt".to_string(),
-            created_by: 1, // System
-        })
-        .await?;
+
+    let uploaded_file = upload_file_to_files_fm(
+        file,
+        state.client.clone(),
+        &state.config.files_fm_folder_hash,
+        &state.config.files_fm_upload_token,
+    )
+    .await
+    .map_err(ApiError::InternalServerError)?;
 
     let invoice = state
         .payment_invoice_service
         .send_invoice_receipt(SendInvoiceReceiptCommand {
             id,
-            receipt_url: "https://dropmefiles.com/PwjmT".to_string(), // TODO TO BE IMPLEMENTED
+            receipt_url: format!("https://files.fm/f/{uploaded_file}"),
         })
         .await?;
     Ok(Json(PaymentInvoiceBotResponse::from(invoice)))
@@ -249,4 +250,41 @@ async fn get_receipt_from_form(multipart: &mut Multipart) -> Result<Bytes, Strin
     let file = file.ok_or("Missing 'file' field")?;
 
     Ok(file)
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct FilesFmResponse {
+    pub result: String,
+    pub file_hash: String,
+}
+
+async fn upload_file_to_files_fm(
+    bytes: Bytes,
+    client: Arc<reqwest::Client>,
+    folder_hash: &str,
+    upload_token: &str,
+) -> Result<String, String> {
+    let part = multipart::Part::bytes(bytes.to_vec())
+        .file_name("receipt.pdf")
+        .mime_str("application/pdf")
+        .map_err(|e| e.to_string())?;
+    let form = multipart::Form::new().part("file", part);
+    let response = client
+        .post(format!(
+            "https://api.files.fm/save_file.php?up_id={folder_hash}&key={upload_token}&get_file_hash"
+        ))
+        .multipart(form)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let response = response
+        .json::<FilesFmResponse>()
+        .await
+        .map_err(|e| e.to_string())?;
+    if response.file_hash.is_empty() {
+        return Err(format!("Empty hash. Result: {}", response.result));
+    }
+    Ok(response.file_hash)
 }

@@ -334,8 +334,14 @@ impl BackendApi {
         &self,
         invoice_id: i64,
         file_bytes: Bytes,
+        file_name: Option<String>,
+        content_type: Option<&str>,
     ) -> ApiClientResult<PaymentInvoiceBotResponse> {
-        let form = multipart::Form::new().part("file", multipart::Part::bytes(file_bytes.to_vec()));
+        let part = multipart::Part::bytes(file_bytes.to_vec())
+            .file_name(file_name.unwrap_or("receipt.pdf".to_string()))
+            .mime_str(content_type.unwrap_or("application/pdf"))?;
+
+        let form = multipart::Form::new().part("file", part);
         self.api_client
             .post_with_multipart::<PaymentInvoiceBotResponse>(
                 &format!("bot/invoices/{invoice_id}/send-receipt"),
