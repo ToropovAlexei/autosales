@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use chrono::Utc;
 use shared_dtos::{
     invoice::InvoiceStatus,
     notification::{DispatchMessage, DispatchMessagePayload},
@@ -96,8 +97,9 @@ where
         self.payment_invoice_service
             .update(UpdatePaymentInvoiceCommand {
                 id: payment_invoice.id,
-                notification_sent_at: None,
                 status: Some(InvoiceStatus::Completed),
+                finished_at: Some(Utc::now()),
+                ..Default::default()
             })
             .await?;
         self.notification_service
@@ -326,6 +328,10 @@ mod tests {
             payment_details: json!({"ref": "abc"}),
             bot_message_id: None,
             notification_sent_at: None,
+            dispute_opened_at: None,
+            finished_at: None,
+            receipt_requested_at: None,
+            receipt_submitted_at: None,
         };
         let customer = CustomerRow {
             id: 10,
@@ -339,6 +345,7 @@ mod tests {
             last_seen_at: now,
             created_at: now,
             updated_at: now,
+            blocked_until: None,
         };
 
         let transaction_row = TransactionRow {

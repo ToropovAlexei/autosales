@@ -122,6 +122,15 @@ impl CustomerRepositoryTrait for CustomerRepository {
             query_builder.push_bind(is_blocked);
         }
 
+        if let Some(blocked_until) = customer.blocked_until {
+            query_builder.push(", blocked_until = ");
+            if let Some(blocked_until) = blocked_until {
+                query_builder.push_bind(blocked_until);
+            } else {
+                query_builder.push("NULL");
+            }
+        }
+
         query_builder.push(" WHERE id = ");
         query_builder.push_bind(id);
         query_builder.push(" RETURNING *");
@@ -219,6 +228,7 @@ mod tests {
             has_passed_captcha: Some(true),
             last_seen_with_bot: Some(2),
             last_seen_at: Some(updated_at),
+            blocked_until: None,
         };
 
         let _updated_customer = repo.update(initial_customer.id, update_data).await.unwrap();

@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
 use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal_macros::dec;
@@ -22,11 +22,13 @@ use crate::{
             mock::{MockPaymentsProviderTrait, dto::MockProviderCreateInvoiceRequest},
         },
         repositories::{
-            payment_invoice::PaymentInvoiceRepositoryTrait, settings::SettingsRepositoryTrait,
+            customer::CustomerRepositoryTrait, payment_invoice::PaymentInvoiceRepositoryTrait,
+            settings::SettingsRepositoryTrait,
         },
     },
     models::{
         common::PaginatedResult,
+        customer::UpdateCustomer,
         payment_invoice::{
             NewPaymentInvoice, PaymentInvoiceListQuery, PaymentInvoiceRow, UpdatePaymentInvoice,
         },
@@ -46,6 +48,10 @@ pub struct UpdatePaymentInvoiceCommand {
     pub id: i64,
     pub status: Option<InvoiceStatus>,
     pub notification_sent_at: Option<Option<DateTime<Utc>>>,
+    pub receipt_requested_at: Option<DateTime<Utc>>,
+    pub receipt_submitted_at: Option<DateTime<Utc>>,
+    pub dispute_opened_at: Option<DateTime<Utc>>,
+    pub finished_at: Option<DateTime<Utc>>,
 }
 
 pub struct SendInvoiceReceiptCommand {
@@ -78,22 +84,24 @@ pub trait PaymentInvoiceServiceTrait: Send + Sync {
     ) -> ApiResult<PaymentInvoiceRow>;
 }
 
-pub struct PaymentInvoiceService<R, A, M, S, P> {
+pub struct PaymentInvoiceService<R, A, M, S, P, C> {
     repo: Arc<R>,
     settings_repo: Arc<S>,
+    customers_repo: Arc<C>,
     mock_payments_provider: Arc<M>,
     platform_payments_provider: Arc<P>,
     #[allow(dead_code)]
     audit_log_service: Arc<A>,
 }
 
-impl<R, A, M, S, P> PaymentInvoiceService<R, A, M, S, P>
+impl<R, A, M, S, P, C> PaymentInvoiceService<R, A, M, S, P, C>
 where
     R: PaymentInvoiceRepositoryTrait + Send + Sync,
     A: AuditLogServiceTrait + Send + Sync,
     M: MockPaymentsProviderTrait + Send + Sync,
     S: SettingsRepositoryTrait + Send + Sync,
     P: AutosalesPlatformPaymentsProviderTrait + Send + Sync,
+    C: CustomerRepositoryTrait + Send + Sync,
 {
     pub fn new(
         repo: Arc<R>,
@@ -101,6 +109,7 @@ where
         mock_payments_provider: Arc<M>,
         audit_log_service: Arc<A>,
         platform_payments_provider: Arc<P>,
+        customers_repo: Arc<C>,
     ) -> Self {
         Self {
             repo,
@@ -108,18 +117,20 @@ where
             mock_payments_provider,
             audit_log_service,
             platform_payments_provider,
+            customers_repo,
         }
     }
 }
 
 #[async_trait]
-impl<R, A, M, S, P> PaymentInvoiceServiceTrait for PaymentInvoiceService<R, A, M, S, P>
+impl<R, A, M, S, P, C> PaymentInvoiceServiceTrait for PaymentInvoiceService<R, A, M, S, P, C>
 where
     R: PaymentInvoiceRepositoryTrait + Send + Sync,
     A: AuditLogServiceTrait + Send + Sync,
     M: MockPaymentsProviderTrait + Send + Sync,
     S: SettingsRepositoryTrait + Send + Sync,
     P: AutosalesPlatformPaymentsProviderTrait + Send + Sync,
+    C: CustomerRepositoryTrait + Send + Sync,
 {
     async fn get_list(
         &self,
@@ -236,6 +247,10 @@ where
                 UpdatePaymentInvoice {
                     notification_sent_at: command.notification_sent_at,
                     status: command.status,
+                    dispute_opened_at: command.dispute_opened_at,
+                    finished_at: command.finished_at,
+                    receipt_requested_at: command.receipt_requested_at,
+                    receipt_submitted_at: command.receipt_submitted_at,
                 },
             )
             .await?;
@@ -280,7 +295,7 @@ where
                         id,
                         UpdatePaymentInvoice {
                             status: Some(InvoiceStatus::Processing),
-                            notification_sent_at: None,
+                            ..Default::default()
                         },
                     )
                     .await?;
@@ -294,7 +309,7 @@ where
                         id,
                         UpdatePaymentInvoice {
                             status: Some(InvoiceStatus::Completed),
-                            notification_sent_at: None,
+                            ..Default::default()
                         },
                     )
                     .await?;
@@ -318,10 +333,34 @@ where
                         id,
                         UpdatePaymentInvoice {
                             status: Some(InvoiceStatus::Cancelled),
-                            notification_sent_at: None,
+                            finished_at: Some(Utc::now()),
+                            ..Default::default()
                         },
                     )
                     .await?;
+
+                let cancelled_payments = self
+                    .get_for_customer(res.customer_id)
+                    .await?
+                    .iter()
+                    .filter(|p| {
+                        p.created_at > Utc::now() - Duration::days(1)
+                            && p.status == InvoiceStatus::Cancelled
+                    })
+                    .count();
+
+                if cancelled_payments > 3 {
+                    // TODO Block for 24 hours if more than 3 cancels
+                    self.customers_repo
+                        .update(
+                            res.customer_id,
+                            UpdateCustomer {
+                                blocked_until: Some(Some(Utc::now() + Duration::hours(24))),
+                                ..Default::default()
+                            },
+                        )
+                        .await?;
+                }
 
                 Ok(res)
             }
@@ -332,7 +371,8 @@ where
                         id,
                         UpdatePaymentInvoice {
                             status: Some(InvoiceStatus::Cancelled),
-                            notification_sent_at: None,
+                            finished_at: Some(Utc::now()),
+                            ..Default::default()
                         },
                     )
                     .await?;
@@ -364,7 +404,7 @@ where
                         command.id,
                         UpdatePaymentInvoice {
                             status: Some(InvoiceStatus::ReceiptSubmitted),
-                            notification_sent_at: None,
+                            ..Default::default()
                         },
                     )
                     .await?;
@@ -388,6 +428,7 @@ mod tests {
 
     use crate::{
         errors::api::ApiError,
+        errors::repository::RepositoryError,
         infrastructure::{
             external::payment::{
                 autosales_platform::dto::{
@@ -400,6 +441,7 @@ mod tests {
             },
             repositories::settings::SettingsRepositoryTrait,
         },
+        models::customer::{CustomerListQuery, CustomerRow, NewCustomer, UpdateCustomer},
         models::{common::PaginatedResult, settings::Settings},
         services::audit_log::AuditLogServiceTrait,
     };
@@ -514,6 +556,10 @@ mod tests {
                 payment_details,
                 bot_message_id: payment_invoice.bot_message_id,
                 notification_sent_at: None,
+                dispute_opened_at: None,
+                finished_at: None,
+                receipt_requested_at: None,
+                receipt_submitted_at: None,
             })
         }
 
@@ -578,6 +624,43 @@ mod tests {
             Err(crate::errors::repository::RepositoryError::QueryFailed(
                 "not used".to_string(),
             ))
+        }
+    }
+
+    #[derive(Clone)]
+    struct FakeCustomerRepo;
+
+    #[async_trait]
+    impl CustomerRepositoryTrait for FakeCustomerRepo {
+        async fn get_list(
+            &self,
+            _query: CustomerListQuery,
+        ) -> Result<PaginatedResult<CustomerRow>, RepositoryError> {
+            Err(RepositoryError::QueryFailed("not used".to_string()))
+        }
+
+        async fn create(&self, _customer: NewCustomer) -> Result<CustomerRow, RepositoryError> {
+            Err(RepositoryError::QueryFailed("not used".to_string()))
+        }
+
+        async fn get_by_id(&self, _id: i64) -> Result<CustomerRow, RepositoryError> {
+            Err(RepositoryError::NotFound("not used".to_string()))
+        }
+
+        async fn get_by_telegram_id(&self, _id: i64) -> Result<CustomerRow, RepositoryError> {
+            Err(RepositoryError::NotFound("not used".to_string()))
+        }
+
+        async fn update(
+            &self,
+            _id: i64,
+            _customer: UpdateCustomer,
+        ) -> Result<CustomerRow, RepositoryError> {
+            Err(RepositoryError::QueryFailed("not used".to_string()))
+        }
+
+        async fn get_list_by_ids(&self, _ids: &[i64]) -> Result<Vec<CustomerRow>, RepositoryError> {
+            Err(RepositoryError::QueryFailed("not used".to_string()))
         }
     }
 
@@ -751,6 +834,7 @@ mod tests {
                     },
                 })),
             }),
+            Arc::new(FakeCustomerRepo),
         );
 
         let res = service
@@ -817,6 +901,7 @@ mod tests {
             Arc::new(DummyMockProvider),
             Arc::new(FakeAuditLogService),
             platform.clone(),
+            Arc::new(FakeCustomerRepo),
         );
 
         let res = service

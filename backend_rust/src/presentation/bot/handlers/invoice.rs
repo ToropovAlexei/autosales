@@ -148,6 +148,7 @@ async fn update_invoice(
             id,
             notification_sent_at: payload.notification_sent_at,
             status: payload.status,
+            ..Default::default()
         })
         .await?;
     Ok(Json(PaymentInvoiceBotResponse::from(invoice)))

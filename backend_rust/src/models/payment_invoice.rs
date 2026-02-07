@@ -23,6 +23,10 @@ pub struct PaymentInvoiceRow {
     pub payment_details: serde_json::Value,
     pub bot_message_id: Option<i64>,
     pub notification_sent_at: Option<DateTime<Utc>>,
+    pub receipt_requested_at: Option<DateTime<Utc>>,
+    pub receipt_submitted_at: Option<DateTime<Utc>>,
+    pub dispute_opened_at: Option<DateTime<Utc>>,
+    pub finished_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug)]
@@ -39,10 +43,14 @@ pub struct NewPaymentInvoice {
     pub bot_message_id: Option<i64>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct UpdatePaymentInvoice {
     pub status: Option<InvoiceStatus>,
     pub notification_sent_at: Option<Option<DateTime<Utc>>>,
+    pub receipt_requested_at: Option<DateTime<Utc>>,
+    pub receipt_submitted_at: Option<DateTime<Utc>>,
+    pub dispute_opened_at: Option<DateTime<Utc>>,
+    pub finished_at: Option<DateTime<Utc>>,
 }
 
 define_list_query! {

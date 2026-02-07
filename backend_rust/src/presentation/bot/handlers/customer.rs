@@ -128,6 +128,7 @@ async fn update_customer(
             updated_by: None,
             last_seen_with_bot: None,
             ctx: None,
+            blocked_until: None,
         })
         .await?;
     Ok(Json(CustomerBotResponse::from(customer)))

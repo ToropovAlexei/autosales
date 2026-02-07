@@ -5,6 +5,7 @@ use crate::bot::keyboards::main_menu::main_menu_inline_keyboard;
 use crate::bot::utils::{MessageImage, MsgBy, edit_msg};
 use crate::bot::{BotState, BotStep, generate_captcha_and_options};
 use crate::{api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult};
+use chrono::Utc;
 use shared_dtos::customer::UpdateCustomerBotRequest;
 use teloxide::Bot;
 use teloxide::types::{InlineKeyboardMarkup, Message};
@@ -43,6 +44,29 @@ pub async fn start_handler(
             &bot,
             &MsgBy::Message(&msg),
             "Ваш аккаунт заблокирован",
+            None,
+            InlineKeyboardMarkup::default(),
+        )
+        .await?;
+        return Ok(());
+    }
+
+    if let Some(blocked_until) = user.blocked_until
+        && blocked_until > Utc::now()
+    {
+        let minutes = (blocked_until - Utc::now()).num_minutes();
+        let hours = (minutes as f64 / 60.0).ceil() as i64;
+        let hours_str = match hours {
+            1 => "час",
+            2..=4 => "часа",
+            _ => "часов",
+        };
+        edit_msg(
+            &api_client,
+            &dialogue,
+            &bot,
+            &MsgBy::Message(&msg),
+            &format!("Ваш аккаунт заблокирован на {hours} {hours_str}"),
             None,
             InlineKeyboardMarkup::default(),
         )

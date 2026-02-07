@@ -27,6 +27,7 @@ pub struct UpdateCustomerCommand {
     pub last_seen_with_bot: Option<i64>,
     pub last_seen_at: Option<DateTime<Utc>>,
     pub updated_by: Option<i64>,
+    pub blocked_until: Option<Option<DateTime<Utc>>>,
     pub ctx: Option<RequestContext>,
 }
 
@@ -98,6 +99,7 @@ impl CustomerServiceTrait
                     is_blocked: command.is_blocked,
                     last_seen_at: command.last_seen_at,
                     last_seen_with_bot: command.last_seen_with_bot,
+                    blocked_until: command.blocked_until,
                 },
             )
             .await?;
@@ -133,6 +135,7 @@ impl CustomerServiceTrait
                     is_blocked: None,
                     last_seen_at: Some(Utc::now()),
                     last_seen_with_bot: Some(bot_id),
+                    blocked_until: None,
                 },
             )
             .await?;
@@ -202,6 +205,7 @@ mod tests {
                 last_seen_at: None,
                 updated_by: None,
                 ctx: None,
+                blocked_until: None,
             })
             .await
             .unwrap();

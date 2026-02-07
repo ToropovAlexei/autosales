@@ -90,7 +90,8 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             RETURNING
                 id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
-                bot_message_id, notification_sent_at
+                bot_message_id, notification_sent_at, receipt_requested_at,
+                receipt_submitted_at, dispute_opened_at, finished_at
             "#,
             payment_invoice.customer_id,
             payment_invoice.original_amount,
@@ -129,6 +130,23 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             }
         }
 
+        if let Some(receipt_requested_at) = payment_invoice.receipt_requested_at {
+            query_builder.push(", receipt_requested_at = ");
+            query_builder.push_bind(receipt_requested_at);
+        }
+        if let Some(receipt_submitted_at) = payment_invoice.receipt_submitted_at {
+            query_builder.push(", receipt_submitted_at = ");
+            query_builder.push_bind(receipt_submitted_at);
+        }
+        if let Some(dispute_opened_at) = payment_invoice.dispute_opened_at {
+            query_builder.push(", dispute_opened_at = ");
+            query_builder.push_bind(dispute_opened_at);
+        }
+        if let Some(finished_at) = payment_invoice.finished_at {
+            query_builder.push(", finished_at = ");
+            query_builder.push_bind(finished_at);
+        }
+
         query_builder.push(" WHERE id = ");
         query_builder.push_bind(id);
         query_builder.push(" RETURNING *");
@@ -148,7 +166,8 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             SELECT
                 id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
-                bot_message_id, notification_sent_at
+                bot_message_id, notification_sent_at, receipt_requested_at,
+                receipt_submitted_at, dispute_opened_at, finished_at
             FROM payment_invoices WHERE id = $1"#,
             id
         )
@@ -165,7 +184,8 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             SELECT
                 id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
-                bot_message_id, notification_sent_at
+                bot_message_id, notification_sent_at, receipt_requested_at,
+                receipt_submitted_at, dispute_opened_at, finished_at
             FROM payment_invoices WHERE order_id = $1"#,
             order_id
         )
@@ -182,7 +202,8 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             SELECT
                 id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
-                bot_message_id, notification_sent_at
+                bot_message_id, notification_sent_at, receipt_requested_at,
+                receipt_submitted_at, dispute_opened_at, finished_at
             FROM payment_invoices WHERE customer_id = $1"#,
             customer_id
         )
@@ -218,7 +239,8 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             SELECT
                 id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
-                bot_message_id, notification_sent_at
+                bot_message_id, notification_sent_at, receipt_requested_at,
+                receipt_submitted_at, dispute_opened_at, finished_at
             FROM payment_invoices
             WHERE
                 status IN ('pending', 'processing', 'awaiting_receipt', 'receipt_submitted', 'disputed') AND
@@ -328,7 +350,8 @@ mod tests {
             RETURNING
                 id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
-                bot_message_id, notification_sent_at
+                bot_message_id, notification_sent_at, receipt_requested_at,
+                receipt_submitted_at, dispute_opened_at, finished_at
             "#,
             new_invoice.customer_id,
             new_invoice.original_amount,
@@ -379,6 +402,7 @@ mod tests {
         let update_data = UpdatePaymentInvoice {
             status: Some(InvoiceStatus::Completed),
             notification_sent_at: Some(Some(Utc::now())),
+            ..Default::default()
         };
         let updated_invoice = repo.update(created_invoice.id, update_data).await.unwrap();
         assert_eq!(updated_invoice.status, InvoiceStatus::Completed);

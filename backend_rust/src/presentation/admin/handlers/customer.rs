@@ -91,6 +91,7 @@ async fn update_customer(
             last_seen_at: None,
             last_seen_with_bot: None,
             ctx: Some(ctx),
+            blocked_until: None,
         })
         .await?;
 

@@ -349,6 +349,29 @@ pub async fn run_bot(
                 return Ok(());
             }
 
+            if let Some(blocked_until) = user.blocked_until
+                && blocked_until > Utc::now()
+            {
+                let minutes = (blocked_until - Utc::now()).num_minutes();
+                let hours = (minutes as f64 / 60.0).ceil() as i64;
+                let hours_str = match hours {
+                    1 => "час",
+                    2..=4 => "часа",
+                    _ => "часов",
+                };
+                edit_msg(
+                    &api_client,
+                    &dialogue,
+                    &bot,
+                    &MsgBy::CallbackQuery(&q),
+                    &format!("Ваш аккаунт заблокирован на {hours} {hours_str}"),
+                    None,
+                    InlineKeyboardMarkup::default(),
+                )
+                .await?;
+                return Ok(());
+            }
+
             if let Some(fallback_bot_username) = fallback_bot_username
                 && let Some(chat_id) = q.chat_id()
             {
@@ -813,15 +836,23 @@ async fn handle_msg(
                 ),
             )
         }
-        DispatchMessage::RequestReceiptNotification { invoice_id } => {
+        DispatchMessage::RequestReceiptNotification {
+            invoice_id,
+            is_first_time,
+            expired_at,
+        } => {
             dialogue
                 .update(BotState {
                     step: BotStep::ReceiptRequested { invoice_id },
                     ..state
                 })
                 .await?;
+            let seconds_left = (expired_at - Utc::now()).num_seconds().max(0);
+            let minutes_left = (seconds_left as f64 / 60.0).ceil() as i64;
+            let rounded_up_to_5 = ((minutes_left + 4) / 5) * 5;
             (
-                "<b>Система не увидела ваш платеж, перепроверьте, действительно вы сделали перевод.</b>\n\
+                match is_first_time{
+                    true => "<b>Система не увидела ваш платеж, перепроверьте, действительно вы сделали перевод.</b>\n\
              Для того, чтобы проверить ваш платеж, <b>предоставьте чек в <u>PDF формате</u></b>\n\n\
              Предоставить чек необходимо в течении 30 минут!\n\n\
              <b>Для этого требуется:</b>\n\
@@ -834,6 +865,9 @@ async fn handle_msg(
              Подробная инструкция для популярных банков: (Ссылка на инструкцию)\n\n\
              <b>Если у вас возникли сложности, свяжитесь с поддержкой.</b>"
                     .to_string(),
+                    false => format!("<b>Напоминаем, что мы ждем от вас чек о подтверждении операции.</b>\n\
+                            У вас осталось <u>{rounded_up_to_5} минут.</u>")
+                },
                 None,
                 InlineKeyboardMarkup::new(support_operator_rows),
             )

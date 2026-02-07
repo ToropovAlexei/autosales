@@ -15,6 +15,8 @@ pub enum DispatchMessage {
     },
     RequestReceiptNotification {
         invoice_id: i64,
+        is_first_time: bool,
+        expired_at: DateTime<Utc>,
     },
 }
 

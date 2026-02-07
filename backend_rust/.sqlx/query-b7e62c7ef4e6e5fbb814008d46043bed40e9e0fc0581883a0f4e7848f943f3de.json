@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                id, customer_id, original_amount, amount, status as \"status: _\", created_at, updated_at,\n                expires_at, deleted_at, gateway as \"gateway: _\", gateway_invoice_id, order_id, payment_details,\n                bot_message_id, notification_sent_at\n            FROM payment_invoices WHERE order_id = $1",
+  "query": "\n            SELECT\n                id, customer_id, original_amount, amount, status as \"status: _\", created_at, updated_at,\n                expires_at, deleted_at, gateway as \"gateway: _\", gateway_invoice_id, order_id, payment_details,\n                bot_message_id, notification_sent_at, receipt_requested_at,\n                receipt_submitted_at, dispute_opened_at, finished_at\n            FROM payment_invoices\n            WHERE\n                status IN ('pending', 'processing', 'awaiting_receipt', 'receipt_submitted', 'disputed') AND\n                created_at < $1 AND\n                deleted_at IS NULL\n            ",
   "describe": {
     "columns": [
       {
@@ -77,11 +77,31 @@
         "ordinal": 14,
         "name": "notification_sent_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "receipt_requested_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "receipt_submitted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 17,
+        "name": "dispute_opened_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 18,
+        "name": "finished_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Uuid"
+        "Timestamptz"
       ]
     },
     "nullable": [
@@ -99,8 +119,12 @@
       false,
       true,
       true,
+      true,
+      true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "e8f388ac618643f04ff9113185e520dc529a51d8cf4adbb5905fece14f10f36e"
+  "hash": "b7e62c7ef4e6e5fbb814008d46043bed40e9e0fc0581883a0f4e7848f943f3de"
 }

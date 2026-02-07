@@ -11,6 +11,7 @@ pub struct CustomerRow {
     pub telegram_id: i64,
     pub balance: Decimal,
     pub is_blocked: bool,
+    pub blocked_until: Option<DateTime<Utc>>,
     pub bot_is_blocked_by_user: bool,
     pub has_passed_captcha: bool,
     pub registered_with_bot: i64,
@@ -26,13 +27,14 @@ pub struct NewCustomer {
     pub registered_with_bot: i64,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct UpdateCustomer {
     pub is_blocked: Option<bool>,
     pub bot_is_blocked_by_user: Option<bool>,
     pub has_passed_captcha: Option<bool>,
     pub last_seen_with_bot: Option<i64>,
     pub last_seen_at: Option<DateTime<Utc>>,
+    pub blocked_until: Option<Option<DateTime<Utc>>>,
 }
 
 define_list_query! {

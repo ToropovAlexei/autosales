@@ -80,6 +80,7 @@ type PaymentInvoiceShortType = PaymentInvoiceService<
     MockPaymentsProvider,
     SettingsRepository,
     AutosalesPlatformPaymentsProvider,
+    CustomerRepository,
 >;
 
 type OrderItemServiceShortType = OrderItemService<OrderItemRepository, StockMovementRepository>;
@@ -232,7 +233,7 @@ impl AppState {
             Arc::new(StockMovementService::new(stock_movement_repo.clone()));
         let customer_repo = Arc::new(CustomerRepository::new(db_pool.clone()));
         let customer_service = Arc::new(CustomerService::new(
-            customer_repo,
+            customer_repo.clone(),
             audit_logs_service.clone(),
         ));
 
@@ -274,6 +275,7 @@ impl AppState {
             mock_payments_provider.clone(),
             audit_logs_service.clone(),
             platform_payments_provider.clone(),
+            customer_repo.clone(),
         ));
         #[cfg(feature = "contms-provider")]
         let contms_products_provider = Arc::new(ContmsProductsProvider::new(

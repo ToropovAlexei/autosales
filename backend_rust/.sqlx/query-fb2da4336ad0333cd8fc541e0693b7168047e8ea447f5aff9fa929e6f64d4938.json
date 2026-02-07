@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                id, customer_id, original_amount, amount, status as \"status: _\", created_at, updated_at,\n                expires_at, deleted_at, gateway as \"gateway: _\", gateway_invoice_id, order_id, payment_details,\n                bot_message_id, notification_sent_at\n            FROM payment_invoices WHERE customer_id = $1",
+  "query": "\n            INSERT INTO payment_invoices (\n                customer_id, original_amount, amount, status, expires_at, gateway, gateway_invoice_id,\n                order_id, payment_details, bot_message_id\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)\n            RETURNING\n                id, customer_id, original_amount, amount, status as \"status: _\", created_at, updated_at,\n                expires_at, deleted_at, gateway as \"gateway: _\", gateway_invoice_id, order_id, payment_details,\n                bot_message_id, notification_sent_at, receipt_requested_at,\n                receipt_submitted_at, dispute_opened_at, finished_at\n            ",
   "describe": {
     "columns": [
       {
@@ -77,10 +77,39 @@
         "ordinal": 14,
         "name": "notification_sent_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "receipt_requested_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "receipt_submitted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 17,
+        "name": "dispute_opened_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 18,
+        "name": "finished_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
+        "Int8",
+        "Numeric",
+        "Numeric",
+        "Text",
+        "Timestamptz",
+        "Text",
+        "Text",
+        "Uuid",
+        "Jsonb",
         "Int8"
       ]
     },
@@ -99,8 +128,12 @@
       false,
       true,
       true,
+      true,
+      true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "9254be30fa8853f2d6e08ef5216eefca7ccbfc4a3256a8e7fd4ec4c61e1fac98"
+  "hash": "fb2da4336ad0333cd8fc541e0693b7168047e8ea447f5aff9fa929e6f64d4938"
 }

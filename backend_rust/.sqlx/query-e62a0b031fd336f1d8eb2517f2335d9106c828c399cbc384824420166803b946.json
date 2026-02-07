@@ -57,6 +57,11 @@
         "ordinal": 10,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "blocked_until",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
@@ -77,7 +82,8 @@
       false,
       false,
       false,
-      false
+      false,
+      true
     ]
   },
   "hash": "e62a0b031fd336f1d8eb2517f2335d9106c828c399cbc384824420166803b946"

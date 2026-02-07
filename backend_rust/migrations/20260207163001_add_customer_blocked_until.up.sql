@@ -1,0 +1,2 @@
+ALTER TABLE customers
+ADD COLUMN blocked_until TIMESTAMPTZ;

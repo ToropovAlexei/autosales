@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                id, customer_id, original_amount, amount, status as \"status: _\", created_at, updated_at,\n                expires_at, deleted_at, gateway as \"gateway: _\", gateway_invoice_id, order_id, payment_details,\n                bot_message_id, notification_sent_at\n            FROM payment_invoices WHERE id = $1",
+  "query": "\n            SELECT\n                id, customer_id, original_amount, amount, status as \"status: _\", created_at, updated_at,\n                expires_at, deleted_at, gateway as \"gateway: _\", gateway_invoice_id, order_id, payment_details,\n                bot_message_id, notification_sent_at, receipt_requested_at,\n                receipt_submitted_at, dispute_opened_at, finished_at\n            FROM payment_invoices WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -77,6 +77,26 @@
         "ordinal": 14,
         "name": "notification_sent_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "receipt_requested_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "receipt_submitted_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 17,
+        "name": "dispute_opened_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 18,
+        "name": "finished_at",
+        "type_info": "Timestamptz"
       }
     ],
     "parameters": {
@@ -99,8 +119,12 @@
       false,
       true,
       true,
+      true,
+      true,
+      true,
+      true,
       true
     ]
   },
-  "hash": "dc0fcbe34cd1c3a9f01a99d182080ba21f6872376bcb4b2cefaf74f709032f8e"
+  "hash": "e1c21fc19059724afa26c305e9b8383de4da2dada3316a371def0733aa7e9f04"
 }

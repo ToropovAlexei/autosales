@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -9,6 +10,7 @@ pub struct CustomerBotResponse {
     pub is_blocked: bool,
     pub bot_is_blocked_by_user: bool,
     pub has_passed_captcha: bool,
+    pub blocked_until: Option<DateTime<Utc>>,
 }
 
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]

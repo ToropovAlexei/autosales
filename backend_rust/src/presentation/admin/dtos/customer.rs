@@ -69,6 +69,7 @@ mod tests {
             last_seen_at: now,
             created_at: now,
             updated_at: now,
+            blocked_until: None,
         };
 
         let customer_response: CustomerResponse = customer_row.into();

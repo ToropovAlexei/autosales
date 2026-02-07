@@ -12,6 +12,7 @@ impl From<CustomerRow> for CustomerBotResponse {
             is_blocked: r.is_blocked,
             bot_is_blocked_by_user: r.bot_is_blocked_by_user,
             has_passed_captcha: r.has_passed_captcha,
+            blocked_until: r.blocked_until,
         }
     }
 }

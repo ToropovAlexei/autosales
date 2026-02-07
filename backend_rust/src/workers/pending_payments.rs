@@ -136,6 +136,13 @@ pub async fn pending_payments_task(app_state: Arc<AppState>) {
             &customers_by_id,
         )
         .await;
+        notify_request_receipts(
+            &app_state,
+            &pending_invoices,
+            &polled_statuses,
+            &customers_by_id,
+        )
+        .await;
         notify_contact_with_support(
             &app_state,
             &pending_invoices,
@@ -299,6 +306,8 @@ async fn request_receipts(
             .dispatch_message(DispatchMessagePayload {
                 message: DispatchMessage::RequestReceiptNotification {
                     invoice_id: invoice.id,
+                    is_first_time: true,
+                    expired_at: Utc::now() + Duration::from_mins(30), // TODO should be configurable
                 },
                 telegram_id: customer.telegram_id,
                 bot_id: customer.last_seen_with_bot,
@@ -325,6 +334,84 @@ async fn request_receipts(
             .update(UpdatePaymentInvoiceCommand {
                 id: invoice_id,
                 status: Some(InvoiceStatus::AwaitingReceipt),
+                receipt_requested_at: Some(Utc::now()),
+                notification_sent_at: Some(Some(Utc::now())),
+                ..Default::default()
+            })
+            .await
+        {
+            tracing::error!("[Pending payments task]: Failed to update payment invoice: {e}")
+        }
+    }
+}
+
+async fn notify_request_receipts(
+    app_state: &Arc<AppState>,
+    pending_invoices: &[PaymentInvoiceRow],
+    polled_statuses: &HashMap<i64, InvoiceStatus>,
+    customers_by_id: &HashMap<i64, CustomerRow>,
+) {
+    let to_request_receipt = pending_invoices
+        .iter()
+        .filter(|i| {
+            if let Some(notification_sent_at) = i.notification_sent_at
+                && let Some(receipt_requested_at) = i.receipt_requested_at
+            {
+                let is_request_not_expired =
+                    receipt_requested_at + Duration::from_mins(30) > Utc::now();
+                let is_time_to_notify = notification_sent_at + Duration::from_mins(5) < Utc::now();
+                return i.status == InvoiceStatus::AwaitingReceipt
+                    && is_time_to_notify
+                    && is_request_not_expired
+                    && polled_statuses
+                        .get(&i.id)
+                        .unwrap_or(&InvoiceStatus::Pending)
+                        == &InvoiceStatus::AwaitingReceipt;
+            }
+            false
+        })
+        .collect::<Vec<_>>();
+
+    let mut notifications_sent = Vec::with_capacity(to_request_receipt.len());
+    for invoice in to_request_receipt {
+        let customer = match customers_by_id.get(&invoice.customer_id) {
+            Some(c) => c,
+            None => continue,
+        };
+        match app_state
+            .notification_service
+            .dispatch_message(DispatchMessagePayload {
+                message: DispatchMessage::RequestReceiptNotification {
+                    invoice_id: invoice.id,
+                    is_first_time: false,
+                    expired_at: invoice.receipt_requested_at.unwrap_or(Utc::now())
+                        + Duration::from_mins(30), // TODO should be configurable
+                },
+                telegram_id: customer.telegram_id,
+                bot_id: customer.last_seen_with_bot,
+            })
+            .await
+        {
+            Ok(_) => notifications_sent.push(invoice.id),
+            Err(e) => {
+                tracing::error!(
+                    "[Pending payments task]: Failed to send request receipt notification: {e}"
+                );
+            }
+        }
+    }
+    if !notifications_sent.is_empty() {
+        tracing::info!(
+            "[Pending payments task]: Sent {} request receipt notifications",
+            notifications_sent.len()
+        );
+    }
+    for invoice_id in notifications_sent {
+        if let Err(e) = app_state
+            .payment_invoice_service
+            .update(UpdatePaymentInvoiceCommand {
+                id: invoice_id,
+                notification_sent_at: Some(Some(Utc::now())),
                 ..Default::default()
             })
             .await
@@ -389,6 +476,7 @@ async fn notify_contact_with_support(
             .update(UpdatePaymentInvoiceCommand {
                 id: invoice_id,
                 status: Some(InvoiceStatus::Disputed),
+                dispute_opened_at: Some(Utc::now()),
                 ..Default::default()
             })
             .await
@@ -463,8 +551,7 @@ async fn notify_dispute_failed(
             .notification_service
             .dispatch_message(DispatchMessagePayload {
                 message: DispatchMessage::GenericMessage {
-                    // TODO replace @operator_contact_placeholder
-                    message: "WIP спор отклонен".to_string(),
+                    message: "Заявка отклонена.".to_string(),
                     image_id: None,
                 },
                 telegram_id: customer.telegram_id,
@@ -492,6 +579,7 @@ async fn notify_dispute_failed(
             .update(UpdatePaymentInvoiceCommand {
                 id: invoice_id,
                 status: Some(InvoiceStatus::Disputed),
+                dispute_opened_at: Some(Utc::now()),
                 ..Default::default()
             })
             .await
@@ -508,6 +596,7 @@ async fn block_fraud(app_state: &Arc<AppState>, fraud_invoices: &[PaymentInvoice
             .update(UpdatePaymentInvoiceCommand {
                 id: invoice.id,
                 status: Some(InvoiceStatus::Failed),
+                finished_at: Some(Utc::now()),
                 ..Default::default()
             })
             .await
