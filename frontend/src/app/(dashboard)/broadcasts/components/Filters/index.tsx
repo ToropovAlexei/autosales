@@ -3,18 +3,20 @@ import { ENDPOINTS } from "@/constants";
 import { useList } from "@/hooks";
 import { Bot } from "@/types";
 import { Typography } from "@mui/material";
+import classes from "./styles.module.css";
 
 export const Filters = () => {
   const { data: bots } = useList<Bot>({ endpoint: ENDPOINTS.BOTS });
 
   return (
-    <div>
+    <div className={classes.container}>
       <Typography variant="h6">Фильтр пользователей</Typography>
       <div
         style={{
           display: "grid",
           gap: "1rem",
           gridTemplateColumns: "1fr 1fr",
+          height: "fit-content",
         }}
       >
         <InputNumber name="balance_min" label="Минимальный баланс" />

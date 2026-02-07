@@ -19,3 +19,8 @@
   display: grid;
   gap: 1rem;
 }
+
+.container {
+  display: grid;
+  gap: 0.25rem;
+}

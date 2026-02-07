@@ -40,7 +40,7 @@ export const InputMsg = () => {
   };
 
   return (
-    <div>
+    <div className={classes.container}>
       <Typography variant="h6">Рекламное сообщение</Typography>
       <div className={classes.inputMsgContainer}>
         <InputText
