@@ -13,6 +13,7 @@ import { queryKeys } from "@/utils/query";
 import { PageLayout } from "@/components/PageLayout";
 import { Category, Product } from "@/types";
 import { flattenCategoriesForSelect } from "../categories/utils";
+import { toast } from "react-toastify";
 
 export default function ProductsPage() {
   const queryClient = useQueryClient();
@@ -50,7 +51,8 @@ export default function ProductsPage() {
       }
       return dataLayer.create(params);
     },
-    onSuccess: () => {
+    onSuccess: (_, payload) => {
+      toast.success(payload.id ? "Товар обновлен" : "Товар создан");
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.PRODUCTS),
       });
@@ -63,6 +65,7 @@ export default function ProductsPage() {
     mutationFn: (id: number) =>
       dataLayer.delete({ url: ENDPOINTS.PRODUCTS, id }),
     onSuccess: () => {
+      toast.success("Товар удален");
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.PRODUCTS),
       });

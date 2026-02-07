@@ -20,6 +20,7 @@ pub trait ImageRepositoryTrait {
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<ImageRow>;
     async fn create(&self, image: NewImage) -> RepositoryResult<ImageRow>;
     async fn delete(&self, id: Uuid) -> RepositoryResult<()>;
+    async fn get_by_hash(&self, hash: String) -> RepositoryResult<ImageRow>;
 }
 
 #[derive(Clone)]
@@ -53,13 +54,9 @@ impl ImageRepositoryTrait for ImageRepository {
     }
 
     async fn get_by_id(&self, id: Uuid) -> RepositoryResult<ImageRow> {
-        let result = sqlx::query_as!(
-            ImageRow,
-            "SELECT * FROM images WHERE id = $1 AND deleted_at IS NULL",
-            id
-        )
-        .fetch_one(&*self.pool)
-        .await?;
+        let result = sqlx::query_as!(ImageRow, "SELECT * FROM images WHERE id = $1", id)
+            .fetch_one(&*self.pool)
+            .await?;
         Ok(result)
     }
 
@@ -87,10 +84,17 @@ impl ImageRepositoryTrait for ImageRepository {
     }
 
     async fn delete(&self, id: Uuid) -> RepositoryResult<()> {
-        sqlx::query!("UPDATE images SET deleted_at = NOW() WHERE id = $1", id)
+        sqlx::query!("DELETE FROM images WHERE id = $1", id)
             .execute(&*self.pool)
             .await?;
         Ok(())
+    }
+
+    async fn get_by_hash(&self, hash: String) -> RepositoryResult<ImageRow> {
+        let result = sqlx::query_as!(ImageRow, "SELECT * FROM images WHERE hash = $1", hash)
+            .fetch_one(&*self.pool)
+            .await?;
+        Ok(result)
     }
 }
 

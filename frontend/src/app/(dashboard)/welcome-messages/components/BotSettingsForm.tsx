@@ -58,7 +58,7 @@ export const BotSettingsForm = () => {
               <Stack gap={2} component="form" onSubmit={handleSubmit(onSubmit)}>
                 <InputImage
                   name="bot_messages_new_user_welcome_image_id"
-                  buttonLabel="Выбрать изображение"
+                  folder="other"
                 />
                 <InputText
                   name="bot_messages_new_user_welcome"
@@ -69,7 +69,7 @@ export const BotSettingsForm = () => {
 
                 <InputImage
                   name="bot_messages_returning_user_welcome_image_id"
-                  buttonLabel="Выбрать изображение"
+                  folder="other"
                 />
                 <InputText
                   name="bot_messages_returning_user_welcome"
@@ -80,7 +80,7 @@ export const BotSettingsForm = () => {
 
                 <InputImage
                   name="bot_messages_support_image_id"
-                  buttonLabel="Выбрать изображение"
+                  folder="other"
                 />
                 <InputText
                   name="bot_messages_support"

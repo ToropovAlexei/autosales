@@ -106,11 +106,7 @@ export const CategoryForm = ({
                 withNone
                 displayEmpty
               />
-              <InputImage
-                name="image_id"
-                buttonLabel="Выбрать изображение"
-                fullWidth
-              />
+              <InputImage name="image_id" fullWidth folder="category" />
             </Stack>
           </FormProvider>
         </DialogContent>

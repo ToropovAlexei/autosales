@@ -72,6 +72,12 @@ impl ImageServiceTrait for ImageService<ImageRepository> {
     async fn create(&self, image: CreateImage) -> ApiResult<ImageRow> {
         let meta = extract_image_metadata(&image.file, Some(&image.filename))
             .map_err(|e| ApiError::BadRequest(e.to_string()))?;
+        let existing = self.repo.get_by_hash(meta.hash.clone()).await;
+        if let Ok(existing) = existing
+            && existing.context == image.context
+        {
+            return Ok(existing);
+        }
         let created = self
             .repo
             .create(NewImage {

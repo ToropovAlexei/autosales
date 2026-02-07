@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO images (original_filename, hash, mime_type, file_size, width, height, context, created_by)\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)\n            RETURNING *\n            ",
+  "query": "SELECT * FROM images WHERE hash = $1",
   "describe": {
     "columns": [
       {
@@ -56,14 +56,7 @@
     ],
     "parameters": {
       "Left": [
-        "Text",
-        "Text",
-        "Text",
-        "Int8",
-        "Int2",
-        "Int2",
-        "Text",
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -79,5 +72,5 @@
       false
     ]
   },
-  "hash": "23c5037a06bf52c5e1e3c67b4f08431125680c831161ec5980468df7fc9e7831"
+  "hash": "7c4f70942b49ce6842881a7c0b124029fd92b8905f31ea12b59335094320bc02"
 }

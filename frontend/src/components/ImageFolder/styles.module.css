@@ -1,32 +1,3 @@
-.wrapper {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  width: fit-content;
-}
-
-.fullWidth {
-  width: auto;
-}
-
-.preview {
-  position: relative;
-}
-
-.img {
-  object-fit: cover;
-  border-radius: var(--mui-shape-borderRadius);
-  border: 1px solid var(--mui-palette-divider);
-  display: block;
-}
-
-.removeButton {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-}
-
 .dropzone {
   border: 1px dashed var(--mui-palette-divider);
   border-radius: var(--mui-shape-borderRadius);
@@ -42,6 +13,7 @@
   transition:
     background-color 0.2s ease-in-out,
     border-color 0.2s ease-in-out;
+  height: 100%;
 }
 
 .dropzoneActive {
@@ -49,11 +21,25 @@
   background-color: var(--mui-palette-action-hover);
 }
 
-.dropzoneDisabled {
-  cursor: not-allowed;
-  opacity: 0.6;
+.images {
+  display: grid;
+  align-items: center;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 0.5rem;
+  width: 100%;
 }
 
-.dropzoneFullWidth {
-  width: 100%;
+.imageItem {
+  cursor: pointer;
+  position: relative;
+  & img {
+    width: 100%;
+    border-radius: var(--mui-shape-borderRadius);
+  }
+}
+
+.removeButton {
+  position: absolute;
+  top: 4px;
+  right: 4px;
 }

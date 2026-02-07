@@ -61,11 +61,11 @@ export const ProductForm = ({
       base_price: defaultValues?.base_price || 0,
       type: defaultValues?.type || "item",
       stock: defaultValues?.stock || 0,
-      image_id: defaultValues?.image_id || "",
+      image_id: defaultValues?.image_id || null,
       initial_stock: !isEditMode ? 0 : undefined,
       subscription_period_days: defaultValues?.subscription_period_days || 30,
       fulfillment_text: defaultValues?.fulfillment_text || "",
-      fulfillment_image_id: defaultValues?.fulfillment_image_id || "",
+      fulfillment_image_id: defaultValues?.fulfillment_image_id || null,
     },
   });
   const { handleSubmit, watch } = form;
@@ -92,12 +92,8 @@ export const ProductForm = ({
       payload.subscription_period_days = data.subscription_period_days;
     }
 
-    if (data.fulfillment_text) {
-      payload.fulfillment_text = data.fulfillment_text;
-    }
-    if (data.fulfillment_image_id) {
-      payload.fulfillment_image_id = data.fulfillment_image_id;
-    }
+    payload.fulfillment_text = data.fulfillment_text;
+    payload.fulfillment_image_id = data.fulfillment_image_id;
 
     onConfirm(payload);
   };
@@ -182,13 +178,15 @@ export const ProductForm = ({
               />
               <InputImage
                 name="fulfillment_image_id"
-                buttonLabel="Выбрать изображение для выдачи"
+                label="Изображение для выдачи"
                 fullWidth
+                folder="fulfillment"
               />
               <InputImage
                 name="image_id"
-                buttonLabel="Выбрать изображение для товара"
+                label="Изображение для товара"
                 fullWidth
+                folder="product"
               />
             </DialogContent>
             <DialogActions>

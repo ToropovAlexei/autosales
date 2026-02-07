@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE images SET deleted_at = NOW() WHERE id = $1",
+  "query": "DELETE FROM images WHERE id = $1",
   "describe": {
     "columns": [],
     "parameters": {
@@ -10,5 +10,5 @@
     },
     "nullable": []
   },
-  "hash": "ecbb40188582073d119ee6fb6be9504f1463eec6a6318a12b84aa9ff818c1db5"
+  "hash": "79b35e39d668ad2285b3a05c15d5243cc91d35e03104d222488c7e27b8bbb569"
 }

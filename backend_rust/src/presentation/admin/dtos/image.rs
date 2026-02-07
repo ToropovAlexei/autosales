@@ -39,7 +39,6 @@ mod tests {
             context: "test_context".to_string(),
             created_at: now,
             created_by: 1,
-            deleted_at: None,
             file_size: 150,
             hash: "abc".to_string(),
             mime_type: "image/png".to_string(),

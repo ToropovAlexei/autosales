@@ -50,11 +50,7 @@ export const InputMsg = () => {
           multiline
           fullWidth
         />
-        <InputImage
-          name="image_id"
-          buttonLabel="Выбрать изображение"
-          fullWidth
-        />
+        <InputImage name="image_id" fullWidth folder="other" />
         <div className={classes.send}>
           <Button
             variant="contained"

@@ -16,7 +16,6 @@ pub struct ImageRow {
     pub context: String,
     pub created_at: DateTime<Utc>,
     pub created_by: i64,
-    pub deleted_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug)]

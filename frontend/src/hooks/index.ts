@@ -5,3 +5,5 @@ export * from "./useCan";
 export * from "./usePermissions";
 export * from "./useDataGrid";
 export * from "./usePost";
+export * from "./useUploadImage";
+export * from "./useImages";
