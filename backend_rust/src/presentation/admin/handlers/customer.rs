@@ -1,4 +1,3 @@
-use axum::routing::patch;
 use shared_dtos::list_response::ListResponse;
 use std::sync::Arc;
 
@@ -27,7 +26,7 @@ use crate::{
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", get(list_customers))
-        .route("/{id}", patch(update_customer))
+        .route("/{id}", get(get_customer).patch(update_customer))
 }
 
 #[utoipa::path(
@@ -69,6 +68,7 @@ async fn list_customers(
         (status = 400, description = "Bad request", body = String),
         (status = 401, description = "Unauthorized", body = String),
         (status = 403, description = "Forbidden", body = String),
+        (status = 404, description = "Customer not found", body = String),
         (status = 500, description = "Internal server error", body = String),
     )
 )]
@@ -93,6 +93,30 @@ async fn update_customer(
             ctx: Some(ctx),
         })
         .await?;
+
+    Ok(Json(CustomerResponse::from(customer)))
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/admin/customers/{id}",
+    tag = "Customers",
+    responses(
+        (status = 200, description = "Customer", body = CustomerResponse),
+        (status = 400, description = "Bad request", body = String),
+        (status = 401, description = "Unauthorized", body = String),
+        (status = 403, description = "Forbidden", body = String),
+        (status = 404, description = "Customer not found", body = String),
+        (status = 500, description = "Internal server error", body = String),
+    )
+)]
+async fn get_customer(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<i64>,
+    _user: AuthUser,
+    _perm: RequirePermission<CustomersRead>,
+) -> ApiResult<Json<CustomerResponse>> {
+    let customer = state.customer_service.get_by_id(id).await?;
 
     Ok(Json(CustomerResponse::from(customer)))
 }

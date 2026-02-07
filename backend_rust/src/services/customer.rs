@@ -18,7 +18,7 @@ use crate::{
     services::audit_log::{AuditLogService, AuditLogServiceTrait},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct UpdateCustomerCommand {
     pub id: i64,
     pub is_blocked: Option<bool>,

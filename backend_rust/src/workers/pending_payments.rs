@@ -16,7 +16,7 @@ use crate::{
     },
     models::{customer::CustomerRow, payment_invoice::PaymentInvoiceRow},
     services::{
-        customer::CustomerServiceTrait,
+        customer::{CustomerServiceTrait, UpdateCustomerCommand},
         notification_service::NotificationServiceTrait,
         payment_invoice::{PaymentInvoiceServiceTrait, UpdatePaymentInvoiceCommand},
         payment_processing_service::PaymentProcessingServiceTrait,
@@ -88,6 +88,7 @@ pub async fn pending_payments_task(app_state: Arc<AppState>) {
             pending_invoices.len()
         );
 
+        let mut fraud_invoices = Vec::new();
         let polled_statuses = {
             let mut statuses = HashMap::with_capacity(pending_invoices.len());
             for invoice in pending_invoices.iter() {
@@ -98,6 +99,14 @@ pub async fn pending_payments_task(app_state: Arc<AppState>) {
                 {
                     Ok(order) => {
                         statuses.insert(invoice.id, InvoiceStatus::from(order.status));
+                        if let Some(fake_status) = order.appeal_fake_status {
+                            tracing::info!(
+                                "[Pending payments task]: Fraud user detected: invoice_id: {}, status: {}",
+                                invoice.id,
+                                fake_status
+                            );
+                            fraud_invoices.push(invoice.clone());
+                        }
                     }
                     Err(e) => {
                         tracing::error!("Failed to get order status: {e}");
@@ -141,6 +150,7 @@ pub async fn pending_payments_task(app_state: Arc<AppState>) {
             &customers_by_id,
         )
         .await;
+        block_fraud(&app_state, &fraud_invoices).await;
         update_invoices(&app_state, &pending_invoices, &polled_statuses).await;
 
         tracing::info!("[Pending payments task]: Finished");
@@ -487,6 +497,33 @@ async fn notify_dispute_failed(
             .await
         {
             tracing::error!("[Pending payments task]: Failed to update payment invoice: {e}")
+        }
+    }
+}
+
+async fn block_fraud(app_state: &Arc<AppState>, fraud_invoices: &[PaymentInvoiceRow]) {
+    for invoice in fraud_invoices {
+        if let Err(e) = app_state
+            .payment_invoice_service
+            .update(UpdatePaymentInvoiceCommand {
+                id: invoice.id,
+                status: Some(InvoiceStatus::Failed),
+                ..Default::default()
+            })
+            .await
+        {
+            tracing::error!("[Pending payments task]: Failed to update payment invoice: {e}")
+        }
+        if let Err(e) = app_state
+            .customer_service
+            .update(UpdateCustomerCommand {
+                id: invoice.customer_id,
+                is_blocked: Some(true),
+                ..Default::default()
+            })
+            .await
+        {
+            tracing::error!("[Pending payments task]: Failed to update customer: {e}")
         }
     }
 }
