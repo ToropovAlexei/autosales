@@ -18,7 +18,9 @@ import { Edit, ContentCopy as ContentCopyIcon } from "@mui/icons-material";
 import { useState } from "react";
 import classes from "./styles.module.css";
 import { toast } from "react-toastify";
-import { Bot, UpdateBot } from "@/types";
+import { Bot, Customer, UpdateBot } from "@/types";
+import { useOne } from "@/hooks";
+import { ENDPOINTS } from "@/constants";
 
 interface BotCardProps {
   bot: Bot;
@@ -36,9 +38,14 @@ export const BotCard = ({
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [percentage, setPercentage] = useState(
-    bot.referral_percentage.toString()
+    bot.referral_percentage.toString(),
   );
   const [validationError, setValidationError] = useState("");
+  const { data: customer } = useOne<Customer>({
+    endpoint: ENDPOINTS.CUSTOMERS,
+    id: bot.owner_id || "",
+    enabled: !!bot.owner_id,
+  });
 
   const openConfirmDialog = () => {
     setIsConfirmOpen(true);
@@ -81,8 +88,8 @@ export const BotCard = ({
         <CardHeader
           title={bot.username}
           subheader={
-            bot.owner_id
-              ? `TG ID владельца: ${bot.owner_id}`
+            bot?.owner_id
+              ? `TG ID владельца: ${customer?.telegram_id}`
               : "Основной бот магазина"
           }
           action={
