@@ -1,11 +1,15 @@
 import { BaseTextFieldProps, TextField } from "@mui/material";
 import { RegisterOptions, useController } from "react-hook-form";
 
-interface IProps
-  extends Omit<BaseTextFieldProps, "name" | "onChange" | "value"> {
+interface IProps extends Omit<
+  BaseTextFieldProps,
+  "name" | "onChange" | "value"
+> {
   name: string;
   label?: string;
   rules?: RegisterOptions;
+  min?: number;
+  max?: number;
 }
 
 export const InputNumber = ({
@@ -13,6 +17,8 @@ export const InputNumber = ({
   label,
   required,
   rules,
+  min,
+  max,
   ...props
 }: IProps) => {
   const {
@@ -43,6 +49,12 @@ export const InputNumber = ({
       onChange={handleChange}
       size="small"
       required={required}
+      slotProps={{
+        htmlInput: {
+          min,
+          max,
+        },
+      }}
       {...props}
     />
   );

@@ -118,6 +118,14 @@ export const ProductsTable = ({
       sortable: false,
     },
     {
+      field: "price",
+      headerName: "Цена",
+      type: "number",
+      width: 110,
+      sortable: false,
+      valueFormatter: (value) => Math.ceil(value),
+    },
+    {
       field: "stock",
       headerName: "Остаток",
       type: "number",

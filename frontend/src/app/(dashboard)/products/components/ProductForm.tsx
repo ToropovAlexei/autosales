@@ -150,17 +150,46 @@ export const ProductForm = ({
                 label="Категория"
                 options={categories}
               />
-              <InputNumber name="base_price" label="Базовая цена" required />
+              <InputNumber
+                name="base_price"
+                label="Базовая цена"
+                required
+                min={0}
+                rules={{
+                  min: {
+                    value: 0,
+                    message: "Цена не может быть отрицательной",
+                  },
+                }}
+              />
 
               {productType === "item" && !isEditMode && (
                 <InputNumber
                   name="initial_stock"
                   label="Начальный остаток"
                   required
+                  min={0}
+                  rules={{
+                    min: {
+                      value: 0,
+                      message: "Остаток не может быть отрицательным",
+                    },
+                  }}
                 />
               )}
               {productType === "item" && isEditMode && (
-                <InputNumber name="stock" label="Текущий остаток" required />
+                <InputNumber
+                  name="stock"
+                  label="Текущий остаток"
+                  required
+                  min={0}
+                  rules={{
+                    min: {
+                      value: 0,
+                      message: "Остаток не может быть отрицательным",
+                    },
+                  }}
+                />
               )}
               {productType === "subscription" && (
                 <InputNumber
