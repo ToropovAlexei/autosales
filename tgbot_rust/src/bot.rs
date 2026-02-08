@@ -212,6 +212,7 @@ pub enum CallbackData {
     DeleteBot {
         id: i64,
     },
+    IncreaseAmountBy10,
 }
 
 impl CallbackData {
@@ -321,7 +322,8 @@ pub async fn run_bot(
                     bot: Bot,
                     api_client: Arc<BackendApi>,
                     bot_state: BotState,
-                    fallback_bot_username: Option<BotUsername>|
+                    fallback_bot_username: Option<BotUsername>,
+                    app_state: AppState|
                     -> AppResult<()> {
             let data = match CallbackData::from_query(&q) {
                 Some(data) => data,
@@ -390,7 +392,14 @@ pub async fn run_bot(
                         })
                         .await
                         .map_err(AppError::from)?;
-                    deposit_amount_handler(bot, dialogue, q, api_client, bot_state).await?;
+                    deposit_amount_handler(
+                        bot,
+                        dialogue,
+                        &MsgBy::CallbackQuery(&q),
+                        api_client,
+                        bot_state,
+                    )
+                    .await?;
                 }
                 CallbackData::SelectAmount { amount } => {
                     let gateway = match &bot_state.step {
@@ -415,6 +424,36 @@ pub async fn run_bot(
                         dialogue,
                         api_client,
                         new_state,
+                        app_state,
+                    )
+                    .await?;
+                }
+                CallbackData::IncreaseAmountBy10 => {
+                    let (amount, gateway) = match &bot_state.step {
+                        BotStep::DepositConfirm {
+                            amount, gateway, ..
+                        } => (amount, gateway),
+                        _ => return Ok(()),
+                    };
+                    let new_state = BotState {
+                        step: BotStep::DepositConfirm {
+                            gateway: *gateway,
+                            amount: *amount + 10,
+                            invoice: None,
+                        },
+                        ..bot_state
+                    };
+                    dialogue
+                        .update(new_state.clone())
+                        .await
+                        .map_err(AppError::from)?;
+                    deposit_confirm_handler(
+                        bot,
+                        &MsgBy::CallbackQuery(&q),
+                        dialogue,
+                        api_client,
+                        new_state,
+                        app_state,
                     )
                     .await?;
                 }
@@ -437,6 +476,7 @@ pub async fn run_bot(
                         dialogue,
                         api_client,
                         new_state,
+                        app_state,
                     )
                     .await?;
                 }
@@ -564,6 +604,7 @@ pub async fn run_bot(
                         dialogue,
                         api_client,
                         new_state,
+                        app_state,
                     )
                     .await?;
                 }

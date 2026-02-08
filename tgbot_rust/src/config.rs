@@ -11,6 +11,7 @@ pub struct Config {
     pub backend_api_url: String,
     pub webhook_host: String,
     pub webhook_port: u16,
+    pub payment_instructions_url: String,
 }
 
 impl Config {

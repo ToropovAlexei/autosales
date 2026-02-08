@@ -179,8 +179,7 @@ where
                         amount: amount_parsed as i64,
                         id_pay_method,
                     })
-                    .await
-                    .map_err(ApiError::InternalServerError)?;
+                    .await?;
 
                 let payment_details = match command.gateway {
                     PaymentSystem::PlatformCard => PaymentDetails::PlatformCard {
@@ -287,8 +286,7 @@ where
             PaymentSystem::PlatformCard | PaymentSystem::PlatformSBP => {
                 self.platform_payments_provider
                     .process_order(invoice.gateway_invoice_id)
-                    .await
-                    .map_err(ApiError::InternalServerError)?;
+                    .await?;
                 let res = self
                     .repo
                     .update(
@@ -325,8 +323,7 @@ where
             PaymentSystem::PlatformCard | PaymentSystem::PlatformSBP => {
                 self.platform_payments_provider
                     .cancel_order(invoice.gateway_invoice_id)
-                    .await
-                    .map_err(ApiError::InternalServerError)?;
+                    .await?;
                 let res = self
                     .repo
                     .update(
@@ -395,8 +392,7 @@ where
                         object_token: invoice.gateway_invoice_id,
                         url_file: command.receipt_url,
                     })
-                    .await
-                    .map_err(ApiError::InternalServerError)?;
+                    .await?;
 
                 let res = self
                     .repo
@@ -431,6 +427,7 @@ mod tests {
         errors::repository::RepositoryError,
         infrastructure::{
             external::payment::{
+                autosales_platform::MockAutosalesPlatformPaymentsProviderTrait,
                 autosales_platform::dto::{
                     AutosalesPlatformOrderInitializedDataRequisite,
                     AutosalesPlatformOrderInitializedDataRequisiteBank,
@@ -730,49 +727,6 @@ mod tests {
         }
     }
 
-    struct FakePlatformProvider {
-        last_request: Mutex<Option<AutosalesPlatformInitializeOrderRequest>>,
-        response: Mutex<Option<AutosalesPlatformOrderInitializedDataRequisite>>,
-    }
-
-    #[async_trait]
-    impl AutosalesPlatformPaymentsProviderTrait for FakePlatformProvider {
-        async fn init_order(
-            &self,
-            req: AutosalesPlatformInitializeOrderRequest,
-        ) -> Result<AutosalesPlatformOrderInitializedDataRequisite, String> {
-            *self.last_request.lock().unwrap() = Some(req);
-            Ok(self
-                .response
-                .lock()
-                .unwrap()
-                .take()
-                .expect("platform response"))
-        }
-
-        async fn cancel_order(&self, _object_token: String) -> Result<(), String> {
-            Err("not used".to_string())
-        }
-
-        async fn process_order(&self, _object_token: String) -> Result<(), String> {
-            Err("not used".to_string())
-        }
-
-        async fn send_receipt(
-            &self,
-            _req: AutosalesPlatformSendReceiptRequest,
-        ) -> Result<(), String> {
-            Err("not used".to_string())
-        }
-
-        async fn get_order_status(
-            &self,
-            _object_token: String,
-        ) -> Result<crate::infrastructure::external::payment::autosales_platform::dto::AutosalesPlatformOrderStatus, String>{
-            Err("not used".to_string())
-        }
-    }
-
     fn base_settings() -> Settings {
         Settings {
             bot_messages_support: "support".to_string(),
@@ -806,6 +760,7 @@ mod tests {
         let provider = Arc::new(FakeMockProvider {
             last_request: Mutex::new(None),
         });
+        let platform = Arc::new(MockAutosalesPlatformPaymentsProviderTrait::new());
         let service = PaymentInvoiceService::new(
             repo.clone(),
             Arc::new(FakeSettingsRepo {
@@ -813,27 +768,7 @@ mod tests {
             }),
             provider.clone(),
             Arc::new(FakeAuditLogService),
-            Arc::new(FakePlatformProvider {
-                last_request: Mutex::new(None),
-                response: Mutex::new(Some(AutosalesPlatformOrderInitializedDataRequisite {
-                    object_token: "token".to_string(),
-                    value: "value".to_string(),
-                    data_bank: AutosalesPlatformOrderInitializedDataRequisiteBank {
-                        name: "bank".to_string(),
-                    },
-                    data_people: AutosalesPlatformOrderInitializedDataRequisitePeople {
-                        surname: "Doe".to_string(),
-                        name: "John".to_string(),
-                        patronymic: "P".to_string(),
-                    },
-                    data_mathematics: AutosalesPlatformOrderInitializedDataRequisiteMathematics {
-                        currency: "RUB".to_string(),
-                        country: "RU".to_string(),
-                        amount_pay: 90.0,
-                        amount_transfer: 90.0,
-                    },
-                })),
-            }),
+            platform,
             Arc::new(FakeCustomerRepo),
         );
 
@@ -871,27 +806,34 @@ mod tests {
         let repo = Arc::new(FakeRepo {
             last_created: Mutex::new(None),
         });
-        let platform = Arc::new(FakePlatformProvider {
-            last_request: Mutex::new(None),
-            response: Mutex::new(Some(AutosalesPlatformOrderInitializedDataRequisite {
-                object_token: "token-123".to_string(),
-                value: "4111111111111111".to_string(),
-                data_bank: AutosalesPlatformOrderInitializedDataRequisiteBank {
-                    name: "TestBank".to_string(),
-                },
-                data_people: AutosalesPlatformOrderInitializedDataRequisitePeople {
-                    surname: "Doe".to_string(),
-                    name: "Jane".to_string(),
-                    patronymic: "Q".to_string(),
-                },
-                data_mathematics: AutosalesPlatformOrderInitializedDataRequisiteMathematics {
-                    currency: "RUB".to_string(),
-                    country: "RU".to_string(),
-                    amount_pay: 100.0,
-                    amount_transfer: 100.0,
-                },
-            })),
-        });
+        let mut platform = MockAutosalesPlatformPaymentsProviderTrait::new();
+        platform
+            .expect_init_order()
+            .withf(|req| {
+                req.amount == 100
+                    && matches!(req.id_pay_method, AutosalesPlatformPaymentMethod::Card)
+            })
+            .returning(|_req| {
+                Ok(AutosalesPlatformOrderInitializedDataRequisite {
+                    object_token: "token-123".to_string(),
+                    value: "4111111111111111".to_string(),
+                    data_bank: AutosalesPlatformOrderInitializedDataRequisiteBank {
+                        name: "TestBank".to_string(),
+                    },
+                    data_people: AutosalesPlatformOrderInitializedDataRequisitePeople {
+                        surname: "Doe".to_string(),
+                        name: "Jane".to_string(),
+                        patronymic: "Q".to_string(),
+                    },
+                    data_mathematics: AutosalesPlatformOrderInitializedDataRequisiteMathematics {
+                        currency: "RUB".to_string(),
+                        country: "RU".to_string(),
+                        amount_pay: 100.0,
+                        amount_transfer: 100.0,
+                    },
+                })
+            });
+        let platform = Arc::new(platform);
 
         let service = PaymentInvoiceService::new(
             repo.clone(),
@@ -934,17 +876,6 @@ mod tests {
             _ => panic!("expected platform card details"),
         }
 
-        let request = platform
-            .last_request
-            .lock()
-            .unwrap()
-            .take()
-            .expect("platform request");
-        assert_eq!(request.amount, 100);
-        assert!(matches!(
-            request.id_pay_method,
-            AutosalesPlatformPaymentMethod::Card
-        ));
         assert_eq!(res.gateway, PaymentSystem::PlatformCard);
     }
 }

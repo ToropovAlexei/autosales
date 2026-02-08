@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use teloxide::{Bot, types::CallbackQuery};
+use teloxide::Bot;
 
 use crate::{
     api::backend_api::BackendApi,
@@ -15,7 +15,7 @@ use crate::{
 pub async fn deposit_amount_handler(
     bot: Bot,
     dialogue: MyDialogue,
-    q: CallbackQuery,
+    msg_by: &MsgBy<'_>,
     api_client: Arc<BackendApi>,
     _bot_state: BotState,
 ) -> AppResult<()> {
@@ -23,7 +23,7 @@ pub async fn deposit_amount_handler(
         &api_client,
         &dialogue,
         &bot,
-        &MsgBy::CallbackQuery(&q),
+        msg_by,
         "Выберите сумму для пополнения или введите ее вручную:",
         None,
         deposit_amount_menu(),

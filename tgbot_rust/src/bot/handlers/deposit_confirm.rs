@@ -1,6 +1,10 @@
 use std::sync::Arc;
 
+use crate::AppState;
+use crate::api::api_errors::ApiClientError;
 use crate::api::backend_api::BackendApi;
+use crate::bot::handlers::increase_amount_by_10::increase_amount_by_10_handler;
+use crate::bot::handlers::no_suitable_requisites::no_suitable_requisites_handler;
 use crate::bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard;
 use crate::bot::utils::{MsgBy, edit_msg};
 use crate::bot::{BotState, BotStep, CallbackData, InvoiceData, MyDialogue};
@@ -17,8 +21,9 @@ pub async fn deposit_confirm_handler(
     dialogue: MyDialogue,
     api_client: Arc<BackendApi>,
     bot_state: BotState,
+    app_state: AppState,
 ) -> AppResult<()> {
-    let (gateway, amount, invoice_data) = match bot_state.step {
+    let (gateway, amount, invoice_data) = match bot_state.clone().step {
         BotStep::DepositConfirm {
             gateway,
             amount,
@@ -41,6 +46,26 @@ pub async fn deposit_confirm_handler(
                 Ok(res) => res,
                 Err(err) => {
                     tracing::error!("Error creating invoice: {err}");
+                    if let ApiClientError::Unsuccessful(err) = err {
+                        if err.contains("Increase amount by 10") {
+                            increase_amount_by_10_handler(
+                                bot, dialogue, msg_by, api_client, bot_state, amount,
+                            )
+                            .await?;
+                            return Ok(());
+                        }
+                        if err.contains("No suitable requisites") {
+                            no_suitable_requisites_handler(
+                                bot,
+                                dialogue,
+                                msg_by,
+                                api_client,
+                                &app_state.config.payment_instructions_url,
+                            )
+                            .await?;
+                            return Ok(());
+                        }
+                    }
                     edit_msg(
                         &api_client,
                         &dialogue,

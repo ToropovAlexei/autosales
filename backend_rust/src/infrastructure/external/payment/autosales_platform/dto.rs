@@ -1,11 +1,84 @@
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 
 #[derive(Debug, Deserialize)]
-pub struct AutosalesPlatformResponse<T> {
-    pub response: String,
-    pub message: String,
-    pub query: serde_json::Value,
-    pub data: T,
+#[serde(rename_all = "snake_case")]
+pub enum AutosalesPlatformResponseStatus {
+    Success,
+    Error,
+}
+
+#[derive(Debug)]
+pub enum AutosalesPlatformError {
+    NoSuitableRequisites,
+    IncreaseAmountBy10,
+    Unknown(String),
+}
+
+impl<'de> Deserialize<'de> for AutosalesPlatformError {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s = String::deserialize(deserializer)?;
+        match s.as_str() {
+            "Нет подходящих реквизитов" => Ok(Self::NoSuitableRequisites),
+            "<b>ПОМЕНЯЙТЕ СУММУ НА 10₽</b>" => Ok(Self::IncreaseAmountBy10),
+            other => Ok(Self::Unknown(other.to_string())),
+        }
+    }
+}
+
+impl From<AutosalesPlatformError> for String {
+    fn from(value: AutosalesPlatformError) -> Self {
+        match value {
+            AutosalesPlatformError::NoSuitableRequisites => "Нет подходящих реквизитов".to_string(),
+            AutosalesPlatformError::IncreaseAmountBy10 => {
+                "<b>ПОМЕНЯЙТЕ СУММУ НА 10₽</b>".to_string()
+            }
+            AutosalesPlatformError::Unknown(s) => s,
+        }
+    }
+}
+
+impl From<String> for AutosalesPlatformError {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "Нет подходящих реквизитов" => Self::NoSuitableRequisites,
+            "<b>ПОМЕНЯЙТЕ СУММУ НА 10₽</b>" => Self::IncreaseAmountBy10,
+            other => Self::Unknown(other.to_string()),
+        }
+    }
+}
+
+impl std::fmt::Display for AutosalesPlatformError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            AutosalesPlatformError::NoSuitableRequisites => {
+                write!(f, "Нет подходящих реквизитов")
+            }
+            AutosalesPlatformError::IncreaseAmountBy10 => {
+                write!(f, "<b>ПОМЕНЯЙТЕ СУММУ НА 10₽</b>")
+            }
+            AutosalesPlatformError::Unknown(s) => write!(f, "{s}"),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "response")]
+pub enum AutosalesPlatformResponse<T> {
+    #[serde(rename = "success")]
+    Success {
+        message: String,
+        query: serde_json::Value,
+        data: T,
+    },
+    #[serde(rename = "error")]
+    Error {
+        message: AutosalesPlatformError,
+        query: serde_json::Value,
+        data: Option<serde_json::Value>,
+    },
 }
 
 #[derive(Debug, Deserialize)]

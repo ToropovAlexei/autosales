@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use crate::AppState;
 use crate::bot::handlers::deposit_confirm::deposit_confirm_handler;
 use crate::bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard;
 use crate::bot::keyboards::deposit_amount_menu::deposit_amount_menu;
@@ -15,6 +16,7 @@ pub async fn amount_input_handler(
     msg: Message,
     api_client: Arc<BackendApi>,
     bot_state: BotState,
+    app_state: AppState,
 ) -> AppResult<()> {
     let gateway = match bot_state {
         BotState {
@@ -70,6 +72,7 @@ pub async fn amount_input_handler(
         dialogue,
         api_client,
         new_state,
+        app_state,
     )
     .await?;
 

@@ -10,8 +10,9 @@ use thiserror::Error;
 use utoipa::ToSchema;
 use validator::ValidationErrors;
 
-use crate::errors::{
-    auth::AuthError, repository::RepositoryError, totp_encryptor::TotpEncryptorError,
+use crate::{
+    errors::{auth::AuthError, repository::RepositoryError, totp_encryptor::TotpEncryptorError},
+    infrastructure::external::payment::autosales_platform::dto::AutosalesPlatformError,
 };
 
 #[derive(Debug, Error)]
@@ -26,6 +27,8 @@ pub enum ApiError {
     NotFound(String),
     #[error("Bad request: {0}")]
     BadRequest(String),
+    #[error("Conflict: {0}")]
+    Conflict(String),
     #[error("Internal server error: {0}")]
     InternalServerError(String),
 }
@@ -88,6 +91,20 @@ impl From<AuthError> for ApiError {
     }
 }
 
+impl From<AutosalesPlatformError> for ApiError {
+    fn from(err: AutosalesPlatformError) -> Self {
+        match err {
+            AutosalesPlatformError::NoSuitableRequisites => {
+                ApiError::Conflict("No suitable requisites".to_string())
+            }
+            AutosalesPlatformError::IncreaseAmountBy10 => {
+                ApiError::Conflict("Increase amount by 10".to_string())
+            }
+            AutosalesPlatformError::Unknown(s) => ApiError::InternalServerError(s),
+        }
+    }
+}
+
 impl IntoResponse for ApiError {
     fn into_response(self) -> Response {
         tracing::error!("Error occurred: {}", self.to_string());
@@ -126,6 +143,7 @@ impl IntoResponse for ApiError {
                         StatusCode::INTERNAL_SERVER_ERROR,
                         "Internal server error".to_string(),
                     ),
+                    ApiError::Conflict(msg) => (StatusCode::CONFLICT, msg),
                     ApiError::ValidationError(_) => unreachable!(),
                 };
 
