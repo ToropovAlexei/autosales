@@ -10,7 +10,6 @@ use shared_dtos::{
     invoice::{PaymentDetails, PaymentSystem},
     notification::{DispatchMessage, DispatchMessagePayload},
 };
-use teloxide::payloads::{SetMyDescriptionSetters, SetMyShortDescriptionSetters};
 use teloxide::{
     ApiError, Bot, RequestError,
     dispatching::{
@@ -24,6 +23,10 @@ use teloxide::{
         BotCommand, CallbackQuery, ChatId, InlineKeyboardButton, InlineKeyboardMarkup, Message,
         MessageId, Update,
     },
+};
+use teloxide::{
+    payloads::{SetMyDescriptionSetters, SetMyShortDescriptionSetters},
+    types::ReplyMarkup,
 };
 use tokio::time::interval;
 use tokio_stream::StreamExt;
@@ -41,9 +44,10 @@ use crate::{
             delete_bot_handler::delete_bot_handler, deposit_amount::deposit_amount_handler,
             deposit_confirm::deposit_confirm_handler, deposit_gateway::deposit_gateway_handler,
             fallback_bot_msg::fallback_bot_msg, main_menu::main_menu_handler,
-            my_orders::my_orders_handler, my_payments::my_payments_handler,
-            my_subscriptions::my_subscriptions_handler, order_details::order_details_handler,
-            product::product_handler, receipt_submitted_handler::receipt_submitted_handler,
+            main_menu::main_menu_text_handler, my_orders::my_orders_handler,
+            my_payments::my_payments_handler, my_subscriptions::my_subscriptions_handler,
+            order_details::order_details_handler, product::product_handler,
+            receipt_submitted_handler::receipt_submitted_handler,
             referral_bot_token_handler::referral_bot_token_handler,
             referral_program_handler::referral_program_handler,
             show_bot_info_handler::show_bot_info_handler, start::start_handler,
@@ -123,6 +127,7 @@ pub enum BotStep {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
 pub struct BotState {
+    pub last_bot_welcome_msg_id: Option<i64>,
     pub last_bot_msg_id: Option<i64>,
     pub last_user_msg_id: Option<i64>,
     pub step: BotStep,
@@ -314,7 +319,8 @@ pub async fn run_bot(
                 matches!(state.step, BotStep::ReceiptRequested { .. })
             })
             .endpoint(receipt_submitted_handler),
-        );
+        )
+        .branch(dptree::entry().endpoint(main_menu_text_handler));
 
     let callback_router = dptree::entry().endpoint(
         async move |dialogue: MyDialogue,
@@ -915,8 +921,15 @@ async fn handle_msg(
         }
     };
 
-    if let Err(AppError::RequestError(RequestError::Api(ApiError::BotBlocked))) =
-        send_msg(&api_client, &dialogue, &bot, &msg, img, keyboard).await
+    if let Err(AppError::RequestError(RequestError::Api(ApiError::BotBlocked))) = send_msg(
+        &api_client,
+        &dialogue,
+        &bot,
+        &msg,
+        img,
+        ReplyMarkup::InlineKeyboard(keyboard),
+    )
+    .await
     {
         tracing::info!("Bot is blocked by user: {}", payload.telegram_id);
         api_client

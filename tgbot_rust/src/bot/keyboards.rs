@@ -4,6 +4,7 @@ pub mod captcha;
 pub mod catalog_menu;
 pub mod deposit_amount_menu;
 pub mod main_menu;
+pub mod main_menu_reply;
 pub mod my_bots_menu;
 pub mod my_orders_menu;
 pub mod my_payments;

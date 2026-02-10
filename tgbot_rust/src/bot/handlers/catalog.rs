@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use shared_dtos::category::CategoryBotResponse;
-use teloxide::{Bot, types::CallbackQuery};
+use teloxide::{
+    Bot,
+    types::{CallbackQuery, Message},
+};
 
 use crate::{
     api::backend_api::BackendApi,
@@ -17,6 +20,33 @@ pub async fn catalog_handler(
     bot: Bot,
     dialogue: MyDialogue,
     q: CallbackQuery,
+    api_client: Arc<BackendApi>,
+    category_id: Option<i64>,
+) -> AppResult<()> {
+    catalog_handler_impl(
+        bot,
+        dialogue,
+        MsgBy::CallbackQuery(&q),
+        api_client,
+        category_id,
+    )
+    .await
+}
+
+pub async fn catalog_handler_msg(
+    bot: Bot,
+    dialogue: MyDialogue,
+    msg: Message,
+    api_client: Arc<BackendApi>,
+    category_id: Option<i64>,
+) -> AppResult<()> {
+    catalog_handler_impl(bot, dialogue, MsgBy::Message(&msg), api_client, category_id).await
+}
+
+async fn catalog_handler_impl(
+    bot: Bot,
+    dialogue: MyDialogue,
+    msg_by: MsgBy<'_>,
     api_client: Arc<BackendApi>,
     category_id: Option<i64>,
 ) -> AppResult<()> {
@@ -68,7 +98,7 @@ pub async fn catalog_handler(
         &api_client,
         &dialogue,
         &bot,
-        &MsgBy::CallbackQuery(&q),
+        &msg_by,
         caption,
         image_bytes,
         reply_markup,

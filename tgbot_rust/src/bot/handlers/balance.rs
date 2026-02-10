@@ -1,6 +1,11 @@
 use std::sync::Arc;
 
-use teloxide::{Bot, dispatching::dialogue::GetChatId, types::CallbackQuery, utils::html::bold};
+use teloxide::{
+    Bot,
+    dispatching::dialogue::GetChatId,
+    types::{CallbackQuery, Message},
+    utils::html::bold,
+};
 
 use crate::{
     api::backend_api::BackendApi,
@@ -24,6 +29,39 @@ pub async fn balance_handler(
         .ok_or(AppError::InternalServerError(
             "Failed to get telegram id".to_string(),
         ))?;
+    balance_handler_impl(
+        bot,
+        dialogue,
+        MsgBy::CallbackQuery(&q),
+        api_client,
+        telegram_id,
+    )
+    .await
+}
+
+pub async fn balance_handler_msg(
+    bot: Bot,
+    dialogue: MyDialogue,
+    msg: Message,
+    api_client: Arc<BackendApi>,
+) -> AppResult<()> {
+    balance_handler_impl(
+        bot,
+        dialogue,
+        MsgBy::Message(&msg),
+        api_client,
+        msg.chat.id.0,
+    )
+    .await
+}
+
+async fn balance_handler_impl(
+    bot: Bot,
+    dialogue: MyDialogue,
+    msg_by: MsgBy<'_>,
+    api_client: Arc<BackendApi>,
+    telegram_id: i64,
+) -> AppResult<()> {
     let text = match api_client.get_user(telegram_id).await {
         Ok(customer) => format!(
             "💳 Ваш текущий баланс: {} ₽",
@@ -38,7 +76,7 @@ pub async fn balance_handler(
         &api_client,
         &dialogue,
         &bot,
-        &MsgBy::CallbackQuery(&q),
+        &msg_by,
         &text,
         None,
         balance_menu_inline_keyboard(),

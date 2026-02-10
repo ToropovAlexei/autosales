@@ -2,13 +2,15 @@ use std::sync::Arc;
 
 use crate::bot::keyboards::captcha::captcha_keyboard_inline;
 use crate::bot::keyboards::main_menu::main_menu_inline_keyboard;
-use crate::bot::utils::{MessageImage, MsgBy, edit_msg};
+use crate::bot::keyboards::main_menu_reply::main_menu_reply_keyboard;
+use crate::bot::utils::{MessageImage, MsgBy, edit_msg, send_msg};
 use crate::bot::{BotState, BotStep, generate_captcha_and_options};
 use crate::{api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult};
 use chrono::Utc;
 use shared_dtos::customer::UpdateCustomerBotRequest;
 use teloxide::Bot;
-use teloxide::types::{InlineKeyboardMarkup, Message};
+use teloxide::prelude::Requester;
+use teloxide::types::{InlineKeyboardMarkup, Message, MessageId, ReplyMarkup};
 
 pub async fn start_handler(
     bot: Bot,
@@ -16,7 +18,6 @@ pub async fn start_handler(
     msg: Message,
     api_client: Arc<BackendApi>,
 ) -> AppResult<()> {
-    let state_data = dialogue.get().await?.unwrap_or_default();
     let user_id = msg.chat.id;
     let user = match api_client.ensure_user(user_id.0).await {
         Ok(res) => res,
@@ -124,7 +125,7 @@ pub async fn start_handler(
                 step: BotStep::WaitingForCaptcha {
                     correct_answer: captcha_text,
                 },
-                ..state_data
+                ..dialogue.get().await?.unwrap_or_default()
             })
             .await?;
         return Ok(());
@@ -133,7 +134,7 @@ pub async fn start_handler(
     dialogue
         .update(BotState {
             step: BotStep::MainMenu,
-            ..state_data
+            ..dialogue.get().await?.unwrap_or_default()
         })
         .await?;
 
@@ -161,13 +162,41 @@ pub async fn start_handler(
     );
     let welcome_msg_img_id = image_id.map(MessageImage::Uuid);
 
+    let prev_state = dialogue.get().await?.unwrap_or_default();
+
+    if let Some(prev_welcome_msg) = prev_state.last_bot_welcome_msg_id {
+        let _ = bot
+            .delete_message(user_id, MessageId(prev_welcome_msg as i32))
+            .await;
+    }
+
+    // Send dummy message just to show reply keyboard
+    let dummy_msg = send_msg(
+        &api_client,
+        &dialogue,
+        &bot,
+        &welcome_msg,
+        welcome_msg_img_id,
+        ReplyMarkup::Keyboard(main_menu_reply_keyboard()),
+    )
+    .await?;
+
+    // Reset msg id to prevent dummy msg removal
+    dialogue
+        .update(BotState {
+            last_bot_msg_id: prev_state.last_bot_msg_id,
+            last_bot_welcome_msg_id: Some(dummy_msg.id.0 as i64),
+            ..dialogue.get().await?.unwrap_or_default()
+        })
+        .await?;
+
     edit_msg(
         &api_client,
         &dialogue,
         &bot,
         &MsgBy::Message(&msg),
-        &welcome_msg,
-        welcome_msg_img_id,
+        "Главное меню",
+        None,
         main_menu_inline_keyboard(referral_program_enabled),
     )
     .await?;

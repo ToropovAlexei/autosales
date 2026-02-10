@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use teloxide::{Bot, types::CallbackQuery};
+use teloxide::{
+    Bot,
+    types::{CallbackQuery, Message},
+};
 
 use crate::{
     api::backend_api::BackendApi,
@@ -18,6 +21,24 @@ pub async fn support_handler(
     q: CallbackQuery,
     api_client: Arc<BackendApi>,
 ) -> AppResult<()> {
+    support_handler_impl(bot, dialogue, MsgBy::CallbackQuery(&q), api_client).await
+}
+
+pub async fn support_handler_msg(
+    bot: Bot,
+    dialogue: MyDialogue,
+    msg: Message,
+    api_client: Arc<BackendApi>,
+) -> AppResult<()> {
+    support_handler_impl(bot, dialogue, MsgBy::Message(&msg), api_client).await
+}
+
+async fn support_handler_impl(
+    bot: Bot,
+    dialogue: MyDialogue,
+    msg_by: MsgBy<'_>,
+    api_client: Arc<BackendApi>,
+) -> AppResult<()> {
     let settings = api_client.get_settings().await?;
     let support_img = settings
         .bot_messages_support_image_id
@@ -27,7 +48,7 @@ pub async fn support_handler(
         &api_client,
         &dialogue,
         &bot,
-        &MsgBy::CallbackQuery(&q),
+        &msg_by,
         &settings.bot_messages_support,
         support_img,
         main_menu_inline_keyboard(settings.referral_program_enabled),

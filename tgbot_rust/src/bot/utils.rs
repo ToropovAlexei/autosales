@@ -8,7 +8,7 @@ use teloxide::payloads::{
 use teloxide::prelude::{Request, Requester};
 use teloxide::types::{
     CallbackQuery, ChatId, InlineKeyboardMarkup, InputFile, InputMedia, InputMediaPhoto,
-    MaybeInaccessibleMessage, Message, MessageId, ParseMode,
+    MaybeInaccessibleMessage, Message, MessageId, ParseMode, ReplyMarkup,
 };
 use uuid::Uuid;
 
@@ -36,7 +36,7 @@ pub async fn send_msg(
     bot: &Bot,
     text: &str,
     image: Option<MessageImage>,
-    reply_keyboard: InlineKeyboardMarkup,
+    reply_keyboard: ReplyMarkup,
 ) -> AppResult<Message> {
     let image_bytes = match image {
         Some(MessageImage::Uuid(uuid)) => {
@@ -134,7 +134,14 @@ async fn edit_msg_impl(
         if is_type_changed {
             // We can safely ignore error as it expected behavior
             let _ = bot.delete_message(chat_id, msg_id).await;
-            return send_msg_impl(bot, chat_id, text, image_bytes, reply_keyboard).await;
+            return send_msg_impl(
+                bot,
+                chat_id,
+                text,
+                image_bytes,
+                ReplyMarkup::InlineKeyboard(reply_keyboard),
+            )
+            .await;
         }
         return match image_bytes {
             Some(image_bytes) => {
@@ -152,7 +159,14 @@ async fn edit_msg_impl(
         };
     }
     // If no msg id, just send new message
-    send_msg_impl(bot, chat_id, text, image_bytes, reply_keyboard).await
+    send_msg_impl(
+        bot,
+        chat_id,
+        text,
+        image_bytes,
+        ReplyMarkup::InlineKeyboard(reply_keyboard),
+    )
+    .await
 }
 
 /// Send message with or without photo
@@ -161,7 +175,7 @@ async fn send_msg_impl(
     chat_id: ChatId,
     text: &str,
     image_bytes: Option<Bytes>,
-    reply_keyboard: InlineKeyboardMarkup,
+    reply_keyboard: ReplyMarkup,
 ) -> AppResult<Message> {
     match image_bytes {
         Some(image_bytes) => send_media_msg(bot, chat_id, text, image_bytes, reply_keyboard).await,
@@ -217,7 +231,14 @@ async fn edit_media_msg(
             return Ok(msg);
         }
     }
-    send_media_msg(bot, chat_id, text, image_bytes, reply_keyboard).await
+    send_media_msg(
+        bot,
+        chat_id,
+        text,
+        image_bytes,
+        ReplyMarkup::InlineKeyboard(reply_keyboard),
+    )
+    .await
 }
 
 /// Try edit text message. If edit is failed, send new message
@@ -238,7 +259,13 @@ async fn edit_text_msg(
     {
         return Ok(msg);
     }
-    send_text_msg(bot, chat_id, text, reply_keyboard).await
+    send_text_msg(
+        bot,
+        chat_id,
+        text,
+        ReplyMarkup::InlineKeyboard(reply_keyboard),
+    )
+    .await
 }
 
 /// Send message with photo
@@ -247,7 +274,7 @@ async fn send_media_msg(
     chat_id: ChatId,
     text: &str,
     image_bytes: Bytes,
-    reply_keyboard: InlineKeyboardMarkup,
+    reply_keyboard: ReplyMarkup,
 ) -> AppResult<Message> {
     Ok(bot
         .send_photo(chat_id, InputFile::memory(image_bytes))
@@ -263,7 +290,7 @@ async fn send_text_msg(
     bot: &Bot,
     chat_id: ChatId,
     text: &str,
-    reply_keyboard: InlineKeyboardMarkup,
+    reply_keyboard: ReplyMarkup,
 ) -> AppResult<Message> {
     Ok(bot
         .send_message(chat_id, text)
