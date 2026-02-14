@@ -11,7 +11,7 @@ import { ProductCSVUploadModal } from "./components/ProductCSVUploadModal";
 import { dataLayer } from "@/lib/dataLayer";
 import { queryKeys } from "@/utils/query";
 import { PageLayout } from "@/components/PageLayout";
-import { Category, Product } from "@/types";
+import { Category, NewProduct, Product, UpdateProduct } from "@/types";
 import { flattenCategoriesForSelect } from "../categories/utils";
 import { toast } from "react-toastify";
 
@@ -44,15 +44,17 @@ export default function ProductsPage() {
   );
 
   const mutation = useMutation({
-    mutationFn: (payload: Partial<Product>) => {
+    mutationFn: (
+      payload: NewProduct | (UpdateProduct & { id: Product["id"] }),
+    ) => {
       const params = { url: ENDPOINTS.PRODUCTS, params: payload };
-      if (payload.id) {
+      if ("id" in payload) {
         return dataLayer.update({ ...params, id: payload.id });
       }
       return dataLayer.create(params);
     },
     onSuccess: (_, payload) => {
-      toast.success(payload.id ? "Товар обновлен" : "Товар создан");
+      toast.success("id" in payload ? "Товар обновлен" : "Товар создан");
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.PRODUCTS),
       });
@@ -77,7 +79,9 @@ export default function ProductsPage() {
     setIsFormOpen(true);
   };
 
-  const handleConfirmForm = (data: Product) => {
+  const handleConfirmForm = (
+    data: NewProduct | (UpdateProduct & { id: Product["id"] }),
+  ) => {
     mutation.mutate(data);
   };
 

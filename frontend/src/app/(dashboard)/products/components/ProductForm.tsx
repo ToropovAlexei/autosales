@@ -16,25 +16,27 @@ import {
   InputSelect,
   InputNumber,
 } from "@/components";
-import { Category, Product } from "@/types";
+import { Category, NewProduct, Product, UpdateProduct } from "@/types";
 
 interface ProductFormData {
   name: string;
   category_id: number;
   base_price: number;
-  image_id?: string;
+  image_id?: string | null;
   initial_stock?: number;
   stock?: number;
   type: "item" | "subscription";
   subscription_period_days?: number;
   fulfillment_text?: string;
-  fulfillment_image_id?: string;
+  fulfillment_image_id?: string | null;
 }
 
 interface ProductFormProps {
   open: boolean;
   onClose: () => void;
-  onConfirm: (data: Partial<Product>) => void;
+  onConfirm: (
+    data: NewProduct | (UpdateProduct & { id: Product["id"] }),
+  ) => void;
   defaultValues?: Product;
   categories: { value: number; label: string }[];
   allCategories: Category[];
@@ -61,7 +63,7 @@ export const ProductForm = ({
       base_price: defaultValues?.base_price || 0,
       type: defaultValues?.type || "item",
       stock: defaultValues?.stock || 0,
-      image_id: defaultValues?.image_id || null,
+      image_id: defaultValues?.image_id,
       initial_stock: !isEditMode ? 0 : undefined,
       subscription_period_days: defaultValues?.subscription_period_days || 30,
       fulfillment_text: defaultValues?.fulfillment_text || "",
@@ -80,22 +82,22 @@ export const ProductForm = ({
       base_price: Number(data.base_price),
       type: data.type,
       image_id: data.image_id,
+      fulfillment_image_id: data.fulfillment_image_id,
+      fulfillment_text: data.fulfillment_text,
     };
 
     if (data.type === "item") {
       if (isEditMode) {
         payload.stock = data.stock;
       } else {
+        //@ts-ignore
         payload.initial_stock = data.initial_stock;
       }
     } else {
       payload.subscription_period_days = data.subscription_period_days;
     }
 
-    payload.fulfillment_text = data.fulfillment_text;
-    payload.fulfillment_image_id = data.fulfillment_image_id;
-
-    onConfirm(payload);
+    onConfirm(payload as NewProduct | (UpdateProduct & { id: Product["id"] }));
   };
 
   const handleFormSubmit = (data: ProductFormData) => {
