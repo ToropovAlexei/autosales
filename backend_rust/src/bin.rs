@@ -1,4 +1,4 @@
-use rand::Rng;
+use rand::RngExt;
 use reqwest::Response;
 use rust_decimal_macros::dec;
 use serde::{Deserialize, de::DeserializeOwned};

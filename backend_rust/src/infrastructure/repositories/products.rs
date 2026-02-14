@@ -278,7 +278,7 @@ impl ProductRepositoryTrait for ProductRepository {
 mod tests {
 
     use super::*;
-    use rand::Rng;
+    use rand::RngExt;
     use rust_decimal::Decimal;
     use shared_dtos::list_query::Pagination;
     use sqlx::PgPool;
