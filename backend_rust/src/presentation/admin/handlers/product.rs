@@ -2,7 +2,14 @@ use axum::http::StatusCode;
 use axum_extra::extract::Multipart;
 use bytes::Bytes;
 use rust_decimal::{Decimal, prelude::FromPrimitive};
-use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
+use shared_dtos::{
+    error::ApiErrorResponse,
+    list_response::ListResponse,
+    product::{
+        NewProductAdminRequest, ProductAdminResponse, ProductsUploadResponse,
+        UpdateProductAdminRequest, UploadedProductCSV,
+    },
+};
 use std::sync::Arc;
 use utoipa::ToSchema;
 
@@ -22,10 +29,6 @@ use crate::{
         validator::ValidatedJson,
     },
     models::product::ProductListQuery,
-    presentation::admin::dtos::product::{
-        NewProductAdminRequest, ProductAdminResponse, ProductsUploadResponse,
-        UpdateProductAdminRequest, UploadedProductCSV,
-    },
     services::{
         auth::AuthUser,
         product::{

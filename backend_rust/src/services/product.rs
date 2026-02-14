@@ -7,7 +7,7 @@ use rust_decimal_macros::dec;
 use serde::Serialize;
 use shared_dtos::{
     audit_log::{AuditAction, AuditStatus},
-    product::{ProductDetails, ProductType},
+    product::{ProductDetails, ProductType, UploadedProductCSV},
     stock_movement::StockMovementType,
 };
 use uuid::Uuid;
@@ -29,7 +29,6 @@ use crate::{
         settings::Settings,
         stock_movement::NewStockMovement,
     },
-    presentation::admin::dtos::product::UploadedProductCSV,
     services::{
         audit_log::{AuditLogService, AuditLogServiceTrait},
         category::{CategoryService, CategoryServiceTrait, CreateCategorySequenceCommand},

@@ -34,7 +34,9 @@ use shared_dtos::{
         EnrichedOrderBotResponse, OrderAdminResponse, OrderItemBotResponse, PurchaseBotResponse,
     },
     permission::PermissionAdminResponse,
-    product::ProductType,
+    product::{
+        NewProductAdminRequest, ProductAdminResponse, ProductType, UpdateProductAdminRequest,
+    },
     role::{NewRoleAdminRequest, RoleAdminResponse, UpdateRoleAdminRequest},
     settings::SettingsBotResponse,
     stock_movement::StockMovementAdminResponse,
@@ -58,9 +60,6 @@ use backend_rust::{
         admin::{
             dtos::{
                 broadcast::{BroadcastResponse, NewBroadcastRequest},
-                product::{
-                    NewProductAdminRequest, ProductAdminResponse, UpdateProductAdminRequest,
-                },
                 settings::{
                     BotSettingsAdminResponse, PricingSettingsAdminResponse,
                     UpdateBotSettingsAdminRequest, UpdatePricingSettingsAdminRequest,
