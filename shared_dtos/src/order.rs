@@ -72,3 +72,38 @@ pub enum PurchaseDetails {
     ProductDetails(ProductDetails),
     UserSubscriptionDetails(UserSubscriptionDetails),
 }
+
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "order.ts", rename = "OrderItem")
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrderItemAdminResponse {
+    pub id: i64,
+    pub order_id: i64,
+    pub product_id: i64,
+    pub name_at_purchase: String,
+    pub price_at_purchase: f64,
+    pub quantity: i16,
+}
+
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(feature = "ts", ts(export, export_to = "order.ts", rename = "Order"))]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct OrderAdminResponse {
+    pub id: i64,
+    pub customer_id: i64,
+    pub amount: f64,
+    pub currency: String,
+    pub status: OrderStatus,
+    pub order_items: Vec<OrderItemAdminResponse>,
+    pub bot_id: i64,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub paid_at: Option<DateTime<Utc>>,
+    pub fulfilled_at: Option<DateTime<Utc>>,
+    pub cancelled_at: Option<DateTime<Utc>>,
+}

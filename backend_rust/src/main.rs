@@ -25,7 +25,9 @@ use shared_dtos::{
         PaymentInvoiceBotResponse, UpdatePaymentInvoiceBotRequest,
     },
     list_response::ListResponse,
-    order::{EnrichedOrderBotResponse, OrderItemBotResponse, PurchaseBotResponse},
+    order::{
+        EnrichedOrderBotResponse, OrderAdminResponse, OrderItemBotResponse, PurchaseBotResponse,
+    },
     permission::PermissionAdminResponse,
     product::ProductType,
     role::{NewRoleAdminRequest, RoleAdminResponse, UpdateRoleAdminRequest},
@@ -56,7 +58,6 @@ use backend_rust::{
                     StatWithTrendResponse, TimeSeriesDashboardDataResponse,
                     TimeSeriesPointResponse, TopProductResponse,
                 },
-                order::OrderAdminResponse,
                 product::{
                     NewProductAdminRequest, ProductAdminResponse, UpdateProductAdminRequest,
                 },

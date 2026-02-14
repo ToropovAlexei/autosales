@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
-use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
+use shared_dtos::{
+    error::ApiErrorResponse, list_response::ListResponse, order::OrderAdminResponse,
+};
 
 use crate::{
     errors::api::ApiResult,
     middlewares::require_permission::{OrdersRead, RequirePermission},
     models::order::OrderListQuery,
-    presentation::admin::dtos::order::OrderAdminResponse,
     services::{auth::AuthUser, order::OrderServiceTrait},
     state::AppState,
 };

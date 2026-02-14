@@ -1,38 +1,6 @@
 use crate::services::order::EnrichedOrder;
-use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
-use serde::{Deserialize, Serialize};
-use shared_dtos::order::OrderStatus;
-use ts_rs::TS;
-use utoipa::{ToResponse, ToSchema};
-
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, TS)]
-#[ts(export, export_to = "order.ts", rename = "OrderItem")]
-pub struct OrderItemAdminResponse {
-    pub id: i64,
-    pub order_id: i64,
-    pub product_id: i64,
-    pub name_at_purchase: String,
-    pub price_at_purchase: f64,
-    pub quantity: i16,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "order.ts", rename = "Order")]
-pub struct OrderAdminResponse {
-    pub id: i64,
-    pub customer_id: i64,
-    pub amount: f64,
-    pub currency: String,
-    pub status: OrderStatus,
-    pub order_items: Vec<OrderItemAdminResponse>,
-    pub bot_id: i64,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub paid_at: Option<DateTime<Utc>>,
-    pub fulfilled_at: Option<DateTime<Utc>>,
-    pub cancelled_at: Option<DateTime<Utc>>,
-}
+use shared_dtos::order::{OrderAdminResponse, OrderItemAdminResponse};
 
 impl From<EnrichedOrder> for OrderAdminResponse {
     fn from(r: EnrichedOrder) -> Self {
@@ -67,7 +35,9 @@ impl From<EnrichedOrder> for OrderAdminResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
     use rust_decimal::Decimal;
+    use shared_dtos::order::OrderStatus;
 
     #[test]
     fn test_order_response_from_order_row() {
