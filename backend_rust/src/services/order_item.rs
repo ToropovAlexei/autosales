@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use shared_dtos::stock_movement::StockMovementType;
 
 use crate::{
     errors::api::ApiResult,
@@ -10,7 +11,7 @@ use crate::{
     },
     models::{
         order_item::{NewOrderItem, OrderItemRow},
-        stock_movement::{NewStockMovement, StockMovementType},
+        stock_movement::NewStockMovement,
     },
 };
 
@@ -68,7 +69,6 @@ mod tests {
     use crate::infrastructure::repositories::{
         order_item::OrderItemRepository, stock_movement::StockMovementRepository,
     };
-    use crate::models::stock_movement::StockMovementType;
     use rust_decimal::Decimal;
     use sqlx::PgPool;
     use std::sync::Arc;

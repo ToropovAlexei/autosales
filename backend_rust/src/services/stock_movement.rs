@@ -53,7 +53,8 @@ impl StockMovementServiceTrait for StockMovementService<StockMovementRepository>
 mod tests {
     use super::*;
     use crate::infrastructure::repositories::stock_movement::StockMovementRepository;
-    use crate::models::stock_movement::{NewStockMovement, StockMovementType};
+    use crate::models::stock_movement::NewStockMovement;
+    use shared_dtos::stock_movement::StockMovementType;
     use sqlx::PgPool;
     use std::sync::Arc;
 

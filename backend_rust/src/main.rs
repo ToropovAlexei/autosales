@@ -30,6 +30,7 @@ use shared_dtos::{
     product::ProductType,
     role::{NewRoleAdminRequest, RoleAdminResponse, UpdateRoleAdminRequest},
     settings::SettingsBotResponse,
+    stock_movement::StockMovementAdminResponse,
     store_balance::StoreBalanceAdminResponse,
     transaction::TransactionAdminResponse,
 };
@@ -63,7 +64,6 @@ use backend_rust::{
                     BotSettingsAdminResponse, PricingSettingsAdminResponse,
                     UpdateBotSettingsAdminRequest, UpdatePricingSettingsAdminRequest,
                 },
-                stock_movement::StockMovementAdminResponse,
             },
             handlers as admin_handlers,
         },

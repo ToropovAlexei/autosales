@@ -1,13 +1,15 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
-use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
+use shared_dtos::{
+    error::ApiErrorResponse, list_response::ListResponse,
+    stock_movement::StockMovementAdminResponse,
+};
 
 use crate::{
     errors::api::ApiResult,
     middlewares::require_permission::{RequirePermission, StockRead},
     models::stock_movement::StockMovementListQuery,
-    presentation::admin::dtos::stock_movement::StockMovementAdminResponse,
     services::{auth::AuthUser, stock_movement::StockMovementServiceTrait},
     state::AppState,
 };

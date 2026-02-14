@@ -1,23 +1,6 @@
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use ts_rs::TS;
-use utoipa::{ToResponse, ToSchema};
+use shared_dtos::stock_movement::StockMovementAdminResponse;
 
-use crate::models::stock_movement::{StockMovementRow, StockMovementType};
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "stock_movement.ts", rename = "StockMovement")]
-pub struct StockMovementAdminResponse {
-    pub id: i64,
-    pub order_id: Option<i64>,
-    pub product_id: i64,
-    pub product_name: String,
-    pub r#type: StockMovementType,
-    pub quantity: i64,
-    pub created_at: DateTime<Utc>,
-    pub created_by: i64,
-    pub description: Option<String>,
-}
+use crate::models::stock_movement::StockMovementRow;
 
 impl From<StockMovementRow> for StockMovementAdminResponse {
     fn from(r: StockMovementRow) -> Self {
@@ -37,6 +20,9 @@ impl From<StockMovementRow> for StockMovementAdminResponse {
 
 #[cfg(test)]
 mod tests {
+    use chrono::Utc;
+    use shared_dtos::stock_movement::StockMovementType;
+
     use super::*;
 
     #[test]

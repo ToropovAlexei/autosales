@@ -1,22 +1,9 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use shared_dtos::stock_movement::StockMovementType;
 use sqlx::prelude::FromRow;
-use ts_rs::TS;
-use utoipa::ToSchema;
 
 use crate::define_list_query;
-
-#[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]
-#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-#[ts(export, export_to = "stock_movement.ts")]
-pub enum StockMovementType {
-    Initial,
-    Restock,
-    Sale,
-    Return,
-    Adjustment,
-}
 
 #[derive(FromRow, Debug, Clone, Serialize)]
 pub struct StockMovementRow {

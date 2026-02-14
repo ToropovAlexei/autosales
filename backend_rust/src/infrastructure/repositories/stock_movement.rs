@@ -148,13 +148,13 @@ impl StockMovementRepositoryTrait for StockMovementRepository {
 #[cfg(test)]
 mod tests {
     use rust_decimal::Decimal;
+    use shared_dtos::stock_movement::StockMovementType;
 
     use crate::models::admin_user::{AdminUserRow, NewAdminUser};
     use crate::models::bot::BotRow;
     use crate::models::customer::CustomerRow;
     use crate::models::order::OrderRow;
     use crate::models::product::ProductRow;
-    use crate::models::stock_movement::StockMovementType;
 
     use super::*;
 

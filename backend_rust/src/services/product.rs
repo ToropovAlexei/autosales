@@ -8,6 +8,7 @@ use serde::Serialize;
 use shared_dtos::{
     audit_log::{AuditAction, AuditStatus},
     product::{ProductDetails, ProductType},
+    stock_movement::StockMovementType,
 };
 use uuid::Uuid;
 
@@ -26,7 +27,7 @@ use crate::{
         common::PaginatedResult,
         product::{NewProduct, ProductListQuery, ProductRow, UpdateProduct},
         settings::Settings,
-        stock_movement::{NewStockMovement, StockMovementType},
+        stock_movement::NewStockMovement,
     },
     presentation::admin::dtos::product::UploadedProductCSV,
     services::{
