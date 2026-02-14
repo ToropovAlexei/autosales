@@ -1,5 +1,5 @@
 use rust_decimal::prelude::ToPrimitive;
-use shared_dtos::error::ApiErrorResponse;
+use shared_dtos::{error::ApiErrorResponse, store_balance::StoreBalanceAdminResponse};
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
@@ -7,7 +7,6 @@ use axum::{Json, Router, extract::State, routing::get};
 use crate::{
     errors::api::{ApiError, ApiResult},
     middlewares::require_permission::{RequirePermission, StoreBalanceRead},
-    presentation::admin::dtos::store_balance::StoreBalanceAdminResponse,
     services::{auth::AuthUser, transaction::TransactionServiceTrait},
     state::AppState,
 };

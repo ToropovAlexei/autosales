@@ -15,5 +15,4 @@ pub mod role;
 pub mod role_permission;
 pub mod settings;
 pub mod stock_movement;
-pub mod store_balance;
 pub mod transaction;

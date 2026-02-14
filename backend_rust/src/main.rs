@@ -21,8 +21,8 @@ use shared_dtos::{
     error::ApiErrorResponse,
     image::ImageAdminResponse,
     invoice::{
-        GatewayBotResponse, NewPaymentInvoiceBotRequest, PaymentInvoiceBotResponse,
-        UpdatePaymentInvoiceBotRequest,
+        GatewayBotResponse, NewPaymentInvoiceBotRequest, PaymentInvoiceAdminResponse,
+        PaymentInvoiceBotResponse, UpdatePaymentInvoiceBotRequest,
     },
     list_response::ListResponse,
     order::{EnrichedOrderBotResponse, OrderItemBotResponse, PurchaseBotResponse},
@@ -30,6 +30,7 @@ use shared_dtos::{
     product::ProductType,
     role::{NewRoleAdminRequest, RoleAdminResponse, UpdateRoleAdminRequest},
     settings::SettingsBotResponse,
+    store_balance::StoreBalanceAdminResponse,
     transaction::TransactionAdminResponse,
 };
 use std::sync::Arc;
@@ -55,7 +56,6 @@ use backend_rust::{
                     TimeSeriesPointResponse, TopProductResponse,
                 },
                 order::OrderAdminResponse,
-                payment_invoice::PaymentInvoiceAdminResponse,
                 product::{
                     NewProductAdminRequest, ProductAdminResponse, UpdateProductAdminRequest,
                 },
@@ -64,7 +64,6 @@ use backend_rust::{
                     UpdateBotSettingsAdminRequest, UpdatePricingSettingsAdminRequest,
                 },
                 stock_movement::StockMovementAdminResponse,
-                store_balance::StoreBalanceAdminResponse,
             },
             handlers as admin_handlers,
         },

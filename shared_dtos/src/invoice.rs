@@ -100,3 +100,23 @@ pub struct UpdatePaymentInvoiceBotRequest {
     pub status: Option<InvoiceStatus>,
     pub notification_sent_at: Option<Option<DateTime<Utc>>>,
 }
+
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "ts", derive(ts_rs::TS))]
+#[cfg_attr(
+    feature = "ts",
+    ts(export, export_to = "invoice.ts", rename = "PaymentInvoice")
+)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PaymentInvoiceAdminResponse {
+    pub id: i64,
+    pub customer_id: i64,
+    pub original_amount: f64,
+    pub amount: f64,
+    pub status: InvoiceStatus,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
+    pub gateway: PaymentSystem,
+    pub gateway_invoice_id: String,
+}

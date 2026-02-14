@@ -1,4 +1,6 @@
-use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
+use shared_dtos::{
+    error::ApiErrorResponse, invoice::PaymentInvoiceAdminResponse, list_response::ListResponse,
+};
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
@@ -7,7 +9,6 @@ use crate::{
     errors::api::ApiResult,
     middlewares::require_permission::{InvoicesRead, RequirePermission},
     models::payment_invoice::PaymentInvoiceListQuery,
-    presentation::admin::dtos::payment_invoice::PaymentInvoiceAdminResponse,
     services::{auth::AuthUser, payment_invoice::PaymentInvoiceServiceTrait},
     state::AppState,
 };

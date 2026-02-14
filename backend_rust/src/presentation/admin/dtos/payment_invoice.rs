@@ -1,26 +1,7 @@
-use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
-use serde::{Deserialize, Serialize};
-use shared_dtos::invoice::{InvoiceStatus, PaymentSystem};
-use ts_rs::TS;
-use utoipa::ToSchema;
+use shared_dtos::invoice::PaymentInvoiceAdminResponse;
 
 use crate::models::payment_invoice::PaymentInvoiceRow;
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
-#[ts(export, export_to = "invoice.ts", rename = "PaymentInvoice")]
-pub struct PaymentInvoiceAdminResponse {
-    pub id: i64,
-    pub customer_id: i64,
-    pub original_amount: f64,
-    pub amount: f64,
-    pub status: InvoiceStatus,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub expires_at: DateTime<Utc>,
-    pub gateway: PaymentSystem,
-    pub gateway_invoice_id: String,
-}
 
 impl From<PaymentInvoiceRow> for PaymentInvoiceAdminResponse {
     fn from(r: PaymentInvoiceRow) -> Self {
