@@ -6,7 +6,10 @@ use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
 use rust_decimal_macros::dec;
 use serde::{Deserialize, de::DeserializeOwned};
-use shared_dtos::audit_log::{AuditAction, AuditStatus};
+use shared_dtos::{
+    audit_log::{AuditAction, AuditStatus},
+    bot::BotType,
+};
 
 use crate::{
     errors::api::{ApiError, ApiResult},
@@ -19,7 +22,7 @@ use crate::{
     middlewares::context::RequestContext,
     models::{
         audit_log::NewAuditLog,
-        bot::{BotListQuery, BotRow, BotType, NewBot, UpdateBot},
+        bot::{BotListQuery, BotRow, NewBot, UpdateBot},
         common::PaginatedResult,
     },
     services::audit_log::{AuditLogService, AuditLogServiceTrait},

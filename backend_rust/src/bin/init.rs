@@ -16,7 +16,6 @@ use backend_rust::{
     },
     init_tracing,
     models::{
-        bot::BotType,
         role_permission::NewRolePermission,
         transaction::{NewTransaction, TransactionType},
     },
@@ -26,6 +25,7 @@ use backend_rust::{
 };
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use rust_decimal_macros::dec;
+use shared_dtos::bot::BotType;
 use std::sync::Arc;
 
 #[tokio::main]

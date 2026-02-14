@@ -2,6 +2,7 @@ use rand::Rng;
 use reqwest::Response;
 use rust_decimal_macros::dec;
 use serde::{Deserialize, de::DeserializeOwned};
+use shared_dtos::bot::BotType;
 use std::sync::Arc;
 
 use crate::{
@@ -11,12 +12,7 @@ use crate::{
         role::{RoleRepository, RoleRepositoryTrait},
         user_role::{UserRoleRepository, UserRoleRepositoryTrait},
     },
-    models::{
-        admin_user::NewAdminUser,
-        bot::{BotType, NewBot},
-        role::NewRole,
-        user_role::NewUserRole,
-    },
+    models::{admin_user::NewAdminUser, bot::NewBot, role::NewRole, user_role::NewUserRole},
     services::topt_encryptor::TotpEncryptor,
 };
 

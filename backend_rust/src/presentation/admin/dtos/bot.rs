@@ -1,27 +1,7 @@
-use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
-use serde::{Deserialize, Serialize};
-use ts_rs::TS;
-use utoipa::{ToResponse, ToSchema};
-use validator::Validate;
+use shared_dtos::bot::BotAdminResponse;
 
-use crate::models::bot::{BotRow, BotType};
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "bot.ts", rename = "Bot")]
-pub struct BotAdminResponse {
-    pub id: i64,
-    pub owner_id: Option<i64>,
-    pub token: String,
-    pub username: String,
-    pub r#type: BotType,
-    pub is_active: bool,
-    pub is_primary: bool,
-    pub referral_percentage: f64,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub created_by: Option<i64>,
-}
+use crate::models::bot::BotRow;
 
 impl From<BotRow> for BotAdminResponse {
     fn from(r: BotRow) -> Self {
@@ -41,29 +21,12 @@ impl From<BotRow> for BotAdminResponse {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "bot.ts", rename = "NewBot")]
-pub struct NewBotAdminRequest {
-    #[validate(length(min = 44, max = 48, message = "Length must be between 44 and 48"))]
-    pub token: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "bot.ts", rename = "UpdateBot")]
-pub struct UpdateBotAdminRequest {
-    #[ts(optional)]
-    pub is_active: Option<bool>,
-    #[ts(optional)]
-    pub is_primary: Option<bool>,
-    #[ts(optional)]
-    #[validate(range(min = 0.0, max = 100.0))]
-    pub referral_percentage: Option<f64>,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
     use rust_decimal::Decimal;
+    use shared_dtos::bot::{BotType, NewBotAdminRequest, UpdateBotAdminRequest};
     use validator::Validate;
 
     #[test]

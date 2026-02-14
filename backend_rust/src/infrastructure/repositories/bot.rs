@@ -1,13 +1,14 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use shared_dtos::bot::BotType;
 use sqlx::{PgPool, Postgres, QueryBuilder};
 
 use crate::{
     errors::repository::{RepositoryError, RepositoryResult},
     infrastructure::lib::query::{apply_filters, apply_list_query},
     models::{
-        bot::{BotListQuery, BotRow, BotType, NewBot, UpdateBot},
+        bot::{BotListQuery, BotRow, NewBot, UpdateBot},
         common::PaginatedResult,
     },
 };
@@ -237,7 +238,6 @@ impl BotRepositoryTrait for BotRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::bot::BotType;
     use rust_decimal::Decimal;
     use sqlx::PgPool;
     use std::str::FromStr;

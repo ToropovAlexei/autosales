@@ -8,7 +8,10 @@ use shared_dtos::{
         LoginStep1AdminRequest, LoginStep1AdminResponse, LoginStep2AdminRequest,
         LoginStep2AdminResponse,
     },
-    bot::{BotBotResponse, NewBotBotRequest, UpdateBotBotRequest},
+    bot::{
+        BotAdminResponse, BotBotResponse, NewBotAdminRequest, NewBotBotRequest,
+        UpdateBotAdminRequest, UpdateBotBotRequest,
+    },
     can_operate::CanOperateBotResponse,
     captcha::CaptchaBotResponse,
     customer::{CustomerBotResponse, NewCustomerBotRequest, UpdateCustomerBotRequest},
@@ -40,10 +43,6 @@ use backend_rust::{
     presentation::{
         admin::{
             dtos::{
-                bot::{
-                    BotAdminResponse as AdminBotResponse, NewBotAdminRequest as AdminNewBotRequest,
-                    UpdateBotAdminRequest as AdminUpdateBotRequest,
-                },
                 broadcast::{BroadcastResponse, NewBroadcastRequest},
                 category::{
                     CategoryAdminResponse, NewCategoryAdminRequest, UpdateCategoryAdminRequest,
@@ -188,7 +187,7 @@ use backend_rust::{
         ListResponse<CategoryAdminResponse>,
         ListResponse<ProductAdminResponse>,
         ListResponse<CustomerAdminResponse>,
-        ListResponse<AdminBotResponse>,
+        ListResponse<BotAdminResponse>,
         ListResponse<AdminUserWithRolesAdminResponse>,
         ListResponse<RoleAdminResponse>,
         ListResponse<PermissionAdminResponse>,
@@ -206,9 +205,9 @@ use backend_rust::{
         ListResponse<BotAnalyticsBotResponse>,
         CustomerAdminResponse,
         AdminUserWithRolesAdminResponse,
-        AdminBotResponse,
-        AdminNewBotRequest,
-        AdminUpdateBotRequest,
+        BotAdminResponse,
+        NewBotAdminRequest,
+        UpdateBotAdminRequest,
         NewAdminUserAdminRequest,
         UpdateAdminUserAdminRequest,
         NewRoleAdminRequest,

@@ -6,7 +6,11 @@ use axum::{
     routing::{patch, post},
 };
 use rust_decimal::{Decimal, prelude::FromPrimitive};
-use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
+use shared_dtos::{
+    bot::{BotAdminResponse, BotType, NewBotAdminRequest, UpdateBotAdminRequest},
+    error::ApiErrorResponse,
+    list_response::ListResponse,
+};
 
 use crate::{
     errors::api::{ApiError, ApiResult},
@@ -15,8 +19,7 @@ use crate::{
         require_permission::{BotsCreate, BotsRead, BotsUpdate, RequirePermission},
         validator::ValidatedJson,
     },
-    models::bot::{BotListQuery, BotType},
-    presentation::admin::dtos::bot::{BotAdminResponse, NewBotAdminRequest, UpdateBotAdminRequest},
+    models::bot::BotListQuery,
     services::{
         auth::AuthUser,
         bot::{BotServiceTrait, CreateBotCommand, UpdateBotCommand},

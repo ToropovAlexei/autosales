@@ -6,7 +6,7 @@ use axum::{
     routing::{get, post},
 };
 use shared_dtos::{
-    bot::{BotBotResponse, NewBotBotRequest, UpdateBotBotRequest},
+    bot::{BotBotResponse, BotType, NewBotBotRequest, UpdateBotBotRequest},
     error::ApiErrorResponse,
     list_response::ListResponse,
 };
@@ -14,7 +14,7 @@ use shared_dtos::{
 use crate::{
     errors::api::ApiResult,
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson, verified_service::VerifiedService},
-    models::bot::{BotListQuery, BotType},
+    models::bot::BotListQuery,
     services::{
         bot::{BotServiceTrait, CreateBotCommand, UpdateBotCommand},
         customer::CustomerServiceTrait,
