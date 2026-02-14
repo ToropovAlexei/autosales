@@ -8,6 +8,7 @@ pub mod captcha;
 pub mod category;
 pub mod customer;
 pub mod error;
+pub mod image;
 pub mod invoice;
 pub mod list_query;
 pub mod list_response;

@@ -1,19 +1,6 @@
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use ts_rs::TS;
-use utoipa::{ToResponse, ToSchema};
-use uuid::Uuid;
+use shared_dtos::image::ImageAdminResponse;
 
 use crate::models::image::ImageRow;
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "image.ts", rename = "ImageResponse")]
-pub struct ImageAdminResponse {
-    pub id: Uuid,
-    pub context: String,
-    pub created_at: DateTime<Utc>,
-    pub created_by: i64,
-}
 
 impl From<ImageRow> for ImageAdminResponse {
     fn from(r: ImageRow) -> Self {
@@ -29,6 +16,8 @@ impl From<ImageRow> for ImageAdminResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
+    use uuid::Uuid;
 
     #[test]
     fn test_image_response_from_image_row() {

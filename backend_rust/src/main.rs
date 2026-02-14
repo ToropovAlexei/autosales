@@ -16,6 +16,7 @@ use shared_dtos::{
     captcha::CaptchaBotResponse,
     customer::{CustomerBotResponse, NewCustomerBotRequest, UpdateCustomerBotRequest},
     error::ApiErrorResponse,
+    image::ImageAdminResponse,
     invoice::{
         GatewayBotResponse, NewPaymentInvoiceBotRequest, PaymentInvoiceBotResponse,
         UpdatePaymentInvoiceBotRequest,
@@ -54,7 +55,6 @@ use backend_rust::{
                     StatWithTrendResponse, TimeSeriesDashboardDataResponse,
                     TimeSeriesPointResponse, TopProductResponse,
                 },
-                image::ImageAdminResponse,
                 order::OrderAdminResponse,
                 payment_invoice::PaymentInvoiceAdminResponse,
                 product::{
