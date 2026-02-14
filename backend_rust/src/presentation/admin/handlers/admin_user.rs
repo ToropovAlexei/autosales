@@ -1,5 +1,12 @@
 use axum::http::StatusCode;
-use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
+use shared_dtos::{
+    admin_user::{
+        AdminUserAdminResponse, AdminUserWithRolesAdminResponse, NewAdminUserAdminRequest,
+        NewAdminUserAdminResponse, UpdateAdminUserAdminRequest,
+    },
+    error::ApiErrorResponse,
+    list_response::ListResponse,
+};
 use std::sync::Arc;
 
 use axum::{
@@ -20,10 +27,6 @@ use crate::{
     },
     models::user_permission::{UpdateUserPermissions, UpsertUserPermission},
     presentation::admin::dtos::{
-        admin_user::{
-            AdminUserAdminResponse, AdminUserWithRolesAdminResponse, NewAdminUserAdminRequest,
-            NewAdminUserAdminResponse, UpdateAdminUserAdminRequest,
-        },
         permission::PermissionAdminResponse,
         user_permission::{UpdateUserPermissionsRequest, UserPermissionAdminResponse},
     },

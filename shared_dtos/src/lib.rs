@@ -1,3 +1,4 @@
+pub mod admin_user;
 pub mod analytics;
 pub mod bot;
 pub mod can_operate;

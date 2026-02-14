@@ -1,22 +1,8 @@
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use ts_rs::TS;
-use utoipa::{ToResponse, ToSchema};
-use validator::Validate;
+use shared_dtos::admin_user::{
+    AdminUserAdminResponse, AdminUserWithRolesAdminResponse, RoleSummaryAdminResponse,
+};
 
 use crate::models::{admin_user::AdminUserRow, admin_user_with_roles::AdminUserWithRolesRow};
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "admin_user.ts", rename = "AdminUser")]
-pub struct AdminUserAdminResponse {
-    pub id: i64,
-    pub login: String,
-    pub telegram_id: Option<i64>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by: i64,
-}
 
 impl From<AdminUserRow> for AdminUserAdminResponse {
     fn from(r: AdminUserRow) -> Self {
@@ -30,83 +16,6 @@ impl From<AdminUserRow> for AdminUserAdminResponse {
             updated_at: r.updated_at,
         }
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "admin_user.ts", rename = "NewAdminUser")]
-pub struct NewAdminUserAdminRequest {
-    #[validate(length(
-        min = 3,
-        max = 255,
-        message = "Login must be at least 3 characters long and at most 255 characters long"
-    ))]
-    pub login: String,
-    #[validate(length(
-        min = 8,
-        max = 20,
-        message = "Password must be at least 8 characters long and at most 20 characters long"
-    ))]
-    pub password: String,
-    #[validate(length(min = 1, message = "At least one role must be selected"))]
-    pub roles: Vec<i64>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "admin_user.ts", rename = "NewAdminUserResponse")]
-pub struct NewAdminUserAdminResponse {
-    pub id: i64,
-    pub login: String,
-    pub telegram_id: Option<i64>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by: i64,
-    pub two_fa_secret: String,
-    pub two_fa_qr_code: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "admin_user.ts", rename = "UpdateAdminUser")]
-pub struct UpdateAdminUserAdminRequest {
-    #[validate(length(
-        min = 3,
-        max = 255,
-        message = "Login must be at least 3 characters long and at most 255 characters long"
-    ))]
-    #[ts(optional)]
-    pub login: Option<String>,
-    #[validate(length(
-        min = 8,
-        max = 20,
-        message = "Password must be at least 8 characters long and at most 20 characters long"
-    ))]
-    #[ts(optional)]
-    pub password: Option<String>,
-    #[ts(optional)]
-    pub telegram_id: Option<i64>,
-    #[validate(length(min = 1, message = "At least one role must be selected"))]
-    #[ts(optional)]
-    pub roles: Option<Vec<i64>>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "admin_user.ts", rename = "RoleSummary")]
-pub struct RoleSummaryAdminResponse {
-    pub id: i64,
-    pub name: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "admin_user.ts", rename = "AdminUserWithRoles")]
-pub struct AdminUserWithRolesAdminResponse {
-    pub id: i64,
-    pub login: String,
-    pub telegram_id: Option<i64>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deleted_at: Option<DateTime<Utc>>,
-    pub created_by: i64,
-    pub roles: Vec<RoleSummaryAdminResponse>,
 }
 
 impl From<AdminUserWithRolesRow> for AdminUserWithRolesAdminResponse {
@@ -134,6 +43,8 @@ impl From<AdminUserWithRolesRow> for AdminUserWithRolesAdminResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
+    use shared_dtos::admin_user::{NewAdminUserAdminRequest, UpdateAdminUserAdminRequest};
     use validator::Validate;
 
     #[test]
