@@ -10,7 +10,7 @@ use crate::{models::settings::Settings, services::settings::UpdateSettingsComman
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "settings.ts", rename = "PricingSettings")]
-pub struct PricingSettingsResponse {
+pub struct PricingSettingsAdminResponse {
     pub pricing_global_markup: f64,
     pub pricing_platform_commission: f64,
     pub pricing_gateway_markup: f64,
@@ -23,7 +23,7 @@ pub struct PricingSettingsResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "settings.ts", rename = "BotSettings")]
-pub struct BotSettingsResponse {
+pub struct BotSettingsAdminResponse {
     pub bot_messages_support: String,
     pub bot_messages_support_image_id: Option<Uuid>,
     pub bot_messages_new_user_welcome: String,
@@ -35,9 +35,9 @@ pub struct BotSettingsResponse {
     pub bot_about: String,
 }
 
-impl From<Settings> for PricingSettingsResponse {
+impl From<Settings> for PricingSettingsAdminResponse {
     fn from(r: Settings) -> Self {
-        PricingSettingsResponse {
+        PricingSettingsAdminResponse {
             pricing_gateway_bonus_mock_provider: r
                 .pricing_gateway_bonus_mock_provider
                 .to_f64()
@@ -59,9 +59,9 @@ impl From<Settings> for PricingSettingsResponse {
     }
 }
 
-impl From<Settings> for BotSettingsResponse {
+impl From<Settings> for BotSettingsAdminResponse {
     fn from(r: Settings) -> Self {
-        BotSettingsResponse {
+        BotSettingsAdminResponse {
             bot_messages_support: r.bot_messages_support,
             bot_messages_support_image_id: r.bot_messages_support_image_id,
             bot_messages_new_user_welcome: r.bot_messages_new_user_welcome,
@@ -78,7 +78,7 @@ impl From<Settings> for BotSettingsResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse, Validate, Default)]
 #[ts(export, export_to = "settings.ts", rename = "UpdatePricingSettings")]
-pub struct UpdatePricingSettingsRequest {
+pub struct UpdatePricingSettingsAdminRequest {
     #[validate(range(min = 0.0, max = 10000.0))]
     #[ts(optional)]
     pub pricing_global_markup: Option<f64>,
@@ -106,7 +106,7 @@ pub struct UpdatePricingSettingsRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse, Validate, Default)]
 #[ts(export, export_to = "settings.ts", rename = "UpdateBotSettings")]
-pub struct UpdateBotSettingsRequest {
+pub struct UpdateBotSettingsAdminRequest {
     #[validate(length(max = 999, message = "length must be less than 999"))]
     #[ts(optional)]
     pub bot_messages_support: Option<String>,
@@ -139,8 +139,8 @@ pub struct UpdateBotSettingsRequest {
     pub bot_about: Option<String>,
 }
 
-impl From<UpdatePricingSettingsRequest> for UpdateSettingsCommand {
-    fn from(r: UpdatePricingSettingsRequest) -> Self {
+impl From<UpdatePricingSettingsAdminRequest> for UpdateSettingsCommand {
+    fn from(r: UpdatePricingSettingsAdminRequest) -> Self {
         let f64_opt_to_bd =
             |opt: Option<f64>| opt.map(|f| Decimal::from_f64(f).unwrap_or_default());
         UpdateSettingsCommand {
@@ -161,8 +161,8 @@ impl From<UpdatePricingSettingsRequest> for UpdateSettingsCommand {
     }
 }
 
-impl From<UpdateBotSettingsRequest> for UpdateSettingsCommand {
-    fn from(r: UpdateBotSettingsRequest) -> Self {
+impl From<UpdateBotSettingsAdminRequest> for UpdateSettingsCommand {
+    fn from(r: UpdateBotSettingsAdminRequest) -> Self {
         UpdateSettingsCommand {
             bot_messages_support: r.bot_messages_support,
             bot_messages_support_image_id: r.bot_messages_support_image_id,
@@ -210,7 +210,7 @@ mod tests {
     #[test]
     fn test_pricing_settings_response_from_settings() {
         let settings = create_dummy_settings();
-        let response: PricingSettingsResponse = settings.into();
+        let response: PricingSettingsAdminResponse = settings.into();
 
         assert_eq!(response.pricing_global_markup, 10.0);
         assert_eq!(response.pricing_platform_commission, 5.0);
@@ -225,7 +225,7 @@ mod tests {
     #[test]
     fn test_bot_settings_response_from_settings() {
         let settings = create_dummy_settings();
-        let response: BotSettingsResponse = settings.into();
+        let response: BotSettingsAdminResponse = settings.into();
 
         assert_eq!(response.bot_messages_support, "Support text");
         assert!(response.bot_messages_support_image_id.is_some());
@@ -241,7 +241,7 @@ mod tests {
 
     #[test]
     fn test_update_pricing_settings_request_validation_valid_ranges() {
-        let req = UpdatePricingSettingsRequest {
+        let req = UpdatePricingSettingsAdminRequest {
             pricing_global_markup: Some(500.0),
             pricing_platform_commission: Some(50.0),
             pricing_gateway_markup: Some(10.0),
@@ -254,7 +254,7 @@ mod tests {
         assert!(req.validate().is_ok());
 
         // Test boundary minimums
-        let req = UpdatePricingSettingsRequest {
+        let req = UpdatePricingSettingsAdminRequest {
             pricing_global_markup: Some(0.0),
             pricing_platform_commission: Some(0.0),
             pricing_gateway_markup: Some(0.0),
@@ -267,7 +267,7 @@ mod tests {
         assert!(req.validate().is_ok());
 
         // Test boundary maximums
-        let req = UpdatePricingSettingsRequest {
+        let req = UpdatePricingSettingsAdminRequest {
             pricing_global_markup: Some(10000.0),
             pricing_platform_commission: Some(100.0),
             pricing_gateway_markup: Some(100.0),
@@ -283,21 +283,21 @@ mod tests {
     #[test]
     fn test_update_pricing_settings_request_validation_invalid_ranges() {
         // global_markup too high
-        let req = UpdatePricingSettingsRequest {
+        let req = UpdatePricingSettingsAdminRequest {
             pricing_global_markup: Some(10000.01),
             ..Default::default()
         };
         assert!(req.validate().is_err());
 
         // platform_commission too low
-        let req = UpdatePricingSettingsRequest {
+        let req = UpdatePricingSettingsAdminRequest {
             pricing_platform_commission: Some(-0.01),
             ..Default::default()
         };
         assert!(req.validate().is_err());
 
         // referral_percentage too high
-        let req = UpdatePricingSettingsRequest {
+        let req = UpdatePricingSettingsAdminRequest {
             referral_percentage: Some(100.01),
             ..Default::default()
         };
@@ -306,7 +306,7 @@ mod tests {
 
     #[test]
     fn test_update_bot_settings_request_validation_valid() {
-        let req = UpdateBotSettingsRequest {
+        let req = UpdateBotSettingsAdminRequest {
             bot_messages_support: Some("Short support message".to_string()),
             bot_messages_support_image_id: Some(Some(Uuid::new_v4())),
             bot_messages_new_user_welcome: Some("Short welcome message".to_string()),
@@ -323,21 +323,21 @@ mod tests {
     #[test]
     fn test_update_bot_settings_request_validation_too_long() {
         // bot_messages_support too long
-        let req = UpdateBotSettingsRequest {
+        let req = UpdateBotSettingsAdminRequest {
             bot_messages_support: Some("a".repeat(1000)),
             ..Default::default()
         };
         assert!(req.validate().is_err());
 
         // bot_messages_new_user_welcome too long
-        let req = UpdateBotSettingsRequest {
+        let req = UpdateBotSettingsAdminRequest {
             bot_messages_new_user_welcome: Some("a".repeat(1000)),
             ..Default::default()
         };
         assert!(req.validate().is_err());
 
         // bot_messages_returning_user_welcome too long
-        let req = UpdateBotSettingsRequest {
+        let req = UpdateBotSettingsAdminRequest {
             bot_messages_returning_user_welcome: Some("a".repeat(1000)),
             ..Default::default()
         };
@@ -346,7 +346,7 @@ mod tests {
 
     #[test]
     fn test_update_settings_command_from_update_pricing_settings_request() {
-        let req = UpdatePricingSettingsRequest {
+        let req = UpdatePricingSettingsAdminRequest {
             pricing_global_markup: Some(10.5),
             pricing_platform_commission: Some(2.1),
             referral_program_enabled: Some(true),
@@ -369,7 +369,7 @@ mod tests {
     #[test]
     fn test_update_settings_command_from_update_bot_settings_request() {
         let uuid = Uuid::new_v4();
-        let req = UpdateBotSettingsRequest {
+        let req = UpdateBotSettingsAdminRequest {
             bot_messages_support: Some("New support message".to_string()),
             bot_messages_support_image_id: Some(Some(uuid)),
             bot_messages_new_user_welcome: Some("New welcome message".to_string()),

@@ -8,7 +8,8 @@ use crate::{
     middlewares::{context::RequestContext, validator::ValidatedJson},
     models::audit_log::{AuditAction, AuditStatus, NewAuditLog},
     presentation::admin::dtos::auth::{
-        LoginStep1Request, LoginStep1Response, LoginStep2Request, LoginStep2Response,
+        LoginStep1AdminRequest, LoginStep1AdminResponse, LoginStep2AdminRequest,
+        LoginStep2AdminResponse,
     },
     services::{
         audit_log::AuditLogServiceTrait,
@@ -29,9 +30,9 @@ pub fn router() -> Router<Arc<AppState>> {
     path = "/api/admin/auth/login",
     tag = "Auth",
     security(()),
-    request_body = LoginStep1Request,
+    request_body = LoginStep1AdminRequest,
     responses(
-        (status = 200, description = "Login successful", body = LoginStep1Response),
+        (status = 200, description = "Login successful", body = LoginStep1AdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -42,8 +43,8 @@ pub fn router() -> Router<Arc<AppState>> {
 async fn login_step1(
     State(state): State<Arc<AppState>>,
     ctx: RequestContext,
-    ValidatedJson(payload): ValidatedJson<LoginStep1Request>,
-) -> ApiResult<Json<LoginStep1Response>> {
+    ValidatedJson(payload): ValidatedJson<LoginStep1AdminRequest>,
+) -> ApiResult<Json<LoginStep1AdminResponse>> {
     let temp_token = {
         match state
             .auth_service
@@ -92,7 +93,7 @@ async fn login_step1(
         })
         .await?;
 
-    Ok(Json(LoginStep1Response {
+    Ok(Json(LoginStep1AdminResponse {
         temp_token: temp_token.token,
     }))
 }
@@ -102,9 +103,9 @@ async fn login_step1(
     path = "/api/admin/auth/login/2fa",
     tag = "Auth",
     security(()),
-    request_body = LoginStep2Request,
+    request_body = LoginStep2AdminRequest,
     responses(
-        (status = 200, description = "Login successful", body = LoginStep2Response),
+        (status = 200, description = "Login successful", body = LoginStep2AdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -113,14 +114,14 @@ async fn login_step1(
 )]
 async fn login_step2(
     State(state): State<Arc<AppState>>,
-    ValidatedJson(payload): ValidatedJson<LoginStep2Request>,
-) -> ApiResult<Json<LoginStep2Response>> {
+    ValidatedJson(payload): ValidatedJson<LoginStep2AdminRequest>,
+) -> ApiResult<Json<LoginStep2AdminResponse>> {
     let access_token = state
         .auth_service
         .login_step2(&payload.temp_token, &payload.code)
         .await?;
 
-    Ok(Json(LoginStep2Response {
+    Ok(Json(LoginStep2AdminResponse {
         token: access_token.jti,
     }))
 }

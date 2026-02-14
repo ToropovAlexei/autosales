@@ -7,7 +7,7 @@ use crate::{
     errors::api::ApiResult,
     middlewares::require_permission::{AuditLogRead, RequirePermission},
     models::audit_log::AuditLogListQuery,
-    presentation::admin::dtos::audit_log::AuditLogResponse,
+    presentation::admin::dtos::audit_log::AuditLogAdminResponse,
     services::{audit_log::AuditLogServiceTrait, auth::AuthUser},
     state::AppState,
 };
@@ -21,7 +21,7 @@ pub fn router() -> Router<Arc<AppState>> {
     path = "/api/admin/audit-logs",
     tag = "Audit Logs",
     responses(
-        (status = 200, description = "List of audit logs", body = ListResponse<AuditLogResponse>),
+        (status = 200, description = "List of audit logs", body = ListResponse<AuditLogAdminResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -33,7 +33,7 @@ async fn list_audit_logs(
     _user: AuthUser,
     _perm: RequirePermission<AuditLogRead>,
     query: AuditLogListQuery,
-) -> ApiResult<Json<ListResponse<AuditLogResponse>>> {
+) -> ApiResult<Json<ListResponse<AuditLogAdminResponse>>> {
     let audit_logs = state.audit_logs_service.get_list(query).await?;
 
     Ok(Json(ListResponse {
@@ -41,7 +41,7 @@ async fn list_audit_logs(
         items: audit_logs
             .items
             .into_iter()
-            .map(AuditLogResponse::from)
+            .map(AuditLogAdminResponse::from)
             .collect(),
     }))
 }

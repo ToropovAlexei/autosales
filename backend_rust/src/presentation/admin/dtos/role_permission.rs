@@ -5,7 +5,7 @@ use validator::Validate;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "auth.ts", rename = "UpdateRolePermissions")]
-pub struct UpdateRolePermissionsRequest {
+pub struct UpdateRolePermissionsAdminRequest {
     pub added: Vec<i64>,
     pub removed: Vec<i64>,
 }
@@ -16,7 +16,7 @@ mod tests {
 
     #[test]
     fn test_update_role_permissions_request_creation() {
-        let req = UpdateRolePermissionsRequest {
+        let req = UpdateRolePermissionsAdminRequest {
             added: vec![1, 2, 3],
             removed: vec![4, 5],
         };
@@ -27,13 +27,14 @@ mod tests {
 
     #[test]
     fn test_update_role_permissions_request_serialization_deserialization() {
-        let req = UpdateRolePermissionsRequest {
+        let req = UpdateRolePermissionsAdminRequest {
             added: vec![10, 20],
             removed: vec![30],
         };
 
         let serialized = serde_json::to_string(&req).unwrap();
-        let deserialized: UpdateRolePermissionsRequest = serde_json::from_str(&serialized).unwrap();
+        let deserialized: UpdateRolePermissionsAdminRequest =
+            serde_json::from_str(&serialized).unwrap();
 
         assert_eq!(deserialized.added, req.added);
         assert_eq!(deserialized.removed, req.removed);

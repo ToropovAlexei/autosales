@@ -23,8 +23,8 @@ use crate::{
     },
     models::product::ProductListQuery,
     presentation::admin::dtos::product::{
-        NewProductRequest, ProductResponse, ProductsUploadResponse, UpdateProductRequest,
-        UploadedProductCSV,
+        NewProductAdminRequest, ProductAdminResponse, ProductsUploadResponse,
+        UpdateProductAdminRequest, UploadedProductCSV,
     },
     services::{
         auth::AuthUser,
@@ -59,9 +59,9 @@ struct UploadProductsMultipartRequest {
     post,
     path = "/api/admin/products",
     tag = "Products",
-    request_body = NewProductRequest,
+    request_body = NewProductAdminRequest,
     responses(
-        (status = 200, description = "Product created", body = ProductResponse),
+        (status = 200, description = "Product created", body = ProductAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -73,8 +73,8 @@ async fn create_product(
     user: AuthUser,
     _perm: RequirePermission<ProductsCreate>,
     ctx: RequestContext,
-    ValidatedJson(payload): ValidatedJson<NewProductRequest>,
-) -> ApiResult<Json<ProductResponse>> {
+    ValidatedJson(payload): ValidatedJson<NewProductAdminRequest>,
+) -> ApiResult<Json<ProductAdminResponse>> {
     let product = state
         .product_service
         .create(CreateProductCommand {
@@ -96,7 +96,7 @@ async fn create_product(
         })
         .await?;
 
-    Ok(Json(ProductResponse::from(product)))
+    Ok(Json(ProductAdminResponse::from(product)))
 }
 
 #[utoipa::path(
@@ -151,7 +151,7 @@ async fn upload_products(
     path = "/api/admin/products",
     tag = "Products",
     responses(
-        (status = 200, description = "Products list", body = ListResponse<ProductResponse>),
+        (status = 200, description = "Products list", body = ListResponse<ProductAdminResponse>),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
         (status = 500, description = "Internal server error", body = ApiErrorResponse),
@@ -162,7 +162,7 @@ async fn list_products(
     _user: AuthUser,
     _perm: RequirePermission<ProductsRead>,
     query: ProductListQuery,
-) -> ApiResult<Json<ListResponse<ProductResponse>>> {
+) -> ApiResult<Json<ListResponse<ProductAdminResponse>>> {
     let products = state.product_service.get_list(query).await?;
 
     Ok(Json(ListResponse {
@@ -170,7 +170,7 @@ async fn list_products(
         items: products
             .items
             .into_iter()
-            .map(ProductResponse::from)
+            .map(ProductAdminResponse::from)
             .collect(),
     }))
 }
@@ -180,7 +180,7 @@ async fn list_products(
     path = "/api/admin/products/{id}",
     tag = "Products",
     responses(
-        (status = 200, description = "Product details", body = ProductResponse),
+        (status = 200, description = "Product details", body = ProductAdminResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
         (status = 500, description = "Internal server error", body = ApiErrorResponse),
@@ -191,19 +191,19 @@ async fn get_product(
     Path(id): Path<i64>,
     _user: AuthUser,
     _perm: RequirePermission<ProductsRead>,
-) -> ApiResult<Json<ProductResponse>> {
+) -> ApiResult<Json<ProductAdminResponse>> {
     let product = state.product_service.get_by_id(id).await?;
 
-    Ok(Json(ProductResponse::from(product)))
+    Ok(Json(ProductAdminResponse::from(product)))
 }
 
 #[utoipa::path(
     patch,
     path = "/api/admin/products/{id}",
     tag = "Products",
-    request_body = UpdateProductRequest,
+    request_body = UpdateProductAdminRequest,
     responses(
-        (status = 200, description = "Product updated", body = ProductResponse),
+        (status = 200, description = "Product updated", body = ProductAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -216,8 +216,8 @@ async fn update_product(
     user: AuthUser,
     _perm: RequirePermission<ProductsUpdate>,
     ctx: RequestContext,
-    ValidatedJson(payload): ValidatedJson<UpdateProductRequest>,
-) -> ApiResult<Json<ProductResponse>> {
+    ValidatedJson(payload): ValidatedJson<UpdateProductAdminRequest>,
+) -> ApiResult<Json<ProductAdminResponse>> {
     let product = state
         .product_service
         .update(
@@ -246,7 +246,7 @@ async fn update_product(
         )
         .await?;
 
-    Ok(Json(ProductResponse::from(product)))
+    Ok(Json(ProductAdminResponse::from(product)))
 }
 
 #[utoipa::path(

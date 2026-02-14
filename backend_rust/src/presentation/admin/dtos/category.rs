@@ -10,7 +10,7 @@ use crate::models::category::CategoryRow;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "category.ts", rename = "Category")]
-pub struct CategoryResponse {
+pub struct CategoryAdminResponse {
     pub id: i64,
     pub name: String,
     pub parent_id: Option<i64>,
@@ -22,9 +22,9 @@ pub struct CategoryResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl From<CategoryRow> for CategoryResponse {
+impl From<CategoryRow> for CategoryAdminResponse {
     fn from(r: CategoryRow) -> Self {
-        CategoryResponse {
+        CategoryAdminResponse {
             id: r.id,
             name: r.name,
             parent_id: r.parent_id,
@@ -40,7 +40,7 @@ impl From<CategoryRow> for CategoryResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "category.ts", rename = "NewCategory")]
-pub struct NewCategoryRequest {
+pub struct NewCategoryAdminRequest {
     #[validate(length(
         min = 2,
         max = 255,
@@ -55,7 +55,7 @@ pub struct NewCategoryRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "category.ts", rename = "UpdateCategory")]
-pub struct UpdateCategoryRequest {
+pub struct UpdateCategoryAdminRequest {
     #[validate(length(
         min = 2,
         max = 255,
@@ -96,7 +96,7 @@ mod tests {
             updated_at: now,
         };
 
-        let category_response: CategoryResponse = category_row.into();
+        let category_response: CategoryAdminResponse = category_row.into();
 
         assert_eq!(category_response.id, 1);
         assert_eq!(category_response.name, "Test Category");
@@ -124,7 +124,7 @@ mod tests {
             updated_at: now,
         };
 
-        let category_response: CategoryResponse = category_row.into();
+        let category_response: CategoryAdminResponse = category_row.into();
 
         assert_eq!(category_response.id, 1);
         assert_eq!(category_response.name, "Test Category");
@@ -140,7 +140,7 @@ mod tests {
     #[test]
     fn test_new_category_request_validation() {
         // Valid data
-        let req = NewCategoryRequest {
+        let req = NewCategoryAdminRequest {
             name: "Valid Name".to_string(),
             parent_id: Some(1),
             image_id: Some(Uuid::new_v4()),
@@ -148,7 +148,7 @@ mod tests {
         assert!(req.validate().is_ok());
 
         // Name too short
-        let req = NewCategoryRequest {
+        let req = NewCategoryAdminRequest {
             name: "a".to_string(),
             parent_id: None,
             image_id: None,
@@ -156,7 +156,7 @@ mod tests {
         assert!(req.validate().is_err());
 
         // Name too long
-        let req = NewCategoryRequest {
+        let req = NewCategoryAdminRequest {
             name: "a".repeat(256),
             parent_id: None,
             image_id: None,
@@ -167,7 +167,7 @@ mod tests {
     #[test]
     fn test_update_category_request_validation() {
         // Valid: All optional fields are None
-        let req = UpdateCategoryRequest {
+        let req = UpdateCategoryAdminRequest {
             name: None,
             parent_id: None,
             image_id: None,
@@ -176,7 +176,7 @@ mod tests {
         assert!(req.validate().is_ok());
 
         // Valid: All fields provided and correct
-        let req = UpdateCategoryRequest {
+        let req = UpdateCategoryAdminRequest {
             name: Some("New Name".to_string()),
             parent_id: Some(Some(2)),
             image_id: Some(Some(Uuid::new_v4())),
@@ -185,7 +185,7 @@ mod tests {
         assert!(req.validate().is_ok());
 
         // Valid: Setting optional fields to None
-        let req = UpdateCategoryRequest {
+        let req = UpdateCategoryAdminRequest {
             name: None,
             parent_id: Some(None),
             image_id: Some(None),
@@ -194,7 +194,7 @@ mod tests {
         assert!(req.validate().is_ok());
 
         // Name too short
-        let req = UpdateCategoryRequest {
+        let req = UpdateCategoryAdminRequest {
             name: Some("a".to_string()),
             parent_id: None,
             image_id: None,
@@ -203,7 +203,7 @@ mod tests {
         assert!(req.validate().is_err());
 
         // Name too long
-        let req = UpdateCategoryRequest {
+        let req = UpdateCategoryAdminRequest {
             name: Some("a".repeat(256)),
             parent_id: None,
             image_id: None,

@@ -12,7 +12,7 @@ use crate::services::product::Product;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "product.ts", rename = "Product")]
-pub struct ProductResponse {
+pub struct ProductAdminResponse {
     pub id: i64,
     pub name: String,
     pub base_price: f64,
@@ -33,9 +33,9 @@ pub struct ProductResponse {
     pub created_by: i64,
 }
 
-impl From<Product> for ProductResponse {
+impl From<Product> for ProductAdminResponse {
     fn from(r: Product) -> Self {
-        ProductResponse {
+        ProductAdminResponse {
             id: r.id,
             name: r.name,
             base_price: r.base_price.to_f64().unwrap_or_default(),
@@ -60,7 +60,7 @@ impl From<Product> for ProductResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "product.ts", rename = "NewProduct")]
-pub struct NewProductRequest {
+pub struct NewProductAdminRequest {
     #[validate(length(
         min = 3,
         max = 255,
@@ -91,7 +91,7 @@ pub struct NewProductRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "product.ts", rename = "UpdateProduct")]
-pub struct UpdateProductRequest {
+pub struct UpdateProductAdminRequest {
     #[validate(length(
         min = 3,
         max = 255,
@@ -186,7 +186,7 @@ mod tests {
     #[test]
     fn test_product_response_from_product_full() {
         let product = create_test_product();
-        let response: ProductResponse = product.into();
+        let response: ProductAdminResponse = product.into();
 
         assert_eq!(response.id, 1);
         assert_eq!(response.name, "Test Product");
@@ -219,7 +219,7 @@ mod tests {
         product.external_id = None;
         product.deleted_at = Some(Utc::now());
 
-        let response: ProductResponse = product.into();
+        let response: ProductAdminResponse = product.into();
 
         assert_eq!(response.category_id, None);
         assert_eq!(response.image_id, None);
@@ -233,7 +233,7 @@ mod tests {
     #[test]
     fn test_new_product_request_validation() {
         // Valid request
-        let req = NewProductRequest {
+        let req = NewProductAdminRequest {
             name: "Valid Product Name".to_string(),
             base_price: 50.00,
             category_id: 1,
@@ -248,7 +248,7 @@ mod tests {
         assert!(req.validate().is_ok());
 
         // Name too short
-        let req = NewProductRequest {
+        let req = NewProductAdminRequest {
             name: "ab".to_string(),
             base_price: 50.00,
             category_id: 1,
@@ -263,7 +263,7 @@ mod tests {
         assert!(req.validate().is_err());
 
         // Name too long
-        let req = NewProductRequest {
+        let req = NewProductAdminRequest {
             name: "a".repeat(256),
             base_price: 50.00,
             category_id: 1,
@@ -278,7 +278,7 @@ mod tests {
         assert!(req.validate().is_err());
 
         // Price too low
-        let req = NewProductRequest {
+        let req = NewProductAdminRequest {
             name: "Valid Product Name".to_string(),
             base_price: 0.00,
             category_id: 1,
@@ -293,7 +293,7 @@ mod tests {
         assert!(req.validate().is_err());
 
         // Price too high
-        let req = NewProductRequest {
+        let req = NewProductAdminRequest {
             name: "Valid Product Name".to_string(),
             base_price: 1000000.00,
             category_id: 1,
@@ -311,7 +311,7 @@ mod tests {
     #[test]
     fn test_update_product_request_validation() {
         // Valid request: All optional fields are None
-        let req = UpdateProductRequest {
+        let req = UpdateProductAdminRequest {
             name: None,
             base_price: None,
             category_id: None,
@@ -327,7 +327,7 @@ mod tests {
         assert!(req.validate().is_ok());
 
         // Valid request: All fields updated
-        let req = UpdateProductRequest {
+        let req = UpdateProductAdminRequest {
             name: Some("Updated Name".to_string()),
             base_price: Some(75.50),
             category_id: Some(2),
@@ -343,7 +343,7 @@ mod tests {
         assert!(req.validate().is_ok());
 
         // Valid request: Setting optional fields to None
-        let req = UpdateProductRequest {
+        let req = UpdateProductAdminRequest {
             name: Some("Updated Name".to_string()),
             base_price: None,
             category_id: None,
@@ -359,7 +359,7 @@ mod tests {
         assert!(req.validate().is_ok());
 
         // Name too short
-        let req = UpdateProductRequest {
+        let req = UpdateProductAdminRequest {
             name: Some("a".to_string()),
             base_price: None,
             category_id: None,
@@ -375,7 +375,7 @@ mod tests {
         assert!(req.validate().is_err());
 
         // Name too long
-        let req = UpdateProductRequest {
+        let req = UpdateProductAdminRequest {
             name: Some("a".repeat(256)),
             base_price: None,
             category_id: None,
@@ -391,7 +391,7 @@ mod tests {
         assert!(req.validate().is_err());
 
         // Price too low
-        let req = UpdateProductRequest {
+        let req = UpdateProductAdminRequest {
             name: None,
             base_price: Some(0.00),
             category_id: None,
@@ -407,7 +407,7 @@ mod tests {
         assert!(req.validate().is_err());
 
         // Price too high
-        let req = UpdateProductRequest {
+        let req = UpdateProductAdminRequest {
             name: None,
             base_price: Some(1000000.00),
             category_id: None,

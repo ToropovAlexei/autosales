@@ -22,9 +22,9 @@ use crate::{
         role_permission::UpdateRolePermissions,
     },
     presentation::admin::dtos::{
-        permission::PermissionResponse,
-        role::{NewRoleRequest, RoleResponse, UpdateRoleRequest},
-        role_permission::UpdateRolePermissionsRequest,
+        permission::PermissionAdminResponse,
+        role::{NewRoleAdminRequest, RoleAdminResponse, UpdateRoleAdminRequest},
+        role_permission::UpdateRolePermissionsAdminRequest,
     },
     services::{
         auth::AuthUser, permission::PermissionServiceTrait, role::RoleServiceTrait,
@@ -48,7 +48,7 @@ pub fn router() -> Router<Arc<AppState>> {
     path = "/api/admin/roles",
     tag = "Roles",
     responses(
-        (status = 200, description = "Role created", body = RoleResponse),
+        (status = 200, description = "Role created", body = RoleAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -59,8 +59,8 @@ async fn create_role(
     State(state): State<Arc<AppState>>,
     user: AuthUser,
     _perm: RequirePermission<RbacManage>,
-    ValidatedJson(payload): ValidatedJson<NewRoleRequest>,
-) -> ApiResult<Json<RoleResponse>> {
+    ValidatedJson(payload): ValidatedJson<NewRoleAdminRequest>,
+) -> ApiResult<Json<RoleAdminResponse>> {
     let role = state
         .role_service
         .create(NewRole {
@@ -78,7 +78,7 @@ async fn create_role(
     path = "/api/admin/roles",
     tag = "Roles",
     responses(
-        (status = 200, description = "Admin user roles", body = ListResponse<RoleResponse>),
+        (status = 200, description = "Admin user roles", body = ListResponse<RoleAdminResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -89,12 +89,12 @@ async fn list_roles(
     State(state): State<Arc<AppState>>,
     _user: AuthUser,
     _perm: RequirePermission<RbacManage>,
-) -> ApiResult<Json<ListResponse<RoleResponse>>> {
+) -> ApiResult<Json<ListResponse<RoleAdminResponse>>> {
     let roles = state.role_service.get_list().await?;
 
     Ok(Json(ListResponse {
         total: roles.len() as i64,
-        items: roles.into_iter().map(RoleResponse::from).collect(),
+        items: roles.into_iter().map(RoleAdminResponse::from).collect(),
     }))
 }
 
@@ -103,7 +103,7 @@ async fn list_roles(
     path = "/api/admin/roles/{id}",
     tag = "Roles",
     responses(
-        (status = 200, description = "Role updated", body = RoleResponse),
+        (status = 200, description = "Role updated", body = RoleAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -115,8 +115,8 @@ async fn update_role(
     Path(id): Path<i64>,
     _user: AuthUser,
     _perm: RequirePermission<RbacManage>,
-    ValidatedJson(payload): ValidatedJson<UpdateRoleRequest>,
-) -> ApiResult<Json<RoleResponse>> {
+    ValidatedJson(payload): ValidatedJson<UpdateRoleAdminRequest>,
+) -> ApiResult<Json<RoleAdminResponse>> {
     let role = state
         .role_service
         .update(
@@ -159,7 +159,7 @@ async fn delete_role(
     path = "/api/admin/roles/{id}/permissions",
     tag = "Roles",
     responses(
-        (status = 200, description = "Role permissions", body = ListResponse<PermissionResponse>),
+        (status = 200, description = "Role permissions", body = ListResponse<PermissionAdminResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -171,14 +171,14 @@ async fn get_role_permissions(
     Path(id): Path<i64>,
     _user: AuthUser,
     _perm: RequirePermission<RbacManage>,
-) -> ApiResult<Json<ListResponse<PermissionResponse>>> {
+) -> ApiResult<Json<ListResponse<PermissionAdminResponse>>> {
     let permissions = state.permission_service.get_for_role(id).await?;
 
     Ok(Json(ListResponse {
         total: permissions.len() as i64,
         items: permissions
             .into_iter()
-            .map(PermissionResponse::from)
+            .map(PermissionAdminResponse::from)
             .collect(),
     }))
 }
@@ -188,7 +188,7 @@ async fn get_role_permissions(
     path = "/api/admin/roles/{id}/permissions",
     tag = "Roles",
     responses(
-        (status = 200, description = "Role permissions updated", body = ListResponse<PermissionResponse>),
+        (status = 200, description = "Role permissions updated", body = ListResponse<PermissionAdminResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -200,8 +200,8 @@ async fn update_role_permissions(
     Path(id): Path<i64>,
     user: AuthUser,
     _perm: RequirePermission<RbacManage>,
-    ValidatedJson(payload): ValidatedJson<UpdateRolePermissionsRequest>,
-) -> ApiResult<Json<ListResponse<PermissionResponse>>> {
+    ValidatedJson(payload): ValidatedJson<UpdateRolePermissionsAdminRequest>,
+) -> ApiResult<Json<ListResponse<PermissionAdminResponse>>> {
     state
         .role_permission_service
         .update_role_permissions(UpdateRolePermissions {
@@ -218,7 +218,7 @@ async fn update_role_permissions(
         total: permissions.len() as i64,
         items: permissions
             .into_iter()
-            .map(PermissionResponse::from)
+            .map(PermissionAdminResponse::from)
             .collect(),
     }))
 }

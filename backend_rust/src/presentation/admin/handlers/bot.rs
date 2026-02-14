@@ -16,7 +16,7 @@ use crate::{
         validator::ValidatedJson,
     },
     models::bot::{BotListQuery, BotType},
-    presentation::admin::dtos::bot::{BotResponse, NewBotRequest, UpdateBotRequest},
+    presentation::admin::dtos::bot::{BotAdminResponse, NewBotAdminRequest, UpdateBotAdminRequest},
     services::{
         auth::AuthUser,
         bot::{BotServiceTrait, CreateBotCommand, UpdateBotCommand},
@@ -34,9 +34,9 @@ pub fn router() -> Router<Arc<AppState>> {
     post,
     path = "/api/admin/bots",
     tag = "Bots",
-    request_body = NewBotRequest,
+    request_body = NewBotAdminRequest,
     responses(
-        (status = 200, description = "Bot created", body = BotResponse),
+        (status = 200, description = "Bot created", body = BotAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -48,8 +48,8 @@ async fn create_bot(
     user: AuthUser,
     _perm: RequirePermission<BotsCreate>,
     ctx: RequestContext,
-    ValidatedJson(payload): ValidatedJson<NewBotRequest>,
-) -> ApiResult<Json<BotResponse>> {
+    ValidatedJson(payload): ValidatedJson<NewBotAdminRequest>,
+) -> ApiResult<Json<BotAdminResponse>> {
     let bot = state
         .bot_service
         .create(CreateBotCommand {
@@ -71,7 +71,7 @@ async fn create_bot(
     path = "/api/admin/bots",
     tag = "Bots",
     responses(
-        (status = 200, description = "Bot list", body = ListResponse<BotResponse>),
+        (status = 200, description = "Bot list", body = ListResponse<BotAdminResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -83,12 +83,12 @@ async fn list_bots(
     _user: AuthUser,
     _perm: RequirePermission<BotsRead>,
     query: BotListQuery,
-) -> ApiResult<Json<ListResponse<BotResponse>>> {
+) -> ApiResult<Json<ListResponse<BotAdminResponse>>> {
     let bots = state.bot_service.get_list(query).await?;
 
     Ok(Json(ListResponse {
         total: bots.total,
-        items: bots.items.into_iter().map(BotResponse::from).collect(),
+        items: bots.items.into_iter().map(BotAdminResponse::from).collect(),
     }))
 }
 
@@ -96,9 +96,9 @@ async fn list_bots(
     patch,
     path = "/api/admin/bots/{id}",
     tag = "Bots",
-    request_body = UpdateBotRequest,
+    request_body = UpdateBotAdminRequest,
     responses(
-        (status = 200, description = "Bot updated", body = BotResponse),
+        (status = 200, description = "Bot updated", body = BotAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -111,8 +111,8 @@ async fn update_bot(
     user: AuthUser,
     _perm: RequirePermission<BotsUpdate>,
     ctx: RequestContext,
-    ValidatedJson(payload): ValidatedJson<UpdateBotRequest>,
-) -> ApiResult<Json<BotResponse>> {
+    ValidatedJson(payload): ValidatedJson<UpdateBotAdminRequest>,
+) -> ApiResult<Json<BotAdminResponse>> {
     let bot = state
         .bot_service
         .update(UpdateBotCommand {

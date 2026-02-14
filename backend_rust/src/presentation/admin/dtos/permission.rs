@@ -6,14 +6,14 @@ use crate::models::permission::PermissionRow;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "auth.ts", rename = "PermissionResponse")]
-pub struct PermissionResponse {
+pub struct PermissionAdminResponse {
     pub id: i64,
     pub name: String,
     pub group: String,
     pub description: Option<String>,
 }
 
-impl From<PermissionRow> for PermissionResponse {
+impl From<PermissionRow> for PermissionAdminResponse {
     fn from(row: PermissionRow) -> Self {
         Self {
             id: row.id,
@@ -40,7 +40,7 @@ mod tests {
             created_at: Utc::now(),
         };
 
-        let response: PermissionResponse = row.into();
+        let response: PermissionAdminResponse = row.into();
 
         assert_eq!(response.id, 1);
         assert_eq!(response.name, "test_permission");
@@ -61,7 +61,7 @@ mod tests {
             created_at: Utc::now(),
         };
 
-        let response: PermissionResponse = row.into();
+        let response: PermissionAdminResponse = row.into();
 
         assert_eq!(response.id, 2);
         assert_eq!(response.name, "another_permission");

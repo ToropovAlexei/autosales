@@ -8,7 +8,7 @@ use utoipa::{ToResponse, ToSchema};
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema, TS)]
 #[ts(export, export_to = "order.ts", rename = "OrderItem")]
-pub struct OrderItemResponse {
+pub struct OrderItemAdminResponse {
     pub id: i64,
     pub order_id: i64,
     pub product_id: i64,
@@ -19,13 +19,13 @@ pub struct OrderItemResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "order.ts", rename = "Order")]
-pub struct OrderResponse {
+pub struct OrderAdminResponse {
     pub id: i64,
     pub customer_id: i64,
     pub amount: f64,
     pub currency: String,
     pub status: OrderStatus,
-    pub order_items: Vec<OrderItemResponse>,
+    pub order_items: Vec<OrderItemAdminResponse>,
     pub bot_id: i64,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
@@ -34,7 +34,7 @@ pub struct OrderResponse {
     pub cancelled_at: Option<DateTime<Utc>>,
 }
 
-impl From<EnrichedOrder> for OrderResponse {
+impl From<EnrichedOrder> for OrderAdminResponse {
     fn from(r: EnrichedOrder) -> Self {
         Self {
             id: r.id,
@@ -51,7 +51,7 @@ impl From<EnrichedOrder> for OrderResponse {
             order_items: r
                 .order_items
                 .iter()
-                .map(|i| OrderItemResponse {
+                .map(|i| OrderItemAdminResponse {
                     id: i.id,
                     name_at_purchase: i.name_at_purchase.clone(),
                     order_id: i.order_id,
@@ -87,7 +87,7 @@ mod tests {
             order_items: vec![],
         };
 
-        let order_response: OrderResponse = order_row.into();
+        let order_response: OrderAdminResponse = order_row.into();
 
         assert_eq!(order_response.id, 1);
         assert_eq!(order_response.customer_id, 10);

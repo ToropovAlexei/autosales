@@ -7,14 +7,14 @@ use crate::models::user_permission::PermissionEffect;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "auth.ts", rename = "UpdateUserPermission")]
-pub struct UpdateUserPermissionRequest {
+pub struct UpdateUserPermissionAdminRequest {
     pub id: i64,
     pub effect: Option<PermissionEffect>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "auth.ts", rename = "UpsertUserPermission")]
-pub struct UpsertUserPermissionRequest {
+pub struct UpsertUserPermissionAdminRequest {
     pub id: i64,
     pub effect: PermissionEffect,
 }
@@ -23,12 +23,12 @@ pub struct UpsertUserPermissionRequest {
 #[ts(export, export_to = "auth.ts", rename = "UpdateUserPermissions")]
 pub struct UpdateUserPermissionsRequest {
     pub removed: Vec<i64>,
-    pub upserted: Vec<UpsertUserPermissionRequest>,
+    pub upserted: Vec<UpsertUserPermissionAdminRequest>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "auth.ts", rename = "UserPermission")]
-pub struct UserPermissionResponse {
+pub struct UserPermissionAdminResponse {
     pub id: i64,
     pub effect: PermissionEffect,
 }

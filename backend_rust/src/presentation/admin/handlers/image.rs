@@ -15,7 +15,7 @@ use crate::{
     errors::api::{ApiError, ApiResult},
     middlewares::require_permission::{ImagesCreate, ImagesDelete, ImagesRead, RequirePermission},
     models::image::ImageListQuery,
-    presentation::admin::dtos::image::ImageResponse,
+    presentation::admin::dtos::image::ImageAdminResponse,
     services::{
         auth::AuthUser,
         image::{CreateImage, ImageServiceTrait},
@@ -43,7 +43,7 @@ struct CreateImageMultipartRequest {
     tag = "Images",
     request_body(content = CreateImageMultipartRequest, content_type = "multipart/form-data"),
     responses(
-        (status = 200, description = "Image created", body = ImageResponse),
+        (status = 200, description = "Image created", body = ImageAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -55,7 +55,7 @@ async fn create_image(
     user: AuthUser,
     _perm: RequirePermission<ImagesCreate>,
     mut multipart: Multipart,
-) -> ApiResult<Json<ImageResponse>> {
+) -> ApiResult<Json<ImageAdminResponse>> {
     let image = state
         .image_service
         .create(
@@ -73,7 +73,7 @@ async fn create_image(
     path = "/api/admin/images",
     tag = "Images",
     responses(
-        (status = 200, description = "List of images", body = ListResponse<ImageResponse>),
+        (status = 200, description = "List of images", body = ListResponse<ImageAdminResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -85,7 +85,7 @@ async fn list_images(
     _user: AuthUser,
     _perm: RequirePermission<ImagesRead>,
     query: ImageListQuery,
-) -> ApiResult<Json<ListResponse<ImageResponse>>> {
+) -> ApiResult<Json<ListResponse<ImageAdminResponse>>> {
     let categories = state.image_service.get_list(&query).await?;
 
     Ok(Json(ListResponse {
@@ -93,7 +93,7 @@ async fn list_images(
         items: categories
             .items
             .into_iter()
-            .map(ImageResponse::from)
+            .map(ImageAdminResponse::from)
             .collect(),
     }))
 }

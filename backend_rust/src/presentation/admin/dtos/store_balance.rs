@@ -4,6 +4,6 @@ use utoipa::{ToResponse, ToSchema};
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "store_balance.ts", rename = "StoreBalance")]
-pub struct StoreBalanceResponse {
+pub struct StoreBalanceAdminResponse {
     pub balance: f64,
 }

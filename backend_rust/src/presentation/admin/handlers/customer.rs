@@ -15,7 +15,7 @@ use crate::{
         validator::ValidatedJson,
     },
     models::customer::CustomerListQuery,
-    presentation::admin::dtos::customer::{CustomerResponse, UpdateCustomerRequest},
+    presentation::admin::dtos::customer::{CustomerAdminResponse, UpdateCustomerAdminRequest},
     services::{
         auth::AuthUser,
         customer::{CustomerServiceTrait, UpdateCustomerCommand},
@@ -34,7 +34,7 @@ pub fn router() -> Router<Arc<AppState>> {
     path = "/api/admin/customers",
     tag = "Customers",
     responses(
-        (status = 200, description = "Customers list", body = ListResponse<CustomerResponse>),
+        (status = 200, description = "Customers list", body = ListResponse<CustomerAdminResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -46,7 +46,7 @@ async fn list_customers(
     _user: AuthUser,
     _perm: RequirePermission<CustomersRead>,
     query: CustomerListQuery,
-) -> ApiResult<Json<ListResponse<CustomerResponse>>> {
+) -> ApiResult<Json<ListResponse<CustomerAdminResponse>>> {
     let customers = state.customer_service.get_list(query).await?;
 
     Ok(Json(ListResponse {
@@ -54,7 +54,7 @@ async fn list_customers(
         items: customers
             .items
             .into_iter()
-            .map(CustomerResponse::from)
+            .map(CustomerAdminResponse::from)
             .collect(),
     }))
 }
@@ -64,7 +64,7 @@ async fn list_customers(
     path = "/api/admin/customers/{id}",
     tag = "Customers",
     responses(
-        (status = 200, description = "Customer updated", body = CustomerResponse),
+        (status = 200, description = "Customer updated", body = CustomerAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -78,8 +78,8 @@ async fn update_customer(
     user: AuthUser,
     _perm: RequirePermission<CustomersUpdate>,
     ctx: RequestContext,
-    ValidatedJson(payload): ValidatedJson<UpdateCustomerRequest>,
-) -> ApiResult<Json<CustomerResponse>> {
+    ValidatedJson(payload): ValidatedJson<UpdateCustomerAdminRequest>,
+) -> ApiResult<Json<CustomerAdminResponse>> {
     let customer = state
         .customer_service
         .update(UpdateCustomerCommand {
@@ -95,7 +95,7 @@ async fn update_customer(
         })
         .await?;
 
-    Ok(Json(CustomerResponse::from(customer)))
+    Ok(Json(CustomerAdminResponse::from(customer)))
 }
 
 #[utoipa::path(
@@ -103,7 +103,7 @@ async fn update_customer(
     path = "/api/admin/customers/{id}",
     tag = "Customers",
     responses(
-        (status = 200, description = "Customer", body = CustomerResponse),
+        (status = 200, description = "Customer", body = CustomerAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -116,8 +116,8 @@ async fn get_customer(
     Path(id): Path<i64>,
     _user: AuthUser,
     _perm: RequirePermission<CustomersRead>,
-) -> ApiResult<Json<CustomerResponse>> {
+) -> ApiResult<Json<CustomerAdminResponse>> {
     let customer = state.customer_service.get_by_id(id).await?;
 
-    Ok(Json(CustomerResponse::from(customer)))
+    Ok(Json(CustomerAdminResponse::from(customer)))
 }

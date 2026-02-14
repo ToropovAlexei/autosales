@@ -13,8 +13,8 @@ use crate::{
         validator::ValidatedJson,
     },
     presentation::admin::dtos::settings::{
-        BotSettingsResponse, PricingSettingsResponse, UpdateBotSettingsRequest,
-        UpdatePricingSettingsRequest,
+        BotSettingsAdminResponse, PricingSettingsAdminResponse, UpdateBotSettingsAdminRequest,
+        UpdatePricingSettingsAdminRequest,
     },
     services::{
         auth::AuthUser,
@@ -37,7 +37,7 @@ pub fn router() -> Router<Arc<AppState>> {
     path = "/api/admin/settings/pricing",
     tag = "Settings",
     responses(
-        (status = 200, description = "Pricing settings", body = PricingSettingsResponse),
+        (status = 200, description = "Pricing settings", body = PricingSettingsAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -48,10 +48,10 @@ async fn get_pricing_settings(
     State(state): State<Arc<AppState>>,
     _user: AuthUser,
     _perm: RequirePermission<PricingRead>,
-) -> ApiResult<Json<PricingSettingsResponse>> {
+) -> ApiResult<Json<PricingSettingsAdminResponse>> {
     let settings = state.settings_service.load_settings().await?;
 
-    Ok(Json(PricingSettingsResponse::from(settings)))
+    Ok(Json(PricingSettingsAdminResponse::from(settings)))
 }
 
 #[utoipa::path(
@@ -59,7 +59,7 @@ async fn get_pricing_settings(
     path = "/api/admin/settings/pricing",
     tag = "Settings",
     responses(
-        (status = 200, description = "Pricing settings updated", body = PricingSettingsResponse),
+        (status = 200, description = "Pricing settings updated", body = PricingSettingsAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -71,8 +71,8 @@ async fn update_pricing_settings(
     user: AuthUser,
     _perm: RequirePermission<PricingEdit>,
     ctx: RequestContext,
-    ValidatedJson(payload): ValidatedJson<UpdatePricingSettingsRequest>,
-) -> ApiResult<Json<PricingSettingsResponse>> {
+    ValidatedJson(payload): ValidatedJson<UpdatePricingSettingsAdminRequest>,
+) -> ApiResult<Json<PricingSettingsAdminResponse>> {
     let mut command = UpdateSettingsCommand::from(payload);
     command.updated_by = user.id;
     let category = state.settings_service.update(command, ctx).await?;
@@ -85,7 +85,7 @@ async fn update_pricing_settings(
     path = "/api/admin/settings/bot",
     tag = "Settings",
     responses(
-        (status = 200, description = "Bot settings", body = BotSettingsResponse),
+        (status = 200, description = "Bot settings", body = BotSettingsAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -96,10 +96,10 @@ async fn get_bot_settings(
     State(state): State<Arc<AppState>>,
     _user: AuthUser,
     _perm: RequirePermission<SettingsRead>,
-) -> ApiResult<Json<BotSettingsResponse>> {
+) -> ApiResult<Json<BotSettingsAdminResponse>> {
     let settings = state.settings_service.load_settings().await?;
 
-    Ok(Json(BotSettingsResponse::from(settings)))
+    Ok(Json(BotSettingsAdminResponse::from(settings)))
 }
 
 #[utoipa::path(
@@ -107,7 +107,7 @@ async fn get_bot_settings(
     path = "/api/admin/settings/bot",
     tag = "Settings",
     responses(
-        (status = 200, description = "Bot settings updated", body = BotSettingsResponse),
+        (status = 200, description = "Bot settings updated", body = BotSettingsAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -119,8 +119,8 @@ async fn update_bot_settings(
     user: AuthUser,
     _perm: RequirePermission<SettingsEdit>,
     ctx: RequestContext,
-    ValidatedJson(payload): ValidatedJson<UpdateBotSettingsRequest>,
-) -> ApiResult<Json<BotSettingsResponse>> {
+    ValidatedJson(payload): ValidatedJson<UpdateBotSettingsAdminRequest>,
+) -> ApiResult<Json<BotSettingsAdminResponse>> {
     let mut command = UpdateSettingsCommand::from(payload);
     command.updated_by = user.id;
     let category = state.settings_service.update(command, ctx).await?;

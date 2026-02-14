@@ -7,7 +7,7 @@ use crate::{
     errors::api::ApiResult,
     middlewares::require_permission::{OrdersRead, RequirePermission},
     models::order::OrderListQuery,
-    presentation::admin::dtos::order::OrderResponse,
+    presentation::admin::dtos::order::OrderAdminResponse,
     services::{auth::AuthUser, order::OrderServiceTrait},
     state::AppState,
 };
@@ -21,7 +21,7 @@ pub fn router() -> Router<Arc<AppState>> {
     path = "/api/admin/orders",
     tag = "Orders",
     responses(
-        (status = 200, description = "List of orders", body = ListResponse<OrderResponse>),
+        (status = 200, description = "List of orders", body = ListResponse<OrderAdminResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -33,11 +33,15 @@ async fn list_orders(
     _user: AuthUser,
     _perm: RequirePermission<OrdersRead>,
     query: OrderListQuery,
-) -> ApiResult<Json<ListResponse<OrderResponse>>> {
+) -> ApiResult<Json<ListResponse<OrderAdminResponse>>> {
     let orders = state.order_service.get_list(query).await?;
 
     Ok(Json(ListResponse {
         total: orders.total,
-        items: orders.items.into_iter().map(OrderResponse::from).collect(),
+        items: orders
+            .items
+            .into_iter()
+            .map(OrderAdminResponse::from)
+            .collect(),
     }))
 }

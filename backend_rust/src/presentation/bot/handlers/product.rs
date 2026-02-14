@@ -9,8 +9,8 @@ use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
 
 use crate::{
     errors::api::ApiResult, middlewares::bot_auth::AuthBot, models::product::ProductListQuery,
-    presentation::admin::dtos::product::ProductResponse, services::product::ProductServiceTrait,
-    state::AppState,
+    presentation::admin::dtos::product::ProductAdminResponse,
+    services::product::ProductServiceTrait, state::AppState,
 };
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -24,7 +24,7 @@ pub fn router() -> Router<Arc<AppState>> {
     path = "/api/bot/products",
     tag = "Products",
     responses(
-        (status = 200, description = "Products list", body = ListResponse<ProductResponse>),
+        (status = 200, description = "Products list", body = ListResponse<ProductAdminResponse>),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
@@ -33,7 +33,7 @@ async fn list_products(
     State(state): State<Arc<AppState>>,
     _bot: AuthBot,
     query: ProductListQuery,
-) -> ApiResult<Json<ListResponse<ProductResponse>>> {
+) -> ApiResult<Json<ListResponse<ProductAdminResponse>>> {
     let products = state.product_service.get_list(query).await?;
 
     Ok(Json(ListResponse {
@@ -41,7 +41,7 @@ async fn list_products(
         items: products
             .items
             .into_iter()
-            .map(ProductResponse::from)
+            .map(ProductAdminResponse::from)
             .collect(),
     }))
 }
@@ -51,7 +51,7 @@ async fn list_products(
     path = "/api/bot/products/{id}",
     tag = "Products",
     responses(
-        (status = 200, description = "Product details", body = ProductResponse),
+        (status = 200, description = "Product details", body = ProductAdminResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
@@ -60,8 +60,8 @@ async fn get_product(
     State(state): State<Arc<AppState>>,
     Path(id): Path<i64>,
     _bot: AuthBot,
-) -> ApiResult<Json<ProductResponse>> {
+) -> ApiResult<Json<ProductAdminResponse>> {
     let product = state.product_service.get_by_id(id).await?;
 
-    Ok(Json(ProductResponse::from(product)))
+    Ok(Json(ProductAdminResponse::from(product)))
 }

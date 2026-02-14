@@ -9,7 +9,7 @@ use crate::models::customer::CustomerRow;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "customer.ts", rename = "Customer")]
-pub struct CustomerResponse {
+pub struct CustomerAdminResponse {
     pub id: i64,
     pub telegram_id: i64,
     pub balance: f64,
@@ -23,9 +23,9 @@ pub struct CustomerResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-impl From<CustomerRow> for CustomerResponse {
+impl From<CustomerRow> for CustomerAdminResponse {
     fn from(r: CustomerRow) -> Self {
-        CustomerResponse {
+        CustomerAdminResponse {
             id: r.id,
             telegram_id: r.telegram_id,
             balance: r.balance.to_f64().unwrap_or_default(),
@@ -43,7 +43,7 @@ impl From<CustomerRow> for CustomerResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "customer.ts", rename = "UpdateCustomer")]
-pub struct UpdateCustomerRequest {
+pub struct UpdateCustomerAdminRequest {
     #[ts(optional)]
     pub is_blocked: Option<bool>,
 }
@@ -72,7 +72,7 @@ mod tests {
             blocked_until: None,
         };
 
-        let customer_response: CustomerResponse = customer_row.into();
+        let customer_response: CustomerAdminResponse = customer_row.into();
 
         assert_eq!(customer_response.id, 1);
         assert_eq!(customer_response.telegram_id, 12345);
@@ -90,19 +90,19 @@ mod tests {
     #[test]
     fn test_update_customer_request_validation() {
         // Valid: is_blocked is Some(true)
-        let req = UpdateCustomerRequest {
+        let req = UpdateCustomerAdminRequest {
             is_blocked: Some(true),
         };
         assert!(req.validate().is_ok());
 
         // Valid: is_blocked is Some(false)
-        let req = UpdateCustomerRequest {
+        let req = UpdateCustomerAdminRequest {
             is_blocked: Some(false),
         };
         assert!(req.validate().is_ok());
 
         // Valid: is_blocked is None
-        let req = UpdateCustomerRequest { is_blocked: None };
+        let req = UpdateCustomerAdminRequest { is_blocked: None };
         assert!(req.validate().is_ok());
     }
 }

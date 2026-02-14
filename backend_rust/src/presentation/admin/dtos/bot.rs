@@ -9,7 +9,7 @@ use crate::models::bot::{BotRow, BotType};
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "bot.ts", rename = "Bot")]
-pub struct BotResponse {
+pub struct BotAdminResponse {
     pub id: i64,
     pub owner_id: Option<i64>,
     pub token: String,
@@ -23,9 +23,9 @@ pub struct BotResponse {
     pub created_by: Option<i64>,
 }
 
-impl From<BotRow> for BotResponse {
+impl From<BotRow> for BotAdminResponse {
     fn from(r: BotRow) -> Self {
-        BotResponse {
+        BotAdminResponse {
             id: r.id,
             owner_id: r.owner_id,
             token: r.token,
@@ -43,14 +43,14 @@ impl From<BotRow> for BotResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "bot.ts", rename = "NewBot")]
-pub struct NewBotRequest {
+pub struct NewBotAdminRequest {
     #[validate(length(min = 44, max = 48, message = "Length must be between 44 and 48"))]
     pub token: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "bot.ts", rename = "UpdateBot")]
-pub struct UpdateBotRequest {
+pub struct UpdateBotAdminRequest {
     #[ts(optional)]
     pub is_active: Option<bool>,
     #[ts(optional)]
@@ -83,7 +83,7 @@ mod tests {
             created_by: Some(1),
         };
 
-        let bot_response: BotResponse = bot_row.into();
+        let bot_response: BotAdminResponse = bot_row.into();
 
         assert_eq!(bot_response.id, 1);
         assert_eq!(bot_response.owner_id, Some(10));
@@ -101,24 +101,24 @@ mod tests {
     #[test]
     fn test_new_bot_request_validation() {
         // Valid token length
-        let req = NewBotRequest {
+        let req = NewBotAdminRequest {
             token: "a".repeat(44), // Min length
         };
         assert!(req.validate().is_ok());
 
-        let req = NewBotRequest {
+        let req = NewBotAdminRequest {
             token: "a".repeat(48), // Max length
         };
         assert!(req.validate().is_ok());
 
         // Too short
-        let req = NewBotRequest {
+        let req = NewBotAdminRequest {
             token: "a".repeat(43),
         };
         assert!(req.validate().is_err());
 
         // Too long
-        let req = NewBotRequest {
+        let req = NewBotAdminRequest {
             token: "a".repeat(49),
         };
         assert!(req.validate().is_err());
@@ -127,21 +127,21 @@ mod tests {
     #[test]
     fn test_update_bot_request_validation() {
         // Valid referral_percentage
-        let req = UpdateBotRequest {
+        let req = UpdateBotAdminRequest {
             is_active: None,
             is_primary: None,
             referral_percentage: Some(50.0),
         };
         assert!(req.validate().is_ok());
 
-        let req = UpdateBotRequest {
+        let req = UpdateBotAdminRequest {
             is_active: None,
             is_primary: None,
             referral_percentage: Some(0.0), // Min value
         };
         assert!(req.validate().is_ok());
 
-        let req = UpdateBotRequest {
+        let req = UpdateBotAdminRequest {
             is_active: None,
             is_primary: None,
             referral_percentage: Some(100.0), // Max value
@@ -149,7 +149,7 @@ mod tests {
         assert!(req.validate().is_ok());
 
         // Referral percentage too low
-        let req = UpdateBotRequest {
+        let req = UpdateBotAdminRequest {
             is_active: None,
             is_primary: None,
             referral_percentage: Some(-0.1),
@@ -157,7 +157,7 @@ mod tests {
         assert!(req.validate().is_err());
 
         // Referral percentage too high
-        let req = UpdateBotRequest {
+        let req = UpdateBotAdminRequest {
             is_active: None,
             is_primary: None,
             referral_percentage: Some(100.1),
@@ -165,7 +165,7 @@ mod tests {
         assert!(req.validate().is_err());
 
         // Other fields work
-        let req = UpdateBotRequest {
+        let req = UpdateBotAdminRequest {
             is_active: Some(false),
             is_primary: Some(true),
             referral_percentage: None,

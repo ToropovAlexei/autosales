@@ -5,7 +5,7 @@ use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
 
 use crate::{
     errors::api::ApiResult,
-    presentation::admin::dtos::admin_user::AdminUserResponse,
+    presentation::admin::dtos::admin_user::AdminUserAdminResponse,
     services::{
         admin_user::AdminUserServiceTrait,
         auth::{AuthServiceTrait, AuthUser},
@@ -24,7 +24,7 @@ pub fn router() -> Router<Arc<AppState>> {
     path = "/api/admin/me",
     tag = "Me",
     responses(
-        (status = 200, description = "Admin user details", body = AdminUserResponse),
+        (status = 200, description = "Admin user details", body = AdminUserAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -34,9 +34,9 @@ pub fn router() -> Router<Arc<AppState>> {
 async fn get_me(
     State(state): State<Arc<AppState>>,
     user: AuthUser,
-) -> ApiResult<Json<AdminUserResponse>> {
+) -> ApiResult<Json<AdminUserAdminResponse>> {
     let admin_user = state.admin_user_service.get_by_id(user.id).await?;
-    Ok(Json(AdminUserResponse::from(admin_user)))
+    Ok(Json(AdminUserAdminResponse::from(admin_user)))
 }
 
 #[utoipa::path(

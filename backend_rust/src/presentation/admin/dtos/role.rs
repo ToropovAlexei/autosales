@@ -9,7 +9,7 @@ use crate::models::role::RoleRow;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "auth.ts", rename = "NewRole")]
-pub struct NewRoleRequest {
+pub struct NewRoleAdminRequest {
     #[validate(length(
         min = 3,
         max = 255,
@@ -22,7 +22,7 @@ pub struct NewRoleRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "auth.ts", rename = "UpdateRole")]
-pub struct UpdateRoleRequest {
+pub struct UpdateRoleAdminRequest {
     #[validate(length(
         min = 3,
         max = 255,
@@ -38,7 +38,7 @@ pub struct UpdateRoleRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "auth.ts", rename = "Role")]
-pub struct RoleResponse {
+pub struct RoleAdminResponse {
     pub id: i64,
     pub name: String,
     pub description: Option<String>,
@@ -47,7 +47,7 @@ pub struct RoleResponse {
     pub created_by: i64,
 }
 
-impl From<RoleRow> for RoleResponse {
+impl From<RoleRow> for RoleAdminResponse {
     fn from(role: RoleRow) -> Self {
         Self {
             id: role.id,
@@ -68,21 +68,21 @@ mod tests {
     #[test]
     fn test_new_role_request_validation() {
         // Valid data
-        let req = NewRoleRequest {
+        let req = NewRoleAdminRequest {
             name: "Valid Role".to_string(),
             description: Some("A test role".to_string()),
         };
         assert!(req.validate().is_ok());
 
         // Name too short
-        let req = NewRoleRequest {
+        let req = NewRoleAdminRequest {
             name: "ab".to_string(),
             description: None,
         };
         assert!(req.validate().is_err());
 
         // Name too long
-        let req = NewRoleRequest {
+        let req = NewRoleAdminRequest {
             name: "a".repeat(256),
             description: None,
         };
@@ -92,35 +92,35 @@ mod tests {
     #[test]
     fn test_update_role_request_validation() {
         // Valid: All optional fields are None
-        let req = UpdateRoleRequest {
+        let req = UpdateRoleAdminRequest {
             name: None,
             description: None,
         };
         assert!(req.validate().is_ok());
 
         // Valid: All fields provided and correct
-        let req = UpdateRoleRequest {
+        let req = UpdateRoleAdminRequest {
             name: Some("Updated Role".to_string()),
             description: Some(Some("Updated description".to_string())),
         };
         assert!(req.validate().is_ok());
 
         // Valid: Setting description to None
-        let req = UpdateRoleRequest {
+        let req = UpdateRoleAdminRequest {
             name: Some("Updated Role".to_string()),
             description: Some(None),
         };
         assert!(req.validate().is_ok());
 
         // Name too short
-        let req = UpdateRoleRequest {
+        let req = UpdateRoleAdminRequest {
             name: Some("ab".to_string()),
             description: None,
         };
         assert!(req.validate().is_err());
 
         // Name too long
-        let req = UpdateRoleRequest {
+        let req = UpdateRoleAdminRequest {
             name: Some("a".repeat(256)),
             description: None,
         };
@@ -139,7 +139,7 @@ mod tests {
             created_by: 1,
         };
 
-        let response: RoleResponse = row.into();
+        let response: RoleAdminResponse = row.into();
 
         assert_eq!(response.id, 1);
         assert_eq!(response.name, "Admin Role");
@@ -164,7 +164,7 @@ mod tests {
             created_by: 1,
         };
 
-        let response: RoleResponse = row.into();
+        let response: RoleAdminResponse = row.into();
 
         assert_eq!(response.id, 2);
         assert_eq!(response.name, "User Role");

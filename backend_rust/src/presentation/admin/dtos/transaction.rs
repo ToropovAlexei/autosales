@@ -9,7 +9,7 @@ use crate::models::transaction::{TransactionRow, TransactionType};
 
 #[derive(Debug, Serialize, Deserialize, ToSchema, ToResponse, TS)]
 #[ts(export, export_to = "transaction.ts", rename = "Transaction")]
-pub struct TransactionResponse {
+pub struct TransactionAdminResponse {
     pub id: i64,
     pub customer_id: Option<i64>,
     pub order_id: Option<i64>,
@@ -23,7 +23,7 @@ pub struct TransactionResponse {
     pub payment_gateway: Option<PaymentSystem>,
 }
 
-impl From<TransactionRow> for TransactionResponse {
+impl From<TransactionRow> for TransactionAdminResponse {
     fn from(row: TransactionRow) -> Self {
         Self {
             id: row.id,
@@ -70,7 +70,7 @@ mod tests {
             bot_id: None,
         };
 
-        let transaction_response: TransactionResponse = transaction_row.into();
+        let transaction_response: TransactionAdminResponse = transaction_row.into();
 
         assert_eq!(transaction_response.id, 1);
         assert_eq!(transaction_response.customer_id, Some(101));
@@ -112,7 +112,7 @@ mod tests {
             bot_id: None,
         };
 
-        let transaction_response: TransactionResponse = transaction_row.into();
+        let transaction_response: TransactionAdminResponse = transaction_row.into();
 
         assert_eq!(transaction_response.id, 2);
         assert_eq!(transaction_response.customer_id, None);

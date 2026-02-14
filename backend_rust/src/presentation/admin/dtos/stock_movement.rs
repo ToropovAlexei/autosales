@@ -7,7 +7,7 @@ use crate::models::stock_movement::{StockMovementRow, StockMovementType};
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "stock_movement.ts", rename = "StockMovement")]
-pub struct StockMovementResponse {
+pub struct StockMovementAdminResponse {
     pub id: i64,
     pub order_id: Option<i64>,
     pub product_id: i64,
@@ -19,9 +19,9 @@ pub struct StockMovementResponse {
     pub description: Option<String>,
 }
 
-impl From<StockMovementRow> for StockMovementResponse {
+impl From<StockMovementRow> for StockMovementAdminResponse {
     fn from(r: StockMovementRow) -> Self {
-        StockMovementResponse {
+        StockMovementAdminResponse {
             id: r.id,
             order_id: r.order_id,
             product_id: r.product_id,
@@ -56,7 +56,7 @@ mod tests {
             reference_id: None,
         };
 
-        let response: StockMovementResponse = row.into();
+        let response: StockMovementAdminResponse = row.into();
 
         assert_eq!(response.id, 1);
         assert_eq!(response.order_id, Some(10));
@@ -86,7 +86,7 @@ mod tests {
             reference_id: None,
         };
 
-        let response: StockMovementResponse = row.into();
+        let response: StockMovementAdminResponse = row.into();
 
         assert_eq!(response.id, 2);
         assert_eq!(response.order_id, None);

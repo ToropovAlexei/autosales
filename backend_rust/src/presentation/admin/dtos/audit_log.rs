@@ -7,7 +7,7 @@ use crate::models::audit_log::{AuditAction, AuditLogRow, AuditStatus};
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "audit_log.ts", rename = "AuditLog")]
-pub struct AuditLogResponse {
+pub struct AuditLogAdminResponse {
     pub id: i64,
     pub admin_user_id: Option<i64>,
     pub admin_user_login: Option<String>,
@@ -25,9 +25,9 @@ pub struct AuditLogResponse {
     pub created_at: DateTime<Utc>,
 }
 
-impl From<AuditLogRow> for AuditLogResponse {
+impl From<AuditLogRow> for AuditLogAdminResponse {
     fn from(r: AuditLogRow) -> Self {
-        AuditLogResponse {
+        AuditLogAdminResponse {
             id: r.id,
             admin_user_id: r.admin_user_id,
             admin_user_login: r.admin_user_login,
@@ -73,7 +73,7 @@ mod tests {
             created_at: now,
         };
 
-        let response: AuditLogResponse = row.into();
+        let response: AuditLogAdminResponse = row.into();
 
         assert_eq!(response.id, 1);
         assert_eq!(response.admin_user_id, Some(101));
@@ -113,7 +113,7 @@ mod tests {
             created_at: now,
         };
 
-        let response: AuditLogResponse = row.into();
+        let response: AuditLogAdminResponse = row.into();
 
         assert_eq!(response.id, 2);
         assert_eq!(response.admin_user_id, None);

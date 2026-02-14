@@ -18,7 +18,7 @@ use crate::{
         validator::ValidatedJson,
     },
     presentation::admin::dtos::category::{
-        CategoryResponse, NewCategoryRequest, UpdateCategoryRequest,
+        CategoryAdminResponse, NewCategoryAdminRequest, UpdateCategoryAdminRequest,
     },
     services::{
         auth::AuthUser,
@@ -45,9 +45,9 @@ pub fn router() -> Router<Arc<AppState>> {
     post,
     path = "/api/admin/categories",
     tag = "Categories",
-    request_body = NewCategoryRequest,
+    request_body = NewCategoryAdminRequest,
     responses(
-        (status = 200, description = "Category created", body = CategoryResponse),
+        (status = 200, description = "Category created", body = CategoryAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -59,8 +59,8 @@ async fn create_category(
     user: AuthUser,
     _perm: RequirePermission<CategoriesCreate>,
     ctx: RequestContext,
-    ValidatedJson(payload): ValidatedJson<NewCategoryRequest>,
-) -> ApiResult<Json<CategoryResponse>> {
+    ValidatedJson(payload): ValidatedJson<NewCategoryAdminRequest>,
+) -> ApiResult<Json<CategoryAdminResponse>> {
     let category = state
         .category_service
         .create(CreateCategoryCommand {
@@ -80,7 +80,7 @@ async fn create_category(
     path = "/api/admin/categories",
     tag = "Categories",
     responses(
-        (status = 200, description = "List of categories", body = ListResponse<CategoryResponse>),
+        (status = 200, description = "List of categories", body = ListResponse<CategoryAdminResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -91,12 +91,15 @@ async fn list_categories(
     State(state): State<Arc<AppState>>,
     _user: AuthUser,
     _perm: RequirePermission<CategoriesRead>,
-) -> ApiResult<Json<ListResponse<CategoryResponse>>> {
+) -> ApiResult<Json<ListResponse<CategoryAdminResponse>>> {
     let categories = state.category_service.get_list().await?;
 
     Ok(Json(ListResponse {
         total: categories.len() as i64,
-        items: categories.into_iter().map(CategoryResponse::from).collect(),
+        items: categories
+            .into_iter()
+            .map(CategoryAdminResponse::from)
+            .collect(),
     }))
 }
 
@@ -105,7 +108,7 @@ async fn list_categories(
     path = "/api/admin/categories/{id}",
     tag = "Categories",
     responses(
-        (status = 200, description = "Category details", body = CategoryResponse),
+        (status = 200, description = "Category details", body = CategoryAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -117,19 +120,19 @@ async fn get_category(
     Path(id): Path<i64>,
     _user: AuthUser,
     _perm: RequirePermission<CategoriesRead>,
-) -> ApiResult<Json<CategoryResponse>> {
+) -> ApiResult<Json<CategoryAdminResponse>> {
     let category = state.category_service.get_by_id(id).await?;
 
-    Ok(Json(CategoryResponse::from(category)))
+    Ok(Json(CategoryAdminResponse::from(category)))
 }
 
 #[utoipa::path(
     patch,
     path = "/api/admin/categories/{id}",
     tag = "Categories",
-    request_body = UpdateCategoryRequest,
+    request_body = UpdateCategoryAdminRequest,
     responses(
-        (status = 200, description = "Category updated", body = CategoryResponse),
+        (status = 200, description = "Category updated", body = CategoryAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -142,8 +145,8 @@ async fn update_category(
     user: AuthUser,
     _perm: RequirePermission<CategoriesUpdate>,
     ctx: RequestContext,
-    ValidatedJson(payload): ValidatedJson<UpdateCategoryRequest>,
-) -> ApiResult<Json<CategoryResponse>> {
+    ValidatedJson(payload): ValidatedJson<UpdateCategoryAdminRequest>,
+) -> ApiResult<Json<CategoryAdminResponse>> {
     let category = state
         .category_service
         .update(

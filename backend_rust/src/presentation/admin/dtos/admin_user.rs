@@ -8,7 +8,7 @@ use crate::models::{admin_user::AdminUserRow, admin_user_with_roles::AdminUserWi
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "admin_user.ts", rename = "AdminUser")]
-pub struct AdminUserResponse {
+pub struct AdminUserAdminResponse {
     pub id: i64,
     pub login: String,
     pub telegram_id: Option<i64>,
@@ -18,9 +18,9 @@ pub struct AdminUserResponse {
     pub created_by: i64,
 }
 
-impl From<AdminUserRow> for AdminUserResponse {
+impl From<AdminUserRow> for AdminUserAdminResponse {
     fn from(r: AdminUserRow) -> Self {
-        AdminUserResponse {
+        AdminUserAdminResponse {
             id: r.id,
             login: r.login,
             telegram_id: r.telegram_id,
@@ -34,7 +34,7 @@ impl From<AdminUserRow> for AdminUserResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "admin_user.ts", rename = "NewAdminUser")]
-pub struct NewAdminUserRequest {
+pub struct NewAdminUserAdminRequest {
     #[validate(length(
         min = 3,
         max = 255,
@@ -53,7 +53,7 @@ pub struct NewAdminUserRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "admin_user.ts", rename = "NewAdminUserResponse")]
-pub struct NewAdminUserResponse {
+pub struct NewAdminUserAdminResponse {
     pub id: i64,
     pub login: String,
     pub telegram_id: Option<i64>,
@@ -67,7 +67,7 @@ pub struct NewAdminUserResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "admin_user.ts", rename = "UpdateAdminUser")]
-pub struct UpdateAdminUserRequest {
+pub struct UpdateAdminUserAdminRequest {
     #[validate(length(
         min = 3,
         max = 255,
@@ -91,14 +91,14 @@ pub struct UpdateAdminUserRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "admin_user.ts", rename = "RoleSummary")]
-pub struct RoleSummaryResponse {
+pub struct RoleSummaryAdminResponse {
     pub id: i64,
     pub name: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
 #[ts(export, export_to = "admin_user.ts", rename = "AdminUserWithRoles")]
-pub struct AdminUserWithRolesResponse {
+pub struct AdminUserWithRolesAdminResponse {
     pub id: i64,
     pub login: String,
     pub telegram_id: Option<i64>,
@@ -106,12 +106,12 @@ pub struct AdminUserWithRolesResponse {
     pub updated_at: DateTime<Utc>,
     pub deleted_at: Option<DateTime<Utc>>,
     pub created_by: i64,
-    pub roles: Vec<RoleSummaryResponse>,
+    pub roles: Vec<RoleSummaryAdminResponse>,
 }
 
-impl From<AdminUserWithRolesRow> for AdminUserWithRolesResponse {
+impl From<AdminUserWithRolesRow> for AdminUserWithRolesAdminResponse {
     fn from(r: AdminUserWithRolesRow) -> Self {
-        AdminUserWithRolesResponse {
+        AdminUserWithRolesAdminResponse {
             id: r.id,
             login: r.login,
             telegram_id: r.telegram_id,
@@ -122,7 +122,7 @@ impl From<AdminUserWithRolesRow> for AdminUserWithRolesResponse {
             roles: r
                 .roles
                 .iter()
-                .map(|r| RoleSummaryResponse {
+                .map(|r| RoleSummaryAdminResponse {
                     id: r.id,
                     name: r.name.clone(),
                 })
@@ -139,7 +139,7 @@ mod tests {
     #[test]
     fn test_new_admin_user_request_validation() {
         // Valid data
-        let req = NewAdminUserRequest {
+        let req = NewAdminUserAdminRequest {
             login: "goodlogin".to_string(),
             password: "goodpassword".to_string(),
             roles: vec![1],
@@ -147,7 +147,7 @@ mod tests {
         assert!(req.validate().is_ok());
 
         // Invalid login (too short)
-        let req = NewAdminUserRequest {
+        let req = NewAdminUserAdminRequest {
             login: "a".to_string(),
             password: "goodpassword".to_string(),
             roles: vec![1],
@@ -155,7 +155,7 @@ mod tests {
         assert!(req.validate().is_err());
 
         // Invalid password (too long)
-        let req = NewAdminUserRequest {
+        let req = NewAdminUserAdminRequest {
             login: "goodlogin".to_string(),
             password: "a".repeat(21),
             roles: vec![1],
@@ -163,7 +163,7 @@ mod tests {
         assert!(req.validate().is_err());
 
         // Invalid roles (empty)
-        let req = NewAdminUserRequest {
+        let req = NewAdminUserAdminRequest {
             login: "goodlogin".to_string(),
             password: "goodpassword".to_string(),
             roles: vec![],
@@ -174,7 +174,7 @@ mod tests {
     #[test]
     fn test_update_admin_user_request_validation() {
         // Valid: All optional fields are None
-        let req = UpdateAdminUserRequest {
+        let req = UpdateAdminUserAdminRequest {
             login: None,
             password: None,
             telegram_id: None,
@@ -183,7 +183,7 @@ mod tests {
         assert!(req.validate().is_ok());
 
         // Valid: All fields provided and correct
-        let req = UpdateAdminUserRequest {
+        let req = UpdateAdminUserAdminRequest {
             login: Some("newlogin".to_string()),
             password: Some("newpassword".to_string()),
             telegram_id: Some(12345),
@@ -192,7 +192,7 @@ mod tests {
         assert!(req.validate().is_ok());
 
         // Invalid login (too short)
-        let req = UpdateAdminUserRequest {
+        let req = UpdateAdminUserAdminRequest {
             login: Some("a".to_string()),
             password: None,
             telegram_id: None,
@@ -201,7 +201,7 @@ mod tests {
         assert!(req.validate().is_err());
 
         // Invalid password (too long)
-        let req = UpdateAdminUserRequest {
+        let req = UpdateAdminUserAdminRequest {
             login: None,
             password: Some("a".repeat(21)),
             telegram_id: None,
@@ -210,7 +210,7 @@ mod tests {
         assert!(req.validate().is_err());
 
         // Invalid roles (empty vec)
-        let req = UpdateAdminUserRequest {
+        let req = UpdateAdminUserAdminRequest {
             login: None,
             password: None,
             telegram_id: None,
@@ -235,7 +235,7 @@ mod tests {
             created_by: 1,
         };
 
-        let response: AdminUserResponse = row.into();
+        let response: AdminUserAdminResponse = row.into();
 
         assert_eq!(response.id, 1);
         assert_eq!(response.login, "test_user");
@@ -263,7 +263,7 @@ mod tests {
             .unwrap(),
         };
 
-        let response: AdminUserWithRolesResponse = row.into();
+        let response: AdminUserWithRolesAdminResponse = row.into();
 
         assert_eq!(response.id, 1);
         assert_eq!(response.login, "test_user");

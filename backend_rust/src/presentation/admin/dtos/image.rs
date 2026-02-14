@@ -7,15 +7,15 @@ use uuid::Uuid;
 use crate::models::image::ImageRow;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "image.ts")]
-pub struct ImageResponse {
+#[ts(export, export_to = "image.ts", rename = "ImageResponse")]
+pub struct ImageAdminResponse {
     pub id: Uuid,
     pub context: String,
     pub created_at: DateTime<Utc>,
     pub created_by: i64,
 }
 
-impl From<ImageRow> for ImageResponse {
+impl From<ImageRow> for ImageAdminResponse {
     fn from(r: ImageRow) -> Self {
         Self {
             id: r.id,
@@ -47,7 +47,7 @@ mod tests {
             width: None,
         };
 
-        let image_response: ImageResponse = image_row.into();
+        let image_response: ImageAdminResponse = image_row.into();
 
         assert_eq!(image_response.id, uuid);
         assert_eq!(image_response.context, "test_context");

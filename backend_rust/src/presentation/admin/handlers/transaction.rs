@@ -7,7 +7,7 @@ use crate::{
     errors::api::ApiResult,
     middlewares::require_permission::{RequirePermission, TransactionsRead},
     models::transaction::TransactionListQuery,
-    presentation::admin::dtos::transaction::TransactionResponse,
+    presentation::admin::dtos::transaction::TransactionAdminResponse,
     services::{auth::AuthUser, transaction::TransactionServiceTrait},
     state::AppState,
 };
@@ -21,7 +21,7 @@ pub fn router() -> Router<Arc<AppState>> {
     path = "/api/admin/transactions",
     tag = "Transactions",
     responses(
-        (status = 200, description = "Transactions list", body = ListResponse<TransactionResponse>),
+        (status = 200, description = "Transactions list", body = ListResponse<TransactionAdminResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -33,7 +33,7 @@ async fn list_transactions(
     _user: AuthUser,
     _perm: RequirePermission<TransactionsRead>,
     query: TransactionListQuery,
-) -> ApiResult<Json<ListResponse<TransactionResponse>>> {
+) -> ApiResult<Json<ListResponse<TransactionAdminResponse>>> {
     let transactions = state.transaction_service.get_list(query).await?;
 
     Ok(Json(ListResponse {
@@ -41,7 +41,7 @@ async fn list_transactions(
         items: transactions
             .items
             .into_iter()
-            .map(TransactionResponse::from)
+            .map(TransactionAdminResponse::from)
             .collect(),
     }))
 }

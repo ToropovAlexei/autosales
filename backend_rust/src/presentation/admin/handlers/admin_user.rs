@@ -21,11 +21,11 @@ use crate::{
     models::user_permission::{UpdateUserPermissions, UpsertUserPermission},
     presentation::admin::dtos::{
         admin_user::{
-            AdminUserResponse, AdminUserWithRolesResponse, NewAdminUserRequest,
-            NewAdminUserResponse, UpdateAdminUserRequest,
+            AdminUserAdminResponse, AdminUserWithRolesAdminResponse, NewAdminUserAdminRequest,
+            NewAdminUserAdminResponse, UpdateAdminUserAdminRequest,
         },
-        permission::PermissionResponse,
-        user_permission::{UpdateUserPermissionsRequest, UserPermissionResponse},
+        permission::PermissionAdminResponse,
+        user_permission::{UpdateUserPermissionsRequest, UserPermissionAdminResponse},
     },
     services::{
         admin_user::{
@@ -56,9 +56,9 @@ pub fn router() -> Router<Arc<AppState>> {
     post,
     path = "/api/admin/admin-users",
     tag = "Admin Users",
-    request_body = NewAdminUserRequest,
+    request_body = NewAdminUserAdminRequest,
     responses(
-        (status = 200, description = "Admin user created", body = AdminUserResponse),
+        (status = 200, description = "Admin user created", body = AdminUserAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -70,8 +70,8 @@ async fn create_admin_user(
     user: AuthUser,
     _perm: RequirePermission<AdminUsersCreate>,
     ctx: RequestContext,
-    ValidatedJson(payload): ValidatedJson<NewAdminUserRequest>,
-) -> ApiResult<Json<NewAdminUserResponse>> {
+    ValidatedJson(payload): ValidatedJson<NewAdminUserAdminRequest>,
+) -> ApiResult<Json<NewAdminUserAdminResponse>> {
     let admin_user = state
         .admin_user_service
         .create(
@@ -85,7 +85,7 @@ async fn create_admin_user(
         )
         .await?;
 
-    Ok(Json(NewAdminUserResponse {
+    Ok(Json(NewAdminUserAdminResponse {
         id: admin_user.id,
         created_at: admin_user.created_at,
         created_by: admin_user.created_by,
@@ -103,7 +103,7 @@ async fn create_admin_user(
     path = "/api/admin/admin-users",
     tag = "Admin Users",
     responses(
-        (status = 200, description = "Admin users list", body = ListResponse<AdminUserWithRolesResponse>),
+        (status = 200, description = "Admin users list", body = ListResponse<AdminUserWithRolesAdminResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -114,14 +114,14 @@ async fn list_admin_users(
     State(state): State<Arc<AppState>>,
     _user: AuthUser,
     _perm: RequirePermission<AdminUsersRead>,
-) -> ApiResult<Json<ListResponse<AdminUserWithRolesResponse>>> {
+) -> ApiResult<Json<ListResponse<AdminUserWithRolesAdminResponse>>> {
     let admin_users = state.admin_user_service.get_all_users_with_roles().await?;
 
     Ok(Json(ListResponse {
         total: admin_users.len() as i64,
         items: admin_users
             .into_iter()
-            .map(AdminUserWithRolesResponse::from)
+            .map(AdminUserWithRolesAdminResponse::from)
             .collect(),
     }))
 }
@@ -131,7 +131,7 @@ async fn list_admin_users(
     path = "/api/admin/admin-users/{id}",
     tag = "Admin Users",
     responses(
-        (status = 200, description = "Admin user details", body = AdminUserResponse),
+        (status = 200, description = "Admin user details", body = AdminUserAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -143,7 +143,7 @@ async fn get_admin_user(
     Path(id): Path<i64>,
     _user: AuthUser,
     _perm: RequirePermission<AdminUsersRead>,
-) -> ApiResult<Json<AdminUserResponse>> {
+) -> ApiResult<Json<AdminUserAdminResponse>> {
     let admin_user = state.admin_user_service.get_by_id(id).await?;
 
     Ok(Json(admin_user.into()))
@@ -153,9 +153,9 @@ async fn get_admin_user(
     patch,
     path = "/api/admin/admin-users/{id}",
     tag = "Admin Users",
-    request_body = UpdateAdminUserRequest,
+    request_body = UpdateAdminUserAdminRequest,
     responses(
-        (status = 200, description = "Admin user updated", body = AdminUserResponse),
+        (status = 200, description = "Admin user updated", body = AdminUserAdminResponse),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -168,8 +168,8 @@ async fn update_admin_user(
     user: AuthUser,
     _perm: RequirePermission<AdminUsersUpdate>,
     ctx: RequestContext,
-    ValidatedJson(payload): ValidatedJson<UpdateAdminUserRequest>,
-) -> ApiResult<Json<AdminUserResponse>> {
+    ValidatedJson(payload): ValidatedJson<UpdateAdminUserAdminRequest>,
+) -> ApiResult<Json<AdminUserAdminResponse>> {
     let admin_user = state
         .admin_user_service
         .update(
@@ -226,7 +226,7 @@ async fn delete_admin_user(
     path = "/api/admin/admin-users/{id}/permissions",
     tag = "Admin Users",
     responses(
-        (status = 200, description = "Admin user permissions", body = ListResponse<PermissionResponse>),
+        (status = 200, description = "Admin user permissions", body = ListResponse<PermissionAdminResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -238,14 +238,14 @@ async fn get_admin_user_permissions(
     Path(id): Path<i64>,
     _user: AuthUser,
     _perm: RequirePermission<RbacManage>,
-) -> ApiResult<Json<ListResponse<UserPermissionResponse>>> {
+) -> ApiResult<Json<ListResponse<UserPermissionAdminResponse>>> {
     let permissions = state.permission_service.get_for_admin_user(id).await?;
 
     Ok(Json(ListResponse {
         total: permissions.len() as i64,
         items: permissions
             .into_iter()
-            .map(|p| UserPermissionResponse {
+            .map(|p| UserPermissionAdminResponse {
                 effect: p.effect,
                 id: p.permission_id,
             })
@@ -259,7 +259,7 @@ async fn get_admin_user_permissions(
     tag = "Admin Users",
     request_body = UpdateUserPermissionsRequest,
     responses(
-        (status = 200, description = "Admin user permissions updated", body = ListResponse<PermissionResponse>),
+        (status = 200, description = "Admin user permissions updated", body = ListResponse<PermissionAdminResponse>),
         (status = 400, description = "Bad request", body = ApiErrorResponse),
         (status = 401, description = "Unauthorized", body = ApiErrorResponse),
         (status = 403, description = "Forbidden", body = ApiErrorResponse),
@@ -272,7 +272,7 @@ async fn update_admin_user_permissions(
     user: AuthUser,
     _perm: RequirePermission<RbacManage>,
     ValidatedJson(payload): ValidatedJson<UpdateUserPermissionsRequest>,
-) -> ApiResult<Json<ListResponse<UserPermissionResponse>>> {
+) -> ApiResult<Json<ListResponse<UserPermissionAdminResponse>>> {
     state
         .permission_service
         .update_admin_user_permissions(UpdateUserPermissions {
@@ -296,7 +296,7 @@ async fn update_admin_user_permissions(
         total: permissions.len() as i64,
         items: permissions
             .into_iter()
-            .map(|p| UserPermissionResponse {
+            .map(|p| UserPermissionAdminResponse {
                 effect: p.effect,
                 id: p.permission_id,
             })

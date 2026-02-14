@@ -9,7 +9,7 @@ use crate::models::payment_invoice::PaymentInvoiceRow;
 
 #[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema)]
 #[ts(export, export_to = "invoice.ts", rename = "PaymentInvoice")]
-pub struct PaymentInvoiceResponse {
+pub struct PaymentInvoiceAdminResponse {
     pub id: i64,
     pub customer_id: i64,
     pub original_amount: f64,
@@ -22,9 +22,9 @@ pub struct PaymentInvoiceResponse {
     pub gateway_invoice_id: String,
 }
 
-impl From<PaymentInvoiceRow> for PaymentInvoiceResponse {
+impl From<PaymentInvoiceRow> for PaymentInvoiceAdminResponse {
     fn from(r: PaymentInvoiceRow) -> Self {
-        PaymentInvoiceResponse {
+        PaymentInvoiceAdminResponse {
             id: r.id,
             customer_id: r.customer_id,
             original_amount: r.original_amount.to_f64().unwrap_or_default(),
