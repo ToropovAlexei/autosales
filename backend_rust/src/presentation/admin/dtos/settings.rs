@@ -1,39 +1,10 @@
 use rust_decimal::prelude::{Decimal, FromPrimitive, ToPrimitive};
-use serde::{Deserialize, Serialize};
-use serde_with::rust::double_option;
-use ts_rs::TS;
-use utoipa::{ToResponse, ToSchema};
-use uuid::Uuid;
-use validator::Validate;
+use shared_dtos::settings::{
+    BotSettingsAdminResponse, PricingSettingsAdminResponse, UpdateBotSettingsAdminRequest,
+    UpdatePricingSettingsAdminRequest,
+};
 
 use crate::{models::settings::Settings, services::settings::UpdateSettingsCommand};
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "settings.ts", rename = "PricingSettings")]
-pub struct PricingSettingsAdminResponse {
-    pub pricing_global_markup: f64,
-    pub pricing_platform_commission: f64,
-    pub pricing_gateway_markup: f64,
-    pub pricing_gateway_bonus_mock_provider: f64,
-    pub pricing_gateway_bonus_platform_card: f64,
-    pub pricing_gateway_bonus_platform_sbp: f64,
-    pub referral_program_enabled: bool,
-    pub referral_percentage: f64,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "settings.ts", rename = "BotSettings")]
-pub struct BotSettingsAdminResponse {
-    pub bot_messages_support: String,
-    pub bot_messages_support_image_id: Option<Uuid>,
-    pub bot_messages_new_user_welcome: String,
-    pub bot_messages_new_user_welcome_image_id: Option<Uuid>,
-    pub bot_messages_returning_user_welcome: String,
-    pub bot_messages_returning_user_welcome_image_id: Option<Uuid>,
-    pub bot_payment_system_support_operators: Vec<String>,
-    pub bot_description: String,
-    pub bot_about: String,
-}
 
 impl From<Settings> for PricingSettingsAdminResponse {
     fn from(r: Settings) -> Self {
@@ -74,69 +45,6 @@ impl From<Settings> for BotSettingsAdminResponse {
             bot_description: r.bot_description,
         }
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse, Validate, Default)]
-#[ts(export, export_to = "settings.ts", rename = "UpdatePricingSettings")]
-pub struct UpdatePricingSettingsAdminRequest {
-    #[validate(range(min = 0.0, max = 10000.0))]
-    #[ts(optional)]
-    pub pricing_global_markup: Option<f64>,
-    #[validate(range(min = 0.0, max = 100.0))]
-    #[ts(optional)]
-    pub pricing_platform_commission: Option<f64>,
-    #[validate(range(min = 0.0, max = 100.0))]
-    #[ts(optional)]
-    pub pricing_gateway_markup: Option<f64>,
-    #[validate(range(min = 0.0, max = 100.0))]
-    #[ts(optional)]
-    pub pricing_gateway_bonus_mock_provider: Option<f64>,
-    #[validate(range(min = 0.0, max = 100.0))]
-    #[ts(optional)]
-    pub pricing_gateway_bonus_platform_card: Option<f64>,
-    #[validate(range(min = 0.0, max = 100.0))]
-    #[ts(optional)]
-    pub pricing_gateway_bonus_platform_sbp: Option<f64>,
-    #[ts(optional)]
-    pub referral_program_enabled: Option<bool>,
-    #[validate(range(min = 0.0, max = 100.0))]
-    #[ts(optional)]
-    pub referral_percentage: Option<f64>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse, Validate, Default)]
-#[ts(export, export_to = "settings.ts", rename = "UpdateBotSettings")]
-pub struct UpdateBotSettingsAdminRequest {
-    #[validate(length(max = 999, message = "length must be less than 999"))]
-    #[ts(optional)]
-    pub bot_messages_support: Option<String>,
-    #[ts(optional)]
-    #[ts(type = "string | null")]
-    #[serde(default, with = "double_option")]
-    pub bot_messages_support_image_id: Option<Option<Uuid>>,
-    #[validate(length(max = 999, message = "length must be less than 999"))]
-    #[ts(optional)]
-    pub bot_messages_new_user_welcome: Option<String>,
-    #[ts(optional)]
-    #[ts(type = "string | null")]
-    #[serde(default, with = "double_option")]
-    pub bot_messages_new_user_welcome_image_id: Option<Option<Uuid>>,
-    #[validate(length(max = 999, message = "length must be less than 999"))]
-    #[ts(optional)]
-    pub bot_messages_returning_user_welcome: Option<String>,
-    #[ts(optional)]
-    #[ts(type = "string | null")]
-    #[serde(default, with = "double_option")]
-    pub bot_messages_returning_user_welcome_image_id: Option<Option<Uuid>>,
-    #[validate(length(max = 3, message = "length must be less than 3"))]
-    #[ts(optional)]
-    pub bot_payment_system_support_operators: Option<Vec<String>>,
-    #[validate(length(max = 999, message = "length must be less than 999"))]
-    #[ts(optional)]
-    pub bot_description: Option<String>,
-    #[validate(length(max = 999, message = "length must be less than 999"))]
-    #[ts(optional)]
-    pub bot_about: Option<String>,
 }
 
 impl From<UpdatePricingSettingsAdminRequest> for UpdateSettingsCommand {
@@ -182,6 +90,7 @@ impl From<UpdateBotSettingsAdminRequest> for UpdateSettingsCommand {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use uuid::Uuid;
     use validator::Validate;
 
     // Helper to create a dummy Settings struct

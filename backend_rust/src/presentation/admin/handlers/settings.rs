@@ -1,7 +1,13 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
-use shared_dtos::error::ApiErrorResponse;
+use shared_dtos::{
+    error::ApiErrorResponse,
+    settings::{
+        BotSettingsAdminResponse, PricingSettingsAdminResponse, UpdateBotSettingsAdminRequest,
+        UpdatePricingSettingsAdminRequest,
+    },
+};
 
 use crate::{
     errors::api::ApiResult,
@@ -11,10 +17,6 @@ use crate::{
             PricingEdit, PricingRead, RequirePermission, SettingsEdit, SettingsRead,
         },
         validator::ValidatedJson,
-    },
-    presentation::admin::dtos::settings::{
-        BotSettingsAdminResponse, PricingSettingsAdminResponse, UpdateBotSettingsAdminRequest,
-        UpdatePricingSettingsAdminRequest,
     },
     services::{
         auth::AuthUser,

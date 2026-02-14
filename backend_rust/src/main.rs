@@ -38,7 +38,10 @@ use shared_dtos::{
         NewProductAdminRequest, ProductAdminResponse, ProductType, UpdateProductAdminRequest,
     },
     role::{NewRoleAdminRequest, RoleAdminResponse, UpdateRoleAdminRequest},
-    settings::SettingsBotResponse,
+    settings::{
+        BotSettingsAdminResponse, PricingSettingsAdminResponse, SettingsBotResponse,
+        UpdateBotSettingsAdminRequest, UpdatePricingSettingsAdminRequest,
+    },
     stock_movement::StockMovementAdminResponse,
     store_balance::StoreBalanceAdminResponse,
     transaction::TransactionAdminResponse,
@@ -58,13 +61,7 @@ use backend_rust::{
     init_tracing,
     presentation::{
         admin::{
-            dtos::{
-                broadcast::{BroadcastResponse, NewBroadcastRequest},
-                settings::{
-                    BotSettingsAdminResponse, PricingSettingsAdminResponse,
-                    UpdateBotSettingsAdminRequest, UpdatePricingSettingsAdminRequest,
-                },
-            },
+            dtos::broadcast::{BroadcastResponse, NewBroadcastRequest},
             handlers as admin_handlers,
         },
         bot::handlers as bot_handlers,
