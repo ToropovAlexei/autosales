@@ -1,4 +1,8 @@
-use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
+use shared_dtos::{
+    customer::{CustomerAdminResponse, UpdateCustomerAdminRequest},
+    error::ApiErrorResponse,
+    list_response::ListResponse,
+};
 use std::sync::Arc;
 
 use axum::{
@@ -15,7 +19,6 @@ use crate::{
         validator::ValidatedJson,
     },
     models::customer::CustomerListQuery,
-    presentation::admin::dtos::customer::{CustomerAdminResponse, UpdateCustomerAdminRequest},
     services::{
         auth::AuthUser,
         customer::{CustomerServiceTrait, UpdateCustomerCommand},

@@ -1,27 +1,7 @@
-use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
-use serde::{Deserialize, Serialize};
-use ts_rs::TS;
-use utoipa::{ToResponse, ToSchema};
-use validator::Validate;
+use shared_dtos::customer::CustomerAdminResponse;
 
 use crate::models::customer::CustomerRow;
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "customer.ts", rename = "Customer")]
-pub struct CustomerAdminResponse {
-    pub id: i64,
-    pub telegram_id: i64,
-    pub balance: f64,
-    pub is_blocked: bool,
-    pub bot_is_blocked_by_user: bool,
-    pub has_passed_captcha: bool,
-    pub registered_with_bot: i64,
-    pub last_seen_with_bot: i64,
-    pub last_seen_at: DateTime<Utc>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
 
 impl From<CustomerRow> for CustomerAdminResponse {
     fn from(r: CustomerRow) -> Self {
@@ -41,17 +21,12 @@ impl From<CustomerRow> for CustomerAdminResponse {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "customer.ts", rename = "UpdateCustomer")]
-pub struct UpdateCustomerAdminRequest {
-    #[ts(optional)]
-    pub is_blocked: Option<bool>,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
     use rust_decimal::Decimal;
+    use shared_dtos::customer::UpdateCustomerAdminRequest;
     use validator::Validate;
 
     #[test]

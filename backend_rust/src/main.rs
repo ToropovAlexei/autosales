@@ -15,7 +15,9 @@ use shared_dtos::{
     can_operate::CanOperateBotResponse,
     captcha::CaptchaBotResponse,
     category::{CategoryAdminResponse, NewCategoryAdminRequest, UpdateCategoryAdminRequest},
-    customer::{CustomerBotResponse, NewCustomerBotRequest, UpdateCustomerBotRequest},
+    customer::{
+        CustomerAdminResponse, CustomerBotResponse, NewCustomerBotRequest, UpdateCustomerBotRequest,
+    },
     error::ApiErrorResponse,
     image::ImageAdminResponse,
     invoice::{
@@ -47,7 +49,6 @@ use backend_rust::{
         admin::{
             dtos::{
                 broadcast::{BroadcastResponse, NewBroadcastRequest},
-                customer::CustomerAdminResponse,
                 dashboard::{
                     CategorySalesResponse, DashboardOverviewResponse, SalesOverTimeResponse,
                     StatWithTrendResponse, TimeSeriesDashboardDataResponse,
