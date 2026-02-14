@@ -3,6 +3,7 @@ use shared_dtos::{
         AdminUserWithRolesAdminResponse, NewAdminUserAdminRequest, UpdateAdminUserAdminRequest,
     },
     analytics::BotAnalyticsBotResponse,
+    audit_log::AuditLogAdminResponse,
     bot::{BotBotResponse, NewBotBotRequest, UpdateBotBotRequest},
     can_operate::CanOperateBotResponse,
     captcha::CaptchaBotResponse,
@@ -33,7 +34,6 @@ use backend_rust::{
     presentation::{
         admin::{
             dtos::{
-                audit_log::AuditLogAdminResponse,
                 auth::{
                     LoginStep1AdminRequest, LoginStep1AdminResponse, LoginStep2AdminRequest,
                     LoginStep2AdminResponse,

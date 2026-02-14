@@ -2,64 +2,11 @@ use std::net::IpAddr;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use shared_dtos::audit_log::{AuditAction, AuditStatus};
 use sqlx::{prelude::FromRow, types::ipnetwork::IpNetwork};
-use ts_rs::TS;
-use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::define_list_query;
-
-#[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]
-#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-#[ts(export, export_to = "audit_log.ts")]
-pub enum AuditAction {
-    UserLogin,
-    UserLogout,
-    UserCreate,
-    UserUpdate,
-    UserDelete,
-    RoleGrant,
-    RoleRevoke,
-    PermissionGrant,
-    PermissionRevoke,
-    ProductCreate,
-    ProductUpdate,
-    ProductDelete,
-    ProductHide,
-    StockMovementCreate,
-    BalanceDeposit,
-    BalanceWithdrawal,
-    ReferralPayout,
-    InvoiceCreate,
-    InvoicePay,
-    InvoiceExpire,
-    CategoryCreate,
-    CategoryUpdate,
-    CategoryDelete,
-    CustomerCreate,
-    CustomerUpdate,
-    CustomerDelete,
-    BotCreate,
-    BotUpdate,
-    BotDelete,
-    ImageCreate,
-    ImageUpdate,
-    ImageDelete,
-    SystemSettingsUpdate,
-    BroadcastCreate,
-    BroadcastUpdate,
-}
-
-#[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]
-#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-#[ts(export, export_to = "audit_log.ts")]
-pub enum AuditStatus {
-    Success,
-    Failed,
-    Denied,
-}
 
 #[derive(Debug, FromRow)]
 pub struct AuditLogRow {

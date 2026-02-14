@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use rust_decimal::Decimal;
+use shared_dtos::audit_log::{AuditAction, AuditStatus};
 use uuid::Uuid;
 
 use crate::{
@@ -12,7 +13,7 @@ use crate::{
     },
     middlewares::context::RequestContext,
     models::{
-        audit_log::{AuditAction, AuditStatus, NewAuditLog},
+        audit_log::NewAuditLog,
         settings::{Settings, UpdateSettings},
     },
     services::audit_log::{AuditLogService, AuditLogServiceTrait},

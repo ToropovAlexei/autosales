@@ -120,7 +120,8 @@ impl AuditLogRepositoryTrait for AuditLogRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::audit_log::{AuditAction, AuditLogListQuery, AuditStatus};
+    use crate::models::audit_log::AuditLogListQuery;
+    use shared_dtos::audit_log::{AuditAction, AuditStatus};
     use sqlx::PgPool;
     use std::net::IpAddr;
     use std::str::FromStr;

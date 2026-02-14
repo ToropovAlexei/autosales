@@ -50,7 +50,7 @@ impl AuditLogServiceTrait for AuditLogService<AuditLogRepository> {
 mod tests {
     use super::*;
     use crate::infrastructure::repositories::audit_log::AuditLogRepository;
-    use crate::models::audit_log::{AuditAction, AuditStatus};
+    use shared_dtos::audit_log::{AuditAction, AuditStatus};
     use sqlx::PgPool;
     use std::net::IpAddr;
     use std::str::FromStr;

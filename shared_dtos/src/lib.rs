@@ -1,5 +1,6 @@
 pub mod admin_user;
 pub mod analytics;
+pub mod audit_log;
 pub mod bot;
 pub mod can_operate;
 pub mod captcha;

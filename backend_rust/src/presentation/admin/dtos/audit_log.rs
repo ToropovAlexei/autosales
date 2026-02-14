@@ -1,29 +1,6 @@
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use ts_rs::TS;
-use utoipa::{ToResponse, ToSchema};
+use shared_dtos::audit_log::AuditLogAdminResponse;
 
-use crate::models::audit_log::{AuditAction, AuditLogRow, AuditStatus};
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "audit_log.ts", rename = "AuditLog")]
-pub struct AuditLogAdminResponse {
-    pub id: i64,
-    pub admin_user_id: Option<i64>,
-    pub admin_user_login: Option<String>,
-    pub customer_id: Option<i64>,
-    pub action: AuditAction,
-    pub status: AuditStatus,
-    pub target_table: String,
-    pub target_id: String,
-    pub old_values: Option<serde_json::Value>,
-    pub new_values: Option<serde_json::Value>,
-    pub ip_address: Option<String>,
-    pub user_agent: Option<String>,
-    pub request_id: Option<String>,
-    pub error_message: Option<String>,
-    pub created_at: DateTime<Utc>,
-}
+use crate::models::audit_log::AuditLogRow;
 
 impl From<AuditLogRow> for AuditLogAdminResponse {
     fn from(r: AuditLogRow) -> Self {
@@ -50,7 +27,9 @@ impl From<AuditLogRow> for AuditLogAdminResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
     use serde_json::json;
+    use shared_dtos::audit_log::{AuditAction, AuditStatus};
 
     #[test]
     fn test_audit_log_response_from_audit_log_row_full() {

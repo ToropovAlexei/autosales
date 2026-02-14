@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use shared_dtos::audit_log::{AuditAction, AuditStatus};
 use sqlx::PgPool;
 
 use crate::{
@@ -16,7 +17,7 @@ use crate::{
     models::{
         admin_user::{AdminUserRow, NewAdminUser, UpdateAdminUser},
         admin_user_with_roles::AdminUserWithRolesRow,
-        audit_log::{AuditAction, AuditStatus, NewAuditLog},
+        audit_log::NewAuditLog,
         user_role::AssignUserRoles,
     },
     services::{

@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
+use shared_dtos::audit_log::{AuditAction, AuditStatus};
 
 use crate::{
     errors::api::{ApiError, ApiResult},
@@ -11,7 +12,7 @@ use crate::{
     },
     middlewares::context::RequestContext,
     models::{
-        audit_log::{AuditAction, AuditStatus, NewAuditLog},
+        audit_log::NewAuditLog,
         common::PaginatedResult,
         customer::{CustomerListQuery, CustomerRow, NewCustomer, UpdateCustomer},
     },

@@ -5,7 +5,10 @@ use chrono::{DateTime, Utc};
 use rust_decimal::{Decimal, prelude::FromPrimitive};
 use rust_decimal_macros::dec;
 use serde::Serialize;
-use shared_dtos::product::{ProductDetails, ProductType};
+use shared_dtos::{
+    audit_log::{AuditAction, AuditStatus},
+    product::{ProductDetails, ProductType},
+};
 use uuid::Uuid;
 
 use crate::{
@@ -19,7 +22,7 @@ use crate::{
     },
     middlewares::context::RequestContext,
     models::{
-        audit_log::{AuditAction, AuditStatus, NewAuditLog},
+        audit_log::NewAuditLog,
         common::PaginatedResult,
         product::{NewProduct, ProductListQuery, ProductRow, UpdateProduct},
         settings::Settings,
