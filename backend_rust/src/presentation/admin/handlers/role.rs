@@ -12,7 +12,7 @@ use axum::{
 };
 
 use crate::{
-    errors::api::ApiResult,
+    errors::api::{ApiResult, ErrorResponse},
     middlewares::{
         require_permission::{RbacManage, RequirePermission},
         validator::ValidatedJson,
@@ -48,11 +48,11 @@ pub fn router() -> Router<Arc<AppState>> {
     path = "/api/admin/roles",
     tag = "Roles",
     responses(
-        (status = 201, description = "Role created", body = RoleResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 200, description = "Role created", body = RoleResponse),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn create_role(
@@ -79,10 +79,10 @@ async fn create_role(
     tag = "Roles",
     responses(
         (status = 200, description = "Admin user roles", body = ListResponse<RoleResponse>),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn list_roles(
@@ -104,10 +104,10 @@ async fn list_roles(
     tag = "Roles",
     responses(
         (status = 200, description = "Role updated", body = RoleResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn update_role(
@@ -137,10 +137,10 @@ async fn update_role(
     tag = "Roles",
     responses(
         (status = 204, description = "Role deleted"),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn delete_role(
@@ -160,10 +160,10 @@ async fn delete_role(
     tag = "Roles",
     responses(
         (status = 200, description = "Role permissions", body = ListResponse<PermissionResponse>),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_role_permissions(
@@ -189,10 +189,10 @@ async fn get_role_permissions(
     tag = "Roles",
     responses(
         (status = 200, description = "Role permissions updated", body = ListResponse<PermissionResponse>),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn update_role_permissions(

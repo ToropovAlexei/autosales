@@ -8,8 +8,11 @@ use axum::{
 use shared_dtos::list_response::ListResponse;
 
 use crate::{
-    errors::api::ApiResult, middlewares::bot_auth::AuthBot, models::product::ProductListQuery,
-    presentation::admin::dtos::product::ProductResponse, services::product::ProductServiceTrait,
+    errors::api::{ApiResult, ErrorResponse},
+    middlewares::bot_auth::AuthBot,
+    models::product::ProductListQuery,
+    presentation::admin::dtos::product::ProductResponse,
+    services::product::ProductServiceTrait,
     state::AppState,
 };
 
@@ -25,8 +28,8 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Products",
     responses(
         (status = 200, description = "Products list", body = ListResponse<ProductResponse>),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn list_products(
@@ -52,8 +55,8 @@ async fn list_products(
     tag = "Products",
     responses(
         (status = 200, description = "Product details", body = ProductResponse),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_product(

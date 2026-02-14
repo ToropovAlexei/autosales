@@ -4,6 +4,7 @@ use bytes::Bytes;
 use rust_decimal::{Decimal, prelude::FromPrimitive};
 use shared_dtos::list_response::ListResponse;
 use std::sync::Arc;
+use utoipa::ToSchema;
 
 use axum::{
     Json, Router,
@@ -12,7 +13,7 @@ use axum::{
 };
 
 use crate::{
-    errors::api::{ApiError, ApiResult},
+    errors::api::{ApiError, ApiResult, ErrorResponse},
     middlewares::{
         context::RequestContext,
         require_permission::{
@@ -47,17 +48,24 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/upload", post(upload_products))
 }
 
+#[derive(ToSchema)]
+#[allow(dead_code)] // Used by utoipa request_body schema only.
+struct UploadProductsMultipartRequest {
+    #[schema(value_type = String, format = Binary)]
+    file: String,
+}
+
 #[utoipa::path(
     post,
     path = "/api/admin/products",
     tag = "Products",
     request_body = NewProductRequest,
     responses(
-        (status = 201, description = "Product created", body = ProductResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 200, description = "Product created", body = ProductResponse),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn create_product(
@@ -95,12 +103,13 @@ async fn create_product(
     post,
     path = "/api/admin/products/upload",
     tag = "Products",
+    request_body(content = UploadProductsMultipartRequest, content_type = "multipart/form-data"),
     responses(
-        (status = 201, description = "Products uploaded", body = ProductsUploadResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 200, description = "Products uploaded", body = ProductsUploadResponse),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn upload_products(
@@ -143,9 +152,9 @@ async fn upload_products(
     tag = "Products",
     responses(
         (status = 200, description = "Products list", body = ListResponse<ProductResponse>),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn list_products(
@@ -172,9 +181,9 @@ async fn list_products(
     tag = "Products",
     responses(
         (status = 200, description = "Product details", body = ProductResponse),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_product(
@@ -195,10 +204,10 @@ async fn get_product(
     request_body = UpdateProductRequest,
     responses(
         (status = 200, description = "Product updated", body = ProductResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn update_product(
@@ -246,9 +255,9 @@ async fn update_product(
     tag = "Products",
     responses(
         (status = 204, description = "Product deleted"),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn delete_product(

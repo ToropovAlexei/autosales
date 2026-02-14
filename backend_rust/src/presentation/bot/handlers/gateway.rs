@@ -7,7 +7,9 @@ use shared_dtos::{
 };
 
 use crate::{
-    errors::api::ApiResult, middlewares::verified_service::VerifiedService, state::AppState,
+    errors::api::{ApiResult, ErrorResponse},
+    middlewares::verified_service::VerifiedService,
+    state::AppState,
 };
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -20,9 +22,9 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Bots",
     responses(
         (status = 200, description = "Gateways", body = ListResponse<GatewayBotResponse>),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_gateways(

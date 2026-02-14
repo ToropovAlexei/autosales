@@ -9,7 +9,7 @@ use axum::{
 };
 
 use crate::{
-    errors::api::ApiResult,
+    errors::api::{ApiResult, ErrorResponse},
     middlewares::{
         context::RequestContext,
         require_permission::{
@@ -48,10 +48,10 @@ pub fn router() -> Router<Arc<AppState>> {
     request_body = NewCategoryRequest,
     responses(
         (status = 200, description = "Category created", body = CategoryResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn create_category(
@@ -81,10 +81,10 @@ async fn create_category(
     tag = "Categories",
     responses(
         (status = 200, description = "List of categories", body = ListResponse<CategoryResponse>),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn list_categories(
@@ -106,10 +106,10 @@ async fn list_categories(
     tag = "Categories",
     responses(
         (status = 200, description = "Category details", body = CategoryResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_category(
@@ -130,10 +130,10 @@ async fn get_category(
     request_body = UpdateCategoryRequest,
     responses(
         (status = 200, description = "Category updated", body = CategoryResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn update_category(
@@ -168,10 +168,10 @@ async fn update_category(
     tag = "Categories",
     responses(
         (status = 204, description = "Category deleted"),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn delete_category(

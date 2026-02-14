@@ -33,9 +33,9 @@ pub enum ApiError {
     InternalServerError(String),
 }
 
-#[derive(Serialize)]
-struct ErrorResponse {
-    error: String,
+#[derive(Serialize, ToSchema)]
+pub struct ErrorResponse {
+    pub error: String,
 }
 
 #[derive(Serialize, ToSchema)]

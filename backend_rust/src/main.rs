@@ -1,4 +1,5 @@
 use shared_dtos::{
+    analytics::BotAnalyticsBotResponse,
     bot::{BotBotResponse, NewBotBotRequest, UpdateBotBotRequest},
     can_operate::CanOperateBotResponse,
     captcha::CaptchaBotResponse,
@@ -14,7 +15,8 @@ use shared_dtos::{
 };
 use std::sync::Arc;
 use tokio::signal;
-use utoipa::OpenApi;
+use utoipa::openapi::security::{ApiKey, ApiKeyValue, HttpAuthScheme, HttpBuilder, SecurityScheme};
+use utoipa::{Modify, OpenApi};
 use utoipa_swagger_ui::SwaggerUi;
 
 #[cfg(feature = "contms-provider")]
@@ -23,6 +25,7 @@ use backend_rust::{
     config::Config,
     create_app,
     db::Database,
+    errors::api::{ErrorResponse, ValidationErrorResponse},
     init_tracing,
     presentation::{
         admin::{
@@ -48,6 +51,7 @@ use backend_rust::{
                 },
                 image::ImageResponse,
                 order::OrderResponse,
+                payment_invoice::PaymentInvoiceResponse,
                 permission::PermissionResponse,
                 product::{NewProductRequest, ProductResponse, UpdateProductRequest},
                 role::{NewRoleRequest, RoleResponse, UpdateRoleRequest},
@@ -72,6 +76,11 @@ use backend_rust::{
 
 #[derive(OpenApi)]
 #[openapi(
+    modifiers(&SecurityAddon),
+    security(
+        ("admin_bearer" = []),
+        ("service_api_key" = [], "bot_id" = [])
+    ),
     paths(
         admin_handlers::auth::login_step1,
         admin_handlers::auth::login_step2,
@@ -91,6 +100,7 @@ use backend_rust::{
         admin_handlers::image::delete_image,
         admin_handlers::image::list_images,
         admin_handlers::customer::list_customers,
+        admin_handlers::customer::get_customer,
         admin_handlers::customer::update_customer,
         admin_handlers::admin_user::list_admin_users,
         admin_handlers::admin_user::get_admin_user,
@@ -125,9 +135,13 @@ use backend_rust::{
         admin_handlers::dashboard::get_time_series,
         admin_handlers::dashboard::get_top_products,
         admin_handlers::dashboard::get_sales_by_category,
+        admin_handlers::payment_invoice::list_payment_invoices,
+        admin_handlers::dev::reset_test_data,
         bot_handlers::bot::create_bot,
+        bot_handlers::bot::get_bot,
         bot_handlers::bot::list_bots,
         bot_handlers::bot::update_bot,
+        bot_handlers::bot::delete_bot,
         bot_handlers::bot::get_primary_bots,
         bot_handlers::can_operate::can_operate,
         bot_handlers::captcha::get_captcha,
@@ -137,6 +151,8 @@ use backend_rust::{
         bot_handlers::customer::update_customer,
         bot_handlers::customer::get_customer_invoices,
         bot_handlers::customer::get_customer_orders,
+        bot_handlers::customer::get_customer_subscriptions,
+        bot_handlers::customer::get_customer_referral_analytics,
         bot_handlers::customer::update_customer_last_seen,
         bot_handlers::gateway::get_gateways,
         bot_handlers::invoice::list_invoices,
@@ -181,6 +197,8 @@ use backend_rust::{
         ListResponse<GatewayBotResponse>,
         ListResponse<PaymentInvoiceBotResponse>,
         ListResponse<EnrichedOrderBotResponse>,
+        ListResponse<PaymentInvoiceResponse>,
+        ListResponse<BotAnalyticsBotResponse>,
         CustomerResponse,
         AdminUserWithRolesResponse,
         AdminBotResponse,
@@ -226,13 +244,43 @@ use backend_rust::{
         PaymentInvoiceBotResponse,
         NewPaymentInvoiceBotRequest,
         UpdatePaymentInvoiceBotRequest,
+        PaymentInvoiceResponse,
+        BotAnalyticsBotResponse,
         EnrichedOrderBotResponse,
         OrderItemBotResponse,
         PurchaseBotResponse,
         SettingsBotResponse,
+        ErrorResponse,
+        ValidationErrorResponse,
+        admin_handlers::dev::ResetTestDataResponse,
     ))
 )]
 struct ApiDoc;
+
+struct SecurityAddon;
+
+impl Modify for SecurityAddon {
+    fn modify(&self, openapi: &mut utoipa::openapi::OpenApi) {
+        let components = openapi.components.get_or_insert_with(Default::default);
+        components.add_security_scheme(
+            "admin_bearer",
+            SecurityScheme::Http(
+                HttpBuilder::new()
+                    .scheme(HttpAuthScheme::Bearer)
+                    .bearer_format("UUID")
+                    .build(),
+            ),
+        );
+        components.add_security_scheme(
+            "service_api_key",
+            SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("X-API-KEY"))),
+        );
+        components.add_security_scheme(
+            "bot_id",
+            SecurityScheme::ApiKey(ApiKey::Header(ApiKeyValue::new("X-BOT-ID"))),
+        );
+    }
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {

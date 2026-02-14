@@ -4,7 +4,7 @@ use axum::{Json, Router, extract::State, routing::get};
 use shared_dtos::list_response::ListResponse;
 
 use crate::{
-    errors::api::ApiResult,
+    errors::api::{ApiResult, ErrorResponse},
     middlewares::require_permission::{AuditLogRead, RequirePermission},
     models::audit_log::AuditLogListQuery,
     presentation::admin::dtos::audit_log::AuditLogResponse,
@@ -22,10 +22,10 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Audit Logs",
     responses(
         (status = 200, description = "List of audit logs", body = ListResponse<AuditLogResponse>),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn list_audit_logs(

@@ -4,7 +4,7 @@ use axum::{Json, Router, extract::State, routing::get};
 use shared_dtos::list_response::ListResponse;
 
 use crate::{
-    errors::api::ApiResult,
+    errors::api::{ApiResult, ErrorResponse},
     middlewares::require_permission::{RequirePermission, StockRead},
     models::stock_movement::StockMovementListQuery,
     presentation::admin::dtos::stock_movement::StockMovementResponse,
@@ -22,10 +22,10 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Stock Movements",
     responses(
         (status = 200, description = "List of stock movements", body = ListResponse<StockMovementResponse>),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn list_stock_movement(

@@ -17,9 +17,10 @@ use shared_dtos::{
     },
     list_response::ListResponse,
 };
+use utoipa::ToSchema;
 
 use crate::{
-    errors::api::{ApiError, ApiResult},
+    errors::api::{ApiError, ApiResult, ErrorResponse},
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson},
     models::payment_invoice::PaymentInvoiceListQuery,
     services::{
@@ -41,15 +42,22 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/{id}/send-receipt", post(send_invoice_receipt))
 }
 
+#[derive(ToSchema)]
+#[allow(dead_code)] // Used by utoipa request_body schema only.
+struct SendInvoiceReceiptMultipartRequest {
+    #[schema(value_type = String, format = Binary)]
+    file: String,
+}
+
 #[utoipa::path(
     get,
     path = "/api/bot/invoices",
     tag = "Invoices",
     responses(
         (status = 200, description = "List of invoices", body = ListResponse<PaymentInvoiceBotResponse>),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn list_invoices(
@@ -74,10 +82,10 @@ async fn list_invoices(
     tag = "Invoices",
     responses(
         (status = 200, description = "Invoice details", body = PaymentInvoiceBotResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 404, description = "Not found", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_invoice(
@@ -96,9 +104,9 @@ async fn get_invoice(
     request_body = NewPaymentInvoiceBotRequest,
     responses(
         (status = 200, description = "Invoice created", body = PaymentInvoiceBotResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn create_invoice(
@@ -130,10 +138,10 @@ async fn create_invoice(
     request_body = UpdatePaymentInvoiceBotRequest,
     responses(
         (status = 200, description = "Invoice updated", body = PaymentInvoiceBotResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 404, description = "Not found", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn update_invoice(
@@ -160,10 +168,10 @@ async fn update_invoice(
     tag = "Invoices",
     responses(
         (status = 200, description = "Invoice confirmed", body = PaymentInvoiceBotResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 404, description = "Not found", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn confirm_invoice(
@@ -181,10 +189,10 @@ async fn confirm_invoice(
     tag = "Invoices",
     responses(
         (status = 200, description = "Invoice cancelled", body = PaymentInvoiceBotResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 404, description = "Not found", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn cancel_invoice(
@@ -200,12 +208,13 @@ async fn cancel_invoice(
     post,
     path = "/api/bot/invoices/{id}/send-receipt",
     tag = "Invoices",
+    request_body(content = SendInvoiceReceiptMultipartRequest, content_type = "multipart/form-data"),
     responses(
         (status = 200, description = "Receipt submitted", body = PaymentInvoiceBotResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 404, description = "Not found", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 404, description = "Not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn send_invoice_receipt(

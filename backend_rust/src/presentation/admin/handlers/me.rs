@@ -4,7 +4,7 @@ use axum::{Json, Router, debug_handler, extract::State, routing::get};
 use shared_dtos::list_response::ListResponse;
 
 use crate::{
-    errors::api::ApiResult,
+    errors::api::{ApiResult, ErrorResponse},
     presentation::admin::dtos::admin_user::AdminUserResponse,
     services::{
         admin_user::AdminUserServiceTrait,
@@ -25,10 +25,10 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Me",
     responses(
         (status = 200, description = "Admin user details", body = AdminUserResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_me(
@@ -45,10 +45,10 @@ async fn get_me(
     tag = "Me",
     responses(
         (status = 200, description = "Admin user permissions", body = ListResponse<String>),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 #[debug_handler]

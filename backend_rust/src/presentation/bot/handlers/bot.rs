@@ -11,7 +11,7 @@ use shared_dtos::{
 };
 
 use crate::{
-    errors::api::ApiResult,
+    errors::api::{ApiResult, ErrorResponse},
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson, verified_service::VerifiedService},
     models::bot::{BotListQuery, BotType},
     services::{
@@ -34,9 +34,9 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Bots",
     responses(
         (status = 200, description = "Bot found", body = BotBotResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_bot(
@@ -55,9 +55,9 @@ async fn get_bot(
     request_body = NewBotBotRequest,
     responses(
         (status = 200, description = "Bot created", body = BotBotResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn create_bot(
@@ -91,9 +91,9 @@ async fn create_bot(
     tag = "Bots",
     responses(
         (status = 200, description = "Bot list", body = ListResponse<BotBotResponse>),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn list_bots(
@@ -116,9 +116,9 @@ async fn list_bots(
     request_body = UpdateBotBotRequest,
     responses(
         (status = 200, description = "Bot updated", body = BotBotResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn update_bot(
@@ -149,9 +149,9 @@ async fn update_bot(
     tag = "Bots",
     responses(
         (status = 200, description = "Bot list", body = ListResponse<BotBotResponse>),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_primary_bots(
@@ -171,10 +171,10 @@ async fn get_primary_bots(
     path = "/api/bot/bots/{id}",
     tag = "Bots",
     responses(
-        (status = 200, description = "Bot deleted", body = String),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 200, description = "Bot deleted"),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn delete_bot(

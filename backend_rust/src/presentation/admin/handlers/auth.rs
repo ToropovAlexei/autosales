@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{Json, Router, debug_handler, extract::State, routing::post};
 
 use crate::{
-    errors::api::{ApiError, ApiResult},
+    errors::api::{ApiError, ApiResult, ErrorResponse},
     middlewares::{context::RequestContext, validator::ValidatedJson},
     models::audit_log::{AuditAction, AuditStatus, NewAuditLog},
     presentation::admin::dtos::auth::{
@@ -27,13 +27,14 @@ pub fn router() -> Router<Arc<AppState>> {
     post,
     path = "/api/admin/auth/login",
     tag = "Auth",
+    security(()),
     request_body = LoginStep1Request,
     responses(
         (status = 200, description = "Login successful", body = LoginStep1Response),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 #[debug_handler]
@@ -99,13 +100,14 @@ async fn login_step1(
     post,
     path = "/api/admin/auth/login/2fa",
     tag = "Auth",
+    security(()),
     request_body = LoginStep2Request,
     responses(
         (status = 200, description = "Login successful", body = LoginStep2Response),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn login_step2(
@@ -128,10 +130,10 @@ async fn login_step2(
     tag = "Auth",
     responses(
         (status = 200, description = "Logout successful"),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn logout(

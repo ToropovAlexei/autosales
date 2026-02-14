@@ -2,14 +2,15 @@ use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::post};
 use serde::Serialize;
+use utoipa::ToSchema;
 
 use crate::{
-    errors::api::{ApiError, ApiResult},
+    errors::api::{ApiError, ApiResult, ErrorResponse},
     services::auth::AuthUser,
     state::AppState,
 };
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct ResetTestDataResponse {
     pub ok: bool,
 }
@@ -19,6 +20,16 @@ pub fn router() -> Router<Arc<AppState>> {
 }
 
 // TODO Dont forget to remove this endpoint!
+#[utoipa::path(
+    post,
+    path = "/api/admin/dev/reset-data",
+    tag = "Dev",
+    responses(
+        (status = 200, description = "Test data reset", body = ResetTestDataResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
+    )
+)]
 async fn reset_test_data(
     State(state): State<Arc<AppState>>,
     _user: AuthUser,

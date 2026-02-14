@@ -4,7 +4,7 @@ use std::sync::Arc;
 use axum::{Json, Router, extract::State, routing::get};
 
 use crate::{
-    errors::api::{ApiError, ApiResult},
+    errors::api::{ApiError, ApiResult, ErrorResponse},
     middlewares::require_permission::{RequirePermission, StoreBalanceRead},
     presentation::admin::dtos::store_balance::StoreBalanceResponse,
     services::{auth::AuthUser, transaction::TransactionServiceTrait},
@@ -21,10 +21,10 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Store balance",
     responses(
         (status = 200, description = "Store balance", body = StoreBalanceResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_store_balance(

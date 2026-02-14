@@ -5,8 +5,11 @@ use uuid::Uuid;
 use axum::{Router, extract::State, routing::post};
 
 #[cfg(feature = "mock-payments-provider")]
-use crate::infrastructure::external::payment::mock::{
-    MockPaymentsProviderTrait, dto::MockProviderInvoiceWebhookPayload,
+use crate::{
+    errors::api::ErrorResponse,
+    infrastructure::external::payment::mock::{
+        MockPaymentsProviderTrait, dto::MockProviderInvoiceWebhookPayload,
+    },
 };
 
 use crate::{
@@ -27,11 +30,12 @@ pub fn router() -> Router<Arc<AppState>> {
     post,
     path = "/api/webhook/payment/mock-provider",
     tag = "Webhook",
+    security(()),
     request_body = MockProviderInvoiceWebhookPayload,
     responses(
         (status = 200, description = "Webhook accepted", body = Uuid),
-        (status = 400, description = "Bad request", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn mock_payments_provider_webhook(

@@ -4,7 +4,7 @@ use std::sync::Arc;
 use axum::{Json, Router, extract::State, routing::get};
 
 use crate::{
-    errors::api::ApiResult,
+    errors::api::{ApiResult, ErrorResponse},
     middlewares::require_permission::{InvoicesRead, RequirePermission},
     models::payment_invoice::PaymentInvoiceListQuery,
     presentation::admin::dtos::payment_invoice::PaymentInvoiceResponse,
@@ -22,10 +22,10 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Payment Invoices",
     responses(
         (status = 200, description = "Payment invoice list", body = ListResponse<PaymentInvoiceResponse>),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 403, description = "Forbidden", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 403, description = "Forbidden", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn list_payment_invoices(

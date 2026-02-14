@@ -4,8 +4,10 @@ use axum::{Json, Router, extract::State, routing::get};
 use shared_dtos::can_operate::CanOperateBotResponse;
 
 use crate::{
-    errors::api::ApiResult, middlewares::verified_service::VerifiedService,
-    services::bot::BotServiceTrait, state::AppState,
+    errors::api::{ApiResult, ErrorResponse},
+    middlewares::verified_service::VerifiedService,
+    services::bot::BotServiceTrait,
+    state::AppState,
 };
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -18,9 +20,9 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Bots",
     responses(
         (status = 200, description = "Can operate", body = CanOperateBotResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn can_operate(

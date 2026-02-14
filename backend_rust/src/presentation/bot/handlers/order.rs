@@ -8,7 +8,7 @@ use axum::{
 use shared_dtos::order::{EnrichedOrderBotResponse, PurchaseBotRequest, PurchaseBotResponse};
 
 use crate::{
-    errors::api::ApiResult,
+    errors::api::{ApiResult, ErrorResponse},
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson},
     services::{
         order::OrderServiceTrait,
@@ -29,9 +29,9 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Orders",
     responses(
         (status = 200, description = "Create order", body = PurchaseBotResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn purchase(
@@ -65,9 +65,9 @@ async fn purchase(
     tag = "Orders",
     responses(
         (status = 200, description = "Get order", body = EnrichedOrderBotResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_order(

@@ -15,7 +15,7 @@ use axum::{
 };
 
 use crate::{
-    errors::api::{ApiError, ApiResult},
+    errors::api::{ApiError, ApiResult, ErrorResponse},
     services::image::{ImageServiceTrait, get_image_path},
     state::AppState,
 };
@@ -28,10 +28,11 @@ pub fn router() -> Router<Arc<AppState>> {
     get,
     path = "/api/images/{id}",
     tag = "Images",
+    security(()),
     responses(
         (status = 200, description = "Image file"),
-        (status = 404, description = "Image not found", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 404, description = "Image not found", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_image(

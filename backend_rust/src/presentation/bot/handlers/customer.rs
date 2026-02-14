@@ -15,7 +15,7 @@ use shared_dtos::{
 };
 
 use crate::{
-    errors::api::ApiResult,
+    errors::api::{ApiResult, ErrorResponse},
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson},
     models::customer::NewCustomer,
     services::{
@@ -54,8 +54,8 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Customers",
     responses(
         (status = 200, description = "Get customer", body = CustomerBotResponse),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_customer(
@@ -76,9 +76,9 @@ async fn get_customer(
     tag = "Customers",
     responses(
         (status = 200, description = "Create customer", body = CustomerBotResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn create_customer(
@@ -102,9 +102,9 @@ async fn create_customer(
     tag = "Customers",
     responses(
         (status = 200, description = "Update customer", body = CustomerBotResponse),
-        (status = 400, description = "Bad request", body = String),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 400, description = "Bad request", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn update_customer(
@@ -140,8 +140,8 @@ async fn update_customer(
     tag = "Customers",
     responses(
         (status = 200, description = "Get customer invoices", body = ListResponse<PaymentInvoiceBotResponse>),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_customer_invoices(
@@ -173,8 +173,8 @@ async fn get_customer_invoices(
     tag = "Customers",
     responses(
         (status = 200, description = "Get customer orders", body = ListResponse<EnrichedOrderBotResponse>),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_customer_orders(
@@ -198,13 +198,13 @@ async fn get_customer_orders(
 }
 
 #[utoipa::path(
-    get,
+    post,
     path = "/api/bot/customers/{telegram_id}/update-last-seen",
     tag = "Customers",
     responses(
         (status = 200, description = "Update last seen"),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn update_customer_last_seen(
@@ -230,8 +230,8 @@ async fn update_customer_last_seen(
     tag = "Customers",
     responses(
         (status = 200, description = "Get customer subscriptions", body = ListResponse<UserSubscriptionBotResponse>),
-        (status = 401, description = "Unauthorized", body = String),
-        (status = 500, description = "Internal server error", body = String),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
     )
 )]
 async fn get_customer_subscriptions(
@@ -257,6 +257,16 @@ async fn get_customer_subscriptions(
     }))
 }
 
+#[utoipa::path(
+    get,
+    path = "/api/bot/customers/{telegram_id}/referral-analytics",
+    tag = "Customers",
+    responses(
+        (status = 200, description = "Get customer referral analytics", body = ListResponse<BotAnalyticsBotResponse>),
+        (status = 401, description = "Unauthorized", body = ErrorResponse),
+        (status = 500, description = "Internal server error", body = ErrorResponse),
+    )
+)]
 async fn get_customer_referral_analytics(
     State(state): State<Arc<AppState>>,
     Path(telegram_id): Path<i64>,
