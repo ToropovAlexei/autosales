@@ -22,6 +22,13 @@ Rust backend for admin dashboard, bot-facing API, images, and payment webhooks. 
 
 OpenAPI is available at `/swagger-ui` and `/openapi.json`.
 
+OpenAPI notes:
+
+- Ensure every routed handler has `#[utoipa::path]` and is included in `ApiDoc.paths(...)`.
+- Security schemes are documented for:
+  - `Authorization: Bearer <uuid>` (admin auth)
+  - `X-API-KEY` + `X-BOT-ID` (bot/service auth)
+
 ## Data model notes
 
 - `bots.owner_id` references `customers.id` (the bot API maps from `telegram_id` when creating bots).
@@ -93,6 +100,28 @@ Implementation locations:
 
 - Admin auth is 2-step (login + TOTP) and uses `Authorization: Bearer <uuid>` access tokens stored in DB.
 - Bot auth uses `X-API-KEY` (service key) + `X-BOT-ID`.
+
+## Error response format
+
+API errors use shared DTOs from `shared_dtos::error` and return JSON:
+
+```json
+{
+  "code": "VALIDATION_FAILED",
+  "message": "Validation error",
+  "details": {
+    "fields": {
+      "email": "must be a valid email"
+    }
+  }
+}
+```
+
+Contract:
+
+- `code` is stable and intended for frontend/bot branching logic.
+- `message` is human-readable fallback text.
+- `details` is optional structured payload (for example validation fields).
 
 ## Subscriptions (Contms)
 

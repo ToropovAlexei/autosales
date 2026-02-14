@@ -1,6 +1,6 @@
 # Documentation
 
-This folder documents the current Rust-based stack (backend_rust + tgbot_rust + frontend). Legacy services (`backend_go`, `tgbot` Python) are deprecated and not covered here.
+This folder documents the current Rust-based stack (`backend_rust` + `tgbot_rust` + `frontend` + `shared_dtos`).
 
 ## Index
 

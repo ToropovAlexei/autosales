@@ -5,7 +5,7 @@
 - `backend_rust` - Core API (admin + bot), payments, images, webhooks, and background workers.
 - `tgbot_rust` - Telegram bot service, long-running bot logic + webhook for dispatching notifications.
 - `frontend` - Admin panel (Next.js + MUI) that talks to `backend_rust`.
-- `shared_dtos` - Shared Rust DTO crate for bot-facing API contracts and enums.
+- `shared_dtos` - Shared Rust DTO crate for API contracts, enums, and shared error models (backend + bot + frontend types).
 - Supporting services: PostgreSQL (primary storage), Redis (notifications + bot state), captcha service, optional mock payment gateway.
 
 ## High-level flow

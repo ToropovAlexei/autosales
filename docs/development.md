@@ -52,6 +52,17 @@ pnpm install
 pnpm dev
 ```
 
+### Type generation (frontend)
+
+`shared_dtos` is the single source of truth for generated TS models in `frontend/src/types`.
+
+```bash
+cd shared_dtos
+TS_RS_EXPORT_DIR=../frontend/src/types cargo test --features ts
+```
+
+Avoid generating `ts-rs` types from multiple crates into the same output directory.
+
 ## Common environment variables
 
 - Database: `DATABASE_HOST`, `DATABASE_PORT`, `DATABASE_USER`, `DATABASE_PASSWORD`, `DATABASE_NAME`

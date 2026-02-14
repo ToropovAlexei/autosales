@@ -1,13 +1,13 @@
 # E-commerce platform (Rust backend + Next.js admin + Rust Telegram bot)
 
-This repository contains a Rust backend, a Next.js admin panel, and a Rust Telegram bot. The Go backend and Python bot are legacy and scheduled for removal.
+This repository contains a Rust backend, a Next.js admin panel, and a Rust Telegram bot.
 
 ## Components
 
 - `backend_rust` - Admin + bot API, webhooks, images, and background workers
 - `tgbot_rust` - Telegram bot service + webhook endpoint for notifications
 - `frontend` - Admin panel (Next.js + MUI)
-- `shared_dtos` - Shared Rust DTOs for bot-facing API
+- `shared_dtos` - Shared Rust DTOs (API contracts, enums, error models)
 - Supporting services: PostgreSQL, Redis, captcha service, optional mock payment gateway
 
 ## Quick start (Docker Compose)
@@ -55,12 +55,17 @@ pnpm dev
 
 See `docs/README.md` for detailed setup and architecture notes.
 
+## TS DTO generation (important)
+
+`shared_dtos` is the single source of truth for generated frontend types.
+Generate TS models from `shared_dtos` only.
+
+```bash
+cd shared_dtos
+TS_RS_EXPORT_DIR=../frontend/src/types cargo test --features ts
+```
+
 ## Pre-commit (optional)
 
 This repo includes a local `pre-commit` hook that runs `cargo sqlx prepare` in `backend_rust`.
 Install hooks with `pre-commit install` from the repo root after you install `pre-commit`.
-
-## Legacy (deprecated)
-
-- `backend_go`
-- `tgbot` (Python)

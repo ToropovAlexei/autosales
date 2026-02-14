@@ -33,4 +33,12 @@ pnpm start
 
 ## Types
 
-Shared DTOs are exported into `frontend/src/types` (Rust `ts-rs` models). Ensure backend exports target the correct path if you regenerate them.
+Frontend types are generated from `shared_dtos` (single source of truth).
+Do not generate `ts-rs` types from multiple crates into `frontend/src/types`.
+
+Generate types:
+
+```bash
+cd shared_dtos
+TS_RS_EXPORT_DIR=../frontend/src/types cargo test --features ts
+```
