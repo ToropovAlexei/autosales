@@ -5,7 +5,6 @@ pub mod bot;
 pub mod broadcast;
 pub mod category;
 pub mod customer;
-pub mod dashboard;
 pub mod image;
 pub mod order;
 pub mod payment_invoice;

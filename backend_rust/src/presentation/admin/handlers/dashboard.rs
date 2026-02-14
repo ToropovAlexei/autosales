@@ -7,15 +7,17 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
-use shared_dtos::error::ApiErrorResponse;
+use shared_dtos::{
+    dashboard::{
+        CategorySalesResponse, DashboardOverviewResponse, TimeSeriesDashboardDataResponse,
+        TopProductResponse,
+    },
+    error::ApiErrorResponse,
+};
 
 use crate::{
     errors::api::{ApiError, ApiResult},
     middlewares::require_permission::{DashboardRead, RequirePermission},
-    presentation::admin::dtos::dashboard::{
-        CategorySalesResponse, DashboardOverviewResponse, TimeSeriesDashboardDataResponse,
-        TopProductResponse,
-    },
     services::{auth::AuthUser, dashboard::DashboardServiceTrait},
     state::AppState,
 };

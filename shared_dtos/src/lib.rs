@@ -7,6 +7,7 @@ pub mod can_operate;
 pub mod captcha;
 pub mod category;
 pub mod customer;
+pub mod dashboard;
 pub mod error;
 pub mod image;
 pub mod invoice;

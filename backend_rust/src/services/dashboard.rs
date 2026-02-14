@@ -4,15 +4,14 @@ use crate::{
     errors::api::{ApiError, ApiResult},
     infrastructure::repositories::dashboard::{DashboardRepository, DashboardRepositoryTrait},
     models::dashboard::{CategorySalesRow, TimeSeriesRow, TopProductRow},
-    presentation::admin::dtos::dashboard::{
-        CategorySalesResponse, DashboardOverviewResponse, SalesOverTimeResponse,
-        StatWithTrendResponse, TimeSeriesDashboardDataResponse, TimeSeriesPointResponse,
-        TopProductResponse,
-    },
 };
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, NaiveDate, Utc};
 use rust_decimal::prelude::ToPrimitive;
+use shared_dtos::dashboard::{
+    CategorySalesResponse, DashboardOverviewResponse, SalesOverTimeResponse, StatWithTrendResponse,
+    TimeSeriesDashboardDataResponse, TimeSeriesPointResponse, TopProductResponse,
+};
 
 #[async_trait]
 pub trait DashboardServiceTrait: Send + Sync {

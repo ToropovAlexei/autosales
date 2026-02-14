@@ -18,6 +18,11 @@ use shared_dtos::{
     customer::{
         CustomerAdminResponse, CustomerBotResponse, NewCustomerBotRequest, UpdateCustomerBotRequest,
     },
+    dashboard::{
+        CategorySalesResponse, DashboardOverviewResponse, SalesOverTimeResponse,
+        StatWithTrendResponse, TimeSeriesDashboardDataResponse, TimeSeriesPointResponse,
+        TopProductResponse,
+    },
     error::ApiErrorResponse,
     image::ImageAdminResponse,
     invoice::{
@@ -53,11 +58,6 @@ use backend_rust::{
         admin::{
             dtos::{
                 broadcast::{BroadcastResponse, NewBroadcastRequest},
-                dashboard::{
-                    CategorySalesResponse, DashboardOverviewResponse, SalesOverTimeResponse,
-                    StatWithTrendResponse, TimeSeriesDashboardDataResponse,
-                    TimeSeriesPointResponse, TopProductResponse,
-                },
                 product::{
                     NewProductAdminRequest, ProductAdminResponse, UpdateProductAdminRequest,
                 },
