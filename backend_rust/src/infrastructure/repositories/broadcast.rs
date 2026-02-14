@@ -1,15 +1,14 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use shared_dtos::broadcast::BroadcastStatus;
 use sqlx::{PgPool, QueryBuilder};
 
 use crate::{
     errors::repository::{RepositoryError, RepositoryResult},
     infrastructure::lib::query::{apply_filters, apply_list_query},
     models::{
-        broadcast::{
-            BroadcastListQuery, BroadcastRow, BroadcastStatus, NewBroadcast, UpdateBroadcast,
-        },
+        broadcast::{BroadcastListQuery, BroadcastRow, NewBroadcast, UpdateBroadcast},
         common::PaginatedResult,
     },
 };
@@ -202,7 +201,7 @@ mod tests {
     use super::*;
     use crate::models::admin_user::AdminUserRow;
     use crate::models::{
-        broadcast::{BroadcastListQuery, BroadcastStatus, NewBroadcast, UpdateBroadcast},
+        broadcast::{BroadcastListQuery, NewBroadcast, UpdateBroadcast},
         common::Filter,
     };
     use chrono::{Duration, Utc};

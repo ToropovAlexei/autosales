@@ -2,7 +2,10 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
-use shared_dtos::audit_log::{AuditAction, AuditStatus};
+use shared_dtos::{
+    audit_log::{AuditAction, AuditStatus},
+    broadcast::{BroadcastStatus, JsonRawListQuery},
+};
 use uuid::Uuid;
 
 use crate::{
@@ -14,12 +17,9 @@ use crate::{
     middlewares::context::RequestContext,
     models::{
         audit_log::NewAuditLog,
-        broadcast::{
-            BroadcastListQuery, BroadcastRow, BroadcastStatus, NewBroadcast, UpdateBroadcast,
-        },
+        broadcast::{BroadcastListQuery, BroadcastRow, NewBroadcast, UpdateBroadcast},
         common::PaginatedResult,
     },
-    presentation::admin::dtos::broadcast::JsonRawListQuery,
     services::audit_log::{AuditLogService, AuditLogServiceTrait},
 };
 

@@ -2,12 +2,14 @@ use std::sync::Arc;
 
 use chrono::Utc;
 use serde_json::json;
-use shared_dtos::notification::{DispatchMessage, DispatchMessagePayload};
+use shared_dtos::{
+    broadcast::{BroadcastStatus, JsonRawListQuery},
+    notification::{DispatchMessage, DispatchMessagePayload},
+};
 use tokio::time::{Duration, interval};
 
 use crate::{
-    models::{broadcast::BroadcastStatus, customer::CustomerListQuery},
-    presentation::admin::dtos::broadcast::JsonRawListQuery,
+    models::customer::CustomerListQuery,
     services::{
         broadcast::{BroadcastServiceTrait, UpdateBroadcastCommand},
         customer::CustomerServiceTrait,

@@ -12,6 +12,7 @@ use shared_dtos::{
         BotAdminResponse, BotBotResponse, NewBotAdminRequest, NewBotBotRequest,
         UpdateBotAdminRequest, UpdateBotBotRequest,
     },
+    broadcast::{BroadcastResponse, NewBroadcastRequest},
     can_operate::CanOperateBotResponse,
     captcha::CaptchaBotResponse,
     category::{CategoryAdminResponse, NewCategoryAdminRequest, UpdateCategoryAdminRequest},
@@ -60,13 +61,8 @@ use backend_rust::{
     db::Database,
     init_tracing,
     presentation::{
-        admin::{
-            dtos::broadcast::{BroadcastResponse, NewBroadcastRequest},
-            handlers as admin_handlers,
-        },
-        bot::handlers as bot_handlers,
-        images::handlers as images_handlers,
-        webhook::handlers as webhook_handlers,
+        admin::handlers as admin_handlers, bot::handlers as bot_handlers,
+        images::handlers as images_handlers, webhook::handlers as webhook_handlers,
     },
     run_migrations,
     state::AppState,

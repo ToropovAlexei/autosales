@@ -1,71 +1,10 @@
 use crate::models::common::Filter;
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use serde_with::rust::double_option;
-use shared_dtos::list_query::{FilterValue, Operator, ScalarValue};
-use ts_rs::TS;
-use utoipa::{ToResponse, ToSchema};
-use uuid::Uuid;
-use validator::Validate;
+use shared_dtos::broadcast::{BroadcastResponse, JsonRawListQuery};
 
 use crate::models::{
-    broadcast::{BroadcastRow, BroadcastStatus},
+    broadcast::BroadcastRow,
     customer::{CustomerFilterFields, CustomerListQuery},
 };
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum JsonScalarValue {
-    Int(i64),
-    Float(f64),
-    Bool(bool),
-    DateTime(DateTime<Utc>),
-    Uuid(Uuid),
-    Text(String),
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum JsonFilterValue {
-    Scalar(JsonScalarValue),
-    Array(Vec<JsonScalarValue>),
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct JsonRawFilter {
-    pub field: String,
-    pub op: Operator,
-    pub value: JsonFilterValue,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct JsonRawListQuery {
-    pub filters: Vec<JsonRawFilter>,
-}
-
-impl From<JsonScalarValue> for ScalarValue {
-    fn from(val: JsonScalarValue) -> Self {
-        match val {
-            JsonScalarValue::Int(i) => ScalarValue::Int(i),
-            JsonScalarValue::Float(f) => ScalarValue::Float(f),
-            JsonScalarValue::Bool(b) => ScalarValue::Bool(b),
-            JsonScalarValue::Uuid(u) => ScalarValue::Uuid(u),
-            JsonScalarValue::Text(t) => ScalarValue::Text(t),
-            JsonScalarValue::DateTime(dt) => ScalarValue::DateTime(dt),
-        }
-    }
-}
-
-impl From<JsonFilterValue> for FilterValue {
-    fn from(val: JsonFilterValue) -> Self {
-        match val {
-            JsonFilterValue::Scalar(s) => FilterValue::Scalar(s.into()),
-            JsonFilterValue::Array(a) => {
-                FilterValue::Array(a.into_iter().map(Into::into).collect())
-            }
-        }
-    }
-}
 
 impl CustomerListQuery {
     pub fn try_from_json(json_val: JsonRawListQuery) -> Result<Self, String> {
@@ -87,61 +26,6 @@ impl CustomerListQuery {
             order_dir: Default::default(),
         })
     }
-}
-
-#[derive(Debug, Deserialize, Validate, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "broadcast.ts", rename = "NewBroadcast")]
-pub struct NewBroadcastRequest {
-    #[validate(length(max = 1024, message = "Content text is too long"))]
-    #[ts(optional)]
-    pub content_text: Option<String>,
-    #[ts(optional)]
-    pub content_image_id: Option<Uuid>,
-    #[schema(value_type = Object)]
-    #[ts(type = "any")]
-    #[ts(optional)]
-    pub filters: Option<JsonRawListQuery>,
-    #[ts(optional)]
-    pub scheduled_for: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, Deserialize, Validate, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "broadcast.ts", rename = "UpdateBroadcast")]
-pub struct UpdateBroadcastRequest {
-    #[validate(length(max = 1024, message = "Content text is too long"))]
-    #[ts(optional)]
-    #[ts(type = "string | null")]
-    #[serde(default, with = "double_option")]
-    pub content_text: Option<Option<String>>,
-    #[ts(optional)]
-    #[ts(type = "string | null")]
-    #[serde(default, with = "double_option")]
-    pub content_image_id: Option<Option<Uuid>>,
-    #[schema(value_type = Object)]
-    #[ts(type = "any")]
-    #[ts(optional)]
-    pub filters: Option<JsonRawListQuery>,
-    #[ts(optional)]
-    #[ts(type = "string | null")]
-    #[serde(default, with = "double_option")]
-    pub scheduled_for: Option<Option<DateTime<Utc>>>,
-}
-
-#[derive(Debug, Clone, Serialize, TS, ToSchema)]
-#[ts(export, export_to = "broadcast.ts", rename = "Broadcast")]
-pub struct BroadcastResponse {
-    pub id: i64,
-    pub status: BroadcastStatus,
-    pub content_text: Option<String>,
-    pub content_image_id: Option<Uuid>,
-    pub filters: Option<serde_json::Value>,
-    pub statistics: Option<serde_json::Value>,
-    pub created_by: i64,
-    pub scheduled_for: Option<DateTime<Utc>>,
-    pub started_at: Option<DateTime<Utc>>,
-    pub finished_at: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
 }
 
 impl From<BroadcastRow> for BroadcastResponse {
@@ -166,8 +50,16 @@ impl From<BroadcastRow> for BroadcastResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::Timelike;
+    use chrono::{DateTime, Timelike, Utc};
     use serde_json::json;
+    use shared_dtos::{
+        broadcast::{
+            BroadcastStatus, JsonFilterValue, JsonRawFilter, JsonScalarValue, NewBroadcastRequest,
+            UpdateBroadcastRequest,
+        },
+        list_query::{FilterValue, Operator, ScalarValue},
+    };
+    use uuid::Uuid;
     use validator::Validate;
 
     #[test]

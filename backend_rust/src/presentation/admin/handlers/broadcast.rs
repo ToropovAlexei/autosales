@@ -1,7 +1,10 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::post};
-use shared_dtos::error::ApiErrorResponse;
+use shared_dtos::{
+    broadcast::{BroadcastResponse, NewBroadcastRequest},
+    error::ApiErrorResponse,
+};
 
 use crate::{
     errors::api::ApiResult,
@@ -10,7 +13,6 @@ use crate::{
         require_permission::{BroadcastCreate, RequirePermission},
         validator::ValidatedJson,
     },
-    presentation::admin::dtos::broadcast::{BroadcastResponse, NewBroadcastRequest},
     services::{
         auth::AuthUser,
         broadcast::{BroadcastServiceTrait, CreateBroadcastCommand},

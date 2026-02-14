@@ -3,6 +3,7 @@ pub mod analytics;
 pub mod audit_log;
 pub mod auth;
 pub mod bot;
+pub mod broadcast;
 pub mod can_operate;
 pub mod captcha;
 pub mod category;
