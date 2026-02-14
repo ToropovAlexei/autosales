@@ -260,11 +260,15 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::infrastructure::repositories::{
-        audit_log::AuditLogRepository, bot::BotRepository, settings::SettingsRepository,
-        transaction::TransactionRepository,
+    use crate::{
+        infrastructure::repositories::{
+            audit_log::AuditLogRepository, bot::BotRepository, settings::SettingsRepository,
+            transaction::TransactionRepository,
+        },
+        models::transaction::NewTransaction,
     };
     use rust_decimal::Decimal;
+    use shared_dtos::transaction::TransactionType;
     use sqlx::PgPool;
     use std::sync::Arc;
 
@@ -390,10 +394,10 @@ mod tests {
         // create a transaction with store_balance_after > 1000
         let transaction_repo = TransactionRepository::new(Arc::new(pool.clone()));
         transaction_repo
-            .create(crate::models::transaction::NewTransaction {
+            .create(NewTransaction {
                 customer_id: None,
                 order_id: None,
-                r#type: crate::models::transaction::TransactionType::Deposit,
+                r#type: TransactionType::Deposit,
                 amount: Decimal::from(1200),
                 store_balance_delta: Decimal::from(1200),
                 platform_commission: Decimal::from(0),

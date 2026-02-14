@@ -59,8 +59,8 @@ impl TransactionServiceTrait for TransactionService<TransactionRepository> {
 mod tests {
     use super::*;
     use crate::infrastructure::repositories::transaction::TransactionRepository;
-    use crate::models::transaction::TransactionType;
     use rust_decimal::Decimal;
+    use shared_dtos::transaction::TransactionType;
     use sqlx::PgPool;
     use std::sync::Arc;
 

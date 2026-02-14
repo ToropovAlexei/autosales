@@ -15,17 +15,14 @@ use backend_rust::{
         user_role::UserRoleRepository,
     },
     init_tracing,
-    models::{
-        role_permission::NewRolePermission,
-        transaction::{NewTransaction, TransactionType},
-    },
+    models::{role_permission::NewRolePermission, transaction::NewTransaction},
     run_migrations,
     services::topt_encryptor::TotpEncryptor,
     state::AppState,
 };
 use rust_decimal::{Decimal, prelude::ToPrimitive};
 use rust_decimal_macros::dec;
-use shared_dtos::bot::BotType;
+use shared_dtos::{bot::BotType, transaction::TransactionType};
 use std::sync::Arc;
 
 #[tokio::main]

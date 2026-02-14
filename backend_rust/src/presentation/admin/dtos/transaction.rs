@@ -1,27 +1,7 @@
-use chrono::{DateTime, Utc};
 use rust_decimal::prelude::ToPrimitive;
-use serde::{Deserialize, Serialize};
-use shared_dtos::invoice::PaymentSystem;
-use ts_rs::TS;
-use utoipa::{ToResponse, ToSchema};
+use shared_dtos::transaction::TransactionAdminResponse;
 
-use crate::models::transaction::{TransactionRow, TransactionType};
-
-#[derive(Debug, Serialize, Deserialize, ToSchema, ToResponse, TS)]
-#[ts(export, export_to = "transaction.ts", rename = "Transaction")]
-pub struct TransactionAdminResponse {
-    pub id: i64,
-    pub customer_id: Option<i64>,
-    pub order_id: Option<i64>,
-    pub r#type: TransactionType,
-    pub amount: f64,
-    pub store_balance_delta: f64,
-    pub platform_commission: f64,
-    pub gateway_commission: f64,
-    pub created_at: DateTime<Utc>,
-    pub description: Option<String>,
-    pub payment_gateway: Option<PaymentSystem>,
-}
+use crate::models::transaction::TransactionRow;
 
 impl From<TransactionRow> for TransactionAdminResponse {
     fn from(row: TransactionRow) -> Self {
@@ -44,10 +24,13 @@ impl From<TransactionRow> for TransactionAdminResponse {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::transaction::{TransactionRow, TransactionType};
+    use crate::models::transaction::TransactionRow;
+    use chrono::Utc;
     use rust_decimal::Decimal;
     use rust_decimal::prelude::FromPrimitive;
     use rust_decimal_macros::dec;
+    use shared_dtos::invoice::PaymentSystem;
+    use shared_dtos::transaction::TransactionType;
 
     #[test]
     fn test_transaction_response_from_transaction_row() {

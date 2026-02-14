@@ -26,6 +26,7 @@ use shared_dtos::{
     product::ProductType,
     role::{NewRoleAdminRequest, RoleAdminResponse, UpdateRoleAdminRequest},
     settings::SettingsBotResponse,
+    transaction::TransactionAdminResponse,
 };
 use std::sync::Arc;
 use tokio::signal;
@@ -65,7 +66,6 @@ use backend_rust::{
                 },
                 stock_movement::StockMovementAdminResponse,
                 store_balance::StoreBalanceAdminResponse,
-                transaction::TransactionAdminResponse,
             },
             handlers as admin_handlers,
         },

@@ -5,12 +5,13 @@ use chrono::Utc;
 use shared_dtos::{
     invoice::InvoiceStatus,
     notification::{DispatchMessage, DispatchMessagePayload},
+    transaction::TransactionType,
 };
 use uuid::Uuid;
 
 use crate::{
     errors::api::ApiResult,
-    models::transaction::{NewTransaction, TransactionType},
+    models::transaction::NewTransaction,
     services::{
         customer::CustomerServiceTrait,
         notification_service::NotificationServiceTrait,
@@ -133,9 +134,7 @@ mod tests {
     use crate::{
         errors::api::{ApiError, ApiResult},
         models::{
-            customer::CustomerRow,
-            payment_invoice::PaymentInvoiceRow,
-            transaction::{TransactionRow, TransactionType},
+            customer::CustomerRow, payment_invoice::PaymentInvoiceRow, transaction::TransactionRow,
         },
         services::{
             customer::UpdateCustomerCommand,

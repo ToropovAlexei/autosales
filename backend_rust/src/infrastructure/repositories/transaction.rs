@@ -114,10 +114,11 @@ impl TransactionRepositoryTrait for TransactionRepository {
 #[cfg(test)]
 mod tests {
     use crate::models::common::Filter;
-    use crate::models::{transaction::TransactionFilterFields, transaction::TransactionType};
+    use crate::models::transaction::TransactionFilterFields;
     use rust_decimal::Decimal;
     use shared_dtos::invoice::PaymentSystem;
     use shared_dtos::list_query::{FilterValue, Operator, Pagination, ScalarValue};
+    use shared_dtos::transaction::TransactionType;
     use std::str::FromStr;
 
     use super::*;

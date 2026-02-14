@@ -8,6 +8,7 @@ use serde::Deserialize;
 use shared_dtos::{
     order::{OrderStatus, PurchaseDetails},
     product::{ProductDetails, ProductType},
+    transaction::TransactionType,
     user_subscription::UserSubscriptionDetails,
 };
 use uuid::Uuid;
@@ -25,9 +26,7 @@ use crate::{
         },
     },
     models::{
-        order::NewOrder,
-        order_item::NewOrderItem,
-        transaction::{NewTransaction, TransactionType},
+        order::NewOrder, order_item::NewOrderItem, transaction::NewTransaction,
         user_subscription::NewUserSubscription,
     },
     services::{
