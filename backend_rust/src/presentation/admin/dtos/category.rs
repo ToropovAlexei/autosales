@@ -1,26 +1,6 @@
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
-use serde_with::rust::double_option;
-use ts_rs::TS;
-use utoipa::{ToResponse, ToSchema};
-use uuid::Uuid;
-use validator::Validate;
+use shared_dtos::category::CategoryAdminResponse;
 
 use crate::models::category::CategoryRow;
-
-#[derive(Debug, Clone, Serialize, Deserialize, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "category.ts", rename = "Category")]
-pub struct CategoryAdminResponse {
-    pub id: i64,
-    pub name: String,
-    pub parent_id: Option<i64>,
-    pub image_id: Option<Uuid>,
-    pub position: i16,
-    pub is_active: bool,
-    pub created_by: i64,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
 
 impl From<CategoryRow> for CategoryAdminResponse {
     fn from(r: CategoryRow) -> Self {
@@ -38,46 +18,12 @@ impl From<CategoryRow> for CategoryAdminResponse {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "category.ts", rename = "NewCategory")]
-pub struct NewCategoryAdminRequest {
-    #[validate(length(
-        min = 2,
-        max = 255,
-        message = "Category name must be at least 2 characters and at most 255 characters long"
-    ))]
-    pub name: String,
-    #[ts(optional)]
-    pub parent_id: Option<i64>,
-    #[ts(optional)]
-    pub image_id: Option<Uuid>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Validate, TS, ToSchema, ToResponse)]
-#[ts(export, export_to = "category.ts", rename = "UpdateCategory")]
-pub struct UpdateCategoryAdminRequest {
-    #[validate(length(
-        min = 2,
-        max = 255,
-        message = "Category name must be at least 2 characters and at most 255 characters long"
-    ))]
-    #[ts(optional)]
-    pub name: Option<String>,
-    #[ts(optional)]
-    #[ts(type = "number | null")]
-    #[serde(default, with = "double_option")]
-    pub parent_id: Option<Option<i64>>,
-    #[ts(optional)]
-    #[ts(type = "string | null")]
-    #[serde(default, with = "double_option")]
-    pub image_id: Option<Option<Uuid>>,
-    #[ts(optional)]
-    pub position: Option<i16>,
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::Utc;
+    use shared_dtos::category::{NewCategoryAdminRequest, UpdateCategoryAdminRequest};
+    use uuid::Uuid;
     use validator::Validate;
 
     #[test]

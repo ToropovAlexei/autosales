@@ -1,11 +1,12 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
-use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
+use shared_dtos::{
+    category::CategoryAdminResponse, error::ApiErrorResponse, list_response::ListResponse,
+};
 
 use crate::{
     errors::api::ApiResult, middlewares::bot_auth::AuthBot,
-    presentation::admin::dtos::category::CategoryAdminResponse,
     services::category::CategoryServiceTrait, state::AppState,
 };
 

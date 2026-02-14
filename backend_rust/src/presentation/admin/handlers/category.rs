@@ -1,5 +1,9 @@
 use axum::http::StatusCode;
-use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
+use shared_dtos::{
+    category::{CategoryAdminResponse, NewCategoryAdminRequest, UpdateCategoryAdminRequest},
+    error::ApiErrorResponse,
+    list_response::ListResponse,
+};
 use std::sync::Arc;
 
 use axum::{
@@ -16,9 +20,6 @@ use crate::{
             CategoriesCreate, CategoriesDelete, CategoriesRead, CategoriesUpdate, RequirePermission,
         },
         validator::ValidatedJson,
-    },
-    presentation::admin::dtos::category::{
-        CategoryAdminResponse, NewCategoryAdminRequest, UpdateCategoryAdminRequest,
     },
     services::{
         auth::AuthUser,
