@@ -6,6 +6,8 @@ use shared_dtos::{
     },
     error::ApiErrorResponse,
     list_response::ListResponse,
+    permission::PermissionAdminResponse,
+    user_permission::{UpdateUserPermissionsRequest, UserPermissionAdminResponse},
 };
 use std::sync::Arc;
 
@@ -26,10 +28,6 @@ use crate::{
         validator::ValidatedJson,
     },
     models::user_permission::{UpdateUserPermissions, UpsertUserPermission},
-    presentation::admin::dtos::{
-        permission::PermissionAdminResponse,
-        user_permission::{UpdateUserPermissionsRequest, UserPermissionAdminResponse},
-    },
     services::{
         admin_user::{
             AdminUserServiceTrait, CreateAdminUser, DeleteAdminUserCommand, UpdateAdminUserCommand,

@@ -1,13 +1,12 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use shared_dtos::user_permission::PermissionEffect;
 use sqlx::PgPool;
 
 use crate::{
     errors::repository::RepositoryResult,
-    models::user_permission::{
-        NewUserPermission, PermissionEffect, UpdateUserPermission, UserPermissionRow,
-    },
+    models::user_permission::{NewUserPermission, UpdateUserPermission, UserPermissionRow},
 };
 
 #[async_trait]

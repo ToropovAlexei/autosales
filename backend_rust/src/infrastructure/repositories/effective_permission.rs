@@ -98,7 +98,8 @@ impl EffectivePermissionRepositoryTrait for EffectivePermissionRepository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::models::{permission::Permission, user_permission::PermissionEffect};
+    use crate::models::permission::Permission;
+    use shared_dtos::user_permission::PermissionEffect;
     use sqlx::PgPool;
     use std::collections::HashMap;
     use tokio::sync::OnceCell;

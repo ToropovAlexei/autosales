@@ -1,17 +1,6 @@
 use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use shared_dtos::user_permission::PermissionEffect;
 use sqlx::prelude::FromRow;
-use ts_rs::TS;
-use utoipa::ToSchema;
-
-#[derive(sqlx::Type, Debug, Clone, Copy, PartialEq, Deserialize, Serialize, TS, ToSchema)]
-#[sqlx(type_name = "TEXT", rename_all = "snake_case")]
-#[serde(rename_all = "snake_case")]
-#[ts(export, export_to = "auth.ts")]
-pub enum PermissionEffect {
-    Allow,
-    Deny,
-}
 
 #[derive(FromRow, Debug)]
 pub struct UserPermissionRow {

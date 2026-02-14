@@ -1,6 +1,7 @@
 pub mod admin_user;
 pub mod analytics;
 pub mod audit_log;
+pub mod auth;
 pub mod bot;
 pub mod can_operate;
 pub mod captcha;
@@ -12,6 +13,10 @@ pub mod list_query;
 pub mod list_response;
 pub mod notification;
 pub mod order;
+pub mod permission;
 pub mod product;
+pub mod role;
+pub mod role_permission;
 pub mod settings;
+pub mod user_permission;
 pub mod user_subscription;

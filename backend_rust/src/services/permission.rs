@@ -77,7 +77,8 @@ mod tests {
     use crate::infrastructure::repositories::{
         permission::PermissionRepository, user_permission::UserPermissionRepository,
     };
-    use crate::models::user_permission::{PermissionEffect, UpsertUserPermission};
+    use crate::models::user_permission::UpsertUserPermission;
+    use shared_dtos::user_permission::PermissionEffect;
     use sqlx::PgPool;
     use std::sync::Arc;
 

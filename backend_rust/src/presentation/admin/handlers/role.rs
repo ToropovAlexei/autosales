@@ -2,7 +2,13 @@ use axum::{
     http::StatusCode,
     routing::{get, patch},
 };
-use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
+use shared_dtos::{
+    error::ApiErrorResponse,
+    list_response::ListResponse,
+    permission::PermissionAdminResponse,
+    role::{NewRoleAdminRequest, RoleAdminResponse, UpdateRoleAdminRequest},
+    role_permission::UpdateRolePermissionsAdminRequest,
+};
 use std::sync::Arc;
 
 use axum::{
@@ -20,11 +26,6 @@ use crate::{
     models::{
         role::{NewRole, UpdateRole},
         role_permission::UpdateRolePermissions,
-    },
-    presentation::admin::dtos::{
-        permission::PermissionAdminResponse,
-        role::{NewRoleAdminRequest, RoleAdminResponse, UpdateRoleAdminRequest},
-        role_permission::UpdateRolePermissionsAdminRequest,
     },
     services::{
         auth::AuthUser, permission::PermissionServiceTrait, role::RoleServiceTrait,

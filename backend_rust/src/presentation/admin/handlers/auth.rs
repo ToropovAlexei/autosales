@@ -3,6 +3,10 @@ use std::sync::Arc;
 use axum::{Json, Router, debug_handler, extract::State, routing::post};
 use shared_dtos::{
     audit_log::{AuditAction, AuditStatus},
+    auth::{
+        LoginStep1AdminRequest, LoginStep1AdminResponse, LoginStep2AdminRequest,
+        LoginStep2AdminResponse,
+    },
     error::ApiErrorResponse,
 };
 
@@ -10,10 +14,6 @@ use crate::{
     errors::api::{ApiError, ApiResult},
     middlewares::{context::RequestContext, validator::ValidatedJson},
     models::audit_log::NewAuditLog,
-    presentation::admin::dtos::auth::{
-        LoginStep1AdminRequest, LoginStep1AdminResponse, LoginStep2AdminRequest,
-        LoginStep2AdminResponse,
-    },
     services::{
         audit_log::AuditLogServiceTrait,
         auth::{AuthServiceTrait, AuthUser},

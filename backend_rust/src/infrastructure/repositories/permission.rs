@@ -1,14 +1,12 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use shared_dtos::user_permission::PermissionEffect;
 use sqlx::PgPool;
 
 use crate::{
     errors::repository::RepositoryResult,
-    models::{
-        permission::PermissionRow,
-        user_permission::{PermissionEffect, UpdateUserPermissions},
-    },
+    models::{permission::PermissionRow, user_permission::UpdateUserPermissions},
 };
 
 #[async_trait]
@@ -131,7 +129,7 @@ mod tests {
     use super::*;
     use crate::models::admin_user::{AdminUserRow, NewAdminUser};
     use crate::models::role::{NewRole, RoleRow};
-    use crate::models::user_permission::{PermissionEffect, UpsertUserPermission};
+    use crate::models::user_permission::UpsertUserPermission;
     use sqlx::PgPool;
 
     async fn create_test_user(pool: &PgPool, login: &str) -> AdminUserRow {

@@ -4,6 +4,10 @@ use shared_dtos::{
     },
     analytics::BotAnalyticsBotResponse,
     audit_log::AuditLogAdminResponse,
+    auth::{
+        LoginStep1AdminRequest, LoginStep1AdminResponse, LoginStep2AdminRequest,
+        LoginStep2AdminResponse,
+    },
     bot::{BotBotResponse, NewBotBotRequest, UpdateBotBotRequest},
     can_operate::CanOperateBotResponse,
     captcha::CaptchaBotResponse,
@@ -15,7 +19,9 @@ use shared_dtos::{
     },
     list_response::ListResponse,
     order::{EnrichedOrderBotResponse, OrderItemBotResponse, PurchaseBotResponse},
+    permission::PermissionAdminResponse,
     product::ProductType,
+    role::{NewRoleAdminRequest, RoleAdminResponse, UpdateRoleAdminRequest},
     settings::SettingsBotResponse,
 };
 use std::sync::Arc;
@@ -34,10 +40,6 @@ use backend_rust::{
     presentation::{
         admin::{
             dtos::{
-                auth::{
-                    LoginStep1AdminRequest, LoginStep1AdminResponse, LoginStep2AdminRequest,
-                    LoginStep2AdminResponse,
-                },
                 bot::{
                     BotAdminResponse as AdminBotResponse, NewBotAdminRequest as AdminNewBotRequest,
                     UpdateBotAdminRequest as AdminUpdateBotRequest,
@@ -55,11 +57,9 @@ use backend_rust::{
                 image::ImageAdminResponse,
                 order::OrderAdminResponse,
                 payment_invoice::PaymentInvoiceAdminResponse,
-                permission::PermissionAdminResponse,
                 product::{
                     NewProductAdminRequest, ProductAdminResponse, UpdateProductAdminRequest,
                 },
-                role::{NewRoleAdminRequest, RoleAdminResponse, UpdateRoleAdminRequest},
                 settings::{
                     BotSettingsAdminResponse, PricingSettingsAdminResponse,
                     UpdateBotSettingsAdminRequest, UpdatePricingSettingsAdminRequest,
