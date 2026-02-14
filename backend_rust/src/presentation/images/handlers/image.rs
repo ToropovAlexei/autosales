@@ -3,6 +3,7 @@ use axum::{
     http::{HeaderMap, Response, header},
     response::IntoResponse,
 };
+use shared_dtos::error::ApiErrorResponse;
 use std::sync::Arc;
 use tokio::fs::File;
 use tokio_util::io::ReaderStream;
@@ -15,7 +16,7 @@ use axum::{
 };
 
 use crate::{
-    errors::api::{ApiError, ApiResult, ErrorResponse},
+    errors::api::{ApiError, ApiResult},
     services::image::{ImageServiceTrait, get_image_path},
     state::AppState,
 };
@@ -31,8 +32,8 @@ pub fn router() -> Router<Arc<AppState>> {
     security(()),
     responses(
         (status = 200, description = "Image file"),
-        (status = 404, description = "Image not found", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 404, description = "Image not found", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_image(

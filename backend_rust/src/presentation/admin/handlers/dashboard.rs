@@ -7,9 +7,10 @@ use axum::{
 };
 use chrono::{DateTime, Utc};
 use serde::Deserialize;
+use shared_dtos::error::ApiErrorResponse;
 
 use crate::{
-    errors::api::{ApiError, ApiResult, ErrorResponse},
+    errors::api::{ApiError, ApiResult},
     middlewares::require_permission::{DashboardRead, RequirePermission},
     presentation::admin::dtos::dashboard::{
         CategorySalesResponse, DashboardOverviewResponse, TimeSeriesDashboardDataResponse,
@@ -39,10 +40,10 @@ struct TimeSeriesQuery {
     tag = "Dashboard",
     responses(
         (status = 200, description = "Dashboard stats", body = DashboardOverviewResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_dashboard_stats(
@@ -64,10 +65,10 @@ async fn get_dashboard_stats(
     ),
     responses(
         (status = 200, description = "Time series data", body = TimeSeriesDashboardDataResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_time_series(
@@ -96,10 +97,10 @@ async fn get_time_series(
     tag = "Dashboard",
     responses(
         (status = 200, description = "Top products", body = Vec<TopProductResponse>),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_top_products(
@@ -117,10 +118,10 @@ async fn get_top_products(
     tag = "Dashboard",
     responses(
         (status = 200, description = "Sales by category", body = Vec<CategorySalesResponse>),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_sales_by_category(

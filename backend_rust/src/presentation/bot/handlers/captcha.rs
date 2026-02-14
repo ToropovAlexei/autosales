@@ -1,13 +1,11 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
-use shared_dtos::captcha::CaptchaBotResponse;
+use shared_dtos::{captcha::CaptchaBotResponse, error::ApiErrorResponse};
 
 use crate::{
-    errors::api::{ApiResult, ErrorResponse},
-    middlewares::verified_service::VerifiedService,
-    services::captcha::CaptchaServiceTrait,
-    state::AppState,
+    errors::api::ApiResult, middlewares::verified_service::VerifiedService,
+    services::captcha::CaptchaServiceTrait, state::AppState,
 };
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -20,9 +18,9 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Captcha",
     responses(
         (status = 200, description = "Generate captcha", body = CaptchaBotResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_captcha(

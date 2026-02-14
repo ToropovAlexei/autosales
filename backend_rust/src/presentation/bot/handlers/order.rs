@@ -5,10 +5,13 @@ use axum::{
     extract::{Path, State},
     routing::{get, post},
 };
-use shared_dtos::order::{EnrichedOrderBotResponse, PurchaseBotRequest, PurchaseBotResponse};
+use shared_dtos::{
+    error::ApiErrorResponse,
+    order::{EnrichedOrderBotResponse, PurchaseBotRequest, PurchaseBotResponse},
+};
 
 use crate::{
-    errors::api::{ApiResult, ErrorResponse},
+    errors::api::ApiResult,
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson},
     services::{
         order::OrderServiceTrait,
@@ -29,9 +32,9 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Orders",
     responses(
         (status = 200, description = "Create order", body = PurchaseBotResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn purchase(
@@ -65,9 +68,9 @@ async fn purchase(
     tag = "Orders",
     responses(
         (status = 200, description = "Get order", body = EnrichedOrderBotResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_order(

@@ -8,6 +8,7 @@ use axum::{
 use shared_dtos::{
     analytics::BotAnalyticsBotResponse,
     customer::{CustomerBotResponse, NewCustomerBotRequest, UpdateCustomerBotRequest},
+    error::ApiErrorResponse,
     invoice::PaymentInvoiceBotResponse,
     list_response::ListResponse,
     order::EnrichedOrderBotResponse,
@@ -15,7 +16,7 @@ use shared_dtos::{
 };
 
 use crate::{
-    errors::api::{ApiResult, ErrorResponse},
+    errors::api::ApiResult,
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson},
     models::customer::NewCustomer,
     services::{
@@ -54,8 +55,8 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Customers",
     responses(
         (status = 200, description = "Get customer", body = CustomerBotResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_customer(
@@ -76,9 +77,9 @@ async fn get_customer(
     tag = "Customers",
     responses(
         (status = 200, description = "Create customer", body = CustomerBotResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn create_customer(
@@ -102,9 +103,9 @@ async fn create_customer(
     tag = "Customers",
     responses(
         (status = 200, description = "Update customer", body = CustomerBotResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn update_customer(
@@ -140,8 +141,8 @@ async fn update_customer(
     tag = "Customers",
     responses(
         (status = 200, description = "Get customer invoices", body = ListResponse<PaymentInvoiceBotResponse>),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_customer_invoices(
@@ -173,8 +174,8 @@ async fn get_customer_invoices(
     tag = "Customers",
     responses(
         (status = 200, description = "Get customer orders", body = ListResponse<EnrichedOrderBotResponse>),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_customer_orders(
@@ -203,8 +204,8 @@ async fn get_customer_orders(
     tag = "Customers",
     responses(
         (status = 200, description = "Update last seen"),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn update_customer_last_seen(
@@ -230,8 +231,8 @@ async fn update_customer_last_seen(
     tag = "Customers",
     responses(
         (status = 200, description = "Get customer subscriptions", body = ListResponse<UserSubscriptionBotResponse>),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_customer_subscriptions(
@@ -263,8 +264,8 @@ async fn get_customer_subscriptions(
     tag = "Customers",
     responses(
         (status = 200, description = "Get customer referral analytics", body = ListResponse<BotAnalyticsBotResponse>),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_customer_referral_analytics(

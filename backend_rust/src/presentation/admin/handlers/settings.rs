@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
+use shared_dtos::error::ApiErrorResponse;
 
 use crate::{
-    errors::api::{ApiResult, ErrorResponse},
+    errors::api::ApiResult,
     middlewares::{
         context::RequestContext,
         require_permission::{
@@ -37,10 +38,10 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Settings",
     responses(
         (status = 200, description = "Pricing settings", body = PricingSettingsResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_pricing_settings(
@@ -59,10 +60,10 @@ async fn get_pricing_settings(
     tag = "Settings",
     responses(
         (status = 200, description = "Pricing settings updated", body = PricingSettingsResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn update_pricing_settings(
@@ -85,10 +86,10 @@ async fn update_pricing_settings(
     tag = "Settings",
     responses(
         (status = 200, description = "Bot settings", body = BotSettingsResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_bot_settings(
@@ -107,10 +108,10 @@ async fn get_bot_settings(
     tag = "Settings",
     responses(
         (status = 200, description = "Bot settings updated", body = BotSettingsResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn update_bot_settings(

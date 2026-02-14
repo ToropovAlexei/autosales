@@ -1,4 +1,4 @@
-use shared_dtos::list_response::ListResponse;
+use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
 use std::sync::Arc;
 
 use axum::{
@@ -8,7 +8,7 @@ use axum::{
 };
 
 use crate::{
-    errors::api::{ApiResult, ErrorResponse},
+    errors::api::ApiResult,
     middlewares::{
         context::RequestContext,
         require_permission::{CustomersRead, CustomersUpdate, RequirePermission},
@@ -35,10 +35,10 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Customers",
     responses(
         (status = 200, description = "Customers list", body = ListResponse<CustomerResponse>),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn list_customers(
@@ -65,11 +65,11 @@ async fn list_customers(
     tag = "Customers",
     responses(
         (status = 200, description = "Customer updated", body = CustomerResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 404, description = "Customer not found", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 404, description = "Customer not found", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn update_customer(
@@ -104,11 +104,11 @@ async fn update_customer(
     tag = "Customers",
     responses(
         (status = 200, description = "Customer", body = CustomerResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 404, description = "Customer not found", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 404, description = "Customer not found", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_customer(

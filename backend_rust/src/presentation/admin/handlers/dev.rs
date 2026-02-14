@@ -2,10 +2,11 @@ use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::post};
 use serde::Serialize;
+use shared_dtos::error::ApiErrorResponse;
 use utoipa::ToSchema;
 
 use crate::{
-    errors::api::{ApiError, ApiResult, ErrorResponse},
+    errors::api::{ApiError, ApiResult},
     services::auth::AuthUser,
     state::AppState,
 };
@@ -26,8 +27,8 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Dev",
     responses(
         (status = 200, description = "Test data reset", body = ResetTestDataResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn reset_test_data(

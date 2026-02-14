@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::post};
+use shared_dtos::error::ApiErrorResponse;
 
 use crate::{
-    errors::api::{ApiResult, ErrorResponse},
+    errors::api::ApiResult,
     middlewares::{
         context::RequestContext,
         require_permission::{BroadcastCreate, RequirePermission},
@@ -27,10 +28,10 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Broadcast",
     responses(
         (status = 200, description = "Broadcast scheduled", body = BroadcastResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn create_broadcast(

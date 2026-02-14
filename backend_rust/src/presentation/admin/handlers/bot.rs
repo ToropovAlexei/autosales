@@ -6,10 +6,10 @@ use axum::{
     routing::{patch, post},
 };
 use rust_decimal::{Decimal, prelude::FromPrimitive};
-use shared_dtos::list_response::ListResponse;
+use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
 
 use crate::{
-    errors::api::{ApiError, ApiResult, ErrorResponse},
+    errors::api::{ApiError, ApiResult},
     middlewares::{
         context::RequestContext,
         require_permission::{BotsCreate, BotsRead, BotsUpdate, RequirePermission},
@@ -37,10 +37,10 @@ pub fn router() -> Router<Arc<AppState>> {
     request_body = NewBotRequest,
     responses(
         (status = 200, description = "Bot created", body = BotResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn create_bot(
@@ -72,10 +72,10 @@ async fn create_bot(
     tag = "Bots",
     responses(
         (status = 200, description = "Bot list", body = ListResponse<BotResponse>),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn list_bots(
@@ -99,10 +99,10 @@ async fn list_bots(
     request_body = UpdateBotRequest,
     responses(
         (status = 200, description = "Bot updated", body = BotResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn update_bot(

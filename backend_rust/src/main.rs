@@ -4,6 +4,7 @@ use shared_dtos::{
     can_operate::CanOperateBotResponse,
     captcha::CaptchaBotResponse,
     customer::{CustomerBotResponse, NewCustomerBotRequest, UpdateCustomerBotRequest},
+    error::ApiErrorResponse,
     invoice::{
         GatewayBotResponse, NewPaymentInvoiceBotRequest, PaymentInvoiceBotResponse,
         UpdatePaymentInvoiceBotRequest,
@@ -25,7 +26,6 @@ use backend_rust::{
     config::Config,
     create_app,
     db::Database,
-    errors::api::{ErrorResponse, ValidationErrorResponse},
     init_tracing,
     presentation::{
         admin::{
@@ -250,8 +250,7 @@ use backend_rust::{
         OrderItemBotResponse,
         PurchaseBotResponse,
         SettingsBotResponse,
-        ErrorResponse,
-        ValidationErrorResponse,
+        ApiErrorResponse,
         admin_handlers::dev::ResetTestDataResponse,
     ))
 )]

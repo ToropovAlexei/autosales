@@ -1,13 +1,11 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
-use shared_dtos::settings::SettingsBotResponse;
+use shared_dtos::{error::ApiErrorResponse, settings::SettingsBotResponse};
 
 use crate::{
-    errors::api::{ApiResult, ErrorResponse},
-    middlewares::bot_auth::AuthBot,
-    services::settings::SettingsServiceTrait,
-    state::AppState,
+    errors::api::ApiResult, middlewares::bot_auth::AuthBot,
+    services::settings::SettingsServiceTrait, state::AppState,
 };
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -20,8 +18,8 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Bot",
     responses(
         (status = 200, description = "Bot settings", body = SettingsBotResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_settings(

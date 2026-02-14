@@ -6,13 +6,13 @@ use axum::{
 };
 use axum_extra::extract::Multipart;
 use bytes::Bytes;
-use shared_dtos::list_response::ListResponse;
+use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
 use std::sync::Arc;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
 use crate::{
-    errors::api::{ApiError, ApiResult, ErrorResponse},
+    errors::api::{ApiError, ApiResult},
     middlewares::require_permission::{ImagesCreate, ImagesDelete, ImagesRead, RequirePermission},
     models::image::ImageListQuery,
     presentation::admin::dtos::image::ImageResponse,
@@ -44,10 +44,10 @@ struct CreateImageMultipartRequest {
     request_body(content = CreateImageMultipartRequest, content_type = "multipart/form-data"),
     responses(
         (status = 200, description = "Image created", body = ImageResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn create_image(
@@ -74,10 +74,10 @@ async fn create_image(
     tag = "Images",
     responses(
         (status = 200, description = "List of images", body = ListResponse<ImageResponse>),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn list_images(
@@ -104,10 +104,10 @@ async fn list_images(
     tag = "Images",
     responses(
         (status = 204, description = "Image deleted"),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn delete_image(

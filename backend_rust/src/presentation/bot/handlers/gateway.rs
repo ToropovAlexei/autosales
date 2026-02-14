@@ -2,14 +2,13 @@ use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
 use shared_dtos::{
+    error::ApiErrorResponse,
     invoice::{GatewayBotResponse, PaymentSystem},
     list_response::ListResponse,
 };
 
 use crate::{
-    errors::api::{ApiResult, ErrorResponse},
-    middlewares::verified_service::VerifiedService,
-    state::AppState,
+    errors::api::ApiResult, middlewares::verified_service::VerifiedService, state::AppState,
 };
 
 pub fn router() -> Router<Arc<AppState>> {
@@ -22,9 +21,9 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Bots",
     responses(
         (status = 200, description = "Gateways", body = ListResponse<GatewayBotResponse>),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_gateways(

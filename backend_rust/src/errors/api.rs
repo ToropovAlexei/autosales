@@ -5,9 +5,9 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bcrypt::BcryptError;
-use serde::Serialize;
+use serde_json::json;
+use shared_dtos::error::{ApiErrorResponse, ErrorCode};
 use thiserror::Error;
-use utoipa::ToSchema;
 use validator::ValidationErrors;
 
 use crate::{
@@ -31,16 +31,6 @@ pub enum ApiError {
     Conflict(String),
     #[error("Internal server error: {0}")]
     InternalServerError(String),
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct ErrorResponse {
-    pub error: String,
-}
-
-#[derive(Serialize, ToSchema)]
-pub struct ValidationErrorResponse {
-    errors: std::collections::HashMap<String, String>,
 }
 
 impl From<RepositoryError> for ApiError {
@@ -127,31 +117,53 @@ impl IntoResponse for ApiError {
                     });
                     errors.insert(field.to_string(), messages);
                 }
-                (
-                    StatusCode::BAD_REQUEST,
-                    Json(ValidationErrorResponse { errors }),
-                )
-                    .into_response()
+                let body = Json(ApiErrorResponse {
+                    code: ErrorCode::ValidationFailed,
+                    message: "Validation error".to_string(),
+                    details: Some(json!({ "fields": errors })),
+                });
+
+                (StatusCode::BAD_REQUEST, body).into_response()
             }
             _ => {
-                let (status, message) = match self {
-                    ApiError::AuthenticationError(msg) => (StatusCode::UNAUTHORIZED, msg),
-                    ApiError::AuthorizationError(msg) => (StatusCode::FORBIDDEN, msg),
-                    ApiError::NotFound(msg) => (StatusCode::NOT_FOUND, msg),
-                    ApiError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg),
+                let (status, code, message) = match self {
+                    ApiError::AuthenticationError(msg) => {
+                        (StatusCode::UNAUTHORIZED, map_auth_error_code(&msg), msg)
+                    }
+                    ApiError::AuthorizationError(msg) => {
+                        (StatusCode::FORBIDDEN, ErrorCode::Forbidden, msg)
+                    }
+                    ApiError::NotFound(msg) => (StatusCode::NOT_FOUND, ErrorCode::NotFound, msg),
+                    ApiError::BadRequest(msg) => {
+                        (StatusCode::BAD_REQUEST, ErrorCode::BadRequest, msg)
+                    }
                     ApiError::InternalServerError(_msg) => (
                         StatusCode::INTERNAL_SERVER_ERROR,
+                        ErrorCode::Internal,
                         "Internal server error".to_string(),
                     ),
-                    ApiError::Conflict(msg) => (StatusCode::CONFLICT, msg),
+                    ApiError::Conflict(msg) => (StatusCode::CONFLICT, ErrorCode::Conflict, msg),
                     ApiError::ValidationError(_) => unreachable!(),
                 };
 
-                let body = Json(ErrorResponse { error: message });
+                let body = Json(ApiErrorResponse {
+                    code,
+                    message,
+                    details: None,
+                });
 
                 (status, body).into_response()
             }
         }
+    }
+}
+
+fn map_auth_error_code(message: &str) -> ErrorCode {
+    match message {
+        "Missing auth header" | "Missing token" => ErrorCode::MissingAuthHeader,
+        "Invalid auth header" => ErrorCode::InvalidAuthHeader,
+        "Invalid credentials" | "Invalid 2FA code" => ErrorCode::InvalidCredentials,
+        _ => ErrorCode::Unauthorized,
     }
 }
 

@@ -1,15 +1,14 @@
 use axum::Json;
+#[cfg(feature = "mock-payments-provider")]
+use shared_dtos::error::ApiErrorResponse;
 use std::sync::Arc;
 use uuid::Uuid;
 
 use axum::{Router, extract::State, routing::post};
 
 #[cfg(feature = "mock-payments-provider")]
-use crate::{
-    errors::api::ErrorResponse,
-    infrastructure::external::payment::mock::{
-        MockPaymentsProviderTrait, dto::MockProviderInvoiceWebhookPayload,
-    },
+use crate::infrastructure::external::payment::mock::{
+    MockPaymentsProviderTrait, dto::MockProviderInvoiceWebhookPayload,
 };
 
 use crate::{
@@ -34,8 +33,8 @@ pub fn router() -> Router<Arc<AppState>> {
     request_body = MockProviderInvoiceWebhookPayload,
     responses(
         (status = 200, description = "Webhook accepted", body = Uuid),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn mock_payments_provider_webhook(

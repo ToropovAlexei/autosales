@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, debug_handler, extract::State, routing::get};
-use shared_dtos::list_response::ListResponse;
+use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
 
 use crate::{
-    errors::api::{ApiResult, ErrorResponse},
+    errors::api::ApiResult,
     presentation::admin::dtos::admin_user::AdminUserResponse,
     services::{
         admin_user::AdminUserServiceTrait,
@@ -25,10 +25,10 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Me",
     responses(
         (status = 200, description = "Admin user details", body = AdminUserResponse),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn get_me(
@@ -45,10 +45,10 @@ async fn get_me(
     tag = "Me",
     responses(
         (status = 200, description = "Admin user permissions", body = ListResponse<String>),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 #[debug_handler]

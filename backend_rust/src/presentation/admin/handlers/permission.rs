@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use axum::{Json, Router, extract::State, routing::get};
-use shared_dtos::list_response::ListResponse;
+use shared_dtos::{error::ApiErrorResponse, list_response::ListResponse};
 
 use crate::{
-    errors::api::{ApiResult, ErrorResponse},
+    errors::api::ApiResult,
     middlewares::require_permission::{RbacManage, RequirePermission},
     presentation::admin::dtos::permission::PermissionResponse,
     services::{auth::AuthUser, permission::PermissionServiceTrait},
@@ -21,10 +21,10 @@ pub fn router() -> Router<Arc<AppState>> {
     tag = "Permissions",
     responses(
         (status = 200, description = "Admin user permissions", body = ListResponse<PermissionResponse>),
-        (status = 400, description = "Bad request", body = ErrorResponse),
-        (status = 401, description = "Unauthorized", body = ErrorResponse),
-        (status = 403, description = "Forbidden", body = ErrorResponse),
-        (status = 500, description = "Internal server error", body = ErrorResponse),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
     )
 )]
 async fn list_permissions(
