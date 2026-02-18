@@ -9,6 +9,7 @@ This folder documents the current Rust-based stack (`backend_rust` + `tgbot_rust
 - `docs/backend_rust.md` - Rust backend API, workers, and configuration
 - `docs/tgbot_rust.md` - Rust Telegram bot service and configuration
 - `docs/frontend.md` - Admin panel (Next.js) setup
+- `docs/withdrawal-operator-flow-plan.md` - Implementation plan for manual USDT deposit/withdrawal operator flow
 
 ## API Docs
 

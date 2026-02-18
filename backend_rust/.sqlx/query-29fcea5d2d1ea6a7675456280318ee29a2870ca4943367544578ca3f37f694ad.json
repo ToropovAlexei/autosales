@@ -1,0 +1,118 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                id, request_type as \"request_type: _\", wallet_address, amount_usdt, fx_rate_rub_to_usdt, amount_rub,\n                status as \"status: _\", operator_tg_user_id, operator_comment, operator_action_at,\n                telegram_message_id, telegram_chat_id, debit_transaction_id, credit_transaction_id,\n                refund_transaction_id, created_at, updated_at\n            FROM store_balance_requests WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "request_type: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "wallet_address",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "amount_usdt",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "fx_rate_rub_to_usdt",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
+        "name": "amount_rub",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "status: _",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "operator_tg_user_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 8,
+        "name": "operator_comment",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "operator_action_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "telegram_message_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 11,
+        "name": "telegram_chat_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 12,
+        "name": "debit_transaction_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 13,
+        "name": "credit_transaction_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 14,
+        "name": "refund_transaction_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 15,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "29fcea5d2d1ea6a7675456280318ee29a2870ca4943367544578ca3f37f694ad"
+}

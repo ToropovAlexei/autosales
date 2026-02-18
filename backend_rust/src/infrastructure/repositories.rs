@@ -19,6 +19,7 @@ pub mod role;
 pub mod role_permission;
 pub mod settings;
 pub mod stock_movement;
+pub mod store_balance_request;
 pub mod temporary_token;
 pub mod transaction;
 pub mod user_permission;

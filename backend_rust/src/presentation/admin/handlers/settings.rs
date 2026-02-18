@@ -77,7 +77,8 @@ async fn update_pricing_settings(
 ) -> ApiResult<Json<PricingSettingsAdminResponse>> {
     let mut command = UpdateSettingsCommand::from(payload);
     command.updated_by = user.id;
-    let category = state.settings_service.update(command, ctx).await?;
+    command.ctx = Some(ctx);
+    let category = state.settings_service.update(command).await?;
 
     Ok(Json(category.into()))
 }
@@ -125,7 +126,8 @@ async fn update_bot_settings(
 ) -> ApiResult<Json<BotSettingsAdminResponse>> {
     let mut command = UpdateSettingsCommand::from(payload);
     command.updated_by = user.id;
-    let category = state.settings_service.update(command, ctx).await?;
+    command.ctx = Some(ctx);
+    let category = state.settings_service.update(command).await?;
 
     Ok(Json(category.into()))
 }

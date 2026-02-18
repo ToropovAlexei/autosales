@@ -730,22 +730,9 @@ mod tests {
     fn base_settings() -> Settings {
         Settings {
             bot_messages_support: "support".to_string(),
-            bot_messages_support_image_id: None,
             bot_messages_new_user_welcome: "welcome".to_string(),
-            bot_messages_new_user_welcome_image_id: None,
             bot_messages_returning_user_welcome: "welcome back".to_string(),
-            bot_messages_returning_user_welcome_image_id: None,
-            pricing_global_markup: dec!(0),
-            pricing_platform_commission: dec!(0),
-            pricing_gateway_markup: dec!(0),
-            pricing_gateway_bonus_mock_provider: dec!(0),
-            pricing_gateway_bonus_platform_card: dec!(0),
-            pricing_gateway_bonus_platform_sbp: dec!(0),
-            referral_program_enabled: false,
-            referral_percentage: dec!(0),
-            bot_payment_system_support_operators: vec![],
-            bot_about: "".to_string(),
-            bot_description: "".to_string(),
+            ..Default::default()
         }
     }
 

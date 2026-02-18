@@ -94,6 +94,7 @@ impl SettingsRepositoryTrait for SettingsRepository {
             ),
             bot_about: get_string(&map, "bot_about", ""),
             bot_description: get_string(&map, "bot_description", ""),
+            usdt_rate_rub: get_decimal(&map, "usdt_rate_rub", dec!(0)),
         })
     }
 
@@ -211,6 +212,7 @@ impl SettingsRepositoryTrait for SettingsRepository {
         );
         update_setting!("bot_about", update.bot_about);
         update_setting!("bot_description", update.bot_description);
+        update_setting!("usdt_rate_rub", update.usdt_rate_rub);
 
         tx.commit().await?;
 

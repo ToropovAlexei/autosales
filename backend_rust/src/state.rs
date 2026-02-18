@@ -23,9 +23,11 @@ use crate::{
             payment_invoice::PaymentInvoiceRepository, permission::PermissionRepository,
             products::ProductRepository, role::RoleRepository,
             role_permission::RolePermissionRepository, settings::SettingsRepository,
-            stock_movement::StockMovementRepository, temporary_token::TemporaryTokenRepository,
-            transaction::TransactionRepository, user_permission::UserPermissionRepository,
-            user_role::UserRoleRepository, user_subscription::UserSubscriptionRepository,
+            stock_movement::StockMovementRepository,
+            store_balance_request::StoreBalanceRequestRepository,
+            temporary_token::TemporaryTokenRepository, transaction::TransactionRepository,
+            user_permission::UserPermissionRepository, user_role::UserRoleRepository,
+            user_subscription::UserSubscriptionRepository,
         },
     },
     services::{
@@ -52,6 +54,7 @@ use crate::{
         role_permission::RolePermissionService,
         settings::SettingsService,
         stock_movement::StockMovementService,
+        store_balance_request::StoreBalanceRequestService,
         topt_encryptor::TotpEncryptor,
         transaction::TransactionService,
         user_subscription::UserSubscriptionService,
@@ -97,6 +100,14 @@ type PurchaseServiceShortType = PurchaseService<
     ContmsProductsProvider,
     UserSubscriptionService<UserSubscriptionRepository>,
     BotServiceShortType,
+>;
+
+type StoreBalanceRequestServiceShortType = StoreBalanceRequestService<
+    StoreBalanceRequestRepository,
+    SettingsRepository,
+    AuditLogShortType,
+    TransactionServiceShortType,
+    NotificationService,
 >;
 
 #[derive(Clone)]
@@ -150,6 +161,7 @@ pub struct AppState {
     pub platform_payments_provider: Arc<AutosalesPlatformPaymentsProvider>,
     pub analytics_service: Arc<AnalyticsService<AnalyticsRepository>>,
     pub dashboard_service: Arc<DashboardService<DashboardRepository>>,
+    pub store_balance_request_service: Arc<StoreBalanceRequestServiceShortType>,
 }
 
 impl AppState {
@@ -323,6 +335,13 @@ impl AppState {
         let dashboard_service = Arc::new(DashboardService::new(Arc::new(
             DashboardRepository::new(db_pool.clone()),
         )));
+        let store_balance_request_service = Arc::new(StoreBalanceRequestService::new(
+            Arc::new(StoreBalanceRequestRepository::new(db_pool.clone())),
+            settings_repo.clone(),
+            audit_logs_service.clone(),
+            transaction_service.clone(),
+            notification_service.clone(),
+        ));
 
         Self {
             db,
@@ -359,6 +378,7 @@ impl AppState {
             platform_payments_provider,
             analytics_service,
             dashboard_service,
+            store_balance_request_service,
         }
     }
 }

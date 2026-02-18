@@ -17,6 +17,9 @@ pub enum TransactionType {
     ReferralPayout,
     ServiceCharge,
     Refund,
+    BalanceRequestWithdrawalDebit,
+    BalanceRequestWithdrawalRefund,
+    BalanceRequestDepositCredit,
 }
 
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]

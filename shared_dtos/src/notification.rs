@@ -2,6 +2,8 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+use crate::balance_request::StoreBalanceRequestType;
+
 #[derive(Debug, Deserialize, Serialize)]
 pub enum DispatchMessage {
     GenericMessage {
@@ -17,6 +19,16 @@ pub enum DispatchMessage {
         invoice_id: i64,
         is_first_time: bool,
         expired_at: DateTime<Utc>,
+    },
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum DispatchAdminMessage {
+    StoreBalanceRequestNotification {
+        store_balance_request_id: i64,
+        amount_in_rub: f64,
+        amount_in_usdt: f64,
+        r#type: StoreBalanceRequestType,
     },
 }
 

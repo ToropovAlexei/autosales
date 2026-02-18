@@ -109,10 +109,7 @@ mod tests {
             bot_messages_new_user_welcome: "Welcome new user".to_string(),
             bot_messages_new_user_welcome_image_id: Some(Uuid::new_v4()),
             bot_messages_returning_user_welcome: "Welcome back".to_string(),
-            bot_messages_returning_user_welcome_image_id: None,
-            bot_payment_system_support_operators: vec![],
-            bot_about: "".to_string(),
-            bot_description: "".to_string(),
+            ..Default::default()
         }
     }
 

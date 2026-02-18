@@ -128,7 +128,7 @@ mod tests {
     use chrono::Utc;
     use rust_decimal_macros::dec;
     use serde_json::json;
-    use shared_dtos::invoice::PaymentSystem;
+    use shared_dtos::{invoice::PaymentSystem, notification::DispatchAdminMessage};
     use std::sync::Mutex;
 
     use crate::{
@@ -262,6 +262,9 @@ mod tests {
         async fn dispatch_message(&self, payload: DispatchMessagePayload) -> ApiResult<()> {
             *self.last.lock().unwrap() = Some(payload);
             Ok(())
+        }
+        async fn dispatch_admin_message(&self, _payload: DispatchAdminMessage) -> ApiResult<()> {
+            Err(ApiError::InternalServerError("not used".to_string()))
         }
     }
 

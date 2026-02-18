@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
-use shared_dtos::notification::DispatchMessagePayload;
+use shared_dtos::notification::{DispatchAdminMessage, DispatchMessagePayload};
 
 use crate::errors::api::{ApiError, ApiResult};
 use deadpool_redis::redis::AsyncTypedCommands;
@@ -9,6 +9,7 @@ use deadpool_redis::redis::AsyncTypedCommands;
 #[async_trait]
 pub trait NotificationServiceTrait: Send + Sync {
     async fn dispatch_message(&self, payload: DispatchMessagePayload) -> ApiResult<()>;
+    async fn dispatch_admin_message(&self, payload: DispatchAdminMessage) -> ApiResult<()>;
 }
 
 pub struct NotificationService {
@@ -34,6 +35,22 @@ impl NotificationServiceTrait for NotificationService {
             .await
             .map_err(|err| ApiError::InternalServerError(err.to_string()))?;
         conn.publish(&channel, message_json)
+            .await
+            .map_err(|err| ApiError::InternalServerError(err.to_string()))?;
+        Ok(())
+    }
+
+    async fn dispatch_admin_message(&self, payload: DispatchAdminMessage) -> ApiResult<()> {
+        let channel = "bot-admin-notifications";
+        let message_json = serde_json::to_string(&payload)
+            .map_err(|err| ApiError::InternalServerError(err.to_string()))?;
+
+        let mut conn = self
+            .redis_pool
+            .get()
+            .await
+            .map_err(|err| ApiError::InternalServerError(err.to_string()))?;
+        conn.publish(channel, message_json)
             .await
             .map_err(|err| ApiError::InternalServerError(err.to_string()))?;
         Ok(())

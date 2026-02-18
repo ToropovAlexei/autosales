@@ -66,7 +66,10 @@ use backend_rust::{
     },
     run_migrations,
     state::AppState,
-    workers::{broadcasts::broadcasts_task, pending_payments::pending_payments_task},
+    workers::{
+        broadcasts::broadcasts_task, pending_payments::pending_payments_task,
+        usdt_rate_sync::usdt_rate_sync_task,
+    },
 };
 
 #[derive(OpenApi)]
@@ -118,6 +121,7 @@ use backend_rust::{
         admin_handlers::me::get_me,
         admin_handlers::me::get_me_permissions,
         admin_handlers::transaction::list_transactions,
+        admin_handlers::store_balance::create_store_balance_request,
         admin_handlers::audit_log::list_audit_logs,
         admin_handlers::stock_movement::list_stock_movement,
         admin_handlers::bot::create_bot,
@@ -162,6 +166,8 @@ use backend_rust::{
         bot_handlers::product::list_products,
         bot_handlers::product::get_product,
         bot_handlers::settings::get_settings,
+        bot_handlers::store_balance::complete_store_balance_request,
+        bot_handlers::store_balance::reject_store_balance_request,
         images_handlers::image::get_image,
         #[cfg(feature = "mock-payments-provider")]
         webhook_handlers::payment::mock_payments_provider_webhook,
@@ -299,6 +305,7 @@ async fn main() -> anyhow::Result<()> {
 
     tokio::spawn(broadcasts_task(app_state.clone()));
     tokio::spawn(pending_payments_task(app_state.clone()));
+    tokio::spawn(usdt_rate_sync_task(app_state.clone()));
 
     let app = create_app(app_state.clone())
         .merge(SwaggerUi::new("/swagger-ui").url("/openapi.json", ApiDoc::openapi()));

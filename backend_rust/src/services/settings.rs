@@ -19,7 +19,7 @@ use crate::{
     services::audit_log::{AuditLogService, AuditLogServiceTrait},
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct UpdateSettingsCommand {
     pub updated_by: i64,
     pub bot_messages_support: Option<String>,
@@ -39,6 +39,8 @@ pub struct UpdateSettingsCommand {
     pub bot_payment_system_support_operators: Option<Vec<String>>,
     pub bot_description: Option<String>,
     pub bot_about: Option<String>,
+    pub usdt_rate_rub: Option<Decimal>,
+    pub ctx: Option<RequestContext>,
 }
 
 impl From<UpdateSettingsCommand> for UpdateSettings {
@@ -70,6 +72,7 @@ impl From<UpdateSettingsCommand> for UpdateSettings {
             ),
             bot_about: r.bot_about,
             bot_description: r.bot_description,
+            usdt_rate_rub: r.usdt_rate_rub,
         }
     }
 }
@@ -77,11 +80,7 @@ impl From<UpdateSettingsCommand> for UpdateSettings {
 #[async_trait]
 pub trait SettingsServiceTrait: Send + Sync {
     async fn load_settings(&self) -> ApiResult<Settings>;
-    async fn update(
-        &self,
-        settings: UpdateSettingsCommand,
-        ctx: RequestContext,
-    ) -> ApiResult<Settings>;
+    async fn update(&self, cmd: UpdateSettingsCommand) -> ApiResult<Settings>;
 }
 
 pub struct SettingsService<R, A> {
@@ -110,14 +109,10 @@ impl SettingsServiceTrait
         self.repo.load_settings().await.map_err(ApiError::from)
     }
 
-    async fn update(
-        &self,
-        command: UpdateSettingsCommand,
-        ctx: RequestContext,
-    ) -> ApiResult<Settings> {
-        let updated_by = command.updated_by;
+    async fn update(&self, cmd: UpdateSettingsCommand) -> ApiResult<Settings> {
+        let updated_by = cmd.updated_by;
         let prev = self.repo.load_settings().await?;
-        let updated = self.repo.update(UpdateSettings::from(command)).await?;
+        let updated = self.repo.update(UpdateSettings::from(cmd.clone())).await?;
 
         self.audit_log_service
             .create(NewAuditLog {
@@ -126,13 +121,13 @@ impl SettingsServiceTrait
                 admin_user_id: Some(updated_by),
                 customer_id: None,
                 error_message: None,
-                ip_address: ctx.ip_address,
                 new_values: serde_json::to_value(updated.clone()).ok(),
                 old_values: serde_json::to_value(prev.clone()).ok(),
-                request_id: Some(ctx.request_id),
                 target_id: "".to_string(),
                 target_table: "settings".to_string(),
-                user_agent: ctx.user_agent.clone(),
+                ip_address: cmd.ctx.clone().and_then(|ctx| ctx.ip_address),
+                request_id: cmd.ctx.clone().map(|ctx| ctx.request_id),
+                user_agent: cmd.ctx.and_then(|ctx| ctx.user_agent),
             })
             .await?;
 
@@ -171,20 +166,18 @@ mod tests {
         let request_id = Uuid::new_v4();
 
         let updated = service
-            .update(
-                UpdateSettingsCommand {
-                    updated_by: 1,
-                    pricing_global_markup: Some(dec!(5.0)),
-                    referral_program_enabled: Some(true),
-                    referral_percentage: Some(Decimal::from(12)),
-                    ..Default::default()
-                },
-                RequestContext {
+            .update(UpdateSettingsCommand {
+                updated_by: 1,
+                pricing_global_markup: Some(dec!(5.0)),
+                referral_program_enabled: Some(true),
+                referral_percentage: Some(Decimal::from(12)),
+                ctx: Some(RequestContext {
                     ip_address: Some(IpAddr::from_str("127.0.0.1").unwrap()),
                     user_agent: Some("test-agent".to_string()),
                     request_id,
-                },
-            )
+                }),
+                ..Default::default()
+            })
             .await
             .unwrap();
 

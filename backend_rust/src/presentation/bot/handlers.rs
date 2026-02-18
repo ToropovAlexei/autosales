@@ -8,3 +8,4 @@ pub mod invoice;
 pub mod order;
 pub mod product;
 pub mod settings;
+pub mod store_balance;
