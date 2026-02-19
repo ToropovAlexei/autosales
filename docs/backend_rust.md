@@ -19,6 +19,8 @@ Rust backend for admin dashboard, bot-facing API, images, and payment webhooks. 
 - `/api/webhook/*`
 - `/api/images/*`
 - `/api/bot/customers/{telegram_id}/referral-analytics` (referral stats)
+- `/api/bot/settings` (`GET` + bot-managed `PATCH`, used by manager bot)
+- `/api/bot/store-balance/{id}/complete` and `/api/bot/store-balance/{id}/reject` (manager callbacks)
 
 OpenAPI is available at `/swagger-ui` and `/openapi.json`.
 

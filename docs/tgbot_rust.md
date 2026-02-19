@@ -2,7 +2,12 @@
 
 ## Purpose
 
-Telegram bot service that talks to the bot API in `backend_rust`, stores dialogue state in Redis, and exposes a webhook for notifications from the backend.
+Telegram bot service with two runtime parts:
+
+- primary customer bots (polled via `BotManager`).
+- optional manager bot (`MANAGER_BOT_TOKEN`) for operator group flow.
+
+The service talks to `backend_rust`, stores dialogue state in Redis, and also consumes Redis pub/sub notifications.
 
 ## HTTP surface
 
@@ -19,9 +24,11 @@ Required:
 - `REDIS_HOST`, `REDIS_PORT`
 - `BACKEND_API_URL` (must end with `/`, for example `http://localhost:8000/api/`)
 - `WEBHOOK_HOST`, `WEBHOOK_PORT`
-- `CAPTCHA_API_URL`
-- `SUPPORT_URL`
 - `PAYMENT_INSTRUCTIONS_URL`
+
+Optional:
+
+- `MANAGER_BOT_TOKEN` - enables separate manager bot runtime.
 
 ## Logging
 
@@ -32,7 +39,17 @@ Required:
 ## Runtime notes
 
 - The bot starts an Axum server for webhook delivery and runs bot polling logic in a separate task.
-- Notifications are pushed from the backend to `BOT_DISPATCHER_WEBHOOK_URL`.
+- Customer notifications are consumed from Redis channel `bot-notifications:{bot_id}`.
 - Dialogue state and user flow state are persisted in Redis.
 - Subscription purchases return access details (host/port/login/password) which are rendered in the bot UI.
 - Referral stats are fetched from `/api/bot/customers/{telegram_id}/referral-analytics`.
+
+Manager bot flow notes:
+
+- Manager bot subscribes to Redis channel `bot-admin-notifications`.
+- On `StoreBalanceRequestNotification`, it sends a message with inline buttons to the configured manager group.
+- Group id is auto-synced into backend settings (`manager_group_chat_id`) from manager-bot group updates.
+- On callback:
+  - approve -> `POST /api/bot/store-balance/{id}/complete`
+  - reject -> `POST /api/bot/store-balance/{id}/reject`
+- After successful callback processing, the manager bot deletes the original request message.

@@ -43,6 +43,8 @@ cd tgbot_rust
 cargo run
 ```
 
+Note: set `MANAGER_BOT_TOKEN` in env to enable the separate manager bot runtime for operator group actions.
+
 - Frontend:
 
 ```bash
