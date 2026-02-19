@@ -94,6 +94,7 @@ impl SettingsRepositoryTrait for SettingsRepository {
             ),
             bot_about: get_string(&map, "bot_about", ""),
             bot_description: get_string(&map, "bot_description", ""),
+            manager_group_chat_id: get_i64(&map, "manager_group_chat_id"),
             usdt_rate_rub: get_decimal(&map, "usdt_rate_rub", dec!(0)),
         })
     }
@@ -101,69 +102,69 @@ impl SettingsRepositoryTrait for SettingsRepository {
     async fn update(&self, update: UpdateSettings) -> RepositoryResult<Settings> {
         let mut tx = self.pool.begin().await?;
         macro_rules! update_setting {
-        ($key:expr, $value:expr) => {
-            if let Some(val) = $value {
-                sqlx::query!(
-                    r#"INSERT INTO settings (key, value) 
-                       VALUES ($1, $2) 
-                       ON CONFLICT (key) DO UPDATE 
+            ($key:expr, $value:expr) => {
+                if let Some(val) = $value {
+                    sqlx::query!(
+                        r#"INSERT INTO settings (key, value)
+                       VALUES ($1, $2)
+                       ON CONFLICT (key) DO UPDATE
                        SET value = $2"#,
-                    $key,
-                    val.to_string()
-                )
-                .execute(&mut *tx)
-                .await?;
-            }
-        };
-    }
+                        $key,
+                        val.to_string()
+                    )
+                    .execute(&mut *tx)
+                    .await?;
+                }
+            };
+        }
 
         macro_rules! update_nullable_setting {
-        ($key:expr, $value:expr) => {
-            match $value {
-                Some(Some(v)) => {
-                    sqlx::query!(
-                        r#"INSERT INTO settings (key, value) 
-                           VALUES ($1, $2) 
-                           ON CONFLICT (key) DO UPDATE 
+            ($key:expr, $value:expr) => {
+                match $value {
+                    Some(Some(v)) => {
+                        sqlx::query!(
+                            r#"INSERT INTO settings (key, value)
+                           VALUES ($1, $2)
+                           ON CONFLICT (key) DO UPDATE
                            SET value = $2"#,
-                        $key,
-                        v.to_string()
-                    )
-                    .execute(&mut *tx)
-                    .await?;
-                }
-                Some(None) => {
-                    sqlx::query!(
-                        r#"INSERT INTO settings (key, value) 
-                           VALUES ($1, NULL) 
-                           ON CONFLICT (key) DO UPDATE 
+                            $key,
+                            v.to_string()
+                        )
+                        .execute(&mut *tx)
+                        .await?;
+                    }
+                    Some(None) => {
+                        sqlx::query!(
+                            r#"INSERT INTO settings (key, value)
+                           VALUES ($1, NULL)
+                           ON CONFLICT (key) DO UPDATE
                            SET value = NULL"#,
-                        $key
-                    )
-                    .execute(&mut *tx)
-                    .await?;
+                            $key
+                        )
+                        .execute(&mut *tx)
+                        .await?;
+                    }
+                    None => {}
                 }
-                None => {}
-            }
-        };
-    }
+            };
+        }
 
         macro_rules! update_vec_setting {
-        ($key:expr, $value:expr) => {
-            if let Some(val) = $value {
-                sqlx::query!(
-                    r#"INSERT INTO settings (key, value) 
-                       VALUES ($1, $2) 
-                       ON CONFLICT (key) DO UPDATE 
+            ($key:expr, $value:expr) => {
+                if let Some(val) = $value {
+                    sqlx::query!(
+                        r#"INSERT INTO settings (key, value)
+                       VALUES ($1, $2)
+                       ON CONFLICT (key) DO UPDATE
                        SET value = $2"#,
-                    $key,
-                    val.join(",")
-                )
-                .execute(&mut *tx)
-                .await?;
-            }
-        };
-    }
+                        $key,
+                        val.join(",")
+                    )
+                    .execute(&mut *tx)
+                    .await?;
+                }
+            };
+        }
 
         update_setting!("bot_messages_support", update.bot_messages_support);
         update_nullable_setting!(
@@ -212,6 +213,7 @@ impl SettingsRepositoryTrait for SettingsRepository {
         );
         update_setting!("bot_about", update.bot_about);
         update_setting!("bot_description", update.bot_description);
+        update_nullable_setting!("manager_group_chat_id", update.manager_group_chat_id);
         update_setting!("usdt_rate_rub", update.usdt_rate_rub);
 
         tx.commit().await?;
@@ -238,6 +240,12 @@ fn get_decimal(map: &HashMap<String, Option<String>>, key: &str, default: Decima
         .and_then(|v| v.as_ref())
         .and_then(|s| Decimal::from_str(s).ok())
         .unwrap_or(default)
+}
+
+fn get_i64(map: &HashMap<String, Option<String>>, key: &str) -> Option<i64> {
+    map.get(key)
+        .and_then(|v| v.as_ref())
+        .and_then(|s| s.parse::<i64>().ok())
 }
 
 fn get_bool(map: &HashMap<String, Option<String>>, key: &str, default: bool) -> bool {

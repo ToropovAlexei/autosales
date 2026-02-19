@@ -1,6 +1,8 @@
 use crate::models::settings::Settings;
 use rust_decimal::prelude::ToPrimitive;
-use shared_dtos::settings::SettingsBotResponse;
+use shared_dtos::settings::{SettingsBotResponse, UpdateBotManagedSettingsBotRequest};
+
+use crate::services::settings::UpdateSettingsCommand;
 
 impl From<Settings> for SettingsBotResponse {
     fn from(r: Settings) -> Self {
@@ -32,6 +34,16 @@ impl From<Settings> for SettingsBotResponse {
             bot_payment_system_support_operators: r.bot_payment_system_support_operators,
             bot_about: r.bot_about,
             bot_description: r.bot_description,
+            manager_group_chat_id: r.manager_group_chat_id,
+        }
+    }
+}
+
+impl From<UpdateBotManagedSettingsBotRequest> for UpdateSettingsCommand {
+    fn from(req: UpdateBotManagedSettingsBotRequest) -> Self {
+        Self {
+            manager_group_chat_id: req.manager_group_chat_id,
+            ..Default::default()
         }
     }
 }

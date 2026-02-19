@@ -15,7 +15,7 @@ use shared_dtos::{
     list_response::ListResponse,
     order::{EnrichedOrderBotResponse, PurchaseBotRequest, PurchaseBotResponse},
     product::ProductBotResponse,
-    settings::SettingsBotResponse,
+    settings::{SettingsBotResponse, UpdateBotManagedSettingsBotRequest},
     user_subscription::UserSubscriptionBotResponse,
 };
 use uuid::Uuid;
@@ -89,6 +89,17 @@ impl BackendApi {
             .get::<SettingsBotResponse>("bot/settings")
             .await?;
         Ok(res)
+    }
+
+    pub async fn update_manager_group_chat_id(&self, chat_id: i64) -> ApiClientResult<()> {
+        self.api_client
+            .patch_with_body::<(), _>(
+                "bot/settings",
+                &UpdateBotManagedSettingsBotRequest {
+                    manager_group_chat_id: Some(Some(chat_id)),
+                },
+            )
+            .await
     }
 
     pub async fn is_referral_program_enabled(&self) -> bool {

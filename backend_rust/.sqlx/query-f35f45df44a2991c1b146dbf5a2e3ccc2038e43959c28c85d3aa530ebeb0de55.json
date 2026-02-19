@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO settings (key, value)\n                       VALUES ($1, $2)\n                       ON CONFLICT (key) DO UPDATE\n                       SET value = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "f35f45df44a2991c1b146dbf5a2e3ccc2038e43959c28c85d3aa530ebeb0de55"
+}

@@ -39,6 +39,7 @@ pub struct UpdateSettingsCommand {
     pub bot_payment_system_support_operators: Option<Vec<String>>,
     pub bot_description: Option<String>,
     pub bot_about: Option<String>,
+    pub manager_group_chat_id: Option<Option<i64>>,
     pub usdt_rate_rub: Option<Decimal>,
     pub ctx: Option<RequestContext>,
 }
@@ -72,6 +73,7 @@ impl From<UpdateSettingsCommand> for UpdateSettings {
             ),
             bot_about: r.bot_about,
             bot_description: r.bot_description,
+            manager_group_chat_id: r.manager_group_chat_id,
             usdt_rate_rub: r.usdt_rate_rub,
         }
     }

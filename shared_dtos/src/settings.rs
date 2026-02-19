@@ -22,6 +22,15 @@ pub struct SettingsBotResponse {
     pub bot_payment_system_support_operators: Vec<String>,
     pub bot_about: String,
     pub bot_description: String,
+    pub manager_group_chat_id: Option<i64>,
+}
+
+#[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "validate", derive(validator::Validate))]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct UpdateBotManagedSettingsBotRequest {
+    #[serde(default, with = "double_option")]
+    pub manager_group_chat_id: Option<Option<i64>>,
 }
 
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
