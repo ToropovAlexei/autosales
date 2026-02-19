@@ -1,4 +1,4 @@
-use rust_decimal::{Decimal, prelude::FromPrimitive};
+use rust_decimal::Decimal;
 use serde::Deserialize;
 use std::sync::Arc;
 use tokio::time::{Duration, interval};
@@ -10,7 +10,7 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 struct PriceResponse {
-    price: f64,
+    price: Decimal,
 }
 
 pub async fn usdt_rate_sync_task(app_state: Arc<AppState>) {
@@ -39,14 +39,7 @@ pub async fn usdt_rate_sync_task(app_state: Arc<AppState>) {
                 continue;
             }
         };
-        let rate = Decimal::from_f64(response.price);
-        let rate = match rate {
-            Some(rate) => rate,
-            None => {
-                tracing::error!("Error parsing USDT rate");
-                continue;
-            }
-        };
+        let rate = response.price;
         if let Err(err) = app_state
             .settings_service
             .update(UpdateSettingsCommand {
