@@ -1,9 +1,13 @@
 "use client";
 
-import { CircularProgress, Typography } from "@mui/material";
+import { CircularProgress, Stack, Typography } from "@mui/material";
 import { useCan, useOne } from "@/hooks";
 import { ENDPOINTS } from "@/constants";
-import { PermissionName, StoreBalance as StoreBalanceResponse } from "@/types";
+import {
+  PermissionName,
+  PricingSettings,
+  StoreBalance as StoreBalanceResponse,
+} from "@/types";
 
 export const StoreBalance = () => {
   const { data, isLoading, error } = useOne<StoreBalanceResponse>({
@@ -11,6 +15,12 @@ export const StoreBalance = () => {
   });
 
   const { can } = useCan(PermissionName.StoreBalanceRead);
+  const { can: canReadPricing } = useCan(PermissionName.PricingRead);
+  const { data: pricingSettings } = useOne<PricingSettings>({
+    endpoint: ENDPOINTS.PRICING_SETTINGS,
+    enabled: canReadPricing,
+    retry: false,
+  });
 
   if (!can) {
     return null;
@@ -24,9 +34,17 @@ export const StoreBalance = () => {
     return <Typography>Ошибка получения баланса</Typography>;
   }
 
+  const rate = canReadPricing ? pricingSettings?.usdt_rate_rub : null;
+
   return (
-    <Typography variant="h6" sx={{ mr: 2 }}>
-      Баланс магазина: {data?.balance.toFixed(2)} RUB
-    </Typography>
+    <Stack sx={{ mr: 2 }} alignItems="flex-end">
+      <Typography variant="body1">
+        Баланс магазина: {data?.balance.toFixed(2)} RUB
+      </Typography>
+      <Typography variant="caption" color="text.secondary">
+        Курс конвертации в USDT:{" "}
+        {typeof rate === "number" ? `${rate.toFixed(4)} RUB` : "н/д"}
+      </Typography>
+    </Stack>
   );
 };
