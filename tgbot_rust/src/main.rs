@@ -3,6 +3,7 @@ use std::sync::Arc;
 use anyhow::Context;
 use tgbot_rust::bot_manager::BotManager;
 use tgbot_rust::config::Config;
+use tgbot_rust::manager_bot::spawn_manager_bot_supervisor;
 use tgbot_rust::webhook::create_webhook_service;
 use tgbot_rust::{AppState, create_redis_pool, init_logging};
 use tokio::signal;
@@ -30,6 +31,8 @@ async fn main() -> anyhow::Result<()> {
         let bot_manager = bot_manager.clone();
         async move { bot_manager.run().await }
     });
+
+    spawn_manager_bot_supervisor(config.clone());
 
     if let Err(e) = server.await {
         tracing::error!(error = %e, "Axum server error");

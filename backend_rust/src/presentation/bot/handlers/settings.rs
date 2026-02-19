@@ -8,7 +8,7 @@ use shared_dtos::{
 
 use crate::{
     errors::api::ApiResult,
-    middlewares::{bot_auth::AuthBot, validator::ValidatedJson, verified_service::VerifiedService},
+    middlewares::{validator::ValidatedJson, verified_service::VerifiedService},
     services::settings::{SettingsServiceTrait, UpdateSettingsCommand},
     state::AppState,
 };
@@ -29,7 +29,7 @@ pub fn router() -> Router<Arc<AppState>> {
 )]
 async fn get_settings(
     State(state): State<Arc<AppState>>,
-    _bot: AuthBot,
+    _service: VerifiedService,
 ) -> ApiResult<Json<SettingsBotResponse>> {
     let settings = state.settings_service.load_settings().await?;
     Ok(Json(SettingsBotResponse::from(settings)))

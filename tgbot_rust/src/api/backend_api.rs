@@ -4,6 +4,7 @@ use reqwest::{header, multipart};
 use serde_json::json;
 use shared_dtos::{
     analytics::BotAnalyticsBotResponse,
+    balance_request::{CompleteStoreBalanceRequestBotRequest, RejectStoreBalanceRequestBotRequest},
     bot::{BotBotResponse, NewBotBotRequest, UpdateBotBotRequest},
     captcha::CaptchaBotResponse,
     category::CategoryBotResponse,
@@ -91,13 +92,42 @@ impl BackendApi {
         Ok(res)
     }
 
-    pub async fn update_manager_group_chat_id(&self, chat_id: i64) -> ApiClientResult<()> {
+    pub async fn update_manager_group_chat_id(
+        &self,
+        chat_id: i64,
+    ) -> ApiClientResult<SettingsBotResponse> {
         self.api_client
-            .patch_with_body::<(), _>(
+            .patch_with_body::<SettingsBotResponse, _>(
                 "bot/settings",
                 &UpdateBotManagedSettingsBotRequest {
                     manager_group_chat_id: Some(Some(chat_id)),
                 },
+            )
+            .await
+    }
+
+    pub async fn complete_store_balance_request(
+        &self,
+        request_id: i64,
+        tg_user_id: i64,
+    ) -> ApiClientResult<()> {
+        self.api_client
+            .post_with_body::<(), _>(
+                &format!("bot/store-balance/{request_id}/complete"),
+                &CompleteStoreBalanceRequestBotRequest { tg_user_id },
+            )
+            .await
+    }
+
+    pub async fn reject_store_balance_request(
+        &self,
+        request_id: i64,
+        tg_user_id: i64,
+    ) -> ApiClientResult<()> {
+        self.api_client
+            .post_with_body::<(), _>(
+                &format!("bot/store-balance/{request_id}/reject"),
+                &RejectStoreBalanceRequestBotRequest { tg_user_id },
             )
             .await
     }

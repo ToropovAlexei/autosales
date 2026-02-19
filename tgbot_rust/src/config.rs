@@ -12,6 +12,7 @@ pub struct Config {
     pub webhook_host: String,
     pub webhook_port: u16,
     pub payment_instructions_url: String,
+    pub manager_bot_token: Option<String>,
 }
 
 impl Config {

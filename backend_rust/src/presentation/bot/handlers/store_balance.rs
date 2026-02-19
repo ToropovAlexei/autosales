@@ -5,7 +5,7 @@ use shared_dtos::{
 use std::sync::Arc;
 
 use axum::{
-    Router,
+    Json, Router,
     extract::{Path, State},
     routing::post,
 };
@@ -43,7 +43,7 @@ async fn complete_store_balance_request(
     Path(id): Path<i64>,
     _service: VerifiedService,
     ValidatedJson(payload): ValidatedJson<CompleteStoreBalanceRequestBotRequest>,
-) -> ApiResult<()> {
+) -> ApiResult<Json<()>> {
     let _ = state
         .store_balance_request_service
         .complete(CompleteStoreBalanceRequestCommand {
@@ -52,7 +52,7 @@ async fn complete_store_balance_request(
         })
         .await?;
 
-    Ok(())
+    Ok(Json(()))
 }
 
 #[utoipa::path(
@@ -72,7 +72,7 @@ async fn reject_store_balance_request(
     Path(id): Path<i64>,
     _service: VerifiedService,
     ValidatedJson(payload): ValidatedJson<RejectStoreBalanceRequestBotRequest>,
-) -> ApiResult<()> {
+) -> ApiResult<Json<()>> {
     let _ = state
         .store_balance_request_service
         .reject(RejectStoreBalanceRequestCommand {
@@ -81,5 +81,5 @@ async fn reject_store_balance_request(
         })
         .await?;
 
-    Ok(())
+    Ok(Json(()))
 }
