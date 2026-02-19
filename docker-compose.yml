@@ -115,6 +115,7 @@ services:
       WEBHOOK_HOST: ${WEBHOOK_HOST}
       WEBHOOK_PORT: ${WEBHOOK_PORT}
       SERVICE_API_KEY: ${SERVICE_API_KEY}
+      MANAGER_BOT_TOKEN: ${MANAGER_BOT_TOKEN}
 
     depends_on:
       - backend
