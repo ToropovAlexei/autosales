@@ -3,4 +3,4 @@ import type { PaymentSystem } from "./payment";
 
 export type Transaction = { id: number, customer_id: number | null, order_id: number | null, type: TransactionType, amount: number, store_balance_delta: number, platform_commission: number, gateway_commission: number, created_at: string, description: string | null, payment_gateway: PaymentSystem | null, };
 
-export type TransactionType = "deposit" | "purchase" | "withdrawal" | "referral_payout" | "service_charge" | "refund";
+export type TransactionType = "deposit" | "purchase" | "withdrawal" | "referral_payout" | "service_charge" | "refund" | "balance_request_withdrawal_debit" | "balance_request_withdrawal_refund" | "balance_request_deposit_credit";

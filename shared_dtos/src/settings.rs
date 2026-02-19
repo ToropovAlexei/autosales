@@ -32,6 +32,7 @@ pub struct SettingsBotResponse {
 )]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PricingSettingsAdminResponse {
+    pub usdt_rate_rub: f64,
     pub pricing_global_markup: f64,
     pub pricing_platform_commission: f64,
     pub pricing_gateway_markup: f64,

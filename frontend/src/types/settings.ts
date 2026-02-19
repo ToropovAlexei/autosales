@@ -2,7 +2,7 @@
 
 export type BotSettings = { bot_messages_support: string, bot_messages_support_image_id: string | null, bot_messages_new_user_welcome: string, bot_messages_new_user_welcome_image_id: string | null, bot_messages_returning_user_welcome: string, bot_messages_returning_user_welcome_image_id: string | null, bot_payment_system_support_operators: Array<string>, bot_description: string, bot_about: string, };
 
-export type PricingSettings = { pricing_global_markup: number, pricing_platform_commission: number, pricing_gateway_markup: number, pricing_gateway_bonus_mock_provider: number, pricing_gateway_bonus_platform_card: number, pricing_gateway_bonus_platform_sbp: number, referral_program_enabled: boolean, referral_percentage: number, };
+export type PricingSettings = { usdt_rate_rub: number, pricing_global_markup: number, pricing_platform_commission: number, pricing_gateway_markup: number, pricing_gateway_bonus_mock_provider: number, pricing_gateway_bonus_platform_card: number, pricing_gateway_bonus_platform_sbp: number, referral_program_enabled: boolean, referral_percentage: number, };
 
 export type UpdateBotSettings = { bot_messages_support?: string, bot_messages_support_image_id?: string | null, bot_messages_new_user_welcome?: string, bot_messages_new_user_welcome_image_id?: string | null, bot_messages_returning_user_welcome?: string, bot_messages_returning_user_welcome_image_id?: string | null, bot_payment_system_support_operators?: Array<string>, bot_description?: string, bot_about?: string, };
 

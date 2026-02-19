@@ -9,6 +9,7 @@ use crate::{models::settings::Settings, services::settings::UpdateSettingsComman
 impl From<Settings> for PricingSettingsAdminResponse {
     fn from(r: Settings) -> Self {
         PricingSettingsAdminResponse {
+            usdt_rate_rub: r.usdt_rate_rub.to_f64().unwrap_or_default(),
             pricing_gateway_bonus_mock_provider: r
                 .pricing_gateway_bonus_mock_provider
                 .to_f64()
@@ -102,6 +103,7 @@ mod tests {
             pricing_gateway_bonus_mock_provider: Decimal::from_f64(1.0).unwrap(),
             pricing_gateway_bonus_platform_card: Decimal::from_f64(0.5).unwrap(),
             pricing_gateway_bonus_platform_sbp: Decimal::from_f64(0.2).unwrap(),
+            usdt_rate_rub: Decimal::from_f64(95.0).unwrap(),
             referral_program_enabled: true,
             referral_percentage: Decimal::from_f64(15.0).unwrap(),
             bot_messages_support: "Support text".to_string(),
@@ -126,6 +128,7 @@ mod tests {
         assert_eq!(response.pricing_gateway_bonus_platform_sbp, 0.2);
         assert!(response.referral_program_enabled);
         assert_eq!(response.referral_percentage, 15.0);
+        assert_eq!(response.usdt_rate_rub, 95.0);
     }
 
     #[test]
