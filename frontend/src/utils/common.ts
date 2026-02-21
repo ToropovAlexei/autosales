@@ -18,7 +18,7 @@ export const serializeFilter = (filter: IFilter) => {
   }
 
   if (order_dir) {
-    params.append("order", order_dir);
+    params.append("order_dir", order_dir);
   }
 
   if (filters) {
