@@ -862,7 +862,7 @@ async fn handle_msg(
             let rounded_up_to_5 = ((minutes_left + 4) / 5) * 5;
             (
                 format!(
-                    "<b>Вы недавно пытались пополнить баланс на {amount} ₽.<b>\nВозникли ли у вас какие-либо проблемы с оплатой?\n\
+                    "<b>Вы недавно пытались пополнить баланс на {amount} ₽.</b>\nВозникли ли у вас какие-либо проблемы с оплатой?\n\
                 <u>У вас осталось {rounded_up_to_5} минут на оплату</u>"
                 ),
                 None,
@@ -921,7 +921,7 @@ async fn handle_msg(
         }
     };
 
-    if let Err(AppError::RequestError(RequestError::Api(ApiError::BotBlocked))) = send_msg(
+    if let Err(err) = send_msg(
         &api_client,
         &dialogue,
         &bot,
@@ -931,16 +931,23 @@ async fn handle_msg(
     )
     .await
     {
-        tracing::info!("Bot is blocked by user: {}", payload.telegram_id);
-        api_client
-            .update_customer(
-                payload.telegram_id,
-                &UpdateCustomerBotRequest {
-                    bot_is_blocked_by_user: Some(true),
-                    ..Default::default()
-                },
-            )
-            .await?;
+        match err {
+            AppError::RequestError(RequestError::Api(ApiError::BotBlocked)) => {
+                tracing::info!("Bot is blocked by user: {}", payload.telegram_id);
+                api_client
+                    .update_customer(
+                        payload.telegram_id,
+                        &UpdateCustomerBotRequest {
+                            bot_is_blocked_by_user: Some(true),
+                            ..Default::default()
+                        },
+                    )
+                    .await?;
+            }
+            _ => {
+                tracing::error!("Error sending message: {:?}", err);
+            }
+        }
     };
 
     Ok(())
