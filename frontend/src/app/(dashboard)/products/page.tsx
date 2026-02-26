@@ -48,13 +48,15 @@ export default function ProductsPage() {
       payload: NewProduct | (UpdateProduct & { id: Product["id"] }),
     ) => {
       const params = { url: ENDPOINTS.PRODUCTS, params: payload };
-      if ("id" in payload) {
+      if ("id" in payload && payload.id) {
         return dataLayer.update({ ...params, id: payload.id });
       }
       return dataLayer.create(params);
     },
     onSuccess: (_, payload) => {
-      toast.success("id" in payload ? "Товар обновлен" : "Товар создан");
+      toast.success(
+        "id" in payload && payload.id ? "Товар обновлен" : "Товар создан",
+      );
       queryClient.invalidateQueries({
         queryKey: queryKeys.list(ENDPOINTS.PRODUCTS),
       });
