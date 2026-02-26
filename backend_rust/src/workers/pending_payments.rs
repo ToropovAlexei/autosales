@@ -99,7 +99,10 @@ pub async fn pending_payments_task(app_state: Arc<AppState>) {
                 {
                     Ok(order) => {
                         statuses.insert(invoice.id, InvoiceStatus::from(order.status));
-                        if let Some(fake_status) = order.appeal_fake_status {
+                        if let Some(fake_status) = order.appeal_fake_status
+                            && !fake_status.is_empty()
+                            && fake_status != "0"
+                        {
                             tracing::info!(
                                 "[Pending payments task]: Fraud user detected: invoice_id: {}, status: {}",
                                 invoice.id,
