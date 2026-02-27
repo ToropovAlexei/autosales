@@ -2,14 +2,14 @@ use std::sync::Arc;
 
 use crate::bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard;
 use crate::bot::utils::{MsgBy, build_receipt_upload_instruction_text, edit_msg};
-use crate::bot::{BotState, BotStep};
+use crate::bot::{BotState, BotStep, CallbackData};
 use crate::{api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult};
 use bytes::Bytes;
 use mime;
 use teloxide::Bot;
 use teloxide::net::Download;
 use teloxide::prelude::Requester;
-use teloxide::types::Message;
+use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup, Message};
 use tokio_stream::StreamExt;
 
 pub async fn receipt_submitted_handler(
@@ -90,9 +90,20 @@ pub async fn receipt_submitted_handler(
         &dialogue,
         &bot,
         &MsgBy::Message(&msg),
-        "Ссылка на чек успешно отправлена! Ожидайте обновления статуса платежа.",
+        "Чек успешно отправлен.\n\
+         Ожидание решения по платежу.\n\
+         Максимальное время ожидания 30 минут.",
         None,
-        back_to_main_menu_inline_keyboard(),
+        InlineKeyboardMarkup::new(vec![
+            vec![InlineKeyboardButton::callback(
+                "Главное меню",
+                CallbackData::ToMainMenu,
+            )],
+            vec![InlineKeyboardButton::callback(
+                "Связаться с оператором",
+                CallbackData::ToSupport,
+            )],
+        ]),
     )
     .await?;
 
