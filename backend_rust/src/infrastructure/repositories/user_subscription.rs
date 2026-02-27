@@ -9,8 +9,8 @@ use crate::{
     models::{
         common::PaginatedResult,
         user_subscription::{
-            NewUserSubscription, UserSubscriptionEnrichedRow, UserSubscriptionListQuery,
-            UserSubscriptionRow,
+            NewUserSubscription, UserSubscriptionEnrichedRow,
+            UserSubscriptionExpiryNotificationRow, UserSubscriptionListQuery, UserSubscriptionRow,
         },
     },
 };
@@ -27,6 +27,10 @@ pub trait UserSubscriptionRepositoryTrait {
     ) -> RepositoryResult<UserSubscriptionRow>;
     async fn get_for_customer(&self, id: i64)
     -> RepositoryResult<Vec<UserSubscriptionEnrichedRow>>;
+    async fn get_expiring_for_notification(
+        &self,
+        within_hours: i64,
+    ) -> RepositoryResult<Vec<UserSubscriptionExpiryNotificationRow>>;
 }
 
 #[derive(Clone)]
@@ -98,14 +102,43 @@ impl UserSubscriptionRepositoryTrait for UserSubscriptionRepository {
         let result = sqlx::query_as!(
             UserSubscriptionEnrichedRow,
             r#"
-            SELECT 
-                us.*, 
+            SELECT
+                us.*,
                 p.name AS product_name
             FROM user_subscriptions us
             JOIN products p ON us.product_id = p.id
             WHERE customer_id = $1
             "#,
             id
+        )
+        .fetch_all(&*self.pool)
+        .await?;
+
+        Ok(result)
+    }
+
+    async fn get_expiring_for_notification(
+        &self,
+        within_hours: i64,
+    ) -> RepositoryResult<Vec<UserSubscriptionExpiryNotificationRow>> {
+        let result = sqlx::query_as!(
+            UserSubscriptionExpiryNotificationRow,
+            r#"
+            SELECT
+                us.id,
+                us.expires_at,
+                p.name AS product_name,
+                c.telegram_id,
+                c.last_seen_with_bot AS "last_seen_with_bot!"
+            FROM user_subscriptions us
+            JOIN customers c ON c.id = us.customer_id
+            LEFT JOIN products p ON p.id = us.product_id
+            WHERE us.cancelled_at IS NULL
+              AND us.expires_at > NOW()
+              AND us.expires_at <= NOW() + make_interval(hours => $1::int)
+              AND c.last_seen_with_bot IS NOT NULL
+            "#,
+            within_hours as i32
         )
         .fetch_all(&*self.pool)
         .await?;
@@ -163,8 +196,8 @@ mod tests {
         // Now, fetch the full BotRow using query_as!
         sqlx::query_as!(
             BotRow,
-            r#"SELECT 
-                id, owner_id, token, username, type as "type: _", is_active, is_primary, 
+            r#"SELECT
+                id, owner_id, token, username, type as "type: _", is_active, is_primary,
                 referral_percentage, created_at, updated_at, created_by
             FROM bots WHERE id = $1"#,
             bot_id
@@ -199,10 +232,10 @@ mod tests {
         // Now, fetch the full ProductRow using query_as!
         sqlx::query_as!(
             ProductRow,
-            r#"SELECT 
+            r#"SELECT
                 id, name, base_price, category_id, image_id, type as "type: _",
-                subscription_period_days, details, deleted_at, fulfillment_text, 
-                fulfillment_image_id, provider_name, external_id, created_at, 
+                subscription_period_days, details, deleted_at, fulfillment_text,
+                fulfillment_image_id, provider_name, external_id, created_at,
                 updated_at, created_by, stock
             FROM products WHERE id = $1"#,
             product_id
@@ -233,7 +266,7 @@ mod tests {
         // Now, fetch the full OrderRow using query_as!
         sqlx::query_as!(
             OrderRow,
-            r#"SELECT 
+            r#"SELECT
                 id, customer_id, amount, currency, status as "status: _", bot_id,
                 created_at, updated_at, paid_at, fulfilled_at, cancelled_at
             FROM orders WHERE id = $1"#,

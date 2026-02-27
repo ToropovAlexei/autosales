@@ -10,7 +10,8 @@ use crate::{
     },
     middlewares::context::RequestContext,
     models::user_subscription::{
-        NewUserSubscription, UserSubscriptionEnrichedRow, UserSubscriptionRow,
+        NewUserSubscription, UserSubscriptionEnrichedRow, UserSubscriptionExpiryNotificationRow,
+        UserSubscriptionRow,
     },
 };
 
@@ -33,6 +34,10 @@ pub trait UserSubscriptionServiceTrait: Send + Sync {
         user_subscription: NewUserSubscription,
     ) -> ApiResult<UserSubscriptionRow>;
     async fn get_for_customer(&self, id: i64) -> ApiResult<Vec<UserSubscriptionEnrichedRow>>;
+    async fn get_expiring_for_notification(
+        &self,
+        within_hours: i64,
+    ) -> ApiResult<Vec<UserSubscriptionExpiryNotificationRow>>;
 }
 
 pub struct UserSubscriptionService<R> {
@@ -67,6 +72,16 @@ impl UserSubscriptionServiceTrait for UserSubscriptionService<UserSubscriptionRe
     async fn get_for_customer(&self, id: i64) -> ApiResult<Vec<UserSubscriptionEnrichedRow>> {
         let res = self.user_subscription_repo.get_for_customer(id).await?;
         Ok(res)
+    }
+
+    async fn get_expiring_for_notification(
+        &self,
+        within_hours: i64,
+    ) -> ApiResult<Vec<UserSubscriptionExpiryNotificationRow>> {
+        self.user_subscription_repo
+            .get_expiring_for_notification(within_hours)
+            .await
+            .map_err(Into::into)
     }
 }
 

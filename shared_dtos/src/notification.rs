@@ -11,6 +11,10 @@ pub enum DispatchMessage {
         image_id: Option<Uuid>,
     },
     DisputeFailedNotification,
+    SubscriptionExpiringNotification {
+        expires_at: DateTime<Utc>,
+        product_name: Option<String>,
+    },
     InvoiceTroublesNotification {
         invoice_id: i64,
         amount: f64,

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT \n                us.*, \n                p.name AS product_name\n            FROM user_subscriptions us\n            JOIN products p ON us.product_id = p.id\n            WHERE customer_id = $1\n            ",
+  "query": "\n            SELECT\n                us.*,\n                p.name AS product_name\n            FROM user_subscriptions us\n            JOIN products p ON us.product_id = p.id\n            WHERE customer_id = $1\n            ",
   "describe": {
     "columns": [
       {
@@ -102,5 +102,5 @@
       false
     ]
   },
-  "hash": "a15a29efca8c59343e497dc5e4f25d663771692ee3f5f5565294b5766ba881ba"
+  "hash": "d1a2daed68758e7aa84fc74e3f1ad74d6ca6624de0267218cf47f95b3fd5866a"
 }

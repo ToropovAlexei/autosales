@@ -42,6 +42,15 @@ pub struct UserSubscriptionEnrichedRow {
     pub updated_at: DateTime<Utc>,
 }
 
+#[derive(FromRow, Debug, Clone, Serialize)]
+pub struct UserSubscriptionExpiryNotificationRow {
+    pub id: i64,
+    pub expires_at: DateTime<Utc>,
+    pub product_name: Option<String>,
+    pub telegram_id: i64,
+    pub last_seen_with_bot: i64,
+}
+
 #[derive(Debug)]
 pub struct NewUserSubscription {
     pub customer_id: i64,

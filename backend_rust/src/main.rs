@@ -68,6 +68,7 @@ use backend_rust::{
     state::AppState,
     workers::{
         broadcasts::broadcasts_task, pending_payments::pending_payments_task,
+        subscription_expiry_notifications::subscription_expiry_notifications_task,
         usdt_rate_sync::usdt_rate_sync_task,
     },
 };
@@ -305,6 +306,7 @@ async fn main() -> anyhow::Result<()> {
 
     tokio::spawn(broadcasts_task(app_state.clone()));
     tokio::spawn(pending_payments_task(app_state.clone()));
+    tokio::spawn(subscription_expiry_notifications_task(app_state.clone()));
     tokio::spawn(usdt_rate_sync_task(app_state.clone()));
 
     let app = create_app(app_state.clone())

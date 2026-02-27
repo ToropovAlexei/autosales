@@ -869,6 +869,25 @@ async fn handle_msg(
                 )],
             ]),
         ),
+        DispatchMessage::SubscriptionExpiringNotification {
+            expires_at,
+            product_name,
+        } => {
+            let product_suffix = product_name
+                .as_ref()
+                .map(|name| format!(" \"{name}\""))
+                .unwrap_or_default();
+            let expires_at_text = expires_at.format("%d.%m.%Y %H:%M UTC").to_string();
+            (
+                format!(
+                    "Ваша подписка {product_suffix} скоро закончится.\n\
+                     Дата окончания: {expires_at_text}.\n\
+                     Чтобы не потерять доступ, продлите подписку заранее."
+                ),
+                None,
+                back_to_main_menu_inline_keyboard(),
+            )
+        }
         DispatchMessage::InvoiceTroublesNotification {
             amount,
             invoice_id,
