@@ -1,0 +1,125 @@
+services:
+  db:
+    image: postgres:18-alpine
+    container_name: autosales_db
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_NAME}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 4s
+    networks:
+      - default_network
+
+  redis:
+    image: redis:8-alpine
+    container_name: autosales_redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    networks:
+      - default_network
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend_rust/Dockerfile
+    container_name: autosales_backend_rs
+    environment:
+      BACKEND_PORT: ${BACKEND_PORT}
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${POSTGRES_USER}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
+      DATABASE_NAME: ${POSTGRES_NAME}
+      REDIS_HOST: ${REDIS_HOST:-redis}
+      REDIS_PORT: ${REDIS_PORT}
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      JWT_SECRET: ${JWT_SECRET}
+      TOTP_ENCODE_SECRET: ${TOTP_ENCODE_SECRET}
+      TWO_FA_TOKEN_TTL_MINUTES: ${TWO_FA_TOKEN_TTL_MINUTES}
+      ACCESS_TOKEN_TTL_MINUTES: ${ACCESS_TOKEN_TTL_MINUTES}
+      REFRESH_TOKEN_TTL_MINUTES: ${REFRESH_TOKEN_TTL_MINUTES}
+      IMAGE_UPLOAD_PATH: /app/uploads/images
+      SERVICE_API_KEY: ${SERVICE_API_KEY}
+      CAPTCHA_API_URL: http://captcha_service:9091/captcha
+      CONTMS_API_URL: ${CONTMS_API_URL}
+      MOCK_PAYMENTS_PROVIDER_URL: ${MOCK_PAYMENTS_PROVIDER_URL}
+      MAIN_BOT_TOKEN: ${MAIN_BOT_TOKEN}
+      FALLBACK_BOT_TOKEN: ${FALLBACK_BOT_TOKEN}
+      PAYMENT_NOTIFICATION_MINUTES: ${PAYMENT_NOTIFICATION_MINUTES}
+      PLATFORM_PAYMENT_SYSTEM_BASE_URL: ${PLATFORM_PAYMENT_SYSTEM_BASE_URL}
+      PLATFORM_PAYMENT_SYSTEM_LOGIN: ${PLATFORM_PAYMENT_SYSTEM_LOGIN}
+      PLATFORM_PAYMENT_SYSTEM_PASSWORD: ${PLATFORM_PAYMENT_SYSTEM_PASSWORD}
+      PLATFORM_PAYMENT_SYSTEM_2FA_KEY: ${PLATFORM_PAYMENT_SYSTEM_2FA_KEY}
+      SEED_DB: ${SEED_DB}
+      FILES_FM_FOLDER_HASH: ${FILES_FM_FOLDER_HASH}
+      FILES_FM_UPLOAD_TOKEN: ${FILES_FM_UPLOAD_TOKEN}
+    ports:
+      - "${BACKEND_PORT}:${BACKEND_PORT}"
+    volumes:
+      - backend-uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - default_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 3s
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_IMAGES_URL: ${NEXT_PUBLIC_IMAGES_URL}
+    container_name: autosales_frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - default_network
+
+  mock_gateway:
+    build:
+      context: ./mock_payment_gateway
+      dockerfile: Dockerfile
+    container_name: autosales_mock_gateway
+    environment:
+      MAIN_BACKEND_WEBHOOK_URL: http://backend:${BACKEND_PORT}/api/webhook/payment/mock-provider
+      MOCK_GATEWAY_PUBLIC_URL: ${MOCK_GATEWAY_PUBLIC_URL}
+    ports:
+      - "8078:8078"
+    networks:
+      - default_network
+
+  captcha_service:
+    build:
+      context: ./captcha_service
+      dockerfile: Dockerfile
+    container_name: autosales_captcha
+    ports:
+      - "9091:9091"
+    networks:
+      - default_network
+
+volumes:
+  db-data:
+  backend-uploads:
+
+networks:
+  default_network:
+    driver: bridge

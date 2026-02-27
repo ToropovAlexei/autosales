@@ -1,0 +1,20 @@
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: tgbot_rust/Dockerfile
+    container_name: autosales_bot
+    environment:
+      TELEGRAM_API_ID: ${TELEGRAM_API_ID}
+      TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
+      BACKEND_API_URL: ${BACKEND_API_URL}
+      WEBHOOK_HOST: ${WEBHOOK_HOST}
+      WEBHOOK_PORT: ${WEBHOOK_PORT}
+      SERVICE_API_KEY: ${SERVICE_API_KEY}
+      MANAGER_BOT_TOKEN: ${MANAGER_BOT_TOKEN}
+      PAYMENT_INSTRUCTIONS_URL: ${PAYMENT_INSTRUCTIONS_URL}
+    ports:
+      - "${WEBHOOK_PORT}:${WEBHOOK_PORT}"
+    restart: unless-stopped

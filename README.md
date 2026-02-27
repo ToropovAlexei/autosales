@@ -27,6 +27,27 @@ docker compose up -d backend frontend bot
 
 API docs are available at `http://localhost:8000/swagger-ui` once the backend is running.
 
+## Split deployment (backend and bot on different servers)
+
+- Core server (`backend_rust` + `frontend` + infra):
+
+```bash
+docker compose -f docker-compose.core.yml up -d db redis captcha_service mock_gateway backend frontend
+```
+
+- Bot server (`tgbot_rust` only):
+
+```bash
+docker compose -f docker-compose.bot.yml up -d bot
+```
+
+Bot server env must include:
+
+- `REDIS_HOST`, `REDIS_PORT` (shared Redis address reachable from bot VPS)
+- `BACKEND_API_URL` (for example `https://api.example.com/api/`, must end with `/`)
+- `SERVICE_API_KEY` (same value as backend)
+- `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `WEBHOOK_HOST`, `WEBHOOK_PORT`, `PAYMENT_INSTRUCTIONS_URL`
+
 ## Local development (without Docker)
 
 - Backend:
