@@ -10,6 +10,7 @@ pub enum DispatchMessage {
         message: String,
         image_id: Option<Uuid>,
     },
+    DisputeFailedNotification,
     InvoiceTroublesNotification {
         invoice_id: i64,
         amount: f64,

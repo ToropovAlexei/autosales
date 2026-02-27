@@ -855,6 +855,20 @@ async fn handle_msg(
             image_id.map(MessageImage::Uuid),
             back_to_main_menu_inline_keyboard(),
         ),
+        DispatchMessage::DisputeFailedNotification => (
+            "Мы не смогли проверить ваш платеж.\nПожалуйста, свяжитесь с оператором.".to_string(),
+            None,
+            InlineKeyboardMarkup::new(vec![
+                vec![InlineKeyboardButton::callback(
+                    "Оператор",
+                    CallbackData::ToSupport,
+                )],
+                vec![InlineKeyboardButton::callback(
+                    "Главное меню",
+                    CallbackData::ToMainMenu,
+                )],
+            ]),
+        ),
         DispatchMessage::InvoiceTroublesNotification {
             amount,
             invoice_id,

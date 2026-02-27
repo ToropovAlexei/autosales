@@ -553,10 +553,7 @@ async fn notify_dispute_failed(
         match app_state
             .notification_service
             .dispatch_message(DispatchMessagePayload {
-                message: DispatchMessage::GenericMessage {
-                    message: "Заявка отклонена.".to_string(),
-                    image_id: None,
-                },
+                message: DispatchMessage::DisputeFailedNotification,
                 telegram_id: customer.telegram_id,
                 bot_id: customer.last_seen_with_bot,
             })
