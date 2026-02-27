@@ -119,16 +119,40 @@ async fn on_callback_query(bot: Bot, q: CallbackQuery, api: Arc<BackendApi>) -> 
 
     let tg_user_id = q.from.id.0 as i64;
 
-    match action {
-        ManagerCallbackAction::Approve { request_id } => {
+    let callback_text = match action {
+        ManagerCallbackAction::Approve {
+            request_id,
+            request_type,
+        } => {
             api.complete_store_balance_request(request_id, tg_user_id)
                 .await?;
+            match request_type {
+                Some(StoreBalanceRequestType::Withdrawal) => {
+                    format!("Подтвержден вывод #{request_id}.")
+                }
+                Some(StoreBalanceRequestType::Deposit) => {
+                    format!("Подтверждено пополнение #{request_id}.")
+                }
+                None => format!("Заявка #{request_id} подтверждена."),
+            }
         }
-        ManagerCallbackAction::Reject { request_id } => {
+        ManagerCallbackAction::Reject {
+            request_id,
+            request_type,
+        } => {
             api.reject_store_balance_request(request_id, tg_user_id)
                 .await?;
+            match request_type {
+                Some(StoreBalanceRequestType::Withdrawal) => {
+                    format!("Отклонен вывод #{request_id}.")
+                }
+                Some(StoreBalanceRequestType::Deposit) => {
+                    format!("Отклонено пополнение #{request_id}.")
+                }
+                None => format!("Заявка #{request_id} отклонена."),
+            }
         }
-    }
+    };
 
     if let Some(message) = q.regular_message()
         && let Err(err) = bot.delete_message(message.chat.id, message.id).await
@@ -136,9 +160,7 @@ async fn on_callback_query(bot: Bot, q: CallbackQuery, api: Arc<BackendApi>) -> 
         tracing::warn!(error = %err, "Failed to delete processed manager message");
     }
 
-    bot.answer_callback_query(q.id)
-        .text("Действие выполнено")
-        .await?;
+    bot.answer_callback_query(q.id).text(callback_text).await?;
 
     Ok(())
 }
@@ -165,8 +187,14 @@ async fn sync_manager_group_chat_id(chat_id: ChatId, api: Arc<BackendApi>) {
 
 #[derive(Debug, Clone, Copy)]
 enum ManagerCallbackAction {
-    Approve { request_id: i64 },
-    Reject { request_id: i64 },
+    Approve {
+        request_id: i64,
+        request_type: Option<StoreBalanceRequestType>,
+    },
+    Reject {
+        request_id: i64,
+        request_type: Option<StoreBalanceRequestType>,
+    },
 }
 
 impl ManagerCallbackAction {
@@ -175,6 +203,12 @@ impl ManagerCallbackAction {
         let prefix = parts.next()?;
         let action = parts.next()?;
         let request_id = parts.next()?.parse::<i64>().ok()?;
+        let request_type = match parts.next() {
+            Some("withdrawal") => Some(StoreBalanceRequestType::Withdrawal),
+            Some("deposit") => Some(StoreBalanceRequestType::Deposit),
+            Some(_) => return None,
+            None => None,
+        };
         if parts.next().is_some() {
             return None;
         }
@@ -182,8 +216,14 @@ impl ManagerCallbackAction {
             return None;
         }
         match action {
-            "approve" => Some(Self::Approve { request_id }),
-            "reject" => Some(Self::Reject { request_id }),
+            "approve" => Some(Self::Approve {
+                request_id,
+                request_type,
+            }),
+            "reject" => Some(Self::Reject {
+                request_id,
+                request_type,
+            }),
             _ => None,
         }
     }
@@ -216,14 +256,24 @@ fn build_admin_request_message(payload: &DispatchAdminMessage) -> (String, Inlin
         StoreBalanceRequestType::Withdrawal => "Вывод",
         StoreBalanceRequestType::Deposit => "Пополнение",
     };
+    let request_type_callback = match request_type {
+        StoreBalanceRequestType::Withdrawal => "withdrawal",
+        StoreBalanceRequestType::Deposit => "deposit",
+    };
 
     let message = format!(
         "Заявка #{request_id}\nТип: {request_type_text}\nСумма: {amount_usdt:.2} USDT (~{amount_rub:.2} RUB)\n\n{action_text}",
     );
 
     let keyboard = InlineKeyboardMarkup::new(vec![vec![
-        InlineKeyboardButton::callback("Подтвердить", format!("sbr:approve:{request_id}")),
-        InlineKeyboardButton::callback("Отклонить", format!("sbr:reject:{request_id}")),
+        InlineKeyboardButton::callback(
+            "Подтвердить",
+            format!("sbr:approve:{request_id}:{request_type_callback}"),
+        ),
+        InlineKeyboardButton::callback(
+            "Отклонить",
+            format!("sbr:reject:{request_id}:{request_type_callback}"),
+        ),
     ]]);
 
     (message, keyboard)
