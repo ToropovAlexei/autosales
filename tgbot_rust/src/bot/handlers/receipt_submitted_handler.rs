@@ -1,7 +1,7 @@
 use std::sync::Arc;
 
 use crate::bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard;
-use crate::bot::utils::{MsgBy, edit_msg};
+use crate::bot::utils::{MsgBy, build_receipt_upload_instruction_text, edit_msg};
 use crate::bot::{BotState, BotStep};
 use crate::{api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult};
 use bytes::Bytes;
@@ -36,12 +36,13 @@ pub async fn receipt_submitted_handler(
             document.mime_type.clone().map(|e| e.to_string()),
         )
     } else {
+        let text = build_receipt_upload_instruction_text(None, true);
         edit_msg(
             &api_client,
             &dialogue,
             &bot,
             &MsgBy::Message(&msg),
-            "Пожалуйста, прикрепите чек в формате PDF.",
+            &text,
             None,
             back_to_main_menu_inline_keyboard(),
         )
