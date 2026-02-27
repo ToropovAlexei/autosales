@@ -202,14 +202,19 @@ impl CategoryServiceTrait
     }
 
     async fn delete(&self, command: DeleteCategoryCommand, ctx: RequestContext) -> ApiResult<()> {
-        if !self.repo.get_by_parent_id(command.id).await?.is_empty() {
-            return Err(ApiError::BadRequest(
-                "Cannot delete category with child categories".to_string(),
-            ));
+        let mut ids_to_delete = vec![command.id];
+        let mut idx = 0usize;
+        while idx < ids_to_delete.len() {
+            let parent_id = ids_to_delete[idx];
+            let children = self.repo.get_by_parent_id(parent_id).await?;
+            ids_to_delete.extend(children.into_iter().map(|c| c.id));
+            idx += 1;
         }
 
         let prev = self.repo.get_by_id(command.id).await?;
-        self.repo.delete(command.id).await?;
+        for category_id in ids_to_delete.into_iter().rev() {
+            self.repo.delete(category_id).await?;
+        }
 
         self.audit_log_service
             .create(NewAuditLog {
@@ -355,7 +360,7 @@ mod tests {
     }
 
     #[sqlx::test]
-    async fn test_delete_rejects_parent_with_children(pool: PgPool) {
+    async fn test_delete_parent_with_children(pool: PgPool) {
         let service = build_service(&pool);
         let parent = service
             .create(CreateCategoryCommand {
@@ -379,7 +384,7 @@ mod tests {
             .await
             .unwrap();
 
-        let err = service
+        service
             .delete(
                 DeleteCategoryCommand {
                     id: parent.id,
@@ -388,9 +393,19 @@ mod tests {
                 build_context(),
             )
             .await
-            .unwrap_err();
+            .unwrap();
 
-        assert!(matches!(err, ApiError::BadRequest(_)));
+        let parent_after = service.get_by_id(parent.id).await;
+        assert!(parent_after.is_err());
+
+        let child_after = sqlx::query_scalar!(
+            "SELECT id FROM categories WHERE parent_id = $1 LIMIT 1",
+            parent.id
+        )
+        .fetch_optional(&pool)
+        .await
+        .unwrap();
+        assert!(child_after.is_none());
     }
 
     #[sqlx::test]
