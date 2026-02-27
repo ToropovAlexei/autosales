@@ -6,13 +6,12 @@ use crate::api::backend_api::BackendApi;
 use crate::bot::handlers::increase_amount_by_10::increase_amount_by_10_handler;
 use crate::bot::handlers::no_suitable_requisites::no_suitable_requisites_handler;
 use crate::bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard;
-use crate::bot::utils::{MsgBy, edit_msg};
+use crate::bot::utils::{MsgBy, build_invoice_payment_text, edit_msg};
 use crate::bot::{BotState, BotStep, CallbackData, InvoiceData, MyDialogue};
 use crate::errors::AppResult;
 use shared_dtos::invoice::PaymentDetails;
 use teloxide::prelude::*;
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
-use teloxide::utils::html::escape;
 use url::Url;
 
 pub async fn deposit_confirm_handler(
@@ -99,59 +98,7 @@ pub async fn deposit_confirm_handler(
         })
         .await?;
 
-    let text = match &invoice_data.details {
-        None => "Не удалось получить реквизиты для оплаты. Попробуйте другой способ.".to_string(),
-        Some(details) => match details {
-            PaymentDetails::Mock { .. } => format!(
-                "✅ Ваш счет на {} ₽ создан.\n\nНажмите на кнопку ниже, чтобы перейти к оплате.",
-                amount
-            ),
-            PaymentDetails::PlatformCard {
-                bank_name,
-                account_name,
-                card_number,
-                amount,
-            } => {
-                let bank_name = escape(bank_name);
-                let account_name = escape(account_name);
-                let card_number = escape(card_number);
-                let token = escape(&invoice_data.gateway_invoice_id);
-                format!(
-                    "Реквизиты для оплаты:\n\n\
-                     <b>Банк:</b> {bank_name}\n\
-                     <b>Номер карты:</b> <code>{card_number}</code>\n\
-                     <b>Получатель:</b> {account_name}\n\
-                     <b>Сумма:</b> <code>{amount}</code> ₽\n\n\
-                     <b>Токен:</b> <code>{token}</code>\n\n\
-                     <u>На оплату дается 30 минут!</u>\n\
-                     В случае, если вы не оплатите в течении 30 минут, платеж не будет зачислен!\n\
-                     <b>После оплаты ОБЯЗАТЕЛЬНО НАЖМИТЕ \"Оплатил\"</b>"
-                )
-            }
-            PaymentDetails::PlatformSBP {
-                bank_name,
-                account_name,
-                sbp_number,
-                amount,
-            } => {
-                let bank_name = escape(bank_name);
-                let account_name = escape(account_name);
-                let sbp_number = escape(sbp_number);
-                let token = escape(&invoice_data.gateway_invoice_id);
-                format!(
-                    "Реквизиты для оплаты:\n\n\
-                     <b>Банк:</b> {bank_name}\n\
-                     <b>Номер СБП:</b> <code>{sbp_number}</code>\n\
-                     <b>Получатель:</b> {account_name}\n\
-                     <b>Сумма:</b> <code>{amount} ₽</code>\n\n\
-                     <b>Токен:</b> <code>{token}</code>\n\n\
-                     <u>На оплату дается 30 минут!</u>\n\
-                     В случае, если вы не оплатите в течении 30 минут, платеж не будет зачислен!\n\
-                     <b>После оплаты ОБЯЗАТЕЛЬНО НАЖМИТЕ \"Оплатил\"</b>"
-                )
-            }
-        },
-    };
+    let text = build_invoice_payment_text(&invoice_data, amount, None);
 
     let mut keyboard: Vec<Vec<InlineKeyboardButton>> = vec![];
 

@@ -54,7 +54,10 @@ use crate::{
             support::support_handler,
         },
         keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard,
-        utils::{MessageImage, MsgBy, edit_msg, send_msg},
+        utils::{
+            MessageImage, MsgBy, build_invoice_payment_text, edit_msg, invoice_troubles_paragraph,
+            send_msg,
+        },
     },
     errors::{AppError, AppResult},
 };
@@ -860,11 +863,18 @@ async fn handle_msg(
             let seconds_left = (expired_at - Utc::now()).num_seconds().max(0);
             let minutes_left = (seconds_left as f64 / 60.0).ceil() as i64;
             let rounded_up_to_5 = ((minutes_left + 4) / 5) * 5;
+            let text = match &state.step {
+                BotStep::DepositConfirm {
+                    amount: saved_amount,
+                    invoice: Some(invoice_data),
+                    ..
+                } if invoice_data.id == invoice_id => {
+                    build_invoice_payment_text(invoice_data, *saved_amount, Some(rounded_up_to_5))
+                }
+                _ => invoice_troubles_paragraph(amount, rounded_up_to_5),
+            };
             (
-                format!(
-                    "<b>Вы недавно пытались пополнить баланс на {amount} ₽.</b>\nВозникли ли у вас какие-либо проблемы с оплатой?\n\
-                <u>У вас осталось {rounded_up_to_5} минут на оплату</u>"
-                ),
+                text,
                 None,
                 InlineKeyboardMarkup::new(
                     [

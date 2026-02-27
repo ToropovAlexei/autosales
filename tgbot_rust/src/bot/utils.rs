@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use bytes::Bytes;
+use shared_dtos::invoice::PaymentDetails;
 use teloxide::dispatching::dialogue::GetChatId;
 use teloxide::payloads::{
     EditMessageMediaSetters, EditMessageTextSetters, SendMessageSetters, SendPhotoSetters,
@@ -10,10 +11,11 @@ use teloxide::types::{
     CallbackQuery, ChatId, InlineKeyboardMarkup, InputFile, InputMedia, InputMediaPhoto,
     MaybeInaccessibleMessage, Message, MessageId, ParseMode, ReplyMarkup,
 };
+use teloxide::utils::html::escape;
 use uuid::Uuid;
 
 use crate::api::backend_api::BackendApi;
-use crate::bot::{BotState, MyDialogue};
+use crate::bot::{BotState, InvoiceData, MyDialogue};
 use crate::errors::{AppError, AppResult};
 
 use teloxide::Bot;
@@ -27,6 +29,83 @@ pub enum MsgBy<'a> {
 pub enum MessageImage {
     Uuid(Uuid),
     Bytes(Bytes),
+}
+
+pub fn invoice_troubles_paragraph(
+    amount: impl std::fmt::Display,
+    rounded_minutes_left: i64,
+) -> String {
+    format!(
+        "<b>Вы недавно пытались пополнить баланс на {amount} ₽.</b>\nВозникли ли у вас какие-либо проблемы с оплатой?\n\
+         <u>У вас осталось {rounded_minutes_left} минут на оплату</u>"
+    )
+}
+
+pub fn build_invoice_payment_text(
+    invoice_data: &InvoiceData,
+    requested_amount: i64,
+    troubles_minutes_left: Option<i64>,
+) -> String {
+    let mut text = match &invoice_data.details {
+        None => "Не удалось получить реквизиты для оплаты. Попробуйте другой способ.".to_string(),
+        Some(details) => match details {
+            PaymentDetails::Mock { .. } => format!(
+                "✅ Ваш счет на {} ₽ создан.\n\nНажмите на кнопку ниже, чтобы перейти к оплате.",
+                requested_amount
+            ),
+            PaymentDetails::PlatformCard {
+                bank_name,
+                account_name,
+                card_number,
+                amount,
+            } => {
+                let bank_name = escape(bank_name);
+                let account_name = escape(account_name);
+                let card_number = escape(card_number);
+                let token = escape(&invoice_data.gateway_invoice_id);
+                format!(
+                    "Реквизиты для оплаты:\n\n\
+                     <b>Банк:</b> {bank_name}\n\
+                     <b>Номер карты:</b> <code>{card_number}</code>\n\
+                     <b>Получатель:</b> {account_name}\n\
+                     <b>Сумма:</b> <code>{amount}</code> ₽\n\n\
+                     <b>Токен:</b> <code>{token}</code>\n\n\
+                     <u>На оплату дается 30 минут!</u>\n\
+                     В случае, если вы не оплатите в течении 30 минут, платеж не будет зачислен!\n\
+                     <b>После оплаты ОБЯЗАТЕЛЬНО НАЖМИТЕ \"Оплатил\"</b>"
+                )
+            }
+            PaymentDetails::PlatformSBP {
+                bank_name,
+                account_name,
+                sbp_number,
+                amount,
+            } => {
+                let bank_name = escape(bank_name);
+                let account_name = escape(account_name);
+                let sbp_number = escape(sbp_number);
+                let token = escape(&invoice_data.gateway_invoice_id);
+                format!(
+                    "Реквизиты для оплаты:\n\n\
+                     <b>Банк:</b> {bank_name}\n\
+                     <b>Номер СБП:</b> <code>{sbp_number}</code>\n\
+                     <b>Получатель:</b> {account_name}\n\
+                     <b>Сумма:</b> <code>{amount} ₽</code>\n\n\
+                     <b>Токен:</b> <code>{token}</code>\n\n\
+                     <u>На оплату дается 30 минут!</u>\n\
+                     В случае, если вы не оплатите в течении 30 минут, платеж не будет зачислен!\n\
+                     <b>После оплаты ОБЯЗАТЕЛЬНО НАЖМИТЕ \"Оплатил\"</b>"
+                )
+            }
+        },
+    };
+
+    if let Some(minutes_left) = troubles_minutes_left {
+        text.push_str("\n\n");
+        text.push_str(&invoice_troubles_paragraph(requested_amount, minutes_left));
+    }
+
+    text
 }
 
 /// Send message with or without photo
