@@ -24,8 +24,8 @@ use teloxide::{
     macros::BotCommands,
     prelude::{Dialogue, Dispatcher, Requester},
     types::{
-        BotCommand, CallbackQuery, ChatId, InlineKeyboardButton, InlineKeyboardMarkup, Message,
-        MessageId, Update,
+        BotCommand, CallbackQuery, CallbackQueryId, ChatId, InlineKeyboardButton,
+        InlineKeyboardMarkup, Message, MessageId, Update,
     },
 };
 use teloxide::{
@@ -309,6 +309,22 @@ fn dispatch_message_kind(message: &DispatchMessage) -> &'static str {
     }
 }
 
+async fn ack_callback_query_safe(
+    bot: &Bot,
+    callback_query_id: CallbackQueryId,
+    callback_type: &str,
+    telegram_id: i64,
+) {
+    if let Err(err) = bot.answer_callback_query(callback_query_id).await {
+        tracing::debug!(
+            callback_type,
+            telegram_id,
+            error = %err,
+            "Failed to ack callback query before returning"
+        );
+    }
+}
+
 pub async fn run_bot(
     bot_token: String,
     bot_id: i64,
@@ -386,11 +402,17 @@ pub async fn run_bot(
             let started_at = Instant::now();
             let data = match CallbackData::from_query(&q) {
                 Some(data) => data,
-                None => return Ok(()),
+                None => {
+                    ack_callback_query_safe(&bot, q.id.clone(), "unknown", q.from.id.0 as i64)
+                        .await;
+                    return Ok(());
+                }
             };
             let callback_type = callback_kind(&data);
 
             let telegram_id = q.from.id;
+            let callback_query_id = q.id.clone();
+            let bot_for_ack = bot.clone();
             let last_seen_started = Instant::now();
             api_client
                 .update_customer_last_seen(telegram_id.0 as i64)
@@ -422,6 +444,13 @@ pub async fn run_bot(
                     InlineKeyboardMarkup::default(),
                 )
                 .await?;
+                ack_callback_query_safe(
+                    &bot_for_ack,
+                    callback_query_id.clone(),
+                    callback_type,
+                    telegram_id.0 as i64,
+                )
+                .await;
                 return Ok(());
             }
 
@@ -445,6 +474,13 @@ pub async fn run_bot(
                     InlineKeyboardMarkup::default(),
                 )
                 .await?;
+                ack_callback_query_safe(
+                    &bot_for_ack,
+                    callback_query_id.clone(),
+                    callback_type,
+                    telegram_id.0 as i64,
+                )
+                .await;
                 return Ok(());
             }
 
@@ -479,7 +515,16 @@ pub async fn run_bot(
                 CallbackData::SelectAmount { amount } => {
                     let gateway = match &bot_state.step {
                         BotStep::DepositSelectAmount { gateway } => gateway,
-                        _ => return Ok(()),
+                        _ => {
+                            ack_callback_query_safe(
+                                &bot_for_ack,
+                                callback_query_id.clone(),
+                                callback_type,
+                                telegram_id.0 as i64,
+                            )
+                            .await;
+                            return Ok(());
+                        }
                     };
                     let new_state = BotState {
                         step: BotStep::DepositConfirm {
@@ -508,7 +553,16 @@ pub async fn run_bot(
                         BotStep::DepositConfirm {
                             amount, gateway, ..
                         } => (amount, gateway),
-                        _ => return Ok(()),
+                        _ => {
+                            ack_callback_query_safe(
+                                &bot_for_ack,
+                                callback_query_id.clone(),
+                                callback_type,
+                                telegram_id.0 as i64,
+                            )
+                            .await;
+                            return Ok(());
+                        }
                     };
                     let new_state = BotState {
                         step: BotStep::DepositConfirm {
@@ -740,6 +794,14 @@ pub async fn run_bot(
                     "Callback handled"
                 );
             }
+
+            ack_callback_query_safe(
+                &bot_for_ack,
+                callback_query_id,
+                callback_type,
+                telegram_id.0 as i64,
+            )
+            .await;
 
             Ok(())
         },
