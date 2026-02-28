@@ -1,9 +1,11 @@
-# Monitoring (Loki + Promtail + Grafana)
+# Monitoring (Loki + Promtail + Prometheus + cAdvisor + Grafana)
 
 This project includes a self-hosted log stack:
 
 - `Loki` for log storage and querying
 - `Promtail` for collecting application logs
+- `Prometheus` for metrics storage/query
+- `cAdvisor` for Docker container CPU/memory metrics
 - `Grafana` for dashboards and analysis
 
 ## What is collected
@@ -21,7 +23,7 @@ Start app + monitoring together:
 docker compose \
   -f docker-compose.yml \
   -f docker-compose.monitoring.yml \
-  up -d backend bot loki promtail grafana
+  up -d backend bot loki promtail prometheus cadvisor grafana
 ```
 
 For split deployment:
@@ -35,19 +37,21 @@ Example (core host):
 docker compose \
   -f docker-compose.core.yml \
   -f docker-compose.monitoring.yml \
-  up -d backend loki promtail grafana
+  up -d backend loki promtail prometheus cadvisor grafana
 ```
 
 ## Access
 
 - Grafana: `http://localhost:${GRAFANA_PORT:-3001}` (`admin/admin` by default)
 - Loki API: `http://localhost:${LOKI_PORT:-3100}`
+- Prometheus: `http://localhost:${PROMETHEUS_PORT:-9090}`
 
 Provisioned automatically on startup:
 
 - Dashboard: `FRBKTG / FRBKTG Observability`
 - Alert group: `FRBKTG Alerts / frbktg-loki-alerts`
 - Contact point: `frbktg-default-contact` (email receiver)
+- Container CPU/Memory panels: `CPU Usage (cores)` / `Memory Usage (bytes)`
 
 Environment overrides:
 
@@ -55,6 +59,7 @@ Environment overrides:
 - `GRAFANA_ADMIN_USER`
 - `GRAFANA_ADMIN_PASSWORD`
 - `LOKI_PORT`
+- `PROMETHEUS_PORT`
 
 ## Useful LogQL queries
 
@@ -79,7 +84,7 @@ Slow backend HTTP requests (`TraceLayer`):
 p95 backend request latency over 5 minutes:
 
 ```logql
-quantile_over_time(0.95, {app="backend_rust"} |= "request completed" | json | unwrap fields_latency_ms [5m])
+avg(quantile_over_time(0.95, {app="backend_rust"} |= "request completed" | json | span_uri != "/healthz" | unwrap fields_latency_ms [5m]))
 ```
 
 Slow callback handling in bot:
@@ -91,7 +96,7 @@ Slow callback handling in bot:
 p95 callback total latency over 5 minutes:
 
 ```logql
-quantile_over_time(0.95, {app="tgbot_rust"} |= "Callback handled" | json | unwrap fields_total_elapsed_ms [5m])
+avg(quantile_over_time(0.95, {app="tgbot_rust"} |= "Callback handled" | json | unwrap fields_total_elapsed_ms [5m]))
 ```
 
 Queue wait outliers in dispatch pipeline:

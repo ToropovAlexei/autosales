@@ -107,7 +107,7 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "quantile_over_time(0.95, {app=\"backend_rust\"} |= \"request completed\" | json | unwrap fields_latency_ms [5m])",
+          "expr": "avg by (app) (quantile_over_time(0.95, {app=\"backend_rust\"} |= \"request completed\" | json | span_uri != \"/healthz\" | unwrap fields_latency_ms [5m]))",
           "queryType": "range",
           "refId": "A"
         }
@@ -149,7 +149,7 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "quantile_over_time(0.95, {app=\"tgbot_rust\"} |= \"Callback handled\" | json | unwrap fields_total_elapsed_ms [5m])",
+          "expr": "avg by (app) (quantile_over_time(0.95, {app=\"tgbot_rust\"} |= \"Callback handled\" | json | unwrap fields_total_elapsed_ms [5m]))",
           "queryType": "range",
           "refId": "A"
         }
@@ -185,7 +185,7 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "{app=\"backend_rust\"} |= \"request completed\"",
+          "expr": "{app=\"backend_rust\"} |= \"request completed\" | json | span_uri != \"/healthz\"",
           "queryType": "range",
           "refId": "A"
         }
@@ -392,6 +392,92 @@
       ],
       "title": "Panic Events",
       "type": "logs"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "cores"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 25
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum by (container_label_com_docker_compose_service) (rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_project=\"frbktg\", container_label_com_docker_compose_service=~\"backend|bot\", image!=\"\"}[5m]))",
+          "legendFormat": "{{container_label_com_docker_compose_service}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "CPU Usage (cores)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "decbytes"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 25
+      },
+      "id": 10,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum by (container_label_com_docker_compose_service) (container_memory_working_set_bytes{container_label_com_docker_compose_project=\"frbktg\", container_label_com_docker_compose_service=~\"backend|bot\", image!=\"\"})",
+          "legendFormat": "{{container_label_com_docker_compose_service}}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Memory Usage (bytes)",
+      "type": "timeseries"
     }
   ],
   "refresh": "30s",
@@ -409,6 +495,6 @@
   "timezone": "",
   "title": "FRBKTG Observability",
   "uid": "frbktg-observability",
-  "version": 3,
+  "version": 8,
   "weekStart": ""
 }

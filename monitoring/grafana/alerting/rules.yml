@@ -80,7 +80,7 @@ groups:
               to: 0
             model:
               editorMode: code
-              expr: quantile_over_time(0.95, {app="backend_rust"} |= "request completed" | json | unwrap fields_latency_ms [5m])
+              expr: avg(quantile_over_time(0.95, {app="backend_rust"} |= "request completed" | json | span_uri != "/healthz" | unwrap fields_latency_ms [5m]))
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200
@@ -142,7 +142,7 @@ groups:
               to: 0
             model:
               editorMode: code
-              expr: quantile_over_time(0.95, {app="tgbot_rust"} |= "Dispatched message processed" | json | unwrap fields_queue_wait_ms [5m])
+              expr: avg(quantile_over_time(0.95, {app="tgbot_rust"} |= "Dispatched message processed" | json | unwrap fields_queue_wait_ms [5m]))
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200
