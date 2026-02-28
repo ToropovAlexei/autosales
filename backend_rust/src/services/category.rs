@@ -2,20 +2,18 @@ use std::{collections::HashMap, sync::Arc};
 
 use async_trait::async_trait;
 use shared_dtos::audit_log::{AuditAction, AuditStatus};
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::{
     errors::api::{ApiError, ApiResult},
-    infrastructure::repositories::{
-        audit_log::AuditLogRepository,
-        category::{CategoryRepository, CategoryRepositoryTrait},
-    },
+    infrastructure::repositories::category::CategoryRepositoryTrait,
     middlewares::context::RequestContext,
     models::{
         audit_log::NewAuditLog,
         category::{CategoryRow, NewCategory, UpdateCategory},
     },
-    services::audit_log::{AuditLogService, AuditLogServiceTrait},
+    services::audit_log::AuditLogServiceTrait,
 };
 
 #[derive(Debug)]
@@ -70,6 +68,7 @@ pub trait CategoryServiceTrait: Send + Sync {
 pub struct CategoryService<R, A> {
     repo: Arc<R>,
     audit_log_service: Arc<A>,
+    cache: RwLock<Option<Vec<CategoryRow>>>,
 }
 
 impl<R, A> CategoryService<R, A>
@@ -81,16 +80,33 @@ where
         Self {
             repo,
             audit_log_service,
+            cache: RwLock::new(None),
         }
+    }
+
+    async fn load_categories_cached(&self) -> ApiResult<Vec<CategoryRow>> {
+        if let Some(cached) = self.cache.read().await.clone() {
+            return Ok(cached);
+        }
+
+        let loaded = self.repo.get_list().await.map_err(ApiError::from)?;
+        *self.cache.write().await = Some(loaded.clone());
+        Ok(loaded)
+    }
+
+    async fn invalidate_cache(&self) {
+        *self.cache.write().await = None;
     }
 }
 
 #[async_trait]
-impl CategoryServiceTrait
-    for CategoryService<CategoryRepository, AuditLogService<AuditLogRepository>>
+impl<R, A> CategoryServiceTrait for CategoryService<R, A>
+where
+    R: CategoryRepositoryTrait + Send + Sync,
+    A: AuditLogServiceTrait + Send + Sync,
 {
     async fn get_list(&self) -> ApiResult<Vec<CategoryRow>> {
-        self.repo.get_list().await.map_err(ApiError::from)
+        self.load_categories_cached().await
     }
 
     async fn create(&self, command: CreateCategoryCommand) -> ApiResult<CategoryRow> {
@@ -131,12 +147,17 @@ impl CategoryServiceTrait
             })
             .await?;
 
+        self.invalidate_cache().await;
         Ok(created)
     }
 
     async fn get_by_id(&self, id: i64) -> ApiResult<CategoryRow> {
-        let res = self.repo.get_by_id(id).await?;
-        Ok(res)
+        if let Some(cached) = self.cache.read().await.as_ref()
+            && let Some(found) = cached.iter().find(|c| c.id == id)
+        {
+            return Ok(found.clone());
+        }
+        self.repo.get_by_id(id).await.map_err(ApiError::from)
     }
 
     async fn update(
@@ -167,7 +188,7 @@ impl CategoryServiceTrait
             }
         }
 
-        let prev = self.repo.get_by_id(command.id).await?;
+        let prev = self.get_by_id(command.id).await?;
         let updated = self
             .repo
             .update(
@@ -198,20 +219,30 @@ impl CategoryServiceTrait
             })
             .await?;
 
+        self.invalidate_cache().await;
         Ok(updated)
     }
 
     async fn delete(&self, command: DeleteCategoryCommand, ctx: RequestContext) -> ApiResult<()> {
+        let all_categories = self.get_list().await?;
+        let mut children_by_parent: HashMap<i64, Vec<i64>> = HashMap::new();
+        for c in &all_categories {
+            if let Some(parent_id) = c.parent_id {
+                children_by_parent.entry(parent_id).or_default().push(c.id);
+            }
+        }
+
         let mut ids_to_delete = vec![command.id];
         let mut idx = 0usize;
         while idx < ids_to_delete.len() {
             let parent_id = ids_to_delete[idx];
-            let children = self.repo.get_by_parent_id(parent_id).await?;
-            ids_to_delete.extend(children.into_iter().map(|c| c.id));
+            if let Some(children_ids) = children_by_parent.get(&parent_id) {
+                ids_to_delete.extend(children_ids.iter().copied());
+            }
             idx += 1;
         }
 
-        let prev = self.repo.get_by_id(command.id).await?;
+        let prev = self.get_by_id(command.id).await?;
         for category_id in ids_to_delete.into_iter().rev() {
             self.repo.delete(category_id).await?;
         }
@@ -233,6 +264,7 @@ impl CategoryServiceTrait
             })
             .await?;
 
+        self.invalidate_cache().await;
         Ok(())
     }
 
