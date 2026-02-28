@@ -1,0 +1,112 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                us.id,\n                us.customer_id,\n                us.product_id,\n                p.name AS product_name,\n                us.order_id,\n                us.started_at,\n                us.expires_at,\n                us.cancelled_at,\n                us.next_charge_at,\n                us.renewal_order_id,\n                us.price_at_subscription,\n                us.period_days,\n                us.details,\n                us.expiry_notification_sent_at,\n                us.created_at,\n                us.updated_at\n            FROM user_subscriptions us\n            JOIN products p ON us.product_id = p.id\n            WHERE customer_id = $1\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "customer_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "product_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "product_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "order_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "started_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 6,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 7,
+        "name": "cancelled_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "next_charge_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "renewal_order_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "price_at_subscription",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 11,
+        "name": "period_days",
+        "type_info": "Int2"
+      },
+      {
+        "ordinal": 12,
+        "name": "details",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 13,
+        "name": "expiry_notification_sent_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "04ce587facd6af9b4a4f04b35e4bece37eb35d2988ba2099424f4ea5555939f3"
+}

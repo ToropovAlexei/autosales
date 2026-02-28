@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            UPDATE user_subscriptions\n            SET expiry_notification_sent_at = NOW()\n            WHERE id = ANY($1)\n              AND expiry_notification_sent_at IS NULL\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Int8Array"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "edd42ae92379bded6bd38a51831a5741e68b48dfae3a4dff3a7172e3c612e2ae"
+}

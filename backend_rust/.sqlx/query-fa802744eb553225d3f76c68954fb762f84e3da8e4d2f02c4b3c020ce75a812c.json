@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            SELECT\n                us.id,\n                us.expires_at,\n                p.name AS product_name,\n                c.telegram_id,\n                c.last_seen_with_bot\n            FROM user_subscriptions us\n            JOIN customers c ON c.id = us.customer_id\n            LEFT JOIN products p ON p.id = us.product_id\n            WHERE us.cancelled_at IS NULL\n              AND us.expiry_notification_sent_at IS NULL\n              AND us.expires_at > NOW()\n              AND us.expires_at <= NOW() + make_interval(hours => $1::int)\n              AND c.last_seen_with_bot IS NOT NULL\n            ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 1,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 2,
+        "name": "product_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "telegram_id",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "last_seen_with_bot",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int4"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "fa802744eb553225d3f76c68954fb762f84e3da8e4d2f02c4b3c020ce75a812c"
+}
