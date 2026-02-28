@@ -73,13 +73,13 @@ All bot logs:
 Slow backend HTTP requests (`TraceLayer`):
 
 ```logql
-{app="backend_rust"} |= "request completed" | json | latency_ms >= 1000
+{app="backend_rust"} |= "request completed" | json | fields_latency_ms >= 1000
 ```
 
 p95 backend request latency over 5 minutes:
 
 ```logql
-quantile_over_time(0.95, {app="backend_rust"} |= "request completed" | json | unwrap latency_ms [5m])
+quantile_over_time(0.95, {app="backend_rust"} |= "request completed" | json | unwrap fields_latency_ms [5m])
 ```
 
 Slow callback handling in bot:
@@ -91,13 +91,13 @@ Slow callback handling in bot:
 p95 callback total latency over 5 minutes:
 
 ```logql
-quantile_over_time(0.95, {app="tgbot_rust"} |= "Callback handled" | json | unwrap total_elapsed_ms [5m])
+quantile_over_time(0.95, {app="tgbot_rust"} |= "Callback handled" | json | unwrap fields_total_elapsed_ms [5m])
 ```
 
 Queue wait outliers in dispatch pipeline:
 
 ```logql
-{app="tgbot_rust"} |= "Slow dispatched message processing" | json | queue_wait_ms >= 500
+{app="tgbot_rust"} |= "Slow dispatched message processing" | json | fields_queue_wait_ms >= 500
 ```
 
 ## Default alert thresholds

@@ -107,7 +107,7 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "quantile_over_time(0.95, {app=\"backend_rust\"} |= \"request completed\" | json | unwrap latency_ms [5m])",
+          "expr": "quantile_over_time(0.95, {app=\"backend_rust\"} |= \"request completed\" | json | unwrap fields_latency_ms [5m])",
           "queryType": "range",
           "refId": "A"
         }
@@ -149,7 +149,7 @@
             "uid": "loki"
           },
           "editorMode": "code",
-          "expr": "quantile_over_time(0.95, {app=\"tgbot_rust\"} |= \"Callback handled\" | json | unwrap total_elapsed_ms [5m])",
+          "expr": "quantile_over_time(0.95, {app=\"tgbot_rust\"} |= \"Callback handled\" | json | unwrap fields_total_elapsed_ms [5m])",
           "queryType": "range",
           "refId": "A"
         }
@@ -409,6 +409,6 @@
   "timezone": "",
   "title": "FRBKTG Observability",
   "uid": "frbktg-observability",
-  "version": 2,
+  "version": 3,
   "weekStart": ""
 }
