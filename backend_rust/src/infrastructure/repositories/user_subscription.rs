@@ -31,6 +31,10 @@ pub trait UserSubscriptionRepositoryTrait {
         &self,
         within_hours: i64,
     ) -> RepositoryResult<Vec<UserSubscriptionExpiryNotificationRow>>;
+    async fn mark_expiry_notification_sent(
+        &self,
+        subscription_ids: &[i64],
+    ) -> RepositoryResult<u64>;
 }
 
 #[derive(Clone)]
@@ -77,7 +81,10 @@ impl UserSubscriptionRepositoryTrait for UserSubscriptionRepository {
                 price_at_subscription, period_days, details
             )
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-            RETURNING *
+            RETURNING
+                id, customer_id, product_id, order_id, started_at, expires_at, cancelled_at,
+                next_charge_at, renewal_order_id, price_at_subscription, period_days, details,
+                expiry_notification_sent_at, created_at, updated_at
             "#,
             user_subscription.customer_id,
             user_subscription.product_id,
@@ -103,8 +110,22 @@ impl UserSubscriptionRepositoryTrait for UserSubscriptionRepository {
             UserSubscriptionEnrichedRow,
             r#"
             SELECT
-                us.*,
-                p.name AS product_name
+                us.id,
+                us.customer_id,
+                us.product_id,
+                p.name AS product_name,
+                us.order_id,
+                us.started_at,
+                us.expires_at,
+                us.cancelled_at,
+                us.next_charge_at,
+                us.renewal_order_id,
+                us.price_at_subscription,
+                us.period_days,
+                us.details,
+                us.expiry_notification_sent_at,
+                us.created_at,
+                us.updated_at
             FROM user_subscriptions us
             JOIN products p ON us.product_id = p.id
             WHERE customer_id = $1
@@ -129,11 +150,12 @@ impl UserSubscriptionRepositoryTrait for UserSubscriptionRepository {
                 us.expires_at,
                 p.name AS product_name,
                 c.telegram_id,
-                c.last_seen_with_bot AS "last_seen_with_bot!"
+                c.last_seen_with_bot
             FROM user_subscriptions us
             JOIN customers c ON c.id = us.customer_id
             LEFT JOIN products p ON p.id = us.product_id
             WHERE us.cancelled_at IS NULL
+              AND us.expiry_notification_sent_at IS NULL
               AND us.expires_at > NOW()
               AND us.expires_at <= NOW() + make_interval(hours => $1::int)
               AND c.last_seen_with_bot IS NOT NULL
@@ -144,6 +166,29 @@ impl UserSubscriptionRepositoryTrait for UserSubscriptionRepository {
         .await?;
 
         Ok(result)
+    }
+
+    async fn mark_expiry_notification_sent(
+        &self,
+        subscription_ids: &[i64],
+    ) -> RepositoryResult<u64> {
+        if subscription_ids.is_empty() {
+            return Ok(0);
+        }
+
+        let result = sqlx::query!(
+            r#"
+            UPDATE user_subscriptions
+            SET expiry_notification_sent_at = NOW()
+            WHERE id = ANY($1)
+              AND expiry_notification_sent_at IS NULL
+            "#,
+            subscription_ids
+        )
+        .execute(&*self.pool)
+        .await?;
+
+        Ok(result.rows_affected())
     }
 }
 
@@ -339,5 +384,151 @@ mod tests {
         let result = repo.get_list(list_query).await.unwrap();
         assert_eq!(result.total, 1);
         assert_eq!(result.items.len(), 1);
+    }
+
+    #[sqlx::test]
+    async fn test_get_expiring_for_notification_filters(pool: PgPool) {
+        let repo = UserSubscriptionRepository::new(Arc::new(pool.clone()));
+        let bot = create_test_bot(&pool).await;
+        let customer = create_test_customer(&pool, 777001, bot.id).await;
+        let product = create_test_product(&pool, "expiring_filter_product").await;
+        let order = create_test_order(&pool, customer.id).await;
+        let now = Utc::now();
+
+        let should_notify = repo
+            .create(NewUserSubscription {
+                customer_id: customer.id,
+                product_id: Some(product.id),
+                order_id: order.id,
+                started_at: now - chrono::Duration::days(20),
+                expires_at: now + chrono::Duration::hours(12),
+                next_charge_at: None,
+                price_at_subscription: Decimal::from(10),
+                period_days: 30,
+                details: None,
+            })
+            .await
+            .unwrap();
+
+        let already_notified = repo
+            .create(NewUserSubscription {
+                customer_id: customer.id,
+                product_id: Some(product.id),
+                order_id: order.id,
+                started_at: now - chrono::Duration::days(20),
+                expires_at: now + chrono::Duration::hours(12),
+                next_charge_at: None,
+                price_at_subscription: Decimal::from(10),
+                period_days: 30,
+                details: None,
+            })
+            .await
+            .unwrap();
+        sqlx::query(
+            "UPDATE user_subscriptions SET expiry_notification_sent_at = NOW() WHERE id = $1",
+        )
+        .bind(already_notified.id)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let out_of_window = repo
+            .create(NewUserSubscription {
+                customer_id: customer.id,
+                product_id: Some(product.id),
+                order_id: order.id,
+                started_at: now - chrono::Duration::days(20),
+                expires_at: now + chrono::Duration::hours(72),
+                next_charge_at: None,
+                price_at_subscription: Decimal::from(10),
+                period_days: 30,
+                details: None,
+            })
+            .await
+            .unwrap();
+
+        let cancelled = repo
+            .create(NewUserSubscription {
+                customer_id: customer.id,
+                product_id: Some(product.id),
+                order_id: order.id,
+                started_at: now - chrono::Duration::days(20),
+                expires_at: now + chrono::Duration::hours(6),
+                next_charge_at: None,
+                price_at_subscription: Decimal::from(10),
+                period_days: 30,
+                details: None,
+            })
+            .await
+            .unwrap();
+        sqlx::query("UPDATE user_subscriptions SET cancelled_at = NOW() WHERE id = $1")
+            .bind(cancelled.id)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let found = repo.get_expiring_for_notification(24).await.unwrap();
+        let found_ids = found.into_iter().map(|s| s.id).collect::<Vec<_>>();
+
+        assert_eq!(found_ids, vec![should_notify.id]);
+        assert!(!found_ids.contains(&already_notified.id));
+        assert!(!found_ids.contains(&out_of_window.id));
+        assert!(!found_ids.contains(&cancelled.id));
+    }
+
+    #[sqlx::test]
+    async fn test_mark_expiry_notification_sent_is_idempotent(pool: PgPool) {
+        let repo = UserSubscriptionRepository::new(Arc::new(pool.clone()));
+        let bot = create_test_bot(&pool).await;
+        let customer = create_test_customer(&pool, 777002, bot.id).await;
+        let product = create_test_product(&pool, "expiring_mark_product").await;
+        let order = create_test_order(&pool, customer.id).await;
+        let now = Utc::now();
+
+        let sub1 = repo
+            .create(NewUserSubscription {
+                customer_id: customer.id,
+                product_id: Some(product.id),
+                order_id: order.id,
+                started_at: now - chrono::Duration::days(20),
+                expires_at: now + chrono::Duration::hours(8),
+                next_charge_at: None,
+                price_at_subscription: Decimal::from(10),
+                period_days: 30,
+                details: None,
+            })
+            .await
+            .unwrap();
+        let sub2 = repo
+            .create(NewUserSubscription {
+                customer_id: customer.id,
+                product_id: Some(product.id),
+                order_id: order.id,
+                started_at: now - chrono::Duration::days(20),
+                expires_at: now + chrono::Duration::hours(9),
+                next_charge_at: None,
+                price_at_subscription: Decimal::from(10),
+                period_days: 30,
+                details: None,
+            })
+            .await
+            .unwrap();
+
+        let updated = repo
+            .mark_expiry_notification_sent(&[sub1.id, sub2.id])
+            .await
+            .unwrap();
+        assert_eq!(updated, 2);
+
+        let updated_again = repo
+            .mark_expiry_notification_sent(&[sub1.id, sub2.id])
+            .await
+            .unwrap();
+        assert_eq!(updated_again, 0);
+
+        let found = repo.get_expiring_for_notification(24).await.unwrap();
+        let found_ids = found.into_iter().map(|s| s.id).collect::<Vec<_>>();
+        assert!(!found_ids.contains(&sub1.id));
+        assert!(!found_ids.contains(&sub2.id));
     }
 }

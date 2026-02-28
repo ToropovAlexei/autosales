@@ -1,4 +1,11 @@
 services:
+  redis:
+    image: redis:8-alpine
+    container_name: autosales_bot_redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    restart: unless-stopped
+
   bot:
     build:
       context: .
@@ -7,7 +14,7 @@ services:
     environment:
       TELEGRAM_API_ID: ${TELEGRAM_API_ID}
       TELEGRAM_API_HASH: ${TELEGRAM_API_HASH}
-      REDIS_HOST: ${REDIS_HOST}
+      REDIS_HOST: ${REDIS_HOST:-redis}
       REDIS_PORT: ${REDIS_PORT}
       BACKEND_API_URL: ${BACKEND_API_URL}
       WEBHOOK_HOST: ${WEBHOOK_HOST}
@@ -17,4 +24,6 @@ services:
       PAYMENT_INSTRUCTIONS_URL: ${PAYMENT_INSTRUCTIONS_URL}
     ports:
       - "${WEBHOOK_PORT}:${WEBHOOK_PORT}"
+    depends_on:
+      - redis
     restart: unless-stopped

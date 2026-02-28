@@ -19,14 +19,6 @@ services:
     networks:
       - default_network
 
-  redis:
-    image: redis:8-alpine
-    container_name: autosales_redis
-    ports:
-      - "${REDIS_PORT}:6379"
-    networks:
-      - default_network
-
   backend:
     build:
       context: .
@@ -39,8 +31,6 @@ services:
       DATABASE_USER: ${POSTGRES_USER}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD}
       DATABASE_NAME: ${POSTGRES_NAME}
-      REDIS_HOST: ${REDIS_HOST:-redis}
-      REDIS_PORT: ${REDIS_PORT}
       CORS_ORIGINS: ${CORS_ORIGINS}
       JWT_SECRET: ${JWT_SECRET}
       TOTP_ENCODE_SECRET: ${TOTP_ENCODE_SECRET}
@@ -49,6 +39,8 @@ services:
       REFRESH_TOKEN_TTL_MINUTES: ${REFRESH_TOKEN_TTL_MINUTES}
       IMAGE_UPLOAD_PATH: /app/uploads/images
       SERVICE_API_KEY: ${SERVICE_API_KEY}
+      BOT_DISPATCHER_WEBHOOK_URL: ${BOT_DISPATCHER_WEBHOOK_URL}
+      BOT_ADMIN_DISPATCHER_WEBHOOK_URL: ${BOT_ADMIN_DISPATCHER_WEBHOOK_URL}
       CAPTCHA_API_URL: http://captcha_service:9091/captcha
       CONTMS_API_URL: ${CONTMS_API_URL}
       MOCK_PAYMENTS_PROVIDER_URL: ${MOCK_PAYMENTS_PROVIDER_URL}

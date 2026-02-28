@@ -14,7 +14,6 @@ use teloxide::{
     },
 };
 use tokio::time::{Duration, sleep};
-use tokio_stream::StreamExt;
 
 use crate::{api::backend_api::BackendApi, config::Config, errors::AppError, errors::AppResult};
 
@@ -28,16 +27,9 @@ pub fn spawn_manager_bot_supervisor(config: Arc<Config>) {
         BackendApi::new(&config.backend_api_url, &config.service_api_key, None)
             .expect("Failed to create manager bot BackendApi"),
     );
-    let manager_redis_url = format!("redis://{}:{}", config.redis_host, config.redis_port);
-
     tokio::spawn(async move {
         loop {
-            let result = run_manager_bot(
-                manager_bot_token.clone(),
-                manager_redis_url.clone(),
-                manager_api.clone(),
-            )
-            .await;
+            let result = run_manager_bot(manager_bot_token.clone(), manager_api.clone()).await;
 
             match result {
                 Ok(_) => {
@@ -59,21 +51,11 @@ pub fn spawn_manager_bot_supervisor(config: Arc<Config>) {
     });
 }
 
-pub async fn run_manager_bot(
-    bot_token: String,
-    redis_url: String,
-    api: Arc<BackendApi>,
-) -> AppResult<()> {
+pub async fn run_manager_bot(bot_token: String, api: Arc<BackendApi>) -> AppResult<()> {
     let bot = Bot::new(bot_token);
     let me = bot.get_me().await?;
     let username = me.user.username.unwrap_or_default();
     tracing::info!("Starting manager bot: @{}", username);
-
-    let listener_handle = tokio::spawn(start_admin_redis_listener(
-        bot.clone(),
-        redis_url,
-        api.clone(),
-    ));
 
     let handler = dptree::entry()
         .branch(Update::filter_message().endpoint(on_message))
@@ -95,7 +77,6 @@ pub async fn run_manager_bot(
         .dispatch()
         .await;
 
-    listener_handle.abort();
     Ok(())
 }
 
@@ -279,58 +260,26 @@ fn build_admin_request_message(payload: &DispatchAdminMessage) -> (String, Inlin
     (message, keyboard)
 }
 
-async fn start_admin_redis_listener(
-    bot: Bot,
-    redis_url: String,
+pub async fn dispatch_admin_message(
+    config: Arc<Config>,
     api: Arc<BackendApi>,
+    payload: DispatchAdminMessage,
 ) -> AppResult<()> {
-    let channel = "bot-admin-notifications";
-    tracing::info!("Manager bot subscribing to Redis channel: {channel}");
+    let Some(manager_bot_token) = config.manager_bot_token.clone() else {
+        tracing::warn!("MANAGER_BOT_TOKEN is not set; admin notification skipped");
+        return Ok(());
+    };
 
-    let conn = redis::Client::open(redis_url)?;
-    let mut pubsub = conn.get_async_pubsub().await?;
-    pubsub.subscribe(channel).await?;
-    let mut msg_stream = pubsub.on_message();
+    let settings = api.get_settings().await?;
+    let Some(chat_id) = settings.manager_group_chat_id else {
+        tracing::warn!("manager_group_chat_id is not set; admin notification skipped");
+        return Ok(());
+    };
 
-    while let Some(msg) = msg_stream.next().await {
-        let payload_str = match msg.get_payload::<String>() {
-            Ok(payload) => payload,
-            Err(err) => {
-                tracing::warn!(error = %err, "Invalid admin notification payload");
-                continue;
-            }
-        };
-
-        let payload = match serde_json::from_str::<DispatchAdminMessage>(&payload_str) {
-            Ok(payload) => payload,
-            Err(err) => {
-                tracing::warn!(error = %err, "Failed to decode admin notification json");
-                continue;
-            }
-        };
-
-        let settings = match api.get_settings().await {
-            Ok(settings) => settings,
-            Err(err) => {
-                tracing::warn!(error = %err, "Failed to load settings for manager chat id");
-                continue;
-            }
-        };
-
-        let Some(chat_id) = settings.manager_group_chat_id else {
-            tracing::warn!("manager_group_chat_id is not set; admin notification skipped");
-            continue;
-        };
-
-        let (text, keyboard) = build_admin_request_message(&payload);
-        if let Err(err) = bot
-            .send_message(ChatId(chat_id), text)
-            .reply_markup(keyboard)
-            .await
-        {
-            tracing::warn!(error = %err, chat_id, "Failed to send manager notification");
-        }
-    }
-
+    let bot = Bot::new(manager_bot_token);
+    let (text, keyboard) = build_admin_request_message(&payload);
+    bot.send_message(ChatId(chat_id), text)
+        .reply_markup(keyboard)
+        .await?;
     Ok(())
 }

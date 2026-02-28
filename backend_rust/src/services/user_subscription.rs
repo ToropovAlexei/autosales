@@ -38,6 +38,7 @@ pub trait UserSubscriptionServiceTrait: Send + Sync {
         &self,
         within_hours: i64,
     ) -> ApiResult<Vec<UserSubscriptionExpiryNotificationRow>>;
+    async fn mark_expiry_notification_sent(&self, subscription_ids: &[i64]) -> ApiResult<u64>;
 }
 
 pub struct UserSubscriptionService<R> {
@@ -80,6 +81,13 @@ impl UserSubscriptionServiceTrait for UserSubscriptionService<UserSubscriptionRe
     ) -> ApiResult<Vec<UserSubscriptionExpiryNotificationRow>> {
         self.user_subscription_repo
             .get_expiring_for_notification(within_hours)
+            .await
+            .map_err(Into::into)
+    }
+
+    async fn mark_expiry_notification_sent(&self, subscription_ids: &[i64]) -> ApiResult<u64> {
+        self.user_subscription_repo
+            .mark_expiry_notification_sent(subscription_ids)
             .await
             .map_err(Into::into)
     }

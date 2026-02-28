@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use chrono::{Duration, Utc};
-use deadpool_redis::redis::AsyncCommands;
 use shared_dtos::notification::{DispatchMessage, DispatchMessagePayload};
 use tokio::time::{Duration as TokioDuration, interval};
 
@@ -20,7 +18,6 @@ pub async fn subscription_expiry_notifications_task(app_state: Arc<AppState>) {
             .config
             .subscription_expiry_notification_poll_interval_seconds,
     ));
-
     loop {
         interval.tick().await;
         tracing::info!("[Subscription expiry notifications task]: Running...");
@@ -59,50 +56,9 @@ pub async fn subscription_expiry_notifications_task(app_state: Arc<AppState>) {
         }
 
         let mut sent = 0usize;
+        let mut sent_ids = Vec::new();
 
         for sub in expiring {
-            let dedupe_key = format!(
-                "subscription-expiry-notified:{}:{}",
-                sub.id,
-                sub.expires_at.timestamp()
-            );
-
-            let should_notify = match app_state.redis_pool.get().await {
-                Ok(mut conn) => {
-                    let was_set: redis::RedisResult<bool> = conn.set_nx(&dedupe_key, "1").await;
-                    match was_set {
-                        Ok(true) => {
-                            let ttl_seconds = ((sub.expires_at - Utc::now()) + Duration::days(2))
-                                .num_seconds()
-                                .max(60);
-                            let _: redis::RedisResult<bool> =
-                                conn.expire(&dedupe_key, ttl_seconds).await;
-                            true
-                        }
-                        Ok(false) => false,
-                        Err(err) => {
-                            tracing::warn!(
-                                "[Subscription expiry notifications task]: Failed set_nx for subscription {}: {}",
-                                sub.id,
-                                err
-                            );
-                            false
-                        }
-                    }
-                }
-                Err(err) => {
-                    tracing::warn!(
-                        "[Subscription expiry notifications task]: Failed to acquire redis connection: {}",
-                        err
-                    );
-                    false
-                }
-            };
-
-            if !should_notify {
-                continue;
-            }
-
             let payload = DispatchMessagePayload {
                 message: DispatchMessage::SubscriptionExpiringNotification {
                     expires_at: sub.expires_at,
@@ -119,6 +75,7 @@ pub async fn subscription_expiry_notifications_task(app_state: Arc<AppState>) {
             {
                 Ok(_) => {
                     sent += 1;
+                    sent_ids.push(sub.id);
                 }
                 Err(err) => {
                     tracing::error!(
@@ -131,6 +88,16 @@ pub async fn subscription_expiry_notifications_task(app_state: Arc<AppState>) {
         }
 
         if sent > 0 {
+            if let Err(err) = app_state
+                .user_subscription_service
+                .mark_expiry_notification_sent(&sent_ids)
+                .await
+            {
+                tracing::error!(
+                    "[Subscription expiry notifications task]: Failed to mark notifications sent: {}",
+                    err
+                );
+            }
             tracing::info!(
                 "[Subscription expiry notifications task]: Sent {} notifications",
                 sent

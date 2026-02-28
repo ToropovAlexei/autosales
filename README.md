@@ -32,7 +32,7 @@ API docs are available at `http://localhost:8000/swagger-ui` once the backend is
 - Core server (`backend_rust` + `frontend` + infra):
 
 ```bash
-docker compose -f docker-compose.core.yml up -d db redis captcha_service mock_gateway backend frontend
+docker compose -f docker-compose.core.yml up -d db captcha_service mock_gateway backend frontend
 ```
 
 - Bot server (`tgbot_rust` only):
@@ -43,10 +43,15 @@ docker compose -f docker-compose.bot.yml up -d bot
 
 Bot server env must include:
 
-- `REDIS_HOST`, `REDIS_PORT` (shared Redis address reachable from bot VPS)
+- `REDIS_HOST`, `REDIS_PORT` (Redis for bot state storage)
 - `BACKEND_API_URL` (for example `https://api.example.com/api/`, must end with `/`)
 - `SERVICE_API_KEY` (same value as backend)
 - `TELEGRAM_API_ID`, `TELEGRAM_API_HASH`, `WEBHOOK_HOST`, `WEBHOOK_PORT`, `PAYMENT_INSTRUCTIONS_URL`
+
+Core server (`backend_rust`) env must include:
+
+- `BOT_DISPATCHER_WEBHOOK_URL` (for example `http://bot-vps:8080/webhook/dispatch-message`)
+- `BOT_ADMIN_DISPATCHER_WEBHOOK_URL` (for example `http://bot-vps:8080/webhook/dispatch-admin-message`)
 
 ## Local development (without Docker)
 

@@ -19,6 +19,7 @@ pub struct UserSubscriptionRow {
     pub price_at_subscription: Decimal,
     pub period_days: i16,
     pub details: Option<serde_json::Value>,
+    pub expiry_notification_sent_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -38,6 +39,7 @@ pub struct UserSubscriptionEnrichedRow {
     pub price_at_subscription: Decimal,
     pub period_days: i16,
     pub details: Option<serde_json::Value>,
+    pub expiry_notification_sent_at: Option<DateTime<Utc>>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

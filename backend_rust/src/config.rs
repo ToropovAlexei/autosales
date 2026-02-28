@@ -9,8 +9,6 @@ pub struct Config {
     pub database_user: String,
     pub database_password: String,
     pub database_name: String,
-    pub redis_host: String,
-    pub redis_port: u16,
     pub cors_origins: String,
     pub jwt_secret: String,
     pub totp_encode_secret: String,
@@ -19,6 +17,8 @@ pub struct Config {
     pub refresh_token_ttl_minutes: i64,
     pub image_upload_path: String,
     pub service_api_key: String,
+    pub bot_dispatcher_webhook_url: String,
+    pub bot_admin_dispatcher_webhook_url: String,
     pub captcha_api_url: String,
     #[cfg(feature = "contms-provider")]
     pub contms_api_url: String,
