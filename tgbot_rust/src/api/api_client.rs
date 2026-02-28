@@ -2,6 +2,7 @@ use axum::http::HeaderMap;
 use bytes::Bytes;
 use reqwest::{Client, Method, RequestBuilder, Response, Url, multipart};
 use serde::{Serialize, de::DeserializeOwned};
+use std::time::Instant;
 
 use super::api_errors::{ApiClientError, ApiClientResult};
 
@@ -9,6 +10,8 @@ pub struct ApiClient {
     base_url: Url,
     client: Client,
 }
+
+const SLOW_BACKEND_REQUEST_WARN_MS: u128 = 1500;
 
 impl ApiClient {
     pub fn new(base_url: &str, headers: HeaderMap) -> ApiClientResult<Self> {
@@ -26,7 +29,7 @@ impl ApiClient {
         T: DeserializeOwned + Send + 'static,
     {
         let url = self.base_url.join(endpoint)?;
-        let response = self.client.get(url).send().await?;
+        let response = Self::send_with_timing(self.client.get(url), "GET", endpoint).await?;
         Self::parse_response(response).await
     }
 
@@ -35,13 +38,14 @@ impl ApiClient {
         T: DeserializeOwned + Send + 'static,
     {
         let url = self.base_url.join(endpoint)?;
-        let response = self.client.get(url).query(&qs).send().await?;
+        let response =
+            Self::send_with_timing(self.client.get(url).query(&qs), "GET", endpoint).await?;
         Self::parse_response(response).await
     }
 
     pub async fn get_bytes(&self, endpoint: &str) -> ApiClientResult<Bytes> {
         let url = self.base_url.join(endpoint)?;
-        let response = self.client.get(url).send().await?;
+        let response = Self::send_with_timing(self.client.get(url), "GET", endpoint).await?;
         response.bytes().await.map_err(Into::into)
     }
 
@@ -54,7 +58,8 @@ impl ApiClient {
         T: DeserializeOwned + Send + 'static,
     {
         let url = self.base_url.join(endpoint)?;
-        let response = self.client.post(url).multipart(body).send().await?;
+        let response =
+            Self::send_with_timing(self.client.post(url).multipart(body), "POST", endpoint).await?;
         Self::parse_response(response).await
     }
 
@@ -64,7 +69,8 @@ impl ApiClient {
         B: Serialize + ?Sized,
     {
         let url = self.base_url.join(endpoint)?;
-        let response = self.client.post(url).json(body).send().await?;
+        let response =
+            Self::send_with_timing(self.client.post(url).json(body), "POST", endpoint).await?;
         Self::parse_response(response).await
     }
 
@@ -73,7 +79,7 @@ impl ApiClient {
         T: DeserializeOwned + Send + 'static,
     {
         let url = self.base_url.join(endpoint)?;
-        let response = self.client.post(url).send().await?;
+        let response = Self::send_with_timing(self.client.post(url), "POST", endpoint).await?;
         Self::parse_response(response).await
     }
 
@@ -83,7 +89,8 @@ impl ApiClient {
         B: Serialize + ?Sized,
     {
         let url = self.base_url.join(endpoint)?;
-        let response = self.client.put(url).json(body).send().await?;
+        let response =
+            Self::send_with_timing(self.client.put(url).json(body), "PUT", endpoint).await?;
         Self::parse_response(response).await
     }
 
@@ -93,7 +100,8 @@ impl ApiClient {
         B: Serialize + ?Sized,
     {
         let url = self.base_url.join(endpoint)?;
-        let response = self.client.patch(url).json(body).send().await?;
+        let response =
+            Self::send_with_timing(self.client.patch(url).json(body), "PATCH", endpoint).await?;
         Self::parse_response(response).await
     }
 
@@ -102,8 +110,33 @@ impl ApiClient {
         T: DeserializeOwned + Send + 'static,
     {
         let url = self.base_url.join(endpoint)?;
-        let response = self.client.delete(url).send().await?;
+        let response = Self::send_with_timing(self.client.delete(url), "DELETE", endpoint).await?;
         Self::parse_response(response).await
+    }
+
+    async fn send_with_timing(
+        request: RequestBuilder,
+        method: &'static str,
+        endpoint: &str,
+    ) -> ApiClientResult<Response> {
+        let started_at = Instant::now();
+        let response = request.send().await?;
+        let elapsed_ms = started_at.elapsed().as_millis();
+        let status = response.status().as_u16();
+
+        if elapsed_ms >= SLOW_BACKEND_REQUEST_WARN_MS {
+            tracing::warn!(
+                method,
+                endpoint,
+                status,
+                elapsed_ms,
+                "Slow backend API response"
+            );
+        } else {
+            tracing::info!(method, endpoint, status, elapsed_ms, "Backend API response");
+        }
+
+        Ok(response)
     }
 
     async fn parse_response<T>(response: Response) -> ApiClientResult<T>

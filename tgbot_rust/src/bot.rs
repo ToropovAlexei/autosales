@@ -1,4 +1,8 @@
-use std::{result::Result::Ok, sync::Arc, time::Duration};
+use std::{
+    result::Result::Ok,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 use base64::{Engine as _, engine::general_purpose::STANDARD};
 use bytes::Bytes;
@@ -259,6 +263,51 @@ pub enum Command {
 }
 
 type MyDialogue = Dialogue<BotState, RedisStorage<Json>>;
+const SLOW_CALLBACK_WARN_MS: u128 = 1500;
+const SLOW_DISPATCH_WARN_MS: u128 = 1500;
+const SLOW_REDIS_QUEUE_WARN_MS: u128 = 500;
+
+fn callback_kind(data: &CallbackData) -> &'static str {
+    match data {
+        CallbackData::AnswerCaptcha { .. } => "answer_captcha",
+        CallbackData::SelectGateway { .. } => "select_gateway",
+        CallbackData::SelectAmount { .. } => "select_amount",
+        CallbackData::SelectGatewayAndAmount { .. } => "select_gateway_and_amount",
+        CallbackData::ToCategory { .. } => "to_category",
+        CallbackData::ToMainMenu => "to_main_menu",
+        CallbackData::ToDepositSelectGateway => "to_deposit_select_gateway",
+        CallbackData::ToBalance => "to_balance",
+        CallbackData::ToMyOrders => "to_my_orders",
+        CallbackData::ToMySubscriptions => "to_my_subscriptions",
+        CallbackData::ToMyPayments => "to_my_payments",
+        CallbackData::ToReferralProgram => "to_referral_program",
+        CallbackData::ToSupport => "to_support",
+        CallbackData::ToProduct { .. } => "to_product",
+        CallbackData::ToDepositConfirm { .. } => "to_deposit_confirm",
+        CallbackData::ToOrderDetails { .. } => "to_order_details",
+        CallbackData::Buy { .. } => "buy",
+        CallbackData::ConfirmPayment { .. } => "confirm_payment",
+        CallbackData::CancelPayment { .. } => "cancel_payment",
+        CallbackData::AddBot => "add_bot",
+        CallbackData::ShowBotInfo { .. } => "show_bot_info",
+        CallbackData::BotStats => "bot_stats",
+        CallbackData::SetBotPrimary { .. } => "set_bot_primary",
+        CallbackData::DeleteBot { .. } => "delete_bot",
+        CallbackData::IncreaseAmountBy10 => "increase_amount_by_10",
+    }
+}
+
+fn dispatch_message_kind(message: &DispatchMessage) -> &'static str {
+    match message {
+        DispatchMessage::GenericMessage { .. } => "generic_message",
+        DispatchMessage::DisputeFailedNotification => "dispute_failed_notification",
+        DispatchMessage::SubscriptionExpiringNotification { .. } => {
+            "subscription_expiring_notification"
+        }
+        DispatchMessage::InvoiceTroublesNotification { .. } => "invoice_troubles_notification",
+        DispatchMessage::RequestReceiptNotification { .. } => "request_receipt_notification",
+    }
+}
 
 pub async fn run_bot(
     bot_token: String,
@@ -334,17 +383,33 @@ pub async fn run_bot(
                     fallback_bot_username: Option<BotUsername>,
                     app_state: AppState|
                     -> AppResult<()> {
+            let started_at = Instant::now();
             let data = match CallbackData::from_query(&q) {
                 Some(data) => data,
                 None => return Ok(()),
             };
+            let callback_type = callback_kind(&data);
 
             let telegram_id = q.from.id;
+            let last_seen_started = Instant::now();
             api_client
                 .update_customer_last_seen(telegram_id.0 as i64)
                 .await?;
+            tracing::debug!(
+                callback_type,
+                telegram_id = telegram_id.0,
+                elapsed_ms = last_seen_started.elapsed().as_millis(),
+                "callback stage completed: update_customer_last_seen"
+            );
 
+            let ensure_user_started = Instant::now();
             let user = api_client.ensure_user(telegram_id.0 as i64).await?;
+            tracing::debug!(
+                callback_type,
+                telegram_id = telegram_id.0,
+                elapsed_ms = ensure_user_started.elapsed().as_millis(),
+                "callback stage completed: ensure_user"
+            );
 
             if user.is_blocked {
                 edit_msg(
@@ -389,6 +454,7 @@ pub async fn run_bot(
                 fallback_bot_msg(bot.clone(), chat_id, fallback_bot_username).await?;
             }
 
+            let handler_started = Instant::now();
             match data {
                 CallbackData::AnswerCaptcha { .. } => {
                     captcha_answer_handler(bot, dialogue, q, api_client).await?;
@@ -655,6 +721,26 @@ pub async fn run_bot(
                 }
             }
 
+            let handler_elapsed_ms = handler_started.elapsed().as_millis();
+            let total_elapsed_ms = started_at.elapsed().as_millis();
+            if total_elapsed_ms >= SLOW_CALLBACK_WARN_MS {
+                tracing::warn!(
+                    callback_type,
+                    telegram_id = telegram_id.0,
+                    handler_elapsed_ms,
+                    total_elapsed_ms,
+                    "Slow callback handling"
+                );
+            } else {
+                tracing::info!(
+                    callback_type,
+                    telegram_id = telegram_id.0,
+                    handler_elapsed_ms,
+                    total_elapsed_ms,
+                    "Callback handled"
+                );
+            }
+
             Ok(())
         },
     );
@@ -795,6 +881,11 @@ async fn start_redis_listener(
     api_client: Arc<BackendApi>,
     storage: Arc<RedisStorage<Json>>,
 ) -> AppResult<()> {
+    struct QueuedDispatchMessage {
+        payload: DispatchMessagePayload,
+        enqueued_at: Instant,
+    }
+
     let channel = format!("bot-notifications:{bot_id}");
     tracing::info!("Subscribing to Redis channel: {channel}");
 
@@ -803,13 +894,45 @@ async fn start_redis_listener(
     let mut pubsub = conn.get_async_pubsub().await?;
     pubsub.subscribe(&channel).await?;
     let mut msg_stream = pubsub.on_message();
-    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<DispatchMessagePayload>();
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<QueuedDispatchMessage>();
 
     tokio::spawn(async move {
-        while let Some(payload) = rx.recv().await {
-            let res = handle_msg(bot.clone(), payload, api_client.clone(), storage.clone()).await;
+        while let Some(queued) = rx.recv().await {
+            let queue_wait_ms = queued.enqueued_at.elapsed().as_millis();
+            let msg_type = dispatch_message_kind(&queued.payload.message);
+            let started_at = Instant::now();
+            let res = handle_msg(
+                bot.clone(),
+                queued.payload,
+                api_client.clone(),
+                storage.clone(),
+            )
+            .await;
+            let handle_elapsed_ms = started_at.elapsed().as_millis();
+
             if let Err(e) = res {
-                tracing::error!("Error handling message: {e}");
+                tracing::error!(
+                    msg_type,
+                    queue_wait_ms,
+                    handle_elapsed_ms,
+                    "Error handling dispatched message: {e}"
+                );
+            } else if queue_wait_ms >= SLOW_REDIS_QUEUE_WARN_MS
+                || handle_elapsed_ms >= SLOW_DISPATCH_WARN_MS
+            {
+                tracing::warn!(
+                    msg_type,
+                    queue_wait_ms,
+                    handle_elapsed_ms,
+                    "Slow dispatched message processing"
+                );
+            } else {
+                tracing::info!(
+                    msg_type,
+                    queue_wait_ms,
+                    handle_elapsed_ms,
+                    "Dispatched message processed"
+                );
             }
             // Because of the telegram rate limit https://core.telegram.org/bots/faq#my-bot-is-hitting-limits-how-do-i-avoid-this
             tokio::time::sleep(Duration::from_millis(100)).await;
@@ -819,7 +942,10 @@ async fn start_redis_listener(
     while let Some(msg) = msg_stream.next().await {
         if let Ok(payload_str) = msg.get_payload::<String>()
             && let Ok(parsed) = serde_json::from_str::<DispatchMessagePayload>(&payload_str)
-            && let Err(e) = tx.send(parsed)
+            && let Err(e) = tx.send(QueuedDispatchMessage {
+                payload: parsed,
+                enqueued_at: Instant::now(),
+            })
         {
             tracing::error!("Error sending message: {e}");
         }
@@ -834,13 +960,17 @@ async fn handle_msg(
     api_client: Arc<BackendApi>,
     storage: Arc<RedisStorage<Json>>,
 ) -> AppResult<()> {
+    let started_at = Instant::now();
+    let msg_type = dispatch_message_kind(&payload.message);
     let chat_id = ChatId(payload.telegram_id);
     let dialogue = MyDialogue::new(storage, chat_id);
     let state = dialogue.get_or_default().await.unwrap_or_default();
+    let settings_started = Instant::now();
     let support_operators = api_client
         .get_settings()
         .await?
         .bot_payment_system_support_operators;
+    let settings_elapsed_ms = settings_started.elapsed().as_millis();
 
     if let Some(msg_id) = state.last_bot_msg_id {
         // Ignore error is ok
@@ -979,6 +1109,25 @@ async fn handle_msg(
             }
         }
     };
+
+    let total_elapsed_ms = started_at.elapsed().as_millis();
+    if total_elapsed_ms >= SLOW_DISPATCH_WARN_MS {
+        tracing::warn!(
+            msg_type,
+            telegram_id = payload.telegram_id,
+            settings_elapsed_ms,
+            total_elapsed_ms,
+            "Slow handle_msg execution"
+        );
+    } else {
+        tracing::info!(
+            msg_type,
+            telegram_id = payload.telegram_id,
+            settings_elapsed_ms,
+            total_elapsed_ms,
+            "handle_msg completed"
+        );
+    }
 
     Ok(())
 }

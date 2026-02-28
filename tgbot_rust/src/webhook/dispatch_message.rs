@@ -1,6 +1,7 @@
 use axum::{Json, extract::State, http::HeaderMap, response::IntoResponse};
 use deadpool_redis::redis::AsyncCommands;
 use shared_dtos::notification::DispatchMessagePayload;
+use std::time::Instant;
 
 use crate::{
     AppState,
@@ -12,6 +13,7 @@ pub async fn dispatch_message(
     headers: HeaderMap,
     payload: Json<DispatchMessagePayload>,
 ) -> AppResult<impl IntoResponse> {
+    let started_at = Instant::now();
     let service_key = headers
         .get("X-API-KEY")
         .ok_or_else(|| AppError::AuthenticationError("Missing X-API-KEY".to_string()))?
@@ -29,9 +31,30 @@ pub async fn dispatch_message(
 
     let mut conn = state.redis_pool.get().await?;
 
+    let publish_started = Instant::now();
     conn.publish::<String, String, ()>(channel.clone(), message_json)
         .await
         .map_err(|err| AppError::InternalServerError(format!("Redis publish error: {err}")))?;
+    let publish_elapsed_ms = publish_started.elapsed().as_millis();
+    let total_elapsed_ms = started_at.elapsed().as_millis();
+
+    if total_elapsed_ms >= 500 {
+        tracing::warn!(
+            bot_id = payload.bot_id,
+            telegram_id = payload.telegram_id,
+            publish_elapsed_ms,
+            total_elapsed_ms,
+            "Slow dispatch-message webhook request"
+        );
+    } else {
+        tracing::info!(
+            bot_id = payload.bot_id,
+            telegram_id = payload.telegram_id,
+            publish_elapsed_ms,
+            total_elapsed_ms,
+            "dispatch-message webhook request handled"
+        );
+    }
 
     Ok(())
 }
