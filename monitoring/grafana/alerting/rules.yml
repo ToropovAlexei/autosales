@@ -1,0 +1,379 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: frbktg-loki-alerts
+    folder: FRBKTG Alerts
+    interval: 1m
+    rules:
+      - uid: bot-slow-callbacks-spike
+        title: Bot slow callbacks spike
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: loki
+            queryType: instant
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              editorMode: code
+              expr: sum(count_over_time({app="tgbot_rust"} |= "Slow callback handling"[5m]))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 20
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 2m
+        labels:
+          severity: warning
+          service: tgbot_rust
+        annotations:
+          summary: Slow callback handling spikes in bot
+
+      - uid: backend-http-p95-high
+        title: Backend HTTP p95 high
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: loki
+            queryType: instant
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              editorMode: code
+              expr: quantile_over_time(0.95, {app="backend_rust"} |= "request completed" | json | unwrap latency_ms [5m])
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 1000
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 5m
+        labels:
+          severity: critical
+          service: backend_rust
+        annotations:
+          summary: Backend HTTP latency p95 is above 1s
+
+      - uid: bot-dispatch-queue-wait-high
+        title: Bot dispatch queue wait high
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: loki
+            queryType: instant
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              editorMode: code
+              expr: quantile_over_time(0.95, {app="tgbot_rust"} |= "Dispatched message processed" | json | unwrap queue_wait_ms [5m])
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 500
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 3m
+        labels:
+          severity: warning
+          service: tgbot_rust
+        annotations:
+          summary: Bot dispatch queue wait p95 is above 500ms
+
+      - uid: backend-5xx-spike
+        title: Backend 5xx spike
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: loki
+            queryType: instant
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              editorMode: code
+              expr: sum(count_over_time({app="backend_rust"} |= "request failed"[5m]))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 15
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 2m
+        labels:
+          severity: critical
+          service: backend_rust
+        annotations:
+          summary: Backend returns many 5xx responses in last 5 minutes
+
+      - uid: bot-dispatch-errors-spike
+        title: Bot dispatch errors spike
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: loki
+            queryType: instant
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              editorMode: code
+              expr: sum(count_over_time({app="tgbot_rust"} |~ "dispatcher error|Error handling dispatched message"[5m]))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 8
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 2m
+        labels:
+          severity: warning
+          service: tgbot_rust
+        annotations:
+          summary: Bot dispatch/handler errors increased in the last 5 minutes
+
+      - uid: panic-detected
+        title: Panic detected in application logs
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: loki
+            queryType: instant
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              editorMode: code
+              expr: sum(count_over_time({app=~"backend_rust|tgbot_rust"} |~ "panicked at|thread 'main' panicked"[5m]))
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              expression: A
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            queryType: ""
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 0
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              expression: B
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        labels:
+          severity: critical
+          service: platform
+        annotations:
+          summary: Application panic detected in backend or bot logs

@@ -21,6 +21,18 @@ Notes:
 - `frontend` is built with `NEXT_PUBLIC_API_URL` and `NEXT_PUBLIC_IMAGES_URL` build args.
 - `bot` expects a public `WEBHOOK_HOST`/`WEBHOOK_PORT` and a `BACKEND_API_URL` that ends with `/`.
 
+### Optional: monitoring stack (Loki + Promtail + Grafana)
+
+```bash
+docker compose \
+  -f docker-compose.yml \
+  -f docker-compose.monitoring.yml \
+  up -d loki promtail grafana
+```
+
+Grafana runs on `http://localhost:${GRAFANA_PORT:-3001}`.
+See `docs/monitoring.md` for queries and split-deployment examples.
+
 ## Local (without Docker)
 
 ### Backend

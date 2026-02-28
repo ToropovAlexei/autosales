@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: FRBKTG
+    orgId: 1
+    folder: FRBKTG
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/json

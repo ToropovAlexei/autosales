@@ -1,0 +1,28 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/promtail/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: backend_rust_file_logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          app: backend_rust
+          service: backend_rust
+          __path__: /var/log/backend/*.log*
+
+  - job_name: tgbot_rust_file_logs
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          app: tgbot_rust
+          service: tgbot_rust
+          __path__: /var/log/bot/*.log*

@@ -1,4 +1,12 @@
 services:
+  bot_logs_init:
+    image: busybox:1.36
+    container_name: autosales_bot_logs_init
+    command: sh -c "chown -R 65534:65534 /logs && chmod -R 775 /logs"
+    volumes:
+      - bot-logs:/logs
+    restart: "no"
+
   redis:
     image: redis:8-alpine
     container_name: autosales_bot_redis
@@ -25,5 +33,13 @@ services:
     ports:
       - "${WEBHOOK_PORT}:${WEBHOOK_PORT}"
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      bot_logs_init:
+        condition: service_completed_successfully
     restart: unless-stopped
+    volumes:
+      - bot-logs:/app/logs
+
+volumes:
+  bot-logs:

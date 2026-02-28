@@ -1,4 +1,24 @@
 services:
+  backend_logs_init:
+    image: busybox:1.36
+    container_name: autosales_backend_logs_init
+    command: sh -c "chown -R 65534:65534 /logs && chmod -R 775 /logs"
+    volumes:
+      - backend-logs:/logs
+    restart: "no"
+    networks:
+      - default_network
+
+  bot_logs_init:
+    image: busybox:1.36
+    container_name: autosales_bot_logs_init
+    command: sh -c "chown -R 65534:65534 /logs && chmod -R 775 /logs"
+    volumes:
+      - bot-logs:/logs
+    restart: "no"
+    networks:
+      - default_network
+
   db:
     image: postgres:18-alpine
     container_name: autosales_db
@@ -36,6 +56,8 @@ services:
 
     environment:
       BACKEND_PORT: ${BACKEND_PORT}
+      REDIS_HOST: ${REDIS_HOST}
+      REDIS_PORT: ${REDIS_PORT}
       DATABASE_HOST: db
       DATABASE_PORT: 5432
       DATABASE_USER: ${POSTGRES_USER}
@@ -57,6 +79,8 @@ services:
       MAIN_BOT_TOKEN: ${MAIN_BOT_TOKEN}
       FALLBACK_BOT_TOKEN: ${FALLBACK_BOT_TOKEN}
       PAYMENT_NOTIFICATION_MINUTES: ${PAYMENT_NOTIFICATION_MINUTES}
+      SUBSCRIPTION_EXPIRY_NOTIFICATION_WINDOW_HOURS: ${SUBSCRIPTION_EXPIRY_NOTIFICATION_WINDOW_HOURS}
+      SUBSCRIPTION_EXPIRY_NOTIFICATION_POLL_INTERVAL_SECONDS: ${SUBSCRIPTION_EXPIRY_NOTIFICATION_POLL_INTERVAL_SECONDS}
       PLATFORM_PAYMENT_SYSTEM_BASE_URL: ${PLATFORM_PAYMENT_SYSTEM_BASE_URL}
       PLATFORM_PAYMENT_SYSTEM_LOGIN: ${PLATFORM_PAYMENT_SYSTEM_LOGIN}
       PLATFORM_PAYMENT_SYSTEM_PASSWORD: ${PLATFORM_PAYMENT_SYSTEM_PASSWORD}
@@ -69,10 +93,13 @@ services:
       - "${BACKEND_PORT}:${BACKEND_PORT}"
     volumes:
       - backend-uploads:/app/uploads
+      - backend-logs:/app/logs
 
     depends_on:
       db:
         condition: service_healthy
+      backend_logs_init:
+        condition: service_completed_successfully
 
     networks:
       - default_network
@@ -119,11 +146,17 @@ services:
       PAYMENT_INSTRUCTIONS_URL: ${PAYMENT_INSTRUCTIONS_URL}
 
     depends_on:
-      - backend
-      - redis
+      backend:
+        condition: service_started
+      redis:
+        condition: service_started
+      bot_logs_init:
+        condition: service_completed_successfully
 
     networks:
       - default_network
+    volumes:
+      - bot-logs:/app/logs
 
   mock_gateway:
     build:
@@ -151,6 +184,8 @@ services:
 volumes:
   db-data:
   backend-uploads:
+  backend-logs:
+  bot-logs:
 
 networks:
   default_network:

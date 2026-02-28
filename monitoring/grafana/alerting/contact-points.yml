@@ -1,0 +1,10 @@
+apiVersion: 1
+
+contactPoints:
+  - orgId: 1
+    name: frbktg-default-contact
+    receivers:
+      - uid: frbktg-default-receiver
+        type: email
+        settings:
+          addresses: ops@example.com
