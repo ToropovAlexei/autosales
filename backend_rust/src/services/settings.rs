@@ -3,20 +3,18 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use rust_decimal::Decimal;
 use shared_dtos::audit_log::{AuditAction, AuditStatus};
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::{
     errors::api::{ApiError, ApiResult},
-    infrastructure::repositories::{
-        audit_log::AuditLogRepository,
-        settings::{SettingsRepository, SettingsRepositoryTrait},
-    },
+    infrastructure::repositories::settings::SettingsRepositoryTrait,
     middlewares::context::RequestContext,
     models::{
         audit_log::NewAuditLog,
         settings::{Settings, UpdateSettings},
     },
-    services::audit_log::{AuditLogService, AuditLogServiceTrait},
+    services::audit_log::AuditLogServiceTrait,
 };
 
 #[derive(Debug, Default, Clone)]
@@ -88,6 +86,7 @@ pub trait SettingsServiceTrait: Send + Sync {
 pub struct SettingsService<R, A> {
     repo: Arc<R>,
     audit_log_service: Arc<A>,
+    cache: RwLock<Option<Settings>>,
 }
 
 impl<R, A> SettingsService<R, A>
@@ -99,22 +98,32 @@ where
         Self {
             repo,
             audit_log_service,
+            cache: RwLock::new(None),
         }
     }
 }
 
 #[async_trait]
-impl SettingsServiceTrait
-    for SettingsService<SettingsRepository, AuditLogService<AuditLogRepository>>
+impl<R, A> SettingsServiceTrait for SettingsService<R, A>
+where
+    R: SettingsRepositoryTrait + Send + Sync,
+    A: AuditLogServiceTrait + Send + Sync,
 {
     async fn load_settings(&self) -> ApiResult<Settings> {
-        self.repo.load_settings().await.map_err(ApiError::from)
+        if let Some(cached) = self.cache.read().await.clone() {
+            return Ok(cached);
+        }
+
+        let loaded = self.repo.load_settings().await.map_err(ApiError::from)?;
+        *self.cache.write().await = Some(loaded.clone());
+        Ok(loaded)
     }
 
     async fn update(&self, cmd: UpdateSettingsCommand) -> ApiResult<Settings> {
         let updated_by = cmd.updated_by;
-        let prev = self.repo.load_settings().await?;
+        let prev = self.load_settings().await?;
         let updated = self.repo.update(UpdateSettings::from(cmd.clone())).await?;
+        *self.cache.write().await = Some(updated.clone());
 
         self.audit_log_service
             .create(NewAuditLog {
@@ -143,13 +152,21 @@ mod tests {
     use crate::infrastructure::repositories::{
         audit_log::AuditLogRepository, settings::SettingsRepository,
     };
+    use crate::models::{
+        audit_log::{AuditLogListQuery, AuditLogRow, NewAuditLog},
+        common::PaginatedResult,
+    };
     use crate::services::audit_log::AuditLogService;
+    use async_trait::async_trait;
     use rust_decimal::Decimal;
     use rust_decimal_macros::dec;
     use sqlx::PgPool;
     use std::net::IpAddr;
     use std::str::FromStr;
-    use std::sync::Arc;
+    use std::sync::{
+        Arc,
+        atomic::{AtomicUsize, Ordering},
+    };
     use uuid::Uuid;
 
     fn build_service(
@@ -202,5 +219,65 @@ mod tests {
         let service = build_service(&pool);
         let settings = service.load_settings().await.unwrap();
         assert_eq!(settings.pricing_global_markup, dec!(0));
+    }
+
+    struct MockSettingsRepo {
+        load_calls: AtomicUsize,
+        value: Settings,
+    }
+
+    #[async_trait]
+    impl SettingsRepositoryTrait for MockSettingsRepo {
+        async fn load_settings(&self) -> crate::errors::repository::RepositoryResult<Settings> {
+            self.load_calls.fetch_add(1, Ordering::SeqCst);
+            Ok(self.value.clone())
+        }
+
+        async fn update(
+            &self,
+            _update: UpdateSettings,
+        ) -> crate::errors::repository::RepositoryResult<Settings> {
+            Ok(self.value.clone())
+        }
+    }
+
+    struct NoopAuditLogService;
+
+    #[async_trait]
+    impl AuditLogServiceTrait for NoopAuditLogService {
+        async fn get_list(
+            &self,
+            _query: AuditLogListQuery,
+        ) -> ApiResult<PaginatedResult<AuditLogRow>> {
+            Ok(PaginatedResult {
+                items: vec![],
+                total: 0,
+            })
+        }
+
+        async fn create(&self, _audit_log: NewAuditLog) -> ApiResult<AuditLogRow> {
+            Err(ApiError::InternalServerError(
+                "not used in this test".to_string(),
+            ))
+        }
+    }
+
+    #[tokio::test]
+    async fn test_load_settings_uses_cache() {
+        let repo = Arc::new(MockSettingsRepo {
+            load_calls: AtomicUsize::new(0),
+            value: Settings {
+                pricing_global_markup: dec!(3.5),
+                ..Default::default()
+            },
+        });
+        let service = SettingsService::new(repo.clone(), Arc::new(NoopAuditLogService));
+
+        let first = service.load_settings().await.unwrap();
+        let second = service.load_settings().await.unwrap();
+
+        assert_eq!(first.pricing_global_markup, dec!(3.5));
+        assert_eq!(second.pricing_global_markup, dec!(3.5));
+        assert_eq!(repo.load_calls.load(Ordering::SeqCst), 1);
     }
 }
