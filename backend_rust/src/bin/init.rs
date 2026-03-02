@@ -73,7 +73,9 @@ async fn main() -> anyhow::Result<()> {
     println!("Assigned permissions: {}", assigned_permissions);
     assign_role_to_admin_user(admin_id, admin_role_id, &user_role_repo).await;
     println!("Admin user role assigned");
-    if let Ok(main_bot_token) = std::env::var("MAIN_BOT_TOKEN") {
+    if let Ok(main_bot_token) = std::env::var("MAIN_BOT_TOKEN")
+        && !main_bot_token.is_empty()
+    {
         let main_bot = InitBot {
             token: main_bot_token,
             is_active: true,
@@ -83,7 +85,9 @@ async fn main() -> anyhow::Result<()> {
         let id = create_bot_if_not_exists(main_bot, &bot_repo, &client).await;
         println!("Main bot Id: {}", id);
     }
-    if let Ok(fallback_bot_token) = std::env::var("FALLBACK_BOT_TOKEN") {
+    if let Ok(fallback_bot_token) = std::env::var("FALLBACK_BOT_TOKEN")
+        && !fallback_bot_token.is_empty()
+    {
         let main_bot = InitBot {
             token: fallback_bot_token,
             is_active: true,
