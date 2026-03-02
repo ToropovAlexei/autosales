@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n        SELECT\n            id, owner_id, token, username, type as \"type: _\", is_active,\n            is_primary, referral_percentage,\n            created_at, updated_at, created_by\n        FROM bots WHERE is_primary = true",
+  "query": "\n        SELECT\n            id, owner_id, token, username, type as \"type: _\", is_active,\n            is_primary, referral_percentage,\n            created_at, updated_at, created_by\n        FROM bots WHERE token = $1 AND deleted_at IS NULL",
   "describe": {
     "columns": [
       {
@@ -60,7 +60,9 @@
       }
     ],
     "parameters": {
-      "Left": []
+      "Left": [
+        "Text"
+      ]
     },
     "nullable": [
       false,
@@ -76,5 +78,5 @@
       true
     ]
   },
-  "hash": "e1996697c3f93f0f3daf733bb1d36ec793d36c0ba8add907a43504cb520c55f1"
+  "hash": "697cf7108c743101a4a88ef123b661ae5915620e53d94692a93568aaab2b9f76"
 }

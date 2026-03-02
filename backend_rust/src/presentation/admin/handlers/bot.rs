@@ -3,6 +3,7 @@ use std::sync::Arc;
 use axum::{
     Json, Router,
     extract::{Path, State},
+    http::StatusCode,
     routing::{patch, post},
 };
 use rust_decimal::{Decimal, prelude::FromPrimitive};
@@ -16,13 +17,13 @@ use crate::{
     errors::api::{ApiError, ApiResult},
     middlewares::{
         context::RequestContext,
-        require_permission::{BotsCreate, BotsRead, BotsUpdate, RequirePermission},
+        require_permission::{BotsCreate, BotsDelete, BotsRead, BotsUpdate, RequirePermission},
         validator::ValidatedJson,
     },
     models::bot::BotListQuery,
     services::{
         auth::AuthUser,
-        bot::{BotServiceTrait, CreateBotCommand, UpdateBotCommand},
+        bot::{BotServiceTrait, CreateBotCommand, DeleteBotCommand, UpdateBotCommand},
     },
     state::AppState,
 };
@@ -30,7 +31,7 @@ use crate::{
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/", post(create_bot).get(list_bots))
-        .route("/{id}", patch(update_bot))
+        .route("/{id}", patch(update_bot).delete(delete_bot))
 }
 
 #[utoipa::path(
@@ -136,4 +137,35 @@ async fn update_bot(
         .await?;
 
     Ok(Json(bot.into()))
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/admin/bots/{id}",
+    tag = "Bots",
+    responses(
+        (status = 204, description = "Bot deleted"),
+        (status = 400, description = "Bad request", body = ApiErrorResponse),
+        (status = 401, description = "Unauthorized", body = ApiErrorResponse),
+        (status = 403, description = "Forbidden", body = ApiErrorResponse),
+        (status = 500, description = "Internal server error", body = ApiErrorResponse),
+    )
+)]
+async fn delete_bot(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<i64>,
+    user: AuthUser,
+    _perm: RequirePermission<BotsDelete>,
+    ctx: RequestContext,
+) -> ApiResult<StatusCode> {
+    state
+        .bot_service
+        .delete(DeleteBotCommand {
+            id,
+            deleted_by: Some(user.id),
+            ctx: Some(ctx),
+        })
+        .await?;
+
+    Ok(StatusCode::NO_CONTENT)
 }

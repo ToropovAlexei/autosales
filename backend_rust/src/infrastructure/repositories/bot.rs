@@ -43,13 +43,22 @@ impl BotRepository {
 #[async_trait]
 impl BotRepositoryTrait for BotRepository {
     async fn get_list(&self, query: BotListQuery) -> RepositoryResult<PaginatedResult<BotRow>> {
-        let mut count_qb: QueryBuilder<Postgres> = QueryBuilder::new("SELECT COUNT(*) FROM bots");
+        let mut count_qb: QueryBuilder<Postgres> = QueryBuilder::new(
+            "SELECT COUNT(*) FROM (SELECT * FROM bots WHERE deleted_at IS NULL) bots",
+        );
         apply_filters(&mut count_qb, &query);
 
         let count_query = count_qb.build_query_scalar();
         let total: i64 = count_query.fetch_one(&*self.pool).await?;
 
-        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new("SELECT * FROM bots");
+        let mut query_builder: QueryBuilder<Postgres> = QueryBuilder::new(
+            r#"
+            SELECT
+                id, owner_id, token, username, type, is_active, is_primary,
+                referral_percentage, created_at, updated_at, created_by
+            FROM (SELECT * FROM bots WHERE deleted_at IS NULL) bots
+            "#,
+        );
         apply_list_query(&mut query_builder, &query);
         let query = query_builder.build_query_as::<BotRow>();
         let items = query.fetch_all(&*self.pool).await?;
@@ -129,7 +138,7 @@ impl BotRepositoryTrait for BotRepository {
             id, owner_id, token, username, type as "type: _", is_active,
             is_primary, referral_percentage,
             created_at, updated_at, created_by
-        FROM bots WHERE id = $1"#,
+        FROM bots WHERE id = $1 AND deleted_at IS NULL"#,
             id
         )
         .fetch_one(&*self.pool)
@@ -162,7 +171,7 @@ impl BotRepositoryTrait for BotRepository {
 
         query_builder.push(" WHERE id = ");
         query_builder.push_bind(id);
-        query_builder.push(" RETURNING *");
+        query_builder.push(" AND deleted_at IS NULL RETURNING *");
 
         let query = query_builder.build_query_as::<BotRow>();
 
@@ -180,7 +189,7 @@ impl BotRepositoryTrait for BotRepository {
             id, owner_id, token, username, type as "type: _", is_active,
             is_primary, referral_percentage,
             created_at, updated_at, created_by
-        FROM bots WHERE token = $1"#,
+        FROM bots WHERE token = $1 AND deleted_at IS NULL"#,
             token
         )
         .fetch_one(&*self.pool)
@@ -196,14 +205,17 @@ impl BotRepositoryTrait for BotRepository {
     ) -> RepositoryResult<()> {
         let mut tx = self.pool.begin().await?;
         sqlx::query!(
-            "UPDATE bots SET is_primary = false WHERE owner_id IS NOT DISTINCT FROM $1",
+            "UPDATE bots SET is_primary = false WHERE owner_id IS NOT DISTINCT FROM $1 AND deleted_at IS NULL",
             owner_id
         )
         .execute(tx.as_mut())
         .await?;
-        sqlx::query!("UPDATE bots SET is_primary = true WHERE id = $1", id)
-            .execute(tx.as_mut())
-            .await?;
+        sqlx::query!(
+            "UPDATE bots SET is_primary = true WHERE id = $1 AND deleted_at IS NULL",
+            id
+        )
+        .execute(tx.as_mut())
+        .await?;
         tx.commit().await?;
         Ok(())
     }
@@ -216,7 +228,7 @@ impl BotRepositoryTrait for BotRepository {
             id, owner_id, token, username, type as "type: _", is_active,
             is_primary, referral_percentage,
             created_at, updated_at, created_by
-        FROM bots WHERE is_primary = true"#,
+        FROM bots WHERE is_primary = true AND deleted_at IS NULL"#,
         )
         .fetch_all(&*self.pool)
         .await?;
@@ -435,5 +447,30 @@ mod tests {
             .await
             .unwrap();
         assert!(deleted_at.is_none());
+    }
+
+    #[sqlx::test]
+    async fn test_deleted_bot_is_not_returned_by_reads(pool: PgPool) {
+        let repo = BotRepository::new(Arc::new(pool.clone()));
+        let owner_id = create_test_customer(&pool, 1007).await;
+        let bot = create_test_bot(
+            &pool,
+            Some(owner_id),
+            "deleted_read_token",
+            "deleted_read_bot",
+        )
+        .await;
+
+        repo.delete(bot.id).await.unwrap();
+
+        assert!(repo.get_by_id(bot.id).await.is_err());
+        assert!(
+            repo.get_by_token("deleted_read_token".to_string())
+                .await
+                .is_err()
+        );
+
+        let list = repo.get_list(BotListQuery::default()).await.unwrap();
+        assert!(list.items.into_iter().all(|item| item.id != bot.id));
     }
 }

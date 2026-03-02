@@ -16,7 +16,7 @@ use crate::{
     middlewares::{bot_auth::AuthBot, validator::ValidatedJson, verified_service::VerifiedService},
     models::bot::BotListQuery,
     services::{
-        bot::{BotServiceTrait, CreateBotCommand, UpdateBotCommand},
+        bot::{BotServiceTrait, CreateBotCommand, DeleteBotCommand, UpdateBotCommand},
         customer::CustomerServiceTrait,
     },
     state::AppState,
@@ -183,6 +183,13 @@ async fn delete_bot(
     Path(id): Path<i64>,
     _bot: AuthBot,
 ) -> ApiResult<()> {
-    state.bot_service.delete(id).await?;
+    state
+        .bot_service
+        .delete(DeleteBotCommand {
+            id,
+            deleted_by: None,
+            ctx: None,
+        })
+        .await?;
     Ok(())
 }

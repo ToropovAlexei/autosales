@@ -60,6 +60,13 @@ pub struct UpdateBotCommand {
     pub ctx: Option<RequestContext>,
 }
 
+#[derive(Debug)]
+pub struct DeleteBotCommand {
+    pub id: i64,
+    pub deleted_by: Option<i64>,
+    pub ctx: Option<RequestContext>,
+}
+
 #[async_trait]
 pub trait BotServiceTrait: Send + Sync {
     async fn get_list(&self, query: BotListQuery) -> ApiResult<PaginatedResult<BotRow>>;
@@ -68,7 +75,7 @@ pub trait BotServiceTrait: Send + Sync {
     async fn update(&self, command: UpdateBotCommand) -> ApiResult<BotRow>;
     async fn can_operate(&self) -> ApiResult<bool>;
     async fn get_primary_bots(&self) -> ApiResult<Vec<BotRow>>;
-    async fn delete(&self, id: i64) -> ApiResult<()>;
+    async fn delete(&self, command: DeleteBotCommand) -> ApiResult<()>;
 }
 
 pub struct BotService<R, S, A, T> {
@@ -225,8 +232,26 @@ impl BotServiceTrait
             .map_err(ApiError::from)
     }
 
-    async fn delete(&self, id: i64) -> ApiResult<()> {
-        self.bot_repo.delete(id).await.map_err(ApiError::from)
+    async fn delete(&self, command: DeleteBotCommand) -> ApiResult<()> {
+        let bot = self.bot_repo.get_by_id(command.id).await?;
+        self.bot_repo.delete(command.id).await?;
+        self.audit_log_service
+            .create(NewAuditLog {
+                action: AuditAction::BotDelete,
+                status: AuditStatus::Success,
+                admin_user_id: command.deleted_by,
+                customer_id: bot.owner_id,
+                error_message: None,
+                new_values: None,
+                old_values: serde_json::to_value(bot).ok(),
+                target_id: command.id.to_string(),
+                target_table: "bots".to_string(),
+                ip_address: command.ctx.clone().and_then(|ctx| ctx.ip_address),
+                request_id: command.ctx.clone().map(|ctx| ctx.request_id),
+                user_agent: command.ctx.and_then(|ctx| ctx.user_agent),
+            })
+            .await?;
+        Ok(())
     }
 }
 
@@ -375,13 +400,30 @@ mod tests {
         let owner_id = create_customer(&pool, 10002).await;
         let bot = create_bot(&pool, Some(owner_id), "delete_token", "delete_bot").await;
 
-        service.delete(bot.id).await.unwrap();
+        service
+            .delete(DeleteBotCommand {
+                id: bot.id,
+                deleted_by: None,
+                ctx: None,
+            })
+            .await
+            .unwrap();
 
         let deleted_at = sqlx::query_scalar!("SELECT deleted_at FROM bots WHERE id = $1", bot.id)
             .fetch_one(&pool)
             .await
             .unwrap();
         assert!(deleted_at.is_some());
+
+        let audit_logs = sqlx::query_scalar!(
+            "SELECT COUNT(*) FROM audit_logs WHERE action = 'bot_delete' AND target_table = 'bots' AND target_id = $1",
+            bot.id.to_string()
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap_or(Some(0))
+        .unwrap_or_default();
+        assert!(audit_logs >= 1);
     }
 
     #[sqlx::test]
