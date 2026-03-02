@@ -25,6 +25,11 @@ pub trait BotRepositoryTrait {
         id: i64,
         owner_id: Option<i64>,
     ) -> RepositoryResult<()>;
+    async fn get_primary_backup_candidate(
+        &self,
+        excluded_id: i64,
+        owner_id: Option<i64>,
+    ) -> RepositoryResult<Option<BotRow>>;
     async fn get_primary_bots(&self) -> RepositoryResult<Vec<BotRow>>;
     async fn delete(&self, id: i64) -> RepositoryResult<()>;
 }
@@ -231,6 +236,34 @@ impl BotRepositoryTrait for BotRepository {
         FROM bots WHERE is_primary = true AND deleted_at IS NULL"#,
         )
         .fetch_all(&*self.pool)
+        .await?;
+
+        Ok(result)
+    }
+
+    async fn get_primary_backup_candidate(
+        &self,
+        excluded_id: i64,
+        owner_id: Option<i64>,
+    ) -> RepositoryResult<Option<BotRow>> {
+        let result = sqlx::query_as!(
+            BotRow,
+            r#"
+            SELECT
+                id, owner_id, token, username, type as "type: _", is_active,
+                is_primary, referral_percentage,
+                created_at, updated_at, created_by
+            FROM bots
+            WHERE owner_id IS NOT DISTINCT FROM $1
+              AND id != $2
+              AND deleted_at IS NULL
+            ORDER BY is_active DESC, created_at ASC
+            LIMIT 1
+            "#,
+            owner_id,
+            excluded_id
+        )
+        .fetch_optional(&*self.pool)
         .await?;
 
         Ok(result)
@@ -472,5 +505,21 @@ mod tests {
 
         let list = repo.get_list(BotListQuery::default()).await.unwrap();
         assert!(list.items.into_iter().all(|item| item.id != bot.id));
+    }
+
+    #[sqlx::test]
+    async fn test_get_primary_backup_candidate(pool: PgPool) {
+        let repo = BotRepository::new(Arc::new(pool.clone()));
+        let owner_id = create_test_customer(&pool, 1008).await;
+        let primary =
+            create_test_bot(&pool, Some(owner_id), "primary_del_token", "primary_del").await;
+        let backup = create_test_bot(&pool, Some(owner_id), "backup_token", "backup").await;
+
+        let candidate = repo
+            .get_primary_backup_candidate(primary.id, Some(owner_id))
+            .await
+            .unwrap()
+            .expect("backup candidate must exist");
+        assert_eq!(candidate.id, backup.id);
     }
 }

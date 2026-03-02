@@ -235,6 +235,16 @@ impl BotServiceTrait
     async fn delete(&self, command: DeleteBotCommand) -> ApiResult<()> {
         let bot = self.bot_repo.get_by_id(command.id).await?;
         self.bot_repo.delete(command.id).await?;
+        if bot.is_primary
+            && let Some(backup) = self
+                .bot_repo
+                .get_primary_backup_candidate(command.id, bot.owner_id)
+                .await?
+        {
+            self.bot_repo
+                .set_primary_bot_for_owner(backup.id, bot.owner_id)
+                .await?;
+        }
         self.audit_log_service
             .create(NewAuditLog {
                 action: AuditAction::BotDelete,
@@ -424,6 +434,58 @@ mod tests {
         .unwrap_or(Some(0))
         .unwrap_or_default();
         assert!(audit_logs >= 1);
+    }
+
+    #[sqlx::test]
+    async fn test_delete_primary_promotes_backup(pool: PgPool) {
+        let service = build_service(&pool);
+        let owner_id = create_customer(&pool, 10003).await;
+        let primary = create_bot(
+            &pool,
+            Some(owner_id),
+            "delete_primary_token",
+            "delete_primary_bot",
+        )
+        .await;
+        let backup = create_bot(
+            &pool,
+            Some(owner_id),
+            "delete_backup_token",
+            "delete_backup_bot",
+        )
+        .await;
+
+        service
+            .update(UpdateBotCommand {
+                id: primary.id,
+                updated_by: None,
+                username: None,
+                is_active: None,
+                is_primary: Some(true),
+                referral_percentage: None,
+                ctx: None,
+            })
+            .await
+            .unwrap();
+
+        service
+            .delete(DeleteBotCommand {
+                id: primary.id,
+                deleted_by: None,
+                ctx: None,
+            })
+            .await
+            .unwrap();
+
+        let promoted_primary_ids: Vec<i64> = sqlx::query_scalar!(
+            "SELECT id FROM bots WHERE owner_id = $1 AND is_primary = true AND deleted_at IS NULL",
+            owner_id
+        )
+        .fetch_all(&pool)
+        .await
+        .unwrap();
+
+        assert_eq!(promoted_primary_ids, vec![backup.id]);
     }
 
     #[sqlx::test]
