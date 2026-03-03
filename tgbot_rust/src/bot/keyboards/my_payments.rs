@@ -4,9 +4,9 @@ use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 use crate::bot::CallbackData;
 
 pub fn my_payments_inline_keyboard(
-    pending_payments: &Vec<&PaymentInvoiceBotResponse>,
+    active_payments: &Vec<&PaymentInvoiceBotResponse>,
 ) -> InlineKeyboardMarkup {
-    let mut buttons = pending_payments
+    let mut buttons = active_payments
         .iter()
         .map(|payment| {
             vec![InlineKeyboardButton::callback(

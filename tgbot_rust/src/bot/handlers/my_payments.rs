@@ -41,20 +41,20 @@ pub async fn my_payments_handler(
             return Ok(());
         }
     };
-    let pending_payments = invoices
+    let active_payments = invoices
         .items
         .iter()
-        .filter(|i| i.status == InvoiceStatus::Pending)
+        .filter(|i| is_active_status(i.status))
         .collect::<Vec<_>>();
-    let completed_payments = invoices
+    let history_payments = invoices
         .items
         .iter()
-        .filter(|i| i.status == InvoiceStatus::Completed)
+        .filter(|i| !is_active_status(i.status))
         .collect::<Vec<_>>();
     let mut text = bold("🧾 Мои платежи\n\n");
-    if !pending_payments.is_empty() {
+    if !active_payments.is_empty() {
         text.push_str(&underline("Активные платежи:\n"));
-        for payment in &pending_payments {
+        for payment in &active_payments {
             text.push_str(&format!("• {}\n\n", format_payment_info(payment)));
         }
         text.push('\n');
@@ -62,9 +62,9 @@ pub async fn my_payments_handler(
         text.push_str("У вас нет активных счетов для оплаты.\n\n");
     }
 
-    if !completed_payments.is_empty() {
+    if !history_payments.is_empty() {
         text.push_str(&underline("История операций:\n"));
-        for payment in &completed_payments {
+        for payment in &history_payments {
             text.push_str(&format!("• {}\n\n", format_payment_info(payment)));
         }
     }
@@ -76,7 +76,7 @@ pub async fn my_payments_handler(
         &MsgBy::CallbackQuery(&q),
         &text,
         None,
-        my_payments_inline_keyboard(&pending_payments),
+        my_payments_inline_keyboard(&active_payments),
     )
     .await?;
     Ok(())
@@ -86,11 +86,39 @@ fn format_payment_info(payment: &PaymentInvoiceBotResponse) -> String {
     let token = escape(&payment.gateway_invoice_id);
     format!(
         "<b>Платеж #{}:</b> <code>{}</code> ₽\n\
+         <b>Статус:</b> {}\n\
          <b>Дата:</b> {}\n\
          <b>Токен:</b> <code>{}</code>",
         payment.id,
         payment.amount,
+        invoice_status_label(payment.status),
         payment.created_at.format("%d.%m.%Y"),
         token
     )
+}
+
+fn is_active_status(status: InvoiceStatus) -> bool {
+    matches!(
+        status,
+        InvoiceStatus::Pending
+            | InvoiceStatus::Processing
+            | InvoiceStatus::AwaitingReceipt
+            | InvoiceStatus::ReceiptSubmitted
+            | InvoiceStatus::Disputed
+    )
+}
+
+fn invoice_status_label(status: InvoiceStatus) -> &'static str {
+    match status {
+        InvoiceStatus::Pending => "Ожидает оплаты",
+        InvoiceStatus::Processing => "Обрабатывается",
+        InvoiceStatus::AwaitingReceipt => "Ожидает чек (PDF)",
+        InvoiceStatus::ReceiptSubmitted => "Чек отправлен",
+        InvoiceStatus::Disputed => "На рассмотрении",
+        InvoiceStatus::Completed => "Успешно",
+        InvoiceStatus::Failed => "Ошибка",
+        InvoiceStatus::Expired => "Истек",
+        InvoiceStatus::Cancelled => "Отменен",
+        InvoiceStatus::Refunded => "Возврат",
+    }
 }
