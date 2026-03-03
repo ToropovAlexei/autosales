@@ -28,7 +28,7 @@ use crate::{
 
 pub async fn pending_payments_task(app_state: Arc<AppState>) {
     tracing::info!("[Pending payments task]: Starting");
-    let mut interval = interval(Duration::from_mins(1));
+    let mut interval = interval(Duration::from_secs(10));
 
     loop {
         interval.tick().await;
