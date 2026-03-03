@@ -20,6 +20,7 @@ pub mod my_subscriptions;
 pub mod no_suitable_requisites;
 pub mod order_details;
 pub mod product;
+pub mod receipt_requested_screen_handler;
 pub mod receipt_submitted_handler;
 pub mod referral_bot_token_handler;
 pub mod referral_program_handler;

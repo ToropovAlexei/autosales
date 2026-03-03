@@ -1,4 +1,4 @@
-use shared_dtos::invoice::PaymentInvoiceBotResponse;
+use shared_dtos::invoice::{InvoiceStatus, PaymentInvoiceBotResponse};
 use teloxide::types::{InlineKeyboardButton, InlineKeyboardMarkup};
 
 use crate::bot::CallbackData;
@@ -8,11 +8,16 @@ pub fn my_payments_inline_keyboard(
 ) -> InlineKeyboardMarkup {
     let mut buttons = active_payments
         .iter()
-        .map(|payment| {
-            vec![InlineKeyboardButton::callback(
+        .filter_map(|payment| match payment.status {
+            InvoiceStatus::Pending => Some(vec![InlineKeyboardButton::callback(
                 format!("Посмотреть счет #{}", payment.id),
                 CallbackData::ToDepositConfirm { id: payment.id },
-            )]
+            )]),
+            InvoiceStatus::AwaitingReceipt => Some(vec![InlineKeyboardButton::callback(
+                format!("Отправить чек #{}", payment.id),
+                CallbackData::ToReceiptRequested { id: payment.id },
+            )]),
+            _ => None,
         })
         .collect::<Vec<_>>();
 

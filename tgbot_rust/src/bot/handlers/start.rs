@@ -195,7 +195,7 @@ pub async fn start_handler(
         &dialogue,
         &bot,
         &MsgBy::Message(&msg),
-        "⬅️ Главное меню",
+        "Главное меню",
         None,
         main_menu_inline_keyboard(referral_program_enabled),
     )

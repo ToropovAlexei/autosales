@@ -50,6 +50,7 @@ use crate::{
             main_menu::main_menu_text_handler, my_orders::my_orders_handler,
             my_payments::my_payments_handler, my_subscriptions::my_subscriptions_handler,
             order_details::order_details_handler, product::product_handler,
+            receipt_requested_screen_handler::receipt_requested_screen_handler,
             receipt_submitted_handler::receipt_submitted_handler,
             referral_bot_token_handler::referral_bot_token_handler,
             referral_program_handler::referral_program_handler,
@@ -200,6 +201,9 @@ pub enum CallbackData {
     ToDepositConfirm {
         id: i64,
     },
+    ToReceiptRequested {
+        id: i64,
+    },
     ToOrderDetails {
         id: i64,
     },
@@ -283,6 +287,7 @@ fn callback_kind(data: &CallbackData) -> &'static str {
         CallbackData::ToSupport => "to_support",
         CallbackData::ToProduct { .. } => "to_product",
         CallbackData::ToDepositConfirm { .. } => "to_deposit_confirm",
+        CallbackData::ToReceiptRequested { .. } => "to_receipt_requested",
         CallbackData::ToOrderDetails { .. } => "to_order_details",
         CallbackData::Buy { .. } => "buy",
         CallbackData::ConfirmPayment { .. } => "confirm_payment",
@@ -733,6 +738,12 @@ pub async fn run_bot(
                         api_client,
                         new_state,
                         app_state,
+                    )
+                    .await?;
+                }
+                CallbackData::ToReceiptRequested { id } => {
+                    receipt_requested_screen_handler(
+                        bot, dialogue, q, api_client, bot_state, app_state, id,
                     )
                     .await?;
                 }
