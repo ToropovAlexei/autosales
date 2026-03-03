@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import {
   Alert,
-  Box,
   Button,
   Card,
   CardContent,
@@ -42,7 +41,8 @@ const formatNumber = (value?: number, digits = 2) => {
 };
 
 export default function BalanceManagementPage() {
-  const [requestType, setRequestType] = useState<StoreBalanceRequestType>("deposit");
+  const [requestType, setRequestType] =
+    useState<StoreBalanceRequestType>("deposit");
   const [walletAddress, setWalletAddress] = useState("");
   const [amountUsdt, setAmountUsdt] = useState("");
   const queryClient = useQueryClient();
@@ -73,7 +73,8 @@ export default function BalanceManagementPage() {
     Number.isFinite(amountAsNumber) && amountAsNumber > 0 && usdtRateRub > 0
       ? amountAsNumber * usdtRateRub
       : 0;
-  const balanceUsdt = usdtRateRub > 0 ? (storeBalance?.balance ?? 0) / usdtRateRub : 0;
+  const balanceUsdt =
+    usdtRateRub > 0 ? (storeBalance?.balance ?? 0) / usdtRateRub : 0;
 
   const validationMessage = useMemo(() => {
     if (!canManageBalance) {
@@ -96,7 +97,10 @@ export default function BalanceManagementPage() {
       return "Курс USDT недоступен";
     }
 
-    if (requestType === "withdrawal" && amountRub > (storeBalance?.balance ?? 0)) {
+    if (
+      requestType === "withdrawal" &&
+      amountRub > (storeBalance?.balance ?? 0)
+    ) {
       return "Недостаточно средств на балансе магазина";
     }
 
@@ -111,33 +115,34 @@ export default function BalanceManagementPage() {
     walletAddress,
   ]);
 
-  const { mutate: createRequest, isPending: isCreateRequestPending } = useMutation({
-    mutationFn: async (params: CreateBalanceRequest) =>
-      dataLayer.create({
-        url: ENDPOINTS.STORE_BALANCE,
-        params,
-      }),
-    onSuccess: async () => {
-      toast.success("Заявка создана");
-      setAmountUsdt("");
-      setWalletAddress("");
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.one(ENDPOINTS.STORE_BALANCE),
-      });
-      await queryClient.invalidateQueries({
-        queryKey: queryKeys.one(ENDPOINTS.PRICING_SETTINGS),
-      });
-      refetchStoreBalance();
-      refetchPricing();
-    },
-    onError: (error) => {
-      if (error instanceof Error) {
-        toast.error(error.message);
-        return;
-      }
-      toast.error("Не удалось создать заявку");
-    },
-  });
+  const { mutate: createRequest, isPending: isCreateRequestPending } =
+    useMutation({
+      mutationFn: async (params: CreateBalanceRequest) =>
+        dataLayer.create({
+          url: ENDPOINTS.STORE_BALANCE,
+          params,
+        }),
+      onSuccess: async () => {
+        toast.success("Заявка создана");
+        setAmountUsdt("");
+        setWalletAddress("");
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.one(ENDPOINTS.STORE_BALANCE),
+        });
+        await queryClient.invalidateQueries({
+          queryKey: queryKeys.one(ENDPOINTS.PRICING_SETTINGS),
+        });
+        refetchStoreBalance();
+        refetchPricing();
+      },
+      onError: (error) => {
+        if (error instanceof Error) {
+          toast.error(error.message);
+          return;
+        }
+        toast.error("Не удалось создать заявку");
+      },
+    });
 
   const onSubmit = () => {
     if (validationMessage) {
@@ -166,29 +171,7 @@ export default function BalanceManagementPage() {
               <Typography variant="h6">
                 {isStoreBalancePending
                   ? "Загрузка..."
-                  : `${formatNumber(storeBalance?.balance)} RUB`}
-              </Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1 }}>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary">
-                Баланс магазина в USDT
-              </Typography>
-              <Typography variant="h6">
-                {isPending ? "Загрузка..." : `${formatNumber(balanceUsdt, 4)} USDT`}
-              </Typography>
-            </CardContent>
-          </Card>
-          <Card sx={{ flex: 1 }}>
-            <CardContent>
-              <Typography variant="body2" color="text.secondary">
-                Курс конвертации в USDT
-              </Typography>
-              <Typography variant="h6">
-                {isPricingPending
-                  ? "Загрузка..."
-                  : `${formatNumber(pricingSettings?.usdt_rate_rub, 4)} RUB`}
+                  : `${formatNumber(storeBalance?.balance)} USDT`}
               </Typography>
             </CardContent>
           </Card>
@@ -235,12 +218,6 @@ export default function BalanceManagementPage() {
                 inputProps={{ min: 0, step: "0.0001" }}
                 fullWidth
               />
-
-              <Box>
-                <Typography variant="body2" color="text.secondary">
-                  Эквивалент в RUB: {formatNumber(amountRub)}
-                </Typography>
-              </Box>
 
               {validationMessage ? (
                 <Alert severity="warning">{validationMessage}</Alert>

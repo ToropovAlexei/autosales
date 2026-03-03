@@ -25,7 +25,6 @@ export const ENDPOINTS = {
   PRODUCTS_UPLOAD_CSV: "products/upload",
   STORE_BALANCE: "store-balance",
   ORDERS: "orders",
-  DEV_RESET_DATA: "dev/reset-data",
   PAYMENT_INVOICES: "payment-invoices",
 };
 

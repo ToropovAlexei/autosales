@@ -136,7 +136,6 @@ use backend_rust::{
         admin_handlers::dashboard::get_top_products,
         admin_handlers::dashboard::get_sales_by_category,
         admin_handlers::payment_invoice::list_payment_invoices,
-        admin_handlers::dev::reset_test_data,
         bot_handlers::bot::create_bot,
         bot_handlers::bot::get_bot,
         bot_handlers::bot::list_bots,
@@ -253,7 +252,6 @@ use backend_rust::{
         PurchaseBotResponse,
         SettingsBotResponse,
         ApiErrorResponse,
-        admin_handlers::dev::ResetTestDataResponse,
     ))
 )]
 struct ApiDoc;

@@ -37,14 +37,8 @@ export const StoreBalance = () => {
   const rate = canReadPricing ? pricingSettings?.usdt_rate_rub : null;
 
   return (
-    <Stack sx={{ mr: 2 }} alignItems="flex-end">
-      <Typography variant="body1">
-        Баланс магазина: {data?.balance.toFixed(2)} RUB
-      </Typography>
-      <Typography variant="caption" color="text.secondary">
-        Курс конвертации в USDT:{" "}
-        {typeof rate === "number" ? `${rate.toFixed(4)} RUB` : "н/д"}
-      </Typography>
-    </Stack>
+    <Typography variant="body1">
+      Баланс магазина: {data?.balance.toFixed(2)} USDT
+    </Typography>
   );
 };
