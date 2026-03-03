@@ -21,7 +21,6 @@ pub struct Settings {
     pub bot_description: String,
     pub bot_about: String,
     pub manager_group_chat_id: Option<i64>,
-    pub usdt_rate_rub: Decimal,
 }
 
 #[derive(Debug, Default)]
@@ -44,5 +43,4 @@ pub struct UpdateSettings {
     pub bot_description: Option<String>,
     pub bot_about: Option<String>,
     pub manager_group_chat_id: Option<Option<i64>>,
-    pub usdt_rate_rub: Option<Decimal>,
 }

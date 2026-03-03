@@ -15,7 +15,6 @@ use crate::{
     errors::api::{ApiError, ApiResult},
     infrastructure::repositories::{
         audit_log::AuditLogRepository,
-        settings::{SettingsRepository, SettingsRepositoryTrait},
         store_balance_request::{
             StoreBalanceRequestRepository, StoreBalanceRequestRepositoryTrait,
         },
@@ -41,7 +40,7 @@ use crate::{
 pub struct CreateStoreBalanceRequestCommand {
     pub request_type: StoreBalanceRequestType,
     pub wallet_address: String,
-    pub amount_rub: Decimal,
+    pub amount: Decimal,
     pub admin_user_id: i64,
     pub ctx: RequestContext,
 }
@@ -76,32 +75,28 @@ pub trait StoreBalanceRequestServiceTrait: Send + Sync {
     ) -> ApiResult<StoreBalanceRequestRow>;
 }
 
-pub struct StoreBalanceRequestService<R, S, A, T, N> {
+pub struct StoreBalanceRequestService<R, A, T, N> {
     repo: Arc<R>,
-    settings_repo: Arc<S>,
     audit_log_service: Arc<A>,
     transaction_service: Arc<T>,
     notification_service: Arc<N>,
 }
 
-impl<R, S, A, T, N> StoreBalanceRequestService<R, S, A, T, N>
+impl<R, A, T, N> StoreBalanceRequestService<R, A, T, N>
 where
     R: StoreBalanceRequestRepositoryTrait + Send + Sync,
-    S: SettingsRepositoryTrait + Send + Sync,
     A: AuditLogServiceTrait + Send + Sync,
     T: TransactionServiceTrait + Send + Sync,
     N: NotificationServiceTrait + Send + Sync,
 {
     pub fn new(
         repo: Arc<R>,
-        settings_repo: Arc<S>,
         audit_log_service: Arc<A>,
         transaction_service: Arc<T>,
         notification_service: Arc<N>,
     ) -> Self {
         Self {
             repo,
-            settings_repo,
             audit_log_service,
             transaction_service,
             notification_service,
@@ -129,7 +124,6 @@ where
 impl StoreBalanceRequestServiceTrait
     for StoreBalanceRequestService<
         StoreBalanceRequestRepository,
-        SettingsRepository,
         AuditLogService<AuditLogRepository>,
         TransactionService<TransactionRepository>,
         NotificationService,
@@ -140,12 +134,6 @@ impl StoreBalanceRequestServiceTrait
         cmd: CreateStoreBalanceRequestCommand,
     ) -> ApiResult<StoreBalanceRequestRow> {
         Self::validate_wallet_address(cmd.wallet_address.as_str())?;
-        let rate = self.settings_repo.load_settings().await?.usdt_rate_rub;
-        if rate.is_zero() {
-            return Err(ApiError::InternalServerError(
-                "USDT rate is not set".to_string(),
-            ));
-        }
         if cmd.request_type == StoreBalanceRequestType::Withdrawal {
             let current_balance = match self.transaction_service.get_last().await {
                 Ok(tx) => tx.store_balance_after,
@@ -153,7 +141,7 @@ impl StoreBalanceRequestServiceTrait
                 Err(err) => return Err(err),
             };
 
-            if cmd.amount_rub > current_balance {
+            if cmd.amount > current_balance {
                 return Err(ApiError::BadRequest("Not enough balance".to_string()));
             }
         }
@@ -163,8 +151,8 @@ impl StoreBalanceRequestServiceTrait
                 let new_transaction = self
                     .transaction_service
                     .create(NewTransaction {
-                        amount: cmd.amount_rub,
-                        store_balance_delta: -cmd.amount_rub,
+                        amount: dec!(0), // Store balance
+                        store_balance_delta: -cmd.amount,
                         bot_id: None,
                         customer_id: None,
                         description: None,
@@ -182,16 +170,12 @@ impl StoreBalanceRequestServiceTrait
             }
         };
 
-        let amount_usdt = cmd.amount_rub / rate;
-
         let request = self
             .repo
             .create(NewStoreBalanceRequest {
-                amount_rub: cmd.amount_rub,
                 request_type: cmd.request_type,
                 wallet_address: cmd.wallet_address,
-                amount_usdt,
-                fx_rate_rub_to_usdt: rate,
+                amount: cmd.amount,
                 status: StoreBalanceRequestStatus::PendingOperator,
                 debit_transaction_id,
             })
@@ -200,8 +184,7 @@ impl StoreBalanceRequestServiceTrait
         self.notification_service
             .dispatch_admin_message(DispatchAdminMessage::StoreBalanceRequestNotification {
                 store_balance_request_id: request.id,
-                amount_in_rub: cmd.amount_rub.to_f64().unwrap_or_default(),
-                amount_in_usdt: amount_usdt.to_f64().unwrap_or_default(),
+                amount: cmd.amount.to_f64().unwrap_or_default(),
                 r#type: cmd.request_type,
             })
             .await?;
@@ -251,8 +234,8 @@ impl StoreBalanceRequestServiceTrait
                 Some(
                     self.transaction_service
                         .create(NewTransaction {
-                            amount: prev.amount_rub,
-                            store_balance_delta: prev.amount_rub,
+                            amount: dec!(0),
+                            store_balance_delta: prev.amount,
                             bot_id: None,
                             customer_id: None,
                             description: None,
@@ -304,8 +287,8 @@ impl StoreBalanceRequestServiceTrait
                 Some(
                     self.transaction_service
                         .create(NewTransaction {
-                            amount: prev.amount_rub,
-                            store_balance_delta: prev.amount_rub,
+                            amount: dec!(0),
+                            store_balance_delta: prev.amount,
                             bot_id: None,
                             customer_id: None,
                             description: None,

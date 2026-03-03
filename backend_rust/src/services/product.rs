@@ -535,7 +535,6 @@ mod tests {
             bot_about: "".to_string(),
             bot_description: "".to_string(),
             manager_group_chat_id: None,
-            usdt_rate_rub: dec!(0),
         }
     }
 

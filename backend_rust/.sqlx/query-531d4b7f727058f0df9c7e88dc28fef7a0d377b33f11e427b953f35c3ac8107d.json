@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            SELECT\n                id, customer_id, original_amount, amount, status as \"status: _\", created_at, updated_at,\n                expires_at, deleted_at, gateway as \"gateway: _\", gateway_invoice_id, order_id, payment_details,\n                bot_message_id, notification_sent_at, receipt_requested_at,\n                receipt_submitted_at, dispute_opened_at, finished_at\n            FROM payment_invoices\n            WHERE\n                status IN ('pending', 'processing', 'awaiting_receipt', 'receipt_submitted', 'disputed') AND\n                created_at < $1 AND\n                deleted_at IS NULL\n            ",
+  "query": "\n            INSERT INTO payment_invoices (\n                customer_id, original_amount, amount, amount_in_usdt, status, expires_at, gateway, gateway_invoice_id,\n                order_id, payment_details, bot_message_id\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)\n            RETURNING\n                id, customer_id, original_amount, amount, amount_in_usdt, status as \"status: _\", created_at, updated_at,\n                expires_at, deleted_at, gateway as \"gateway: _\", gateway_invoice_id, order_id, payment_details,\n                bot_message_id, notification_sent_at, receipt_requested_at,\n                receipt_submitted_at, dispute_opened_at, finished_at\n            ",
   "describe": {
     "columns": [
       {
@@ -25,86 +25,102 @@
       },
       {
         "ordinal": 4,
+        "name": "amount_in_usdt",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 5,
         "name": "status: _",
         "type_info": "Text"
       },
       {
-        "ordinal": 5,
+        "ordinal": 6,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 6,
+        "ordinal": 7,
         "name": "updated_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 7,
+        "ordinal": 8,
         "name": "expires_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 8,
+        "ordinal": 9,
         "name": "deleted_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 9,
+        "ordinal": 10,
         "name": "gateway: _",
         "type_info": "Text"
       },
       {
-        "ordinal": 10,
+        "ordinal": 11,
         "name": "gateway_invoice_id",
         "type_info": "Text"
       },
       {
-        "ordinal": 11,
+        "ordinal": 12,
         "name": "order_id",
         "type_info": "Uuid"
       },
       {
-        "ordinal": 12,
+        "ordinal": 13,
         "name": "payment_details",
         "type_info": "Jsonb"
       },
       {
-        "ordinal": 13,
+        "ordinal": 14,
         "name": "bot_message_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 14,
+        "ordinal": 15,
         "name": "notification_sent_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 15,
+        "ordinal": 16,
         "name": "receipt_requested_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 16,
+        "ordinal": 17,
         "name": "receipt_submitted_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 17,
+        "ordinal": 18,
         "name": "dispute_opened_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 18,
+        "ordinal": 19,
         "name": "finished_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Timestamptz"
+        "Int8",
+        "Numeric",
+        "Numeric",
+        "Numeric",
+        "Text",
+        "Timestamptz",
+        "Text",
+        "Text",
+        "Uuid",
+        "Jsonb",
+        "Int8"
       ]
     },
     "nullable": [
+      false,
       false,
       false,
       false,
@@ -126,5 +142,5 @@
       true
     ]
   },
-  "hash": "b7e62c7ef4e6e5fbb814008d46043bed40e9e0fc0581883a0f4e7848f943f3de"
+  "hash": "531d4b7f727058f0df9c7e88dc28fef7a0d377b33f11e427b953f35c3ac8107d"
 }

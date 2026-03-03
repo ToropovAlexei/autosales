@@ -74,10 +74,10 @@ where
             .await?;
 
         let gateway_commission_percent = dec!(0.2); // TODO get from settings
-        let platform_commission_percent = dec!(0.01); // TODO get from settings
-        let platform_commission = payment_invoice.original_amount * platform_commission_percent;
-        let gateway_commission = payment_invoice.original_amount * gateway_commission_percent;
-        let store_balance_delta = payment_invoice.original_amount
+        let platform_commission_percent = dec!(0.00); // TODO get from settings TEMPORARY DISABLED
+        let platform_commission = payment_invoice.amount_in_usdt * platform_commission_percent;
+        let gateway_commission = payment_invoice.amount_in_usdt * gateway_commission_percent;
+        let store_balance_delta = payment_invoice.amount_in_usdt
             * (dec!(1) - platform_commission_percent - gateway_commission_percent);
 
         self.transactions_service
@@ -334,6 +334,7 @@ mod tests {
             finished_at: None,
             receipt_requested_at: None,
             receipt_submitted_at: None,
+            amount_in_usdt: dec!(1),
         };
         let customer = CustomerRow {
             id: 10,
@@ -400,9 +401,9 @@ mod tests {
         assert_eq!(tx.customer_id, Some(customer.id));
         assert_eq!(tx.payment_gateway, Some(invoice.gateway));
         assert_eq!(tx.details, Some(invoice.payment_details.clone()));
-        assert_eq!(tx.platform_commission, dec!(1));
-        assert_eq!(tx.gateway_commission, dec!(20));
-        assert_eq!(tx.store_balance_delta, dec!(79));
+        assert_eq!(tx.platform_commission, dec!(0)); // TODO TEMPORARY NO COMISSION
+        assert_eq!(tx.gateway_commission, dec!(0.2));
+        assert_eq!(tx.store_balance_delta, dec!(0.8)); // TODO TEMPORARY NO COMISSION
 
         let updated_guard = service
             .payment_invoice_service

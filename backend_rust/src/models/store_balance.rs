@@ -11,9 +11,7 @@ pub struct StoreBalanceRequestRow {
     pub id: i64,
     pub request_type: StoreBalanceRequestType,
     pub wallet_address: String,
-    pub amount_usdt: Decimal,
-    pub fx_rate_rub_to_usdt: Decimal,
-    pub amount_rub: Decimal,
+    pub amount: Decimal,
     pub status: StoreBalanceRequestStatus,
     pub operator_tg_user_id: Option<i64>,
     pub operator_comment: Option<String>,
@@ -31,9 +29,7 @@ pub struct StoreBalanceRequestRow {
 pub struct NewStoreBalanceRequest {
     pub request_type: StoreBalanceRequestType,
     pub wallet_address: String,
-    pub amount_usdt: Decimal,
-    pub fx_rate_rub_to_usdt: Decimal,
-    pub amount_rub: Decimal,
+    pub amount: Decimal,
     pub status: StoreBalanceRequestStatus,
     pub debit_transaction_id: Option<i64>,
 }

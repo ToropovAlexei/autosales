@@ -31,8 +31,7 @@ pub enum DispatchMessage {
 pub enum DispatchAdminMessage {
     StoreBalanceRequestNotification {
         store_balance_request_id: i64,
-        amount_in_rub: f64,
-        amount_in_usdt: f64,
+        amount: f64,
         r#type: StoreBalanceRequestType,
     },
 }

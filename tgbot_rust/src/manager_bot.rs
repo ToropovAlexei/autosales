@@ -211,16 +211,14 @@ impl ManagerCallbackAction {
 }
 
 fn build_admin_request_message(payload: &DispatchAdminMessage) -> (String, InlineKeyboardMarkup) {
-    let (request_id, amount_rub, amount_usdt, request_type, action_text) = match payload {
+    let (request_id, amount, request_type, action_text) = match payload {
         DispatchAdminMessage::StoreBalanceRequestNotification {
             store_balance_request_id,
-            amount_in_rub,
-            amount_in_usdt,
+            amount,
             r#type,
         } => (
             *store_balance_request_id,
-            *amount_in_rub,
-            *amount_in_usdt,
+            *amount,
             *r#type,
             match r#type {
                 StoreBalanceRequestType::Withdrawal => {
@@ -243,7 +241,7 @@ fn build_admin_request_message(payload: &DispatchAdminMessage) -> (String, Inlin
     };
 
     let message = format!(
-        "Заявка #{request_id}\nТип: {request_type_text}\nСумма: {amount_usdt:.2} USDT (~{amount_rub:.2} RUB)\n\n{action_text}",
+        "Заявка #{request_id}\nТип: {request_type_text}\nСумма: {amount:.2} USDT\n\n{action_text}",
     );
 
     let keyboard = InlineKeyboardMarkup::new(vec![vec![

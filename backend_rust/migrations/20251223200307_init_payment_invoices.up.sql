@@ -4,6 +4,7 @@ CREATE TABLE payment_invoices (
 
     original_amount NUMERIC(12,2) NOT NULL CHECK (original_amount > 0),
     amount NUMERIC(12,2) NOT NULL CHECK (amount <= original_amount),
+    amount_in_usdt NUMERIC(12,6) NOT NULL CHECK (amount_in_usdt > 0),
 
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN (
                                                     'pending',

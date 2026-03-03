@@ -19,6 +19,7 @@ CREATE TABLE user_subscriptions (
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expiry_notification_sent_at TIMESTAMPTZ,
 
     CONSTRAINT fk_user_subscriptions_bot_user
         FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE RESTRICT,
@@ -39,6 +40,7 @@ CREATE INDEX IF NOT EXISTS idx_user_subscriptions_customer_id ON user_subscripti
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_expires_at ON user_subscriptions (expires_at);
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_order_id ON user_subscriptions (order_id);
 CREATE INDEX IF NOT EXISTS idx_user_subscriptions_product_id ON user_subscriptions (product_id);
+CREATE INDEX IF NOT EXISTS idx_user_subscriptions_expiry_notification_sent_at ON user_subscriptions (expiry_notification_sent_at);
 
 CREATE TRIGGER set_updated_at_user_subscriptions
     BEFORE UPDATE ON user_subscriptions

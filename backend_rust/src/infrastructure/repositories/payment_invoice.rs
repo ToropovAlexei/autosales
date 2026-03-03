@@ -83,12 +83,12 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             PaymentInvoiceRow,
             r#"
             INSERT INTO payment_invoices (
-                customer_id, original_amount, amount, status, expires_at, gateway, gateway_invoice_id,
+                customer_id, original_amount, amount, amount_in_usdt, status, expires_at, gateway, gateway_invoice_id,
                 order_id, payment_details, bot_message_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING
-                id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
+                id, customer_id, original_amount, amount, amount_in_usdt, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
                 bot_message_id, notification_sent_at, receipt_requested_at,
                 receipt_submitted_at, dispute_opened_at, finished_at
@@ -96,6 +96,7 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             payment_invoice.customer_id,
             payment_invoice.original_amount,
             payment_invoice.amount,
+            payment_invoice.amount_in_usdt,
             payment_invoice.status as InvoiceStatus,
             payment_invoice.expires_at,
             payment_invoice.gateway as _,
@@ -164,7 +165,7 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             PaymentInvoiceRow,
             r#"
             SELECT
-                id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
+                id, customer_id, original_amount, amount, amount_in_usdt, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
                 bot_message_id, notification_sent_at, receipt_requested_at,
                 receipt_submitted_at, dispute_opened_at, finished_at
@@ -182,7 +183,7 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             PaymentInvoiceRow,
             r#"
             SELECT
-                id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
+                id, customer_id, original_amount, amount, amount_in_usdt, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
                 bot_message_id, notification_sent_at, receipt_requested_at,
                 receipt_submitted_at, dispute_opened_at, finished_at
@@ -200,7 +201,7 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             PaymentInvoiceRow,
             r#"
             SELECT
-                id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
+                id, customer_id, original_amount, amount, amount_in_usdt, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
                 bot_message_id, notification_sent_at, receipt_requested_at,
                 receipt_submitted_at, dispute_opened_at, finished_at
@@ -237,7 +238,7 @@ impl PaymentInvoiceRepositoryTrait for PaymentInvoiceRepository {
             PaymentInvoiceRow,
             r#"
             SELECT
-                id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
+                id, customer_id, original_amount, amount, amount_in_usdt, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
                 bot_message_id, notification_sent_at, receipt_requested_at,
                 receipt_submitted_at, dispute_opened_at, finished_at
@@ -337,18 +338,19 @@ mod tests {
             gateway_invoice_id: gateway_invoice_id.to_string(),
             payment_details: None,
             bot_message_id: None,
+            amount_in_usdt: Decimal::from(1),
         };
 
         sqlx::query_as!(
             PaymentInvoiceRow,
             r#"
             INSERT INTO payment_invoices (
-                customer_id, original_amount, amount, status, expires_at, gateway, gateway_invoice_id,
+                customer_id, original_amount, amount, amount_in_usdt, status, expires_at, gateway, gateway_invoice_id,
                 order_id, payment_details, bot_message_id, created_at
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             RETURNING
-                id, customer_id, original_amount, amount, status as "status: _", created_at, updated_at,
+                id, customer_id, original_amount, amount, amount_in_usdt, status as "status: _", created_at, updated_at,
                 expires_at, deleted_at, gateway as "gateway: _", gateway_invoice_id, order_id, payment_details,
                 bot_message_id, notification_sent_at, receipt_requested_at,
                 receipt_submitted_at, dispute_opened_at, finished_at
@@ -356,6 +358,7 @@ mod tests {
             new_invoice.customer_id,
             new_invoice.original_amount,
             new_invoice.amount,
+            new_invoice.amount_in_usdt,
             new_invoice.status as InvoiceStatus,
             new_invoice.expires_at,
             new_invoice.gateway as _,
@@ -392,6 +395,7 @@ mod tests {
             gateway_invoice_id: "test_invoice_id".to_string(),
             payment_details: None,
             bot_message_id: None,
+            amount_in_usdt: Decimal::from(1),
         };
 
         // Create an invoice
@@ -431,6 +435,7 @@ mod tests {
             gateway_invoice_id: "test_get_by_id_invoice".to_string(),
             payment_details: None,
             bot_message_id: None,
+            amount_in_usdt: Decimal::from(1),
         };
         let created_invoice = repo.create(new_invoice).await.unwrap();
 
@@ -461,6 +466,7 @@ mod tests {
             gateway_invoice_id: "test_get_by_order_id_invoice".to_string(),
             payment_details: None,
             bot_message_id: None,
+            amount_in_usdt: Decimal::from(1),
         };
         let created_invoice = repo.create(new_invoice).await.unwrap();
 
@@ -489,6 +495,7 @@ mod tests {
             gateway_invoice_id: "cust1_invoice1".to_string(),
             payment_details: None,
             bot_message_id: None,
+            amount_in_usdt: Decimal::from(1),
         };
         repo.create(new_invoice_1_1).await.unwrap();
 
@@ -503,6 +510,7 @@ mod tests {
             gateway_invoice_id: "cust1_invoice2".to_string(),
             payment_details: None,
             bot_message_id: None,
+            amount_in_usdt: Decimal::from(1),
         };
         repo.create(new_invoice_1_2).await.unwrap();
 
@@ -518,6 +526,7 @@ mod tests {
             gateway_invoice_id: "cust2_invoice1".to_string(),
             payment_details: None,
             bot_message_id: None,
+            amount_in_usdt: Decimal::from(1),
         };
         repo.create(new_invoice_2_1).await.unwrap();
 
@@ -556,6 +565,7 @@ mod tests {
             gateway_invoice_id: "expired_invoice_id".to_string(),
             payment_details: None,
             bot_message_id: None,
+            amount_in_usdt: Decimal::from(1),
         };
         let created_expired_invoice = repo.create(new_expired_invoice).await.unwrap();
 
@@ -572,6 +582,7 @@ mod tests {
             gateway_invoice_id: "non_expired_invoice_id".to_string(),
             payment_details: None,
             bot_message_id: None,
+            amount_in_usdt: Decimal::from(1),
         };
         let created_non_expired_invoice = repo.create(new_non_expired_invoice).await.unwrap();
 
@@ -680,6 +691,7 @@ mod tests {
             gateway_invoice_id: "notify_invoice_1".to_string(),
             payment_details: None,
             bot_message_id: None,
+            amount_in_usdt: Decimal::from(1),
         };
         let created_invoice_1 = repo.create(new_invoice_1).await.unwrap();
 
@@ -694,6 +706,7 @@ mod tests {
             gateway_invoice_id: "notify_invoice_2".to_string(),
             payment_details: None,
             bot_message_id: None,
+            amount_in_usdt: Decimal::from(1),
         };
         let created_invoice_2 = repo.create(new_invoice_2).await.unwrap();
 
@@ -708,6 +721,7 @@ mod tests {
             gateway_invoice_id: "notify_invoice_3".to_string(),
             payment_details: None,
             bot_message_id: None,
+            amount_in_usdt: Decimal::from(1),
         };
         let created_invoice_3 = repo.create(new_invoice_3).await.unwrap();
 

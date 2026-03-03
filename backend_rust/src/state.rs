@@ -103,7 +103,6 @@ type PurchaseServiceShortType = PurchaseService<
 
 type StoreBalanceRequestServiceShortType = StoreBalanceRequestService<
     StoreBalanceRequestRepository,
-    SettingsRepository,
     AuditLogShortType,
     TransactionServiceShortType,
     NotificationService,
@@ -330,7 +329,6 @@ impl AppState {
         )));
         let store_balance_request_service = Arc::new(StoreBalanceRequestService::new(
             Arc::new(StoreBalanceRequestRepository::new(db_pool.clone())),
-            settings_repo.clone(),
             audit_logs_service.clone(),
             transaction_service.clone(),
             notification_service.clone(),

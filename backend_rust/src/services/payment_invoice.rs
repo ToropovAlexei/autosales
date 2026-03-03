@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use async_trait::async_trait;
 use chrono::{DateTime, Duration, Utc};
-use rust_decimal::Decimal;
 use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::{Decimal, prelude::FromPrimitive};
 use rust_decimal_macros::dec;
 use shared_dtos::invoice::{InvoiceStatus, PaymentDetails, PaymentSystem};
 use uuid::Uuid;
@@ -151,7 +151,7 @@ where
         let amount_parsed = amount.to_f64().ok_or(ApiError::InternalServerError(
             "Failed to convert decimal".to_string(),
         ))?;
-        let (gateway_invoice_id, payment_details) = match command.gateway {
+        let (gateway_invoice_id, payment_details, amount_in_usdt) = match command.gateway {
             PaymentSystem::Mock => self
                 .mock_payments_provider
                 .create_invoide(MockProviderCreateInvoiceRequest {
@@ -164,6 +164,7 @@ where
                     (
                         r.invoice_id.to_string(),
                         PaymentDetails::Mock { pay_url: r.pay_url },
+                        dec!(0), // Just for mock
                     )
                 })
                 .map_err(ApiError::InternalServerError)?,
@@ -206,7 +207,15 @@ where
                     },
                     _ => unreachable!(),
                 };
-                (invoice.object_token.clone(), payment_details)
+                (
+                    invoice.object_token.clone(),
+                    payment_details,
+                    Decimal::from_f64(invoice.data_mathematics.amount_transfer).ok_or(
+                        ApiError::InternalServerError(
+                            "Failed to convert amount_transfer to Decimal".to_string(),
+                        ),
+                    )?,
+                )
             }
         };
         let created = self
@@ -222,6 +231,7 @@ where
                 order_id,
                 payment_details: Some(payment_details),
                 status: InvoiceStatus::Pending,
+                amount_in_usdt,
             })
             .await?;
 
@@ -557,6 +567,7 @@ mod tests {
                 finished_at: None,
                 receipt_requested_at: None,
                 receipt_submitted_at: None,
+                amount_in_usdt: payment_invoice.amount_in_usdt,
             })
         }
 

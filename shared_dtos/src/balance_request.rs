@@ -47,7 +47,7 @@ pub struct CreateStoreBalanceRequestAdminRequest {
         feature = "validate",
         validate(range(min = 0.000001, max = 1_000_000.0))
     )]
-    pub amount_rub: f64,
+    pub amount: f64,
 }
 
 #[cfg_attr(feature = "openapi", derive(utoipa::ToSchema))]
@@ -61,9 +61,7 @@ pub struct StoreBalanceRequestAdminResponse {
     pub id: i64,
     pub request_type: StoreBalanceRequestType,
     pub wallet_address: String,
-    pub amount_usdt: f64,
-    pub fx_rate_rub_to_usdt: f64,
-    pub amount_rub: f64,
+    pub amount: f64,
     pub status: StoreBalanceRequestStatus,
     pub operator_tg_user_id: Option<i64>,
     pub operator_comment: Option<String>,

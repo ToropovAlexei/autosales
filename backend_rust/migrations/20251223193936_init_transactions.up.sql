@@ -6,17 +6,18 @@ CREATE TABLE transactions (
     type TEXT NOT NULL CHECK (type IN ('deposit', 'purchase', 'withdrawal', 'referral_payout', 'service_charge', 'refund')),
     amount NUMERIC(12,2) NOT NULL,
 
-    store_balance_delta NUMERIC(12,2) NOT NULL,
+    store_balance_delta NUMERIC(12,6) NOT NULL,
 
     user_balance_after NUMERIC(12,2),
-    store_balance_after NUMERIC(12,2) NOT NULL,
+    store_balance_after NUMERIC(12,6) NOT NULL,
 
-    platform_commission NUMERIC(12,2) NOT NULL DEFAULT 0.00,
-    gateway_commission NUMERIC(12,2) NOT NULL DEFAULT 0.00,
+    platform_commission NUMERIC(12,6) NOT NULL DEFAULT 0.00,
+    gateway_commission NUMERIC(12,6) NOT NULL DEFAULT 0.00,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     description TEXT,
     payment_gateway TEXT,
     details JSONB,
+    bot_id BIGINT,
 
     CONSTRAINT fk_transactions_user
         FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL,
@@ -24,7 +25,9 @@ CREATE TABLE transactions (
         FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE SET NULL,
 
     CONSTRAINT chk_user_balance_requires_user
-        CHECK (customer_id IS NOT NULL = (user_balance_after IS NOT NULL))
+        CHECK (customer_id IS NOT NULL = (user_balance_after IS NOT NULL)),
+    CONSTRAINT fk_transactions_bot
+        FOREIGN KEY (bot_id) REFERENCES bots(id) ON DELETE SET NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_transactions_customer_id ON transactions (customer_id);
@@ -36,12 +39,13 @@ CREATE INDEX IF NOT EXISTS idx_transactions_user_last_balance
     WHERE customer_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_transactions_store_last_balance
     ON transactions (id DESC) INCLUDE (store_balance_after);
+CREATE INDEX IF NOT EXISTS idx_transactions_bot_id ON transactions (bot_id);
 
 CREATE OR REPLACE FUNCTION calculate_balances()
 RETURNS TRIGGER AS $$
 DECLARE
     last_user_balance NUMERIC(12,2);
-    last_store_balance NUMERIC(12,2);
+    last_store_balance NUMERIC(12,6);
 BEGIN
     IF NEW.customer_id IS NOT NULL THEN
         SELECT COALESCE((SELECT user_balance_after
@@ -74,7 +78,7 @@ RETURNS TRIGGER AS $$
 BEGIN
     IF NEW.customer_id IS NOT NULL THEN
         UPDATE customers
-        SET 
+        SET
             balance = NEW.user_balance_after,
             updated_at = NOW()
         WHERE id = NEW.customer_id;

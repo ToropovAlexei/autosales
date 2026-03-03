@@ -71,7 +71,7 @@ impl StoreBalanceRequestRepositoryTrait for StoreBalanceRequestRepository {
             StoreBalanceRequestRow,
             r#"
             SELECT
-                id, request_type as "request_type: _", wallet_address, amount_usdt, fx_rate_rub_to_usdt, amount_rub,
+                id, request_type as "request_type: _", wallet_address, amount,
                 status as "status: _", operator_tg_user_id, operator_comment, operator_action_at,
                 telegram_message_id, telegram_chat_id, debit_transaction_id, credit_transaction_id,
                 refund_transaction_id, created_at, updated_at
@@ -92,21 +92,19 @@ impl StoreBalanceRequestRepositoryTrait for StoreBalanceRequestRepository {
             StoreBalanceRequestRow,
             r#"
             INSERT INTO store_balance_requests (
-                request_type, wallet_address, amount_usdt, fx_rate_rub_to_usdt, amount_rub,
+                request_type, wallet_address, amount,
                 status, debit_transaction_id
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            VALUES ($1, $2, $3, $4, $5)
             RETURNING
-                id, request_type as "request_type: _", wallet_address, amount_usdt, fx_rate_rub_to_usdt, amount_rub,
+                id, request_type as "request_type: _", wallet_address, amount,
                 status as "status: _", operator_tg_user_id, operator_comment, operator_action_at,
                 telegram_message_id, telegram_chat_id, debit_transaction_id, credit_transaction_id,
                 refund_transaction_id, created_at, updated_at
             "#,
             new_request.request_type as _,
             new_request.wallet_address,
-            new_request.amount_usdt,
-            new_request.fx_rate_rub_to_usdt,
-            new_request.amount_rub,
+            new_request.amount,
             new_request.status as _,
             new_request.debit_transaction_id
         )

@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "\n            INSERT INTO store_balance_requests (\n                request_type, wallet_address, amount_usdt, fx_rate_rub_to_usdt, amount_rub,\n                status, debit_transaction_id\n            )\n            VALUES ($1, $2, $3, $4, $5, $6, $7)\n            RETURNING\n                id, request_type as \"request_type: _\", wallet_address, amount_usdt, fx_rate_rub_to_usdt, amount_rub,\n                status as \"status: _\", operator_tg_user_id, operator_comment, operator_action_at,\n                telegram_message_id, telegram_chat_id, debit_transaction_id, credit_transaction_id,\n                refund_transaction_id, created_at, updated_at\n            ",
+  "query": "\n            SELECT\n                id, request_type as \"request_type: _\", wallet_address, amount,\n                status as \"status: _\", operator_tg_user_id, operator_comment, operator_action_at,\n                telegram_message_id, telegram_chat_id, debit_transaction_id, credit_transaction_id,\n                refund_transaction_id, created_at, updated_at\n            FROM store_balance_requests WHERE id = $1",
   "describe": {
     "columns": [
       {
@@ -20,89 +20,71 @@
       },
       {
         "ordinal": 3,
-        "name": "amount_usdt",
+        "name": "amount",
         "type_info": "Numeric"
       },
       {
         "ordinal": 4,
-        "name": "fx_rate_rub_to_usdt",
-        "type_info": "Numeric"
-      },
-      {
-        "ordinal": 5,
-        "name": "amount_rub",
-        "type_info": "Numeric"
-      },
-      {
-        "ordinal": 6,
         "name": "status: _",
         "type_info": "Text"
       },
       {
-        "ordinal": 7,
+        "ordinal": 5,
         "name": "operator_tg_user_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 8,
+        "ordinal": 6,
         "name": "operator_comment",
         "type_info": "Text"
       },
       {
-        "ordinal": 9,
+        "ordinal": 7,
         "name": "operator_action_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 10,
+        "ordinal": 8,
         "name": "telegram_message_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 11,
+        "ordinal": 9,
         "name": "telegram_chat_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 12,
+        "ordinal": 10,
         "name": "debit_transaction_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 13,
+        "ordinal": 11,
         "name": "credit_transaction_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 14,
+        "ordinal": 12,
         "name": "refund_transaction_id",
         "type_info": "Int8"
       },
       {
-        "ordinal": 15,
+        "ordinal": 13,
         "name": "created_at",
         "type_info": "Timestamptz"
       },
       {
-        "ordinal": 16,
+        "ordinal": 14,
         "name": "updated_at",
         "type_info": "Timestamptz"
       }
     ],
     "parameters": {
       "Left": [
-        "Text",
-        "Text",
-        "Numeric",
-        "Numeric",
-        "Numeric",
-        "Text",
         "Int8"
       ]
     },
     "nullable": [
-      false,
-      false,
       false,
       false,
       false,
@@ -120,5 +102,5 @@
       false
     ]
   },
-  "hash": "567a9b054f628f15c973758f092d90f837c308bbf7a0384b883f30ca2656ea67"
+  "hash": "c8c9a5e00b41c0dd7d2b156ee1e485b0eeb8aa2f16ab2484a34f9906487dac62"
 }

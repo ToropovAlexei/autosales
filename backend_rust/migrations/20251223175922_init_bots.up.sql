@@ -11,14 +11,20 @@ CREATE TABLE bots (
         CHECK (referral_percentage BETWEEN 0.00 AND 100.00),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    created_by BIGINT
+    created_by BIGINT,
+    deleted_at TIMESTAMPTZ
 );
 
 ALTER TABLE bots
     ADD CONSTRAINT fk_bots_created_by
         FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE RESTRICT;
 
+ALTER TABLE bots
+    ADD CONSTRAINT fk_bots_owner_id
+        FOREIGN KEY (owner_id) REFERENCES customers(id) ON DELETE SET NULL;
+
 CREATE INDEX IF NOT EXISTS idx_bots_owner_id ON bots (owner_id);
 CREATE INDEX IF NOT EXISTS idx_bots_type ON bots (type);
 CREATE INDEX IF NOT EXISTS idx_bots_is_active ON bots (is_active);
 CREATE INDEX IF NOT EXISTS idx_bots_is_primary ON bots (is_primary);
+CREATE INDEX IF NOT EXISTS idx_bots_deleted_at ON bots (deleted_at) WHERE deleted_at IS NOT NULL;

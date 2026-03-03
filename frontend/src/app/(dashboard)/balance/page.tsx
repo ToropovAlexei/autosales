@@ -24,7 +24,6 @@ import { queryKeys } from "@/utils/query";
 import {
   CreateBalanceRequest,
   PermissionName,
-  PricingSettings,
   StoreBalance,
   StoreBalanceRequestType,
 } from "@/types";
@@ -32,7 +31,7 @@ import { useCan, useOne } from "@/hooks";
 
 const TRC20_WALLET_REGEX = /^T[1-9A-HJ-NP-Za-km-z]{33}$/;
 
-const formatNumber = (value?: number, digits = 2) => {
+const formatNumber = (value?: number, digits = 6) => {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return "н/д";
   }
@@ -58,23 +57,10 @@ export default function BalanceManagementPage() {
     endpoint: ENDPOINTS.STORE_BALANCE,
   });
 
-  const {
-    data: pricingSettings,
-    isPending: isPricingPending,
-    error: pricingError,
-    refetch: refetchPricing,
-  } = useOne<PricingSettings>({
-    endpoint: ENDPOINTS.PRICING_SETTINGS,
-  });
-
   const amountAsNumber = Number(amountUsdt);
-  const usdtRateRub = pricingSettings?.usdt_rate_rub ?? 0;
-  const amountRub =
-    Number.isFinite(amountAsNumber) && amountAsNumber > 0 && usdtRateRub > 0
-      ? amountAsNumber * usdtRateRub
-      : 0;
-  const balanceUsdt =
-    usdtRateRub > 0 ? (storeBalance?.balance ?? 0) / usdtRateRub : 0;
+  const amount = Number.isFinite(amountAsNumber)
+    ? Math.max(amountAsNumber, 0)
+    : 0;
 
   const validationMessage = useMemo(() => {
     if (!canManageBalance) {
@@ -93,23 +79,15 @@ export default function BalanceManagementPage() {
       return "Сумма в USDT должна быть больше 0";
     }
 
-    if (!pricingSettings || pricingSettings.usdt_rate_rub <= 0) {
-      return "Курс USDT недоступен";
-    }
-
-    if (
-      requestType === "withdrawal" &&
-      amountRub > (storeBalance?.balance ?? 0)
-    ) {
+    if (requestType === "withdrawal" && amount > (storeBalance?.balance ?? 0)) {
       return "Недостаточно средств на балансе магазина";
     }
 
     return null;
   }, [
     amountAsNumber,
-    amountRub,
+    amount,
     canManageBalance,
-    pricingSettings,
     requestType,
     storeBalance?.balance,
     walletAddress,
@@ -133,7 +111,6 @@ export default function BalanceManagementPage() {
           queryKey: queryKeys.one(ENDPOINTS.PRICING_SETTINGS),
         });
         refetchStoreBalance();
-        refetchPricing();
       },
       onError: (error) => {
         if (error instanceof Error) {
@@ -153,11 +130,9 @@ export default function BalanceManagementPage() {
     createRequest({
       request_type: requestType,
       wallet_address: walletAddress.trim(),
-      amount_rub: Number(amountRub.toFixed(2)),
+      amount: Number(amount.toFixed(6)),
     });
   };
-
-  const isPending = isStoreBalancePending || isPricingPending;
 
   return (
     <PageLayout title="Управление балансом">
@@ -177,9 +152,9 @@ export default function BalanceManagementPage() {
           </Card>
         </Stack>
 
-        {storeBalanceError || pricingError ? (
+        {storeBalanceError ? (
           <Alert severity="error">
-            Не удалось получить баланс или курс. Обновите страницу позже.
+            Не удалось получить баланс. Обновите страницу позже.
           </Alert>
         ) : null}
 

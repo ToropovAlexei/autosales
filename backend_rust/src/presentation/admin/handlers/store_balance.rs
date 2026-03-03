@@ -93,7 +93,7 @@ async fn create_store_balance_request(
         .store_balance_request_service
         .create(CreateStoreBalanceRequestCommand {
             admin_user_id: user.id,
-            amount_rub: Decimal::from_f64(payload.amount_rub)
+            amount: Decimal::from_f64(payload.amount)
                 .ok_or_else(|| ApiError::BadRequest("Invalid amount".into()))?,
             request_type: payload.request_type,
             wallet_address: payload.wallet_address,

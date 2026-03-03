@@ -12,13 +12,11 @@ CREATE TABLE images (
         CHECK (context IN ('product', 'category', 'fulfillment', 'invoice_receipt', 'other')),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     created_by BIGINT NOT NULL,
-    deleted_at TIMESTAMPTZ,
 
     CONSTRAINT fk_images_created_by
         FOREIGN KEY (created_by) REFERENCES admin_users(id) ON DELETE RESTRICT
 );
 
-CREATE INDEX IF NOT EXISTS idx_images_deleted_at ON images (deleted_at) WHERE deleted_at IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_images_context ON images (context);
 CREATE UNIQUE INDEX IF NOT EXISTS idx_images_hash ON images (hash);
 CREATE INDEX IF NOT EXISTS idx_images_created_at ON images (created_at);
