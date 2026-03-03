@@ -36,3 +36,4 @@ logs/
 local_docs/
 *.zip
 target/
+*.tsbuildinfo
