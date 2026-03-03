@@ -304,6 +304,7 @@ fn callback_kind(data: &CallbackData) -> &'static str {
 fn dispatch_message_kind(message: &DispatchMessage) -> &'static str {
     match message {
         DispatchMessage::GenericMessage { .. } => "generic_message",
+        DispatchMessage::ContactSupportNotification => "contact_support_notification",
         DispatchMessage::DisputeFailedNotification => "dispute_failed_notification",
         DispatchMessage::SubscriptionExpiringNotification { .. } => {
             "subscription_expiring_notification"
@@ -1056,6 +1057,19 @@ async fn handle_msg(
             message,
             image_id.map(MessageImage::Uuid),
             back_to_main_menu_inline_keyboard(),
+        ),
+        DispatchMessage::ContactSupportNotification => (
+            "Мы не смогли увидеть Ваш платеж.\nПожалуйста свяжитесь с оператором.".to_string(),
+            None,
+            InlineKeyboardMarkup::new(
+                [vec![InlineKeyboardButton::callback(
+                    "⬅️ Главное меню",
+                    CallbackData::ToMainMenu,
+                )]]
+                .into_iter()
+                .chain(support_operator_rows.clone().into_iter())
+                .collect::<Vec<_>>(),
+            ),
         ),
         DispatchMessage::DisputeFailedNotification => (
             "Мы не смогли проверить ваш платеж.\nПожалуйста, свяжитесь с оператором.".to_string(),

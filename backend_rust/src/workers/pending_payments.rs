@@ -449,11 +449,7 @@ async fn notify_contact_with_support(
         match app_state
             .notification_service
             .dispatch_message(DispatchMessagePayload {
-                message: DispatchMessage::GenericMessage {
-                    // TODO replace @operator_contact_placeholder
-                    message: "Мы не смогли увидеть Ваш платеж. Пожалуйста свяжитесь с оператором: @operator_contact_placeholder".to_string(),
-                    image_id: None,
-                },
+                message: DispatchMessage::ContactSupportNotification,
                 telegram_id: customer.telegram_id,
                 bot_id: customer.last_seen_with_bot,
             })

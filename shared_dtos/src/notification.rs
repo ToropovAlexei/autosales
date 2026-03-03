@@ -10,6 +10,7 @@ pub enum DispatchMessage {
         message: String,
         image_id: Option<Uuid>,
     },
+    ContactSupportNotification,
     DisputeFailedNotification,
     SubscriptionExpiringNotification {
         expires_at: DateTime<Utc>,
