@@ -30,7 +30,7 @@ pub async fn main_menu_handler(
         &dialogue,
         &bot,
         &MsgBy::CallbackQuery(&q),
-        "Главное меню",
+        "⬅️ Главное меню",
         None,
         main_menu_inline_keyboard(is_referral_program_enabled),
     )

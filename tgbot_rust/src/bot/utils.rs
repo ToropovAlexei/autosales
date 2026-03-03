@@ -12,6 +12,7 @@ use teloxide::types::{
     MaybeInaccessibleMessage, Message, MessageId, ParseMode, ReplyMarkup,
 };
 use teloxide::utils::html::escape;
+use url::Url;
 use uuid::Uuid;
 
 use crate::api::backend_api::BackendApi;
@@ -144,6 +145,23 @@ pub fn build_receipt_upload_instruction_text(
     }
 
     message
+}
+
+pub fn support_operator_buttons(
+    operators: &[String],
+) -> Vec<Vec<teloxide::types::InlineKeyboardButton>> {
+    operators
+        .iter()
+        .filter_map(|operator| {
+            let username = operator.trim().trim_start_matches('@');
+            if username.is_empty() {
+                return None;
+            }
+            let label = format!("Оператор: @{username}");
+            let url = Url::parse(&format!("https://t.me/{username}")).ok()?;
+            Some(vec![teloxide::types::InlineKeyboardButton::url(label, url)])
+        })
+        .collect()
 }
 
 /// Send message with or without photo

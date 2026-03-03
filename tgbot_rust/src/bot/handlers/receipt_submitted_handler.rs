@@ -1,7 +1,8 @@
 use std::sync::Arc;
 
-use crate::bot::keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard;
-use crate::bot::utils::{MsgBy, build_receipt_upload_instruction_text, edit_msg};
+use crate::bot::utils::{
+    MsgBy, build_receipt_upload_instruction_text, edit_msg, support_operator_buttons,
+};
 use crate::bot::{BotState, BotStep, CallbackData};
 use crate::{api::backend_api::BackendApi, bot::MyDialogue, errors::AppResult};
 use bytes::Bytes;
@@ -36,6 +37,10 @@ pub async fn receipt_submitted_handler(
             document.mime_type.clone().map(|e| e.to_string()),
         )
     } else {
+        let support_operators = api_client
+            .get_settings()
+            .await?
+            .bot_payment_system_support_operators;
         let text = build_receipt_upload_instruction_text(None, true);
         edit_msg(
             &api_client,
@@ -44,7 +49,15 @@ pub async fn receipt_submitted_handler(
             &MsgBy::Message(&msg),
             &text,
             None,
-            back_to_main_menu_inline_keyboard(),
+            InlineKeyboardMarkup::new(
+                [vec![InlineKeyboardButton::callback(
+                    "⬅️ Главное меню",
+                    CallbackData::ToMainMenu,
+                )]]
+                .into_iter()
+                .chain(support_operator_buttons(&support_operators).into_iter())
+                .collect::<Vec<_>>(),
+            ),
         )
         .await?;
 
@@ -67,7 +80,10 @@ pub async fn receipt_submitted_handler(
                     &MsgBy::Message(&msg),
                     "При получении чека произошла ошибка. Пожалуйста, попробуйте ещё раз.",
                     None,
-                    back_to_main_menu_inline_keyboard(),
+                    InlineKeyboardMarkup::new(vec![vec![InlineKeyboardButton::callback(
+                        "⬅️ Главное меню",
+                        CallbackData::ToMainMenu,
+                    )]]),
                 )
                 .await?;
                 return Ok(());
@@ -96,7 +112,7 @@ pub async fn receipt_submitted_handler(
         None,
         InlineKeyboardMarkup::new(vec![
             vec![InlineKeyboardButton::callback(
-                "Главное меню",
+                "⬅️ Главное меню",
                 CallbackData::ToMainMenu,
             )],
             vec![InlineKeyboardButton::callback(

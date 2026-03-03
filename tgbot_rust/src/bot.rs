@@ -34,7 +34,6 @@ use teloxide::{
 };
 use tokio::time::interval;
 use tokio_stream::StreamExt;
-use url::Url;
 
 use crate::{
     AppState,
@@ -60,7 +59,7 @@ use crate::{
         keyboards::back_to_main_menu::back_to_main_menu_inline_keyboard,
         utils::{
             MessageImage, MsgBy, build_invoice_payment_text, build_receipt_upload_instruction_text,
-            edit_msg, invoice_troubles_paragraph, send_msg,
+            edit_msg, invoice_troubles_paragraph, send_msg, support_operator_buttons,
         },
     },
     errors::{AppError, AppResult},
@@ -1056,7 +1055,7 @@ async fn handle_msg(
                     CallbackData::ToSupport,
                 )],
                 vec![InlineKeyboardButton::callback(
-                    "Главное меню",
+                    "⬅️ Главное меню",
                     CallbackData::ToMainMenu,
                 )],
             ]),
@@ -1138,7 +1137,15 @@ async fn handle_msg(
                     false,
                 ),
                 None,
-                InlineKeyboardMarkup::new(support_operator_rows),
+                InlineKeyboardMarkup::new(
+                    [vec![InlineKeyboardButton::callback(
+                        "⬅️ Главное меню",
+                        CallbackData::ToMainMenu,
+                    )]]
+                    .into_iter()
+                    .chain(support_operator_rows.into_iter())
+                    .collect::<Vec<_>>(),
+                ),
             )
         }
     };
@@ -1218,21 +1225,6 @@ async fn sync_bot_descriptions(
     }
 
     Ok(())
-}
-
-fn support_operator_buttons(operators: &[String]) -> Vec<Vec<InlineKeyboardButton>> {
-    operators
-        .iter()
-        .filter_map(|operator| {
-            let username = operator.trim().trim_start_matches('@');
-            if username.is_empty() {
-                return None;
-            }
-            let label = format!("Оператор: @{username}");
-            let url = Url::parse(&format!("https://t.me/{username}")).ok()?;
-            Some(vec![InlineKeyboardButton::url(label, url)])
-        })
-        .collect()
 }
 
 pub async fn generate_captcha_and_options(
