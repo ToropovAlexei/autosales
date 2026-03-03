@@ -44,12 +44,12 @@ pub async fn my_payments_handler(
     let active_payments = invoices
         .items
         .iter()
-        .filter(|i| is_active_status(i.status))
+        .filter(|i| should_show_in_list(i.status) && is_active_status(i.status))
         .collect::<Vec<_>>();
     let history_payments = invoices
         .items
         .iter()
-        .filter(|i| !is_active_status(i.status))
+        .filter(|i| should_show_in_list(i.status) && !is_active_status(i.status))
         .collect::<Vec<_>>();
     let mut text = bold("🧾 Мои платежи\n\n");
     if !active_payments.is_empty() {
@@ -105,6 +105,13 @@ fn is_active_status(status: InvoiceStatus) -> bool {
             | InvoiceStatus::AwaitingReceipt
             | InvoiceStatus::ReceiptSubmitted
             | InvoiceStatus::Disputed
+    )
+}
+
+fn should_show_in_list(status: InvoiceStatus) -> bool {
+    !matches!(
+        status,
+        InvoiceStatus::Failed | InvoiceStatus::Expired | InvoiceStatus::Cancelled
     )
 }
 
