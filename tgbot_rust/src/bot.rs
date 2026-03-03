@@ -1059,7 +1059,7 @@ async fn handle_msg(
             back_to_main_menu_inline_keyboard(),
         ),
         DispatchMessage::ContactSupportNotification => (
-            "Мы не смогли увидеть Ваш платеж.\nПожалуйста свяжитесь с оператором.".to_string(),
+            "Мы не смогли увидеть Ваш платеж.\nПожалуйста, свяжитесь с оператором.".to_string(),
             None,
             InlineKeyboardMarkup::new(
                 [vec![InlineKeyboardButton::callback(
