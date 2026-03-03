@@ -292,6 +292,11 @@ where
 
     async fn confirm_invoice(&self, id: i64) -> ApiResult<PaymentInvoiceRow> {
         let invoice = self.get_by_id(id).await?;
+        if invoice.status != InvoiceStatus::Pending {
+            return Err(ApiError::BadRequest(
+                "Invoice status is not pending".to_string(),
+            ));
+        }
         match invoice.gateway {
             PaymentSystem::PlatformCard | PaymentSystem::PlatformSBP => {
                 self.platform_payments_provider
@@ -329,6 +334,11 @@ where
 
     async fn cancel_invoice(&self, id: i64) -> ApiResult<PaymentInvoiceRow> {
         let invoice = self.get_by_id(id).await?;
+        if invoice.status != InvoiceStatus::Pending {
+            return Err(ApiError::BadRequest(
+                "Invoice status is not pending".to_string(),
+            ));
+        }
         match invoice.gateway {
             PaymentSystem::PlatformCard | PaymentSystem::PlatformSBP => {
                 self.platform_payments_provider
@@ -875,5 +885,215 @@ mod tests {
         }
 
         assert_eq!(res.gateway, PaymentSystem::PlatformCard);
+    }
+
+    struct StatusGuardRepo {
+        invoice: PaymentInvoiceRow,
+        last_update: Mutex<Option<UpdatePaymentInvoice>>,
+    }
+
+    #[async_trait]
+    impl PaymentInvoiceRepositoryTrait for StatusGuardRepo {
+        async fn get_list(
+            &self,
+            _query: PaymentInvoiceListQuery,
+        ) -> Result<PaginatedResult<PaymentInvoiceRow>, crate::errors::repository::RepositoryError>
+        {
+            Err(crate::errors::repository::RepositoryError::QueryFailed(
+                "not used".to_string(),
+            ))
+        }
+
+        async fn create(
+            &self,
+            _payment_invoice: NewPaymentInvoice,
+        ) -> Result<PaymentInvoiceRow, crate::errors::repository::RepositoryError> {
+            Err(crate::errors::repository::RepositoryError::QueryFailed(
+                "not used".to_string(),
+            ))
+        }
+
+        async fn update(
+            &self,
+            _id: i64,
+            payment_invoice: UpdatePaymentInvoice,
+        ) -> Result<PaymentInvoiceRow, crate::errors::repository::RepositoryError> {
+            *self.last_update.lock().unwrap() = Some(UpdatePaymentInvoice {
+                status: payment_invoice.status,
+                notification_sent_at: payment_invoice.notification_sent_at,
+                receipt_requested_at: payment_invoice.receipt_requested_at,
+                receipt_submitted_at: payment_invoice.receipt_submitted_at,
+                dispute_opened_at: payment_invoice.dispute_opened_at,
+                finished_at: payment_invoice.finished_at,
+            });
+
+            let mut invoice = self.invoice.clone();
+            if let Some(status) = payment_invoice.status {
+                invoice.status = status;
+            }
+            invoice.finished_at = payment_invoice.finished_at;
+            Ok(invoice)
+        }
+
+        async fn get_by_id(
+            &self,
+            _id: i64,
+        ) -> Result<PaymentInvoiceRow, crate::errors::repository::RepositoryError> {
+            Ok(self.invoice.clone())
+        }
+
+        async fn get_by_order_id(
+            &self,
+            _order_id: Uuid,
+        ) -> Result<PaymentInvoiceRow, crate::errors::repository::RepositoryError> {
+            Err(crate::errors::repository::RepositoryError::NotFound(
+                "not used".to_string(),
+            ))
+        }
+
+        async fn get_for_customer(
+            &self,
+            _customer_id: i64,
+        ) -> Result<Vec<PaymentInvoiceRow>, crate::errors::repository::RepositoryError> {
+            Ok(vec![])
+        }
+
+        async fn expire_old_invoices(
+            &self,
+        ) -> Result<u64, crate::errors::repository::RepositoryError> {
+            Err(crate::errors::repository::RepositoryError::QueryFailed(
+                "not used".to_string(),
+            ))
+        }
+
+        async fn get_pending_invoices(
+            &self,
+            _older_than: chrono::DateTime<chrono::Utc>,
+        ) -> Result<Vec<PaymentInvoiceRow>, crate::errors::repository::RepositoryError> {
+            Err(crate::errors::repository::RepositoryError::QueryFailed(
+                "not used".to_string(),
+            ))
+        }
+
+        async fn mark_invoices_notified(
+            &self,
+            _ids: &[i64],
+        ) -> Result<u64, crate::errors::repository::RepositoryError> {
+            Err(crate::errors::repository::RepositoryError::QueryFailed(
+                "not used".to_string(),
+            ))
+        }
+    }
+
+    fn test_invoice_row(status: InvoiceStatus) -> PaymentInvoiceRow {
+        let now = Utc::now();
+        PaymentInvoiceRow {
+            id: 1,
+            customer_id: 1,
+            original_amount: dec!(100),
+            amount: dec!(100),
+            amount_in_usdt: dec!(1),
+            status,
+            created_at: now,
+            updated_at: now,
+            expires_at: now + Duration::days(1),
+            deleted_at: None,
+            gateway: PaymentSystem::Mock,
+            gateway_invoice_id: "token-1".to_string(),
+            order_id: Uuid::new_v4(),
+            payment_details: json!({}),
+            bot_message_id: None,
+            notification_sent_at: None,
+            receipt_requested_at: None,
+            receipt_submitted_at: None,
+            dispute_opened_at: None,
+            finished_at: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_confirm_invoice_rejects_non_pending_status() {
+        let repo = Arc::new(StatusGuardRepo {
+            invoice: test_invoice_row(InvoiceStatus::AwaitingReceipt),
+            last_update: Mutex::new(None),
+        });
+        let service = PaymentInvoiceService::new(
+            repo.clone(),
+            Arc::new(FakeSettingsRepo {
+                settings: base_settings(),
+            }),
+            Arc::new(DummyMockProvider),
+            Arc::new(FakeAuditLogService),
+            Arc::new(MockAutosalesPlatformPaymentsProviderTrait::new()),
+            Arc::new(FakeCustomerRepo),
+        );
+
+        let err = service.confirm_invoice(1).await.unwrap_err();
+        assert!(matches!(err, ApiError::BadRequest(_)));
+        assert!(repo.last_update.lock().unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_confirm_invoice_allows_pending_status() {
+        let repo = Arc::new(StatusGuardRepo {
+            invoice: test_invoice_row(InvoiceStatus::Pending),
+            last_update: Mutex::new(None),
+        });
+        let service = PaymentInvoiceService::new(
+            repo.clone(),
+            Arc::new(FakeSettingsRepo {
+                settings: base_settings(),
+            }),
+            Arc::new(DummyMockProvider),
+            Arc::new(FakeAuditLogService),
+            Arc::new(MockAutosalesPlatformPaymentsProviderTrait::new()),
+            Arc::new(FakeCustomerRepo),
+        );
+
+        let updated = service.confirm_invoice(1).await.unwrap();
+        assert_eq!(updated.status, InvoiceStatus::Completed);
+    }
+
+    #[tokio::test]
+    async fn test_cancel_invoice_rejects_non_pending_status() {
+        let repo = Arc::new(StatusGuardRepo {
+            invoice: test_invoice_row(InvoiceStatus::ReceiptSubmitted),
+            last_update: Mutex::new(None),
+        });
+        let service = PaymentInvoiceService::new(
+            repo.clone(),
+            Arc::new(FakeSettingsRepo {
+                settings: base_settings(),
+            }),
+            Arc::new(DummyMockProvider),
+            Arc::new(FakeAuditLogService),
+            Arc::new(MockAutosalesPlatformPaymentsProviderTrait::new()),
+            Arc::new(FakeCustomerRepo),
+        );
+
+        let err = service.cancel_invoice(1).await.unwrap_err();
+        assert!(matches!(err, ApiError::BadRequest(_)));
+        assert!(repo.last_update.lock().unwrap().is_none());
+    }
+
+    #[tokio::test]
+    async fn test_cancel_invoice_allows_pending_status() {
+        let repo = Arc::new(StatusGuardRepo {
+            invoice: test_invoice_row(InvoiceStatus::Pending),
+            last_update: Mutex::new(None),
+        });
+        let service = PaymentInvoiceService::new(
+            repo.clone(),
+            Arc::new(FakeSettingsRepo {
+                settings: base_settings(),
+            }),
+            Arc::new(DummyMockProvider),
+            Arc::new(FakeAuditLogService),
+            Arc::new(MockAutosalesPlatformPaymentsProviderTrait::new()),
+            Arc::new(FakeCustomerRepo),
+        );
+
+        let updated = service.cancel_invoice(1).await.unwrap();
+        assert_eq!(updated.status, InvoiceStatus::Cancelled);
     }
 }
