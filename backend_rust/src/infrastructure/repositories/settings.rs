@@ -265,7 +265,12 @@ fn get_bool(map: &HashMap<String, Option<String>>, key: &str, default: bool) -> 
 fn get_string_vec(map: &HashMap<String, Option<String>>, key: &str) -> Vec<String> {
     map.get(key)
         .and_then(|v| v.as_ref())
-        .map(|s| s.split(',').map(|s| s.to_string()).collect())
+        .map(|s| {
+            s.split(',')
+                .map(|s| s.to_string())
+                .filter(|s| !s.is_empty())
+                .collect()
+        })
         .unwrap_or_default()
 }
 
