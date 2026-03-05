@@ -32,6 +32,7 @@ impl From<Settings> for SettingsBotResponse {
             referral_program_enabled: r.referral_program_enabled,
             referral_percentage: r.referral_percentage.to_f64().unwrap_or_default(),
             bot_payment_system_support_operators: r.bot_payment_system_support_operators,
+            bot_store_support_operators: r.bot_store_support_operators,
             bot_about: r.bot_about,
             bot_description: r.bot_description,
             manager_group_chat_id: r.manager_group_chat_id,

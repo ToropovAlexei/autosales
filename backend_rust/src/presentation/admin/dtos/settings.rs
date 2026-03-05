@@ -41,6 +41,7 @@ impl From<Settings> for BotSettingsAdminResponse {
             bot_messages_returning_user_welcome_image_id: r
                 .bot_messages_returning_user_welcome_image_id,
             bot_payment_system_support_operators: r.bot_payment_system_support_operators,
+            bot_store_support_operators: r.bot_store_support_operators,
             bot_about: r.bot_about,
             bot_description: r.bot_description,
         }
@@ -80,6 +81,7 @@ impl From<UpdateBotSettingsAdminRequest> for UpdateSettingsCommand {
             bot_messages_returning_user_welcome_image_id: r
                 .bot_messages_returning_user_welcome_image_id,
             bot_payment_system_support_operators: r.bot_payment_system_support_operators,
+            bot_store_support_operators: r.bot_store_support_operators,
             bot_about: r.bot_about,
             bot_description: r.bot_description,
             ..UpdateSettingsCommand::default()
@@ -109,6 +111,7 @@ mod tests {
             bot_messages_new_user_welcome: "Welcome new user".to_string(),
             bot_messages_new_user_welcome_image_id: Some(Uuid::new_v4()),
             bot_messages_returning_user_welcome: "Welcome back".to_string(),
+            bot_store_support_operators: vec!["store_support".to_string()],
             ..Default::default()
         }
     }
@@ -142,6 +145,10 @@ mod tests {
             response
                 .bot_messages_returning_user_welcome_image_id
                 .is_none()
+        );
+        assert_eq!(
+            response.bot_store_support_operators,
+            vec!["store_support".to_string()]
         );
     }
 
@@ -220,6 +227,7 @@ mod tests {
             bot_messages_returning_user_welcome: Some("Short returning message".to_string()),
             bot_messages_returning_user_welcome_image_id: Some(Some(Uuid::new_v4())),
             bot_payment_system_support_operators: Some(vec![]),
+            bot_store_support_operators: Some(vec![]),
             bot_about: Some("".to_string()),
             bot_description: Some("".to_string()),
         };
@@ -245,6 +253,18 @@ mod tests {
         // bot_messages_returning_user_welcome too long
         let req = UpdateBotSettingsAdminRequest {
             bot_messages_returning_user_welcome: Some("a".repeat(1000)),
+            ..Default::default()
+        };
+        assert!(req.validate().is_err());
+
+        // bot_store_support_operators too many
+        let req = UpdateBotSettingsAdminRequest {
+            bot_store_support_operators: Some(vec![
+                "store_1".to_string(),
+                "store_2".to_string(),
+                "store_3".to_string(),
+                "store_4".to_string(),
+            ]),
             ..Default::default()
         };
         assert!(req.validate().is_err());
@@ -279,6 +299,7 @@ mod tests {
             bot_messages_support: Some("New support message".to_string()),
             bot_messages_support_image_id: Some(Some(uuid)),
             bot_messages_new_user_welcome: Some("New welcome message".to_string()),
+            bot_store_support_operators: Some(vec!["@store_1".to_string(), "store_2".to_string()]),
             ..Default::default()
         };
         let command: UpdateSettingsCommand = req.into();
@@ -291,6 +312,10 @@ mod tests {
         assert_eq!(
             command.bot_messages_new_user_welcome,
             Some("New welcome message".to_string())
+        );
+        assert_eq!(
+            command.bot_store_support_operators,
+            Some(vec!["@store_1".to_string(), "store_2".to_string()])
         );
         assert!(command.bot_messages_returning_user_welcome.is_none()); // Default is None
     }

@@ -20,6 +20,7 @@ pub struct SettingsBotResponse {
     pub referral_program_enabled: bool,
     pub referral_percentage: f64,
     pub bot_payment_system_support_operators: Vec<String>,
+    pub bot_store_support_operators: Vec<String>,
     pub bot_about: String,
     pub bot_description: String,
     pub manager_group_chat_id: Option<i64>,
@@ -66,6 +67,7 @@ pub struct BotSettingsAdminResponse {
     pub bot_messages_returning_user_welcome: String,
     pub bot_messages_returning_user_welcome_image_id: Option<Uuid>,
     pub bot_payment_system_support_operators: Vec<String>,
+    pub bot_store_support_operators: Vec<String>,
     pub bot_description: String,
     pub bot_about: String,
 }
@@ -149,6 +151,12 @@ pub struct UpdateBotSettingsAdminRequest {
     )]
     #[cfg_attr(feature = "ts", ts(optional))]
     pub bot_payment_system_support_operators: Option<Vec<String>>,
+    #[cfg_attr(
+        feature = "validate",
+        validate(length(max = 3, message = "length must be less than 3"))
+    )]
+    #[cfg_attr(feature = "ts", ts(optional))]
+    pub bot_store_support_operators: Option<Vec<String>>,
     #[cfg_attr(
         feature = "validate",
         validate(length(max = 999, message = "length must be less than 999"))

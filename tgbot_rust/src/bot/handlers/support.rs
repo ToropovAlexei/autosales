@@ -2,15 +2,14 @@ use std::sync::Arc;
 
 use teloxide::{
     Bot,
-    types::{CallbackQuery, Message},
+    types::{CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message},
 };
 
 use crate::{
     api::backend_api::BackendApi,
     bot::{
-        MyDialogue,
-        keyboards::main_menu::main_menu_inline_keyboard,
-        utils::{MessageImage, MsgBy, edit_msg},
+        CallbackData, MyDialogue,
+        utils::{MessageImage, MsgBy, edit_msg, support_operator_buttons},
     },
     errors::AppResult,
 };
@@ -43,6 +42,16 @@ async fn support_handler_impl(
     let support_img = settings
         .bot_messages_support_image_id
         .map(MessageImage::Uuid);
+    let support_rows = support_operator_buttons(&settings.bot_store_support_operators);
+    let keyboard = InlineKeyboardMarkup::new(
+        support_rows
+            .into_iter()
+            .chain(std::iter::once(vec![InlineKeyboardButton::callback(
+                "⬅️ Назад",
+                CallbackData::ToMainMenu,
+            )]))
+            .collect::<Vec<_>>(),
+    );
 
     edit_msg(
         &api_client,
@@ -51,7 +60,7 @@ async fn support_handler_impl(
         &msg_by,
         &settings.bot_messages_support,
         support_img,
-        main_menu_inline_keyboard(settings.referral_program_enabled),
+        keyboard,
     )
     .await?;
 

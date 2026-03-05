@@ -35,6 +35,7 @@ pub struct UpdateSettingsCommand {
     pub referral_program_enabled: Option<bool>,
     pub referral_percentage: Option<Decimal>,
     pub bot_payment_system_support_operators: Option<Vec<String>>,
+    pub bot_store_support_operators: Option<Vec<String>>,
     pub bot_description: Option<String>,
     pub bot_about: Option<String>,
     pub manager_group_chat_id: Option<Option<i64>>,
@@ -68,6 +69,13 @@ impl From<UpdateSettingsCommand> for UpdateSettings {
                         .collect::<Vec<String>>()
                 },
             ),
+            bot_store_support_operators: r.bot_store_support_operators.map(|operators| {
+                operators
+                    .iter()
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| !s.is_empty())
+                    .collect::<Vec<String>>()
+            }),
             bot_about: r.bot_about,
             bot_description: r.bot_description,
             manager_group_chat_id: r.manager_group_chat_id,

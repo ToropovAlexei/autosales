@@ -8,7 +8,7 @@ import { ENDPOINTS } from "@/constants";
 import { toast } from "react-toastify";
 import { queryKeys } from "@/utils/query";
 import { useEffect } from "react";
-import { InputImage, InputText } from "@/components";
+import { InputAutocomplete, InputImage, InputText } from "@/components";
 import { BotSettings, UpdateBotSettings } from "@/types/settings";
 import { useOne } from "@/hooks";
 
@@ -18,6 +18,10 @@ export const BotSettingsForm = () => {
   });
 
   const queryClient = useQueryClient();
+  const paymentSupportOperatorsOptions =
+    settings?.bot_payment_system_support_operators ?? [];
+  const storeSupportOperatorsOptions =
+    settings?.bot_store_support_operators ?? [];
 
   const form = useForm<UpdateBotSettings>({ defaultValues: settings });
   const { handleSubmit, reset, formState } = form;
@@ -87,6 +91,24 @@ export const BotSettingsForm = () => {
                   label="Сообщение поддержки"
                   multiline
                   minRows={2}
+                />
+                <InputAutocomplete
+                  name="bot_payment_system_support_operators"
+                  label="Операторы поддержки платежной системы"
+                  options={paymentSupportOperatorsOptions}
+                  multiple
+                  freeSolo
+                  placeholder="Введите логины операторов и нажмите Enter, максимум 3 оператора"
+                  disabled={isSettingsPending}
+                />
+                <InputAutocomplete
+                  name="bot_store_support_operators"
+                  label="Операторы поддержки магазина"
+                  options={storeSupportOperatorsOptions}
+                  multiple
+                  freeSolo
+                  placeholder="Введите логины операторов и нажмите Enter, максимум 3 оператора"
+                  disabled={isSettingsPending}
                 />
                 <InputText
                   name="bot_description"

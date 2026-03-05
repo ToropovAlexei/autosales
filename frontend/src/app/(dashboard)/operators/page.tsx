@@ -6,7 +6,6 @@ import { PageLayout } from "@/components/PageLayout";
 import { Button, Stack } from "@mui/material";
 import { PaymentInvoice } from "@/types";
 import { InvoicesTable } from "./components/InvoicesTable";
-import { InputSupportOperators } from "./components/InputSupportOperators";
 
 const ACTIVE_INVOICE_STATUSES = [
   "pending",
@@ -44,7 +43,6 @@ export default function OperatorsPage() {
   return (
     <PageLayout title="Для операторов">
       <Stack gap={2} mb={2}>
-        <InputSupportOperators />
         <Stack direction="row">
           <Button onClick={() => refetch()}>Обновить</Button>
         </Stack>

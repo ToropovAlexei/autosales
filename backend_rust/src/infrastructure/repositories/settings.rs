@@ -92,6 +92,7 @@ impl SettingsRepositoryTrait for SettingsRepository {
                 &map,
                 "bot_payment_system_support_operators",
             ),
+            bot_store_support_operators: get_string_vec(&map, "bot_store_support_operators"),
             bot_about: get_string(&map, "bot_about", ""),
             bot_description: get_string(&map, "bot_description", ""),
             manager_group_chat_id: get_i64(&map, "manager_group_chat_id"),
@@ -210,6 +211,10 @@ impl SettingsRepositoryTrait for SettingsRepository {
             "bot_payment_system_support_operators",
             update.bot_payment_system_support_operators
         );
+        update_vec_setting!(
+            "bot_store_support_operators",
+            update.bot_store_support_operators
+        );
         update_setting!("bot_about", update.bot_about);
         update_setting!("bot_description", update.bot_description);
         update_nullable_setting!("manager_group_chat_id", update.manager_group_chat_id);
@@ -281,6 +286,7 @@ mod tests {
         assert_eq!(settings.pricing_global_markup, dec!(0));
         assert!(!settings.referral_program_enabled);
         assert!(settings.bot_messages_support_image_id.is_none());
+        assert!(settings.bot_store_support_operators.is_empty());
     }
 
     #[sqlx::test]
@@ -339,6 +345,10 @@ mod tests {
             bot_messages_new_user_welcome_image_id: Some(Some(new_image_id)),
             pricing_platform_commission: Some(Decimal::from_str("2.5").unwrap()),
             referral_program_enabled: Some(true),
+            bot_store_support_operators: Some(vec![
+                "store_support_1".to_string(),
+                "@store_support_2".to_string(),
+            ]),
             // Keep some fields as None to ensure they are not updated
             ..Default::default()
         };
@@ -360,6 +370,13 @@ mod tests {
             Decimal::from_str("2.5").unwrap()
         );
         assert!(updated_settings.referral_program_enabled);
+        assert_eq!(
+            updated_settings.bot_store_support_operators,
+            vec![
+                "store_support_1".to_string(),
+                "@store_support_2".to_string()
+            ]
+        );
         // Check that a non-updated field remains at its default
         assert_eq!(
             updated_settings.pricing_global_markup,
@@ -379,6 +396,13 @@ mod tests {
         assert_eq!(
             reloaded_settings.pricing_platform_commission,
             Decimal::from_str("2.5").unwrap()
+        );
+        assert_eq!(
+            reloaded_settings.bot_store_support_operators,
+            vec![
+                "store_support_1".to_string(),
+                "@store_support_2".to_string()
+            ]
         );
     }
 
